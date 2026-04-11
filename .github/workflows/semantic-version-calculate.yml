@@ -49,12 +49,14 @@ jobs:
         with:
           node-version: "lts/*"
 
-      - name: Install Semantic Release
-        run: npm ci
-
       - name: Set PROJECT_DIR environment variable
         if: ${{ inputs.project_dir != '' }}
         run: echo "PROJECT_DIR=${{ inputs.project_dir }}" >> "$GITHUB_ENV"
+
+      - name: Install Semantic Release
+        run: |
+          cd ${{ env.PROJECT_DIR || '.' }}
+          npm ci
 
       - name: Calculate semantic version
         id: calculate_semantic_version
