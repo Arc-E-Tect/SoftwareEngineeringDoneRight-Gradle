@@ -6,7 +6,8 @@ on:
       - maintenance
     paths:
       - 'jacoco-exclusion-report/**'
-      - '.github/workflows/jacoco-exclusion-report-build.yml'
+      - '.github/workflows/**'
+      - '.github/actions/**'
 
 jobs:
   Calculate-Version:
