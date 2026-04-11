@@ -68,6 +68,18 @@ simple name contains `"Generated"`. Because `ExcludeFromJacocoGeneratedCodeCover
 this condition, the annotated elements are excluded from both the JaCoCo coverage report _and_
 from coverage verification thresholds without any additional configuration.
 
+> **Using a custom annotation**
+>
+> You can define your own annotation instead of using `ExcludeFromJacocoGeneratedCodeCoverage`.
+> To keep the JaCoCo exclusion working automatically, the annotation's _simple name_ must contain
+> the substring `Generated` (this is the convention JaCoCo relies on). For example,
+> `MyProjectGeneratedExclusion` would work; `MyProjectExclusion` would not.
+> Tell the plugin which annotation to scan for via the `annotationName` configuration property
+> (see [Configuration](#configuration)).
+> Using `ExcludeFromJacocoGeneratedCodeCoverage` from `sedr-library` is recommended because it
+> carries a `justification` attribute that surfaces the reason for each exclusion directly in the
+> generated reports.
+
 ## Annotating source code
 
 Apply the annotation at the narrowest appropriate scope to keep the audit list as small
@@ -112,6 +124,9 @@ All properties have sensible defaults and do not need to be set for a typical pr
 jacocoExclusionReport {
     // Simple (unqualified) name of the annotation to search for.
     // Default: 'ExcludeFromJacocoGeneratedCodeCoverage'
+    // Set this to the simple name of your own annotation if you prefer not to
+    // use the one from sedr-library. For JaCoCo to automatically exclude the
+    // annotated elements, the annotation's simple name must contain 'Generated'.
     annotationName = 'ExcludeFromJacocoGeneratedCodeCoverage'
 
     // Java source directories to scan.
