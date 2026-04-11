@@ -1,6 +1,7 @@
 plugins {
     id 'java-gradle-plugin'
     id 'maven-publish'
+    alias(libs.plugins.plugin.publish)
 }
 
 java {
@@ -22,12 +23,15 @@ dependencies {
 }
 
 gradlePlugin {
+    website = 'https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle'
+    vcsUrl  = 'https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle.git'
     plugins {
         jacocoExclusionReport {
             id                  = 'com.arc-e-tect.jacoco-exclusion-report'
             implementationClass = 'com.arc_e_tect.gradle.jacoco.JacocoExclusionReportPlugin'
             displayName         = 'JaCoCo Exclusion Report'
             description         = 'Scans sources for @ExcludeFromJacocoGeneratedCodeCoverage and generates an HTML+XML report.'
+            tags                = ['jacoco', 'coverage', 'report', 'exclusion']
         }
     }
 }
