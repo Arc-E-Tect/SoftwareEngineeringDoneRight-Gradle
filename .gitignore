@@ -47,6 +47,7 @@ build/
 *.iml
 *.iws
 out/
+bin/
 
 # VS Code
 /gradle-plugin-publishing.md
