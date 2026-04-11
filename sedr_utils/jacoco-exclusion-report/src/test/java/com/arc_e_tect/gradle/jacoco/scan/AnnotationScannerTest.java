@@ -172,11 +172,64 @@ class AnnotationScannerTest {
     }
 
     @Test
-    @DisplayName("returns empty justification when annotation is a plain marker")
+    @DisplayName("returns empty justification for marker annotation")
     void returnsEmptyJustificationForMarkerAnnotation() throws Exception {
         List<ExcludedElement> elements = scanner.scan(fixture("AnnotatedFixture.java"));
         ExcludedElement field = byType(elements, ElementType.FIELD).get(0);
         assertThat(field.getJustification()).isEmpty();
+    }
+
+    // ── Nested class fixture ──────────────────────────────────────────────────
+
+    @Test
+    @DisplayName("builds nested class name as Outer.Inner")
+    void buildsNestedClassName() throws Exception {
+        List<ExcludedElement> elements = scanner.scan(fixture("NestedClassFixture.java"));
+
+        assertThat(elements).hasSize(1);
+        assertThat(elements.get(0).getClassName()).isEqualTo("NestedClassFixture.Inner");
+    }
+
+    // ── Constant-reference justification ─────────────────────────────────────
+
+    @Test
+    @DisplayName("returns raw expression when justification is a constant reference")
+    void returnsRawExpressionForConstantJustification() throws Exception {
+        List<ExcludedElement> elements = scanner.scan(fixture("ConstantJustificationFixture.java"));
+
+        assertThat(elements).hasSize(1);
+        // The justification is a field-access expression, not a quoted string literal.
+        // AnnotationScanner should return it verbatim without stripping quotes.
+        assertThat(elements.get(0).getJustification())
+                .isNotEmpty()
+                .doesNotStartWith("\"");
+    }
+
+    // ── Fully-qualified annotation name ──────────────────────────────────────
+
+    @Test
+    @DisplayName("matches annotation supplied as a fully-qualified name (covers endsWith branch)")
+    void matchesFullyQualifiedAnnotationName() throws Exception {
+        List<ExcludedElement> elements = scanner.scan(fixture("FqAnnotationFixture.java"));
+
+        assertThat(elements).hasSize(1);
+        ExcludedElement elem = elements.get(0);
+        assertThat(elem.getType()).isEqualTo(ElementType.METHOD);
+        assertThat(elem.getMember()).isEqualTo("annotatedWithFqName()");
+        assertThat(elem.getJustification()).isEqualTo("FQ annotation match");
+    }
+
+    // ── Parse failure guard ───────────────────────────────────────────────────
+
+    @Test
+    @DisplayName("returns empty list when the file is not valid Java")
+    void returnsEmptyListForUnparsableFile(@org.junit.jupiter.api.io.TempDir File tmpDir)
+            throws Exception {
+        File garbage = new File(tmpDir, "NotJava.java");
+        java.nio.file.Files.writeString(garbage.toPath(), "this is not java { {{ }}}}}");
+
+        List<ExcludedElement> result = scanner.scan(garbage);
+        assertThat(result).isEmpty();
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────

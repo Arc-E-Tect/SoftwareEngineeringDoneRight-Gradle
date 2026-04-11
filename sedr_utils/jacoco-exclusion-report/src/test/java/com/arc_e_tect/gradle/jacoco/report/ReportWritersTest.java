@@ -169,6 +169,19 @@ class ReportWritersTest {
     }
 
     @Test
+    @DisplayName("HTML escapes special characters in content")
+    void htmlEscapesSpecialChars(@TempDir File tmpDir) throws Exception {
+        // Use special chars in annotation name to exercise the esc() method
+        new HtmlReportWriter().write(List.of(), "Annotation<With>&Specials", tmpDir);
+
+        String html = Files.readString(new File(tmpDir, "index.html").toPath());
+        assertThat(html)
+                .contains("&lt;")
+                .contains("&gt;")
+                .contains("&amp;");
+    }
+
+    @Test
     @DisplayName("XML contains justification attribute when justification is present")
     void xmlContainsJustificationAttribute(@TempDir File tmpDir) throws Exception {
         List<ExcludedElement> elements = List.of(
@@ -187,5 +200,63 @@ class ReportWritersTest {
 
         String xml = Files.readString(new File(tmpDir, "jacoco-exclusions.xml").toPath());
         assertThat(xml).doesNotContain("justification=");
+    }
+
+    @Test
+    @DisplayName("XML escapes special characters in justification attribute")
+    void xmlEscapesSpecialCharsInJustification(@TempDir File tmpDir) throws Exception {
+        List<ExcludedElement> elements = List.of(
+                new ExcludedElement(ElementType.METHOD, "com.example", "FooService",
+                        "doWork()", 5, "FooService.java",
+                        "Reason: a<b>&c\"d'e"));
+        new XmlReportWriter().write(elements, ANNOTATION, tmpDir);
+
+        String xml = Files.readString(new File(tmpDir, "jacoco-exclusions.xml").toPath());
+        assertThat(xml)
+                .contains("&lt;")
+                .contains("&amp;")
+                .contains("&quot;")
+                .contains("&apos;");
+    }
+
+    @Test
+    @DisplayName("XML emits a no-exclusions testsuite when element list is empty")
+    void xmlEmitsNoExclusionsSuiteWhenEmpty(@TempDir File tmpDir) throws Exception {
+        new XmlReportWriter().write(List.of(), ANNOTATION, tmpDir);
+
+        String xml = Files.readString(new File(tmpDir, "jacoco-exclusions.xml").toPath());
+        assertThat(xml).contains("no exclusions");
+    }
+
+    // ── Default-package elements ──────────────────────────────────────────────
+
+    private static final List<ExcludedElement> DEFAULT_PKG_ELEMENTS = List.of(
+            new ExcludedElement(ElementType.CLASS, "", "DefaultPkgClass", "", 1, "DefaultPkgClass.java"));
+
+    @Test
+    @DisplayName("HTML renders '(default package)' label when packageName is empty")
+    void htmlRendersDefaultPackageLabel(@TempDir File tmpDir) throws Exception {
+        new HtmlReportWriter().write(DEFAULT_PKG_ELEMENTS, ANNOTATION, tmpDir);
+
+        String html = Files.readString(new File(tmpDir, "index.html").toPath());
+        assertThat(html).contains("(default package)");
+    }
+
+    @Test
+    @DisplayName("HTML uses raw class name as heading when FQCN contains no dot")
+    void htmlUsesRawClassNameWhenFqcnHasNoDot(@TempDir File tmpDir) throws Exception {
+        new HtmlReportWriter().write(DEFAULT_PKG_ELEMENTS, ANNOTATION, tmpDir);
+
+        String html = Files.readString(new File(tmpDir, "index.html").toPath());
+        assertThat(html).contains("DefaultPkgClass");
+    }
+
+    @Test
+    @DisplayName("XML renders '(default)' suite name when packageName is empty")
+    void xmlRendersDefaultSuiteName(@TempDir File tmpDir) throws Exception {
+        new XmlReportWriter().write(DEFAULT_PKG_ELEMENTS, ANNOTATION, tmpDir);
+
+        String xml = Files.readString(new File(tmpDir, "jacoco-exclusions.xml").toPath());
+        assertThat(xml).contains("(default)");
     }
 }
