@@ -68,6 +68,9 @@ jobs:
           cd sedr_utils/jacoco-exclusion-report
           chmod +x ./gradlew
           ./gradlew build
+        env:
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.SEDR_AUTOMATION_TOKEN }}
 
   Workflow-Summary:
     name: Workflow Summary
