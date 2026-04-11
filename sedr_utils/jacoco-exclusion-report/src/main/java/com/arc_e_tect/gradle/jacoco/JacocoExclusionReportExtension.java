@@ -1,6 +1,6 @@
 package com.arc_e_tect.gradle.jacoco;
 
-import com.arc_e_tect.utils.sedr.jacoco.marker.ExcludeFromJacocoGeneratedCodeCoverage;
+import com.arc_e_tect.book.sedr.jacoco.marker.ExcludeFromJacocoGeneratedCodeCoverage;
 import org.gradle.api.file.ConfigurableFileCollection;
 import org.gradle.api.file.DirectoryProperty;
 import org.gradle.api.provider.Property;

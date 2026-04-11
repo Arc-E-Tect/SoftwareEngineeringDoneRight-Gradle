@@ -1,6 +1,6 @@
 package com.arc_e_tect.gradle.jacoco;
 
-import com.arc_e_tect.utils.sedr.jacoco.marker.ExcludeFromJacocoGeneratedCodeCoverage;
+import com.arc_e_tect.book.sedr.jacoco.marker.ExcludeFromJacocoGeneratedCodeCoverage;
 import com.arc_e_tect.gradle.jacoco.model.ExcludedElement;
 import com.arc_e_tect.gradle.jacoco.report.HtmlReportWriter;
 import com.arc_e_tect.gradle.jacoco.report.XmlReportWriter;
