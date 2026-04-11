@@ -5,7 +5,7 @@ on:
       - main
       - maintenance
     paths:
-      - 'jacoco-exclusion-report/**'
+      - 'sedr_utils/jacoco-exclusion-report/**'
       - '.github/workflows/**'
       - '.github/actions/**'
 
