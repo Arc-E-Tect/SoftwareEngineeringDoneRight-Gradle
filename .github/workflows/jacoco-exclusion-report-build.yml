@@ -10,7 +10,7 @@ on:
 
 jobs:
   Calculate-Version:
-    uses: Arc-E-Tect/SoftwareEngineeringDoneRight-Code/.github/workflows/semantic-version-calculate.yml@main
+    uses: ./.github/workflows/semantic-version-calculate.yml
     with:
       fail_on_empty_version: false
       fail_on_existing_tag: false
@@ -20,7 +20,7 @@ jobs:
 
   Determine-Release-Type:
     needs: Calculate-Version
-    uses: Arc-E-Tect/SoftwareEngineeringDoneRight-Code/.github/workflows/determine-release-type.yml@main
+    uses: ./.github/workflows/determine-release-type.yml
 
   Build-Plugin:
     name: Build JaCoCo Exclusion Report Plugin

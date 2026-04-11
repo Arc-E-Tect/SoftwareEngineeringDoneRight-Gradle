@@ -9,7 +9,7 @@ on:
 
 jobs:
   Calculate-Version:
-    uses: Arc-E-Tect/SoftwareEngineeringDoneRight-Code/.github/workflows/semantic-version-calculate.yml@main
+    uses: ./.github/workflows/semantic-version-calculate.yml
     with:
       fail_on_empty_version: true
       project_dir: sedr_utils/jacoco-exclusion-report
@@ -19,11 +19,12 @@ jobs:
 
   Security-Scan:
     needs: Calculate-Version
-    uses: Arc-E-Tect/SoftwareEngineeringDoneRight-Code/.github/workflows/security-scan.yml@main
+    uses: ./.github/workflows/security-scan.yml
     with:
       fail_on_fatal: true
       project_name: 'jacoco-exclusion-report'
       semantic_version: ${{ needs.Calculate-Version.outputs.next_version }}
+      secure_behavior: false
     secrets:
       NVD_APIKEY_SEDR: ${{ secrets.NVD_APIKEY_SEDR }}
       POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
@@ -116,7 +117,7 @@ jobs:
     name: Release JaCoCo Exclusion Report Plugin
     needs: [Calculate-Version, Build-Plugin, Security-Scan, Publish-Plugin]
     if: ${{ needs.Calculate-Version.outputs.next_version != '' }}
-    uses: Arc-E-Tect/SoftwareEngineeringDoneRight-Code/.github/workflows/semantic-version-apply.yml@main
+    uses: ./.github/workflows/semantic-version-apply.yml
     with:
       project_dir: sedr_utils/jacoco-exclusion-report
     secrets:
@@ -125,7 +126,7 @@ jobs:
   Determine-Release-Type:
     needs: [Calculate-Version]
     if: ${{ needs.Calculate-Version.outputs.next_version != '' }}
-    uses: Arc-E-Tect/SoftwareEngineeringDoneRight-Code/.github/workflows/determine-release-type.yml@main
+    uses: ./.github/workflows/determine-release-type.yml
 
   Workflow-Summary:
     name: Workflow Summary
