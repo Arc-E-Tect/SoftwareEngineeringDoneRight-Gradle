@@ -86,39 +86,9 @@ jobs:
           name: jacoco-exclusion-report-plugin-test-results
           path: sedr_utils/jacoco-exclusion-report/build/reports/tests/**
 
-  Publish-Plugin:
-    name: Publish JaCoCo Exclusion Report Plugin to GitHub Packages
-    needs: [Calculate-Version, Build-Plugin, Security-Scan]
-    if: ${{ needs.Calculate-Version.outputs.next_version != '' }}
-    permissions:
-      contents: read
-      packages: write
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-
-      - name: Setup Java
-        uses: actions/setup-java@v5
-        with:
-          distribution: 'temurin'
-          java-version: 21
-
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v5
-
-      - name: Publish to GitHub Packages
-        run: |
-          cd sedr_utils/jacoco-exclusion-report
-          chmod +x ./gradlew
-          ./gradlew publishAllPublicationsToGitHubPackagesRepository --no-daemon
-        env:
-          GITHUB_ACTOR: ${{ github.actor }}
-          GITHUB_TOKEN: ${{ secrets.SEDR_AUTOMATION_TOKEN }}
-
   Release-Plugin:
     name: Release JaCoCo Exclusion Report Plugin
-    needs: [Calculate-Version, Build-Plugin, Security-Scan, Publish-Plugin]
+    needs: [Calculate-Version, Build-Plugin, Security-Scan]
     if: ${{ needs.Calculate-Version.outputs.next_version != '' }}
     uses: ./.github/workflows/semantic-version-apply.yml
     with:

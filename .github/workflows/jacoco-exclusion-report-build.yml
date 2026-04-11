@@ -72,6 +72,14 @@ jobs:
           GITHUB_ACTOR: ${{ github.actor }}
           GITHUB_TOKEN: ${{ secrets.SEDR_AUTOMATION_TOKEN }}
 
+      - name: Validate Plugin
+        run: |
+          cd sedr_utils/jacoco-exclusion-report
+          ./gradlew validatePlugins
+        env:
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.SEDR_AUTOMATION_TOKEN }}
+
   Workflow-Summary:
     name: Workflow Summary
     needs: [Build-Plugin, Determine-Release-Type]
