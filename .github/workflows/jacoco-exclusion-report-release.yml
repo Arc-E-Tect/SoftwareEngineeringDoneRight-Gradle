@@ -17,6 +17,18 @@ jobs:
     secrets:
       sem_rel_token_token: ${{ secrets.SEMANTIC_RELEASE_TOKEN }}
 
+  Security-Scan:
+    needs: Calculate-Version
+    uses: Arc-E-Tect/SoftwareEngineeringDoneRight-Code/.github/workflows/security-scan.yml@main
+    with:
+      fail_on_fatal: true
+      project_name: 'jacoco-exclusion-report'
+      semantic_version: ${{ needs.Calculate-Version.outputs.next_version }}
+    secrets:
+      NVD_APIKEY_SEDR: ${{ secrets.NVD_APIKEY_SEDR }}
+      POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+      SSL_KEYSTORE_PASSWORD: ${{ secrets.SSL_KEYSTORE_PASSWORD }}
+
   Build-Plugin:
     name: Build JaCoCo Exclusion Report Plugin
     needs: Calculate-Version
@@ -72,7 +84,7 @@ jobs:
 
   Publish-Plugin:
     name: Publish JaCoCo Exclusion Report Plugin to GitHub Packages
-    needs: [Calculate-Version, Build-Plugin]
+    needs: [Calculate-Version, Build-Plugin, Security-Scan]
     if: ${{ needs.Calculate-Version.outputs.next_version != '' }}
     permissions:
       contents: read
@@ -102,7 +114,7 @@ jobs:
 
   Release-Plugin:
     name: Release JaCoCo Exclusion Report Plugin
-    needs: [Calculate-Version, Build-Plugin, Publish-Plugin]
+    needs: [Calculate-Version, Build-Plugin, Security-Scan, Publish-Plugin]
     if: ${{ needs.Calculate-Version.outputs.next_version != '' }}
     uses: Arc-E-Tect/SoftwareEngineeringDoneRight-Code/.github/workflows/semantic-version-apply.yml@main
     with:
