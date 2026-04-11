@@ -1,0 +1,54 @@
+plugins {
+    id 'java-gradle-plugin'
+    id 'maven-publish'
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation libs.javaparser.core
+
+    testImplementation libs.junit.jupiter
+    testImplementation libs.assertj.core
+    testRuntimeOnly    libs.junit.platform.launcher
+}
+
+gradlePlugin {
+    plugins {
+        jacocoExclusionReport {
+            id                  = 'com.arc-e-tect.jacoco-exclusion-report'
+            implementationClass = 'com.arc_e_tect.gradle.jacoco.JacocoExclusionReportPlugin'
+            displayName         = 'JaCoCo Exclusion Report'
+            description         = 'Scans sources for @ExcludeFromJacocoGeneratedCodeCoverage and generates an HTML+XML report.'
+        }
+    }
+}
+
+publishing {
+    repositories {
+        maven {
+            name = 'GitHubPackages'
+            url = uri('https://maven.pkg.github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Code')
+            credentials {
+                username = System.getenv('GITHUB_ACTOR') ?: project.findProperty('gpr.user')
+                password = System.getenv('GITHUB_TOKEN') ?: project.findProperty('gpr.key')
+            }
+        }
+    }
+}
+
+test {
+    useJUnitPlatform()
+    testLogging {
+        events 'passed', 'skipped', 'failed'
+        showStandardStreams = true
+    }
+}
