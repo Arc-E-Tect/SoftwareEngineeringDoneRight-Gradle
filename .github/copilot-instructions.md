@@ -121,6 +121,22 @@ All secrets must be used through variable names which can be mapped to environme
 - Keep README/test READMEs aligned with any change in commands, secrets, or images.
 - Prefer good examples over prescriptive snippets: show what to avoid (e.g., inline coordinates, manual Test tasks) and what to adopt (catalog aliases, test suites DSL).
 
+## .gitignore rules for Gradle projects
+
+**CRITICAL: Always ensure `gradle-wrapper.jar` is tracked in git.**
+
+The standard Java `.gitignore` template includes `*.jar`, which silently excludes `gradle-wrapper.jar`. Without this file committed, `./gradlew` fails immediately on CI runners (even after `Setup Gradle` succeeds) because the JVM cannot find `GradleWrapperMain`.
+
+When editing `.gitignore` in any Gradle project, always verify or add the negation exception:
+```
+*.jar
+!**/gradle/wrapper/gradle-wrapper.jar
+```
+
+After adding this rule:
+1. Run `git check-ignore -v */gradle/wrapper/gradle-wrapper.jar` to confirm it is no longer ignored.
+2. Run `git add */gradle/wrapper/gradle-wrapper.jar` to ensure the file is tracked.
+
 ## Docker images
 When pulling images from Docker Hub, always prefer the latest version available with a version number. When there is an `alpine` variant available, prefer that over the default. Do not use `latest` tags as the version to pull.
 
