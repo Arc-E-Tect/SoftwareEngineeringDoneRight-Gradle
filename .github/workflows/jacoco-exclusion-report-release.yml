@@ -26,13 +26,9 @@ jobs:
       project_dir: sedr_utils/jacoco-exclusion-report
       project_name: 'jacoco-exclusion-report'
       semantic_version: ${{ needs.Calculate-Version.outputs.next_version }}
-      vulnerability_scan: true
-      secure_behavior: false
       reports_subpath: build/reports
     secrets:
       NVD_APIKEY_SEDR: ${{ secrets.NVD_APIKEY_SEDR }}
-      POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
-      SSL_KEYSTORE_PASSWORD: ${{ secrets.SSL_KEYSTORE_PASSWORD }}
 
   Build:
     name: Build JaCoCo Exclusion Report Plugin
