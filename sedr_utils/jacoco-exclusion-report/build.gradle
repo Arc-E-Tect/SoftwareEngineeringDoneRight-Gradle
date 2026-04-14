@@ -1,0 +1,106 @@
+plugins {
+    id 'java-gradle-plugin'
+    id 'jacoco'
+    id 'maven-publish'
+    alias(libs.plugins.plugin.publish)
+    alias(libs.plugins.owasp.dependency.check)
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+repositories {
+    maven {
+        name = 'GitHubPackages'
+        url = uri('https://maven.pkg.github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Code')
+        credentials {
+            username = System.getenv('GITHUB_ACTOR') ?: project.findProperty('gpr.user')
+            password = System.getenv('GITHUB_TOKEN') ?: project.findProperty('gpr.key')
+        }
+    }
+    mavenCentral()
+}
+
+dependencyCheck {
+    failBuildOnCVSS = (System.getenv('FAIL_ON_FATAL') == 'true') ? 0 : 11
+    nvd {
+        apiKey = System.getenv('NVD_APIKEY_SEDR')
+    }
+}
+
+dependencies {
+    implementation libs.javaparser.core
+    compileOnly     libs.sedr.library
+
+    testImplementation libs.junit.jupiter
+    testImplementation libs.assertj.core
+    testRuntimeOnly    libs.junit.platform.launcher
+}
+
+gradlePlugin {
+    website = 'https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/tree/main/sedr_utils/jacoco-exclusion-report'
+    vcsUrl  = 'https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle.git'
+    plugins {
+        jacocoExclusionReport {
+            id                  = 'com.arc-e-tect.jacoco-exclusion-report'
+            implementationClass = 'com.arc_e_tect.gradle.jacoco.JacocoExclusionReportPlugin'
+            displayName         = 'JaCoCo Exclusion Report'
+            description         = 'Scans sources for JaCoCo marker annotations (default: @ExcludeFromJacocoGeneratedCodeCoverage) that should be excluded from code coverage and generates an HTML+XML report with excluded code.'
+            tags                = ['jacoco', 'coverage', 'report', 'exclusion']
+            compatibility {
+                features {
+                    configurationCache = true
+                }
+            }
+        }
+    }
+}
+
+publishing {
+    repositories {
+        maven {
+            name = 'GitHubPackages'
+            url = uri('https://maven.pkg.github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Code')
+            credentials {
+                username = System.getenv('GITHUB_ACTOR') ?: project.findProperty('gpr.user')
+                password = System.getenv('GITHUB_TOKEN') ?: project.findProperty('gpr.key')
+            }
+        }
+    }
+}
+
+test {
+    useJUnitPlatform()
+    testLogging {
+        events 'passed', 'skipped', 'failed'
+        showStandardStreams = true
+    }
+    finalizedBy jacocoTestReport
+}
+
+jacocoTestReport {
+    dependsOn test
+    reports {
+        xml.required  = true
+        html.required = true
+    }
+}
+
+jacocoTestCoverageVerification {
+    violationRules {
+        rule {
+            limit {
+                minimum = 0.9
+            }
+        }
+    }
+}
+
+check.dependsOn jacocoTestCoverageVerification
+
+tasks.named("publishPlugins") {
+    notCompatibleWithConfigurationCache("com.gradle.plugin-publish PublishTask does not support configuration cache")
+}

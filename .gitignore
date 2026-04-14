@@ -12,6 +12,7 @@
 
 # Package Files #
 *.jar
+!**/gradle/wrapper/gradle-wrapper.jar
 *.war
 *.nar
 *.ear
@@ -46,5 +47,9 @@ build/
 *.iml
 *.iws
 out/
+bin/
 
 # VS Code
+
+/gradle-plugin-publishing.md
+/sedr-library-maven-central-publishing.md

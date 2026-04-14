@@ -1,0 +1,12 @@
+plugins {
+    id 'org.gradle.toolchains.foojay-resolver-convention' version '0.7.0'
+    id "de.fayard.refreshVersions" version "0.60.6"
+}
+
+refreshVersions {
+    rejectVersionIf {
+        candidate.stabilityLevel.isLessStableThan(current.stabilityLevel)
+    }
+}
+
+rootProject.name = 'jacoco-exclusion-report'
