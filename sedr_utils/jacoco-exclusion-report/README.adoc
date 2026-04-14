@@ -1,4 +1,9 @@
-# JaCoCo Exclusion Report Gradle Plugin
+= JaCoCo Exclusion Report Gradle Plugin
+:toc: left
+:toc-title: Contents
+:toclevels: 2
+:icons: font
+:source-highlighter: rouge
 
 A Gradle plugin that scans Java source files for the `@ExcludeFromJacocoGeneratedCodeCoverage`
 annotation and generates a human-readable HTML and machine-readable XML audit report of every
@@ -7,120 +12,130 @@ excluded element.
 The report gives teams full visibility into _what_ has been excluded from JaCoCo coverage
 enforcement and _why_, without having to hunt through source code.
 
-## Plugin ID
+== Plugin ID
 
-```
+[source]
+----
 com.arc-e-tect.jacoco-exclusion-report
-```
+----
 
-## Requirements
+== Requirements
 
-| Requirement       | Version |
-|-------------------|---------|
-| Gradle            | 8.x +   |
-| Java              | 17 +    |
-| JaCoCo (optional) | any bundled with Gradle |
+[cols="1,1",options="header"]
+|===
+| Requirement        | Version
+| Gradle             | 8.x +
+| Java               | 17 +
+| JaCoCo (optional)  | any bundled with Gradle
+|===
 
-## Applying the Plugin
+== Applying the Plugin
 
-### Using the `plugins` block (recommended)
+=== Using the `plugins` block (recommended)
 
-**Groovy DSL (`build.gradle`)**
-
-```groovy
+.Groovy DSL (`build.gradle`)
+[source,groovy]
+----
 plugins {
     id 'com.arc-e-tect.jacoco-exclusion-report' version '<version>'
 }
-```
+----
 
-**Kotlin DSL (`build.gradle.kts`)**
-
-```kotlin
+.Kotlin DSL (`build.gradle.kts`)
+[source,kotlin]
+----
 plugins {
     id("com.arc-e-tect.jacoco-exclusion-report") version "<version>"
 }
-```
+----
 
-## Annotation dependency
+== Annotation dependency
 
 The plugin scans for `@ExcludeFromJacocoGeneratedCodeCoverage`, which is provided by the
 `sedr-library` artifact. Add it as a `compileOnly` dependency so it is available at compile
 time but is not included in your production JAR.
 
-**Groovy DSL**
-
-```groovy
+.Groovy DSL
+[source,groovy]
+----
 dependencies {
     compileOnly 'com.arc_e_tect.book.sedr:sedr-library:<version>'
 }
-```
+----
 
-**Kotlin DSL**
-
-```kotlin
+.Kotlin DSL
+[source,kotlin]
+----
 dependencies {
     compileOnly("com.arc_e_tect.book.sedr:sedr-library:<version>")
 }
-```
+----
 
 JaCoCo 0.8.2 and later automatically ignores any element annotated with an annotation whose
 simple name contains `"Generated"`. Because `ExcludeFromJacocoGeneratedCodeCoverage` satisfies
 this condition, the annotated elements are excluded from both the JaCoCo coverage report _and_
 from coverage verification thresholds without any additional configuration.
 
-> **Using a custom annotation**
->
-> You can define your own annotation instead of using `ExcludeFromJacocoGeneratedCodeCoverage`.
-> To keep the JaCoCo exclusion working automatically, the annotation's _simple name_ must contain
-> the substring `Generated` (this is the convention JaCoCo relies on). For example,
-> `MyProjectGeneratedExclusion` would work; `MyProjectExclusion` would not.
-> Tell the plugin which annotation to scan for via the `annotationName` configuration property
-> (see [Configuration](#configuration)).
-> Using `ExcludeFromJacocoGeneratedCodeCoverage` from `sedr-library` is recommended because it
-> carries a `justification` attribute that surfaces the reason for each exclusion directly in the
-> generated reports.
+[TIP]
+====
+*Using a custom annotation*
 
-## Annotating source code
+You can define your own annotation instead of using `ExcludeFromJacocoGeneratedCodeCoverage`.
+To keep the JaCoCo exclusion working automatically, the annotation's _simple name_ must contain
+the substring `Generated` (this is the convention JaCoCo relies on). For example,
+`MyProjectGeneratedExclusion` would work; `MyProjectExclusion` would not.
+Tell the plugin which annotation to scan for via the `annotationName` configuration property
+(see <<configuration>>).
+Using `ExcludeFromJacocoGeneratedCodeCoverage` from `sedr-library` is recommended because it
+carries a `justification` attribute that surfaces the reason for each exclusion directly in the
+generated reports.
+====
+
+== Annotating source code
 
 Apply the annotation at the narrowest appropriate scope to keep the audit list as small
 and meaningful as possible.
 
-**Class level** — excludes all methods within the class:
+*Class level* — excludes all methods within the class:
 
-```java
+[source,java]
+----
 import com.arc_e_tect.book.sedr.jacoco.marker.ExcludeFromJacocoGeneratedCodeCoverage;
 
 @ExcludeFromJacocoGeneratedCodeCoverage(justification = "Abstract DSL — all implementations are Gradle-generated")
 public abstract class MyExtension { ... }
-```
+----
 
-**Method level** — preferred when only one or two methods are untestable:
+*Method level* — preferred when only one or two methods are untestable:
 
-```java
+[source,java]
+----
 @Override
 @ExcludeFromJacocoGeneratedCodeCoverage(justification = "Gradle plugin wiring — requires GradleTestKit to exercise")
 public void apply(Project project) { ... }
-```
+----
 
-**Constructor level**:
+*Constructor level*:
 
-```java
+[source,java]
+----
 @Inject
 @ExcludeFromJacocoGeneratedCodeCoverage(justification = "Gradle task constructor — instantiated by infrastructure")
 public MyTask() { ... }
-```
+----
 
 The `justification` attribute is optional but strongly recommended. It is included verbatim in
 both the HTML and XML reports and forms the documentary record of why each exclusion exists.
 
-## Configuration
+[[configuration]]
+== Configuration
 
 The plugin registers a `jacocoExclusionReport` extension that accepts the following properties.
 All properties have sensible defaults and do not need to be set for a typical project.
 
-**Groovy DSL**
-
-```groovy
+.Groovy DSL
+[source,groovy]
+----
 jacocoExclusionReport {
     // Simple (unqualified) name of the annotation to search for.
     // Default: 'ExcludeFromJacocoGeneratedCodeCoverage'
@@ -137,23 +152,25 @@ jacocoExclusionReport {
     // Default: layout.buildDirectory.dir('reports/jacoco-exclusions')
     reportDir = layout.buildDirectory.dir('reports/jacoco-exclusions')
 }
-```
+----
 
-**Kotlin DSL**
-
-```kotlin
+.Kotlin DSL
+[source,kotlin]
+----
 jacocoExclusionReport {
     annotationName = "ExcludeFromJacocoGeneratedCodeCoverage"
     sourceDirs.from(sourceSets.main.java.srcDirs)
     reportDir = layout.buildDirectory.dir("reports/jacoco-exclusions")
 }
-```
+----
 
-## Task
+== Task
 
-| Task name               | Group        | Description |
-|-------------------------|--------------|-------------|
-| `jacocoExclusionReport` | verification | Scans sources for the exclusion annotation and writes HTML + XML reports. |
+[cols="2,1,3",options="header"]
+|===
+| Task name               | Group        | Description
+| `jacocoExclusionReport` | verification | Scans sources for the exclusion annotation and writes HTML + XML reports.
+|===
 
 The task is automatically wired into the `check` lifecycle task. When `jacocoTestCoverageVerification`
 is present (i.e. the JaCoCo plugin is applied), the exclusion report runs _before_ coverage
@@ -161,29 +178,34 @@ verification so both are always produced together.
 
 Running the report explicitly:
 
-```shell
+[source,shell]
+----
 ./gradlew jacocoExclusionReport
-```
+----
 
 Running as part of the standard verification suite:
 
-```shell
+[source,shell]
+----
 ./gradlew check
-```
+----
 
-## Report output
+== Report output
 
 After the task runs, two files are written to the configured `reportDir`
 (default: `build/reports/jacoco-exclusions/`):
 
-| File          | Description |
-|---------------|-------------|
-| `index.html`  | Human-readable report grouped by package → class → member, with a summary bar showing totals per element type. |
-| `exclusions.xml` | Machine-readable JUnit-style XML listing every excluded element with its type, line number, source file, and justification. |
+[cols="1,3",options="header"]
+|===
+| File             | Description
+| `index.html`     | Human-readable report grouped by package → class → member, with a summary bar showing totals per element type.
+| `exclusions.xml` | Machine-readable JUnit-style XML listing every excluded element with its type, line number, source file, and justification.
+|===
 
-## Full example
+== Full example
 
-```groovy
+[source,groovy]
+----
 plugins {
     id 'java'
     id 'jacoco'
@@ -213,7 +235,7 @@ jacocoTestCoverageVerification {
 }
 
 check.dependsOn jacocoTestCoverageVerification
-```
+----
 
 With this setup, running `./gradlew check` will:
 
@@ -222,7 +244,7 @@ With this setup, running `./gradlew check` will:
 3. Generate the exclusion audit report (`jacocoExclusionReport`)
 4. Enforce the coverage threshold (`jacocoTestCoverageVerification`)
 
-## License
+== License
 
-This plugin is part of the *Software Engineering Done Right* project.
-See [LICENSE](../../LICENSE) for details.
+This plugin is part of the _Software Engineering Done Right_ project.
+See link:../../LICENSE[LICENSE] for details.

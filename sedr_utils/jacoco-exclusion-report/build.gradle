@@ -33,15 +33,20 @@ dependencies {
 }
 
 gradlePlugin {
-    website = 'https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle'
+    website = 'https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/tree/main/sedr_utils/jacoco-exclusion-report'
     vcsUrl  = 'https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle.git'
     plugins {
         jacocoExclusionReport {
             id                  = 'com.arc-e-tect.jacoco-exclusion-report'
             implementationClass = 'com.arc_e_tect.gradle.jacoco.JacocoExclusionReportPlugin'
             displayName         = 'JaCoCo Exclusion Report'
-            description         = 'Scans sources for @ExcludeFromJacocoGeneratedCodeCoverage and generates an HTML+XML report.'
+            description         = 'Scans sources for JaCoCo marker annotations (default: @ExcludeFromJacocoGeneratedCodeCoverage) that should be excluded from code coverage and generates an HTML+XML report with excluded code.'
             tags                = ['jacoco', 'coverage', 'report', 'exclusion']
+            compatibility {
+                features {
+                    configurationCache = false
+                }
+            }
         }
     }
 }
