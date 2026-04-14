@@ -44,7 +44,7 @@ gradlePlugin {
             tags                = ['jacoco', 'coverage', 'report', 'exclusion']
             compatibility {
                 features {
-                    configurationCache = false
+                    configurationCache = true
                 }
             }
         }
