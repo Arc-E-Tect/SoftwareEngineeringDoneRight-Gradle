@@ -27,7 +27,6 @@ jobs:
     needs: Calculate-Version
     permissions:
       contents: read
-      packages: write
 
     runs-on: ubuntu-latest
 
@@ -67,15 +66,6 @@ jobs:
           cd sedr_utils/sedr-library
           chmod +x ./gradlew
           ./gradlew build
-        env:
-          GITHUB_ACTOR: ${{ github.actor }}
-          GITHUB_TOKEN: ${{ secrets.SEDR_AUTOMATION_TOKEN }}
-
-      - name: Publish SEDR Library to GitHub Packages
-        if: ${{ env.VERSION != '' }}
-        run: |
-          cd sedr_utils/sedr-library
-          ./gradlew publishMavenPublicationToGitHubPackagesRepository
         env:
           GITHUB_ACTOR: ${{ github.actor }}
           GITHUB_TOKEN: ${{ secrets.SEDR_AUTOMATION_TOKEN }}
