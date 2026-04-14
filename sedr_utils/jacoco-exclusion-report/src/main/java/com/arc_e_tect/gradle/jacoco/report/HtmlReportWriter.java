@@ -24,6 +24,17 @@ import java.util.stream.Collectors;
  */
 public class HtmlReportWriter {
 
+    /** Creates a new {@code HtmlReportWriter}. */
+    public HtmlReportWriter() {}
+
+    /**
+     * Writes an HTML report to {@code index.html} inside {@code outputDir}.
+     *
+     * @param elements       the excluded elements to report
+     * @param annotationName the annotation name displayed in the report header
+     * @param outputDir      target directory; created if it does not exist
+     * @throws IOException   if the output file cannot be written
+     */
     public void write(List<ExcludedElement> elements, String annotationName,
                       File outputDir) throws IOException {
         outputDir.mkdirs();

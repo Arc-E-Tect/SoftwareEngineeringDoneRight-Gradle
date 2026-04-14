@@ -29,6 +29,11 @@ public class AnnotationScanner {
 
     private final String annotationSimpleName;
 
+    /**
+     * Creates a scanner that looks for the given annotation.
+     *
+     * @param annotationSimpleName simple (unqualified) name of the exclusion annotation
+     */
     public AnnotationScanner(String annotationSimpleName) {
         this.annotationSimpleName = annotationSimpleName;
     }

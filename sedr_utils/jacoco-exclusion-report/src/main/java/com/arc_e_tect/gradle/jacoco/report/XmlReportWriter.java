@@ -21,6 +21,18 @@ import java.util.stream.Collectors;
  */
 public class XmlReportWriter {
 
+    /** Creates a new {@code XmlReportWriter}. */
+    public XmlReportWriter() {}
+
+    /**
+     * Writes a Surefire-compatible XML report to {@code jacoco-exclusions.xml}
+     * inside {@code outputDir}.
+     *
+     * @param elements       the excluded elements to report
+     * @param annotationName the annotation name embedded in the XML comment
+     * @param outputDir      target directory; created if it does not exist
+     * @throws IOException   if the output file cannot be written
+     */
     public void write(List<ExcludedElement> elements, String annotationName,
                       File outputDir) throws IOException {
         outputDir.mkdirs();

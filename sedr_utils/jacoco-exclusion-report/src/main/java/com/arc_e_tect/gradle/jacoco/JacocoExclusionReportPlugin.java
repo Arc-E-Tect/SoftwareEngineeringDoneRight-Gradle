@@ -38,7 +38,11 @@ import org.gradle.api.tasks.TaskProvider;
  */
 public class JacocoExclusionReportPlugin implements Plugin<Project> {
 
+    /** Name of the Gradle task registered by this plugin. */
     public static final String TASK_NAME = "jacocoExclusionReport";
+
+    /** Creates a new plugin instance. Instantiated by Gradle infrastructure. */
+    public JacocoExclusionReportPlugin() {}
 
     @Override
     @ExcludeFromJacocoGeneratedCodeCoverage(justification = "Gradle plugin wiring — requires a full Gradle test kit to exercise")

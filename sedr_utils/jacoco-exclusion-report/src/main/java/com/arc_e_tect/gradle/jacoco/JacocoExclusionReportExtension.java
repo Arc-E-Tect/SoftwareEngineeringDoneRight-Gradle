@@ -19,16 +19,34 @@ import org.gradle.api.provider.Property;
 @ExcludeFromJacocoGeneratedCodeCoverage(justification = "Abstract DSL extension — all concrete methods are Gradle-generated at runtime")
 public abstract class JacocoExclusionReportExtension {
 
+    /** For use by the Gradle-generated concrete subclass. */
+    protected JacocoExclusionReportExtension() {}
+
+    /** Extension DSL block name, i.e. the name used to register the extension with the project. */
     public static final String NAME          = "jacocoExclusionReport";
+
+    /** Default simple name of the annotation scanned for exclusions. */
     public static final String DEFAULT_ANNOTATION =
             "ExcludeFromJacocoGeneratedCodeCoverage";
 
-    /** Simple (unqualified) name of the exclusion annotation. */
+    /**
+     * Simple (unqualified) name of the exclusion annotation.
+     *
+     * @return mutable property holding the annotation simple name
+     */
     public abstract Property<String> getAnnotationName();
 
-    /** Java source directories to scan. */
+    /**
+     * Java source directories to scan.
+     *
+     * @return mutable file collection of source directories
+     */
     public abstract ConfigurableFileCollection getSourceDirs();
 
-    /** Directory where the HTML and XML reports are written. */
+    /**
+     * Directory where the HTML and XML reports are written.
+     *
+     * @return mutable directory property for the report output location
+     */
     public abstract DirectoryProperty getReportDir();
 }

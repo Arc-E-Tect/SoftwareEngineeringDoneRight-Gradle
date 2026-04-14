@@ -36,20 +36,35 @@ import java.util.List;
 @DisableCachingByDefault(because = "Report depends on source file content and is cheap to regenerate")
 public abstract class JacocoExclusionReportTask extends DefaultTask {
 
-    /** Simple (unqualified) name of the annotation to search for. */
+    /**
+     * Simple (unqualified) name of the annotation to search for.
+     *
+     * @return mutable property holding the annotation simple name
+     */
     @Input
     public abstract Property<String> getAnnotationName();
 
-    /** Java source files to scan. */
+    /**
+     * Java source files to scan.
+     *
+     * @return mutable file collection of {@code .java} source files
+     */
     @InputFiles
     @SkipWhenEmpty
     @PathSensitive(PathSensitivity.RELATIVE)
     public abstract ConfigurableFileCollection getSourceFiles();
 
-    /** Directory to write the HTML and XML reports into. */
+    /**
+     * Directory to write the HTML and XML reports into.
+     *
+     * @return mutable directory property for the report output location
+     */
     @OutputDirectory
     public abstract DirectoryProperty getReportDir();
 
+    /**
+     * Creates the task. Instantiated by Gradle infrastructure via {@link javax.inject.Inject}.
+     */
     @Inject
     @ExcludeFromJacocoGeneratedCodeCoverage(justification = "Gradle task constructor — instantiated by Gradle infrastructure, not unit-testable")
     public JacocoExclusionReportTask() {
@@ -58,6 +73,10 @@ public abstract class JacocoExclusionReportTask extends DefaultTask {
                        + " and generates HTML + XML exclusion reports.");
     }
 
+    /**
+     * Scans all configured source files for the exclusion annotation and writes the
+     * HTML and XML reports to {@link #getReportDir()}.
+     */
     @TaskAction
     @ExcludeFromJacocoGeneratedCodeCoverage(justification = "Gradle task action — requires a full Gradle test kit to exercise")
     public void generate() {
