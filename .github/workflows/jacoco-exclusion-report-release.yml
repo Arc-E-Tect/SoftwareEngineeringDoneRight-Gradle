@@ -96,6 +96,48 @@ jobs:
     secrets:
       sem_rel_token_token: ${{ secrets.SEMANTIC_RELEASE_TOKEN }}
 
+  Publish-Plugin:
+    name: Publish JaCoCo Exclusion Report Plugin to Gradle Portal
+    needs: [Calculate-Version, Release-Plugin]
+    if: ${{ needs.Calculate-Version.outputs.next_version != '' }}
+    runs-on: ubuntu-latest
+
+    env:
+      GRADLE_PROPERTIES_FILE: ./sedr_utils/jacoco-exclusion-report/gradle.properties
+      GRADLE_VERSION_REGEX: version\s*=\s*[0-9]\\+\.[0-9]\\+\.[0-9]\\+[a-zA-Z0-9.-]*
+      VERSION: ${{ needs.Calculate-Version.outputs.next_version }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          ref: ${{ github.ref_name }}
+
+      - name: Setup Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: 21
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v5
+
+      - name: Update version in Gradle property file
+        run: |
+          sed -i "s/${{ env.GRADLE_VERSION_REGEX }}/version = ${{ env.VERSION }}/g" ${{ env.GRADLE_PROPERTIES_FILE }}
+
+      - name: Publish to Gradle Plugin Portal
+        run: |
+          cd sedr_utils/jacoco-exclusion-report
+          chmod +x ./gradlew
+          ./gradlew publishPlugins --no-daemon --no-configuration-cache
+        env:
+          GRADLE_PUBLISH_KEY: ${{ secrets.GRADLE_PUBLISH_KEY }}
+          GRADLE_PUBLISH_SECRET: ${{ secrets.GRADLE_PUBLISH_SECRET }}
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.SEDR_AUTOMATION_TOKEN }}
+
   Determine-Release-Type:
     needs: [Calculate-Version]
     if: ${{ needs.Calculate-Version.outputs.next_version != '' }}
