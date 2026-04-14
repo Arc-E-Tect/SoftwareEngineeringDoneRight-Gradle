@@ -3,6 +3,7 @@ plugins {
     id 'jacoco'
     id 'maven-publish'
     alias(libs.plugins.plugin.publish)
+    alias(libs.plugins.owasp.dependency.check)
 }
 
 java {
@@ -21,6 +22,13 @@ repositories {
         }
     }
     mavenCentral()
+}
+
+dependencyCheck {
+    failBuildOnCVSS = (System.getenv('FAIL_ON_FATAL') == 'true') ? 0 : 11
+    nvd {
+        apiKey = System.getenv('NVD_APIKEY_SEDR')
+    }
 }
 
 dependencies {

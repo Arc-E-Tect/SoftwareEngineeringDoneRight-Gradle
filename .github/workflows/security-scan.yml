@@ -6,6 +6,11 @@ on:
         description: 'The semantic version of the application being scanned'
         type: string
         required: true
+      project_dir:
+        description: 'The directory that contains the project to scan'
+        type: string
+        required: false
+        default: ''
       project_name:
         description: 'The name of the project that must be scanned'
         type: string
@@ -36,10 +41,15 @@ on:
         required: false
         default: 'bddTest'
       secure_behavior_reports_path:
-        description: 'The path pattern for secure behavior test reports relative to app/build/reports'
+        description: 'The path pattern for secure behavior test reports relative to the reports directory'
         type: string
         required: false
         default: 'bdd-test/**'
+      reports_subpath:
+        description: 'The reports directory relative to the project directory'
+        type: string
+        required: false
+        default: 'app/build/reports'
       DEBUG:
         description: 'Run the workflow in debug mode'
         type: boolean
@@ -67,9 +77,10 @@ jobs:
     env:
       VERSION: ${{ inputs.semantic_version }}
       PROJECT_NAME: ${{ inputs.project_name }}
-      GRADLE_PROPERTIES_FILE: ${{ inputs.project_name }}/gradle.properties
+      PROJECT_DIR: ${{ inputs.project_dir || inputs.project_name }}
+      GRADLE_PROPERTIES_FILE: ${{ inputs.project_dir || inputs.project_name }}/gradle.properties
       GRADLE_VERSION_REGEX: ${{ inputs.gradle_version_regex }}
-      REPORTS_DIR: ${{ inputs.project_name }}/app/build/reports
+      REPORTS_DIR: ${{ inputs.project_dir || inputs.project_name }}/${{ inputs.reports_subpath }}
       GITHUB_ACTOR: ${{ github.actor }}
       GITHUB_TOKEN: ${{ github.token }}
 
@@ -107,17 +118,18 @@ jobs:
 
       - name: Update NVD database
         run: |
-          cd ${{ env.PROJECT_NAME }}
+          cd ${{ env.PROJECT_DIR }}
           ./gradlew dependencyCheckUpdate --no-configuration-cache --no-parallel
         env:
           NVD_APIKEY_SEDR: ${{ secrets.NVD_APIKEY_SEDR }}
 
       - name: Scan for vulnerabilities
         run: |
-          cd ${{ env.PROJECT_NAME }}
+          cd ${{ env.PROJECT_DIR }}
           ./gradlew dependencyCheckAnalyze --no-configuration-cache --no-parallel
         env:
           NVD_APIKEY_SEDR: ${{ secrets.NVD_APIKEY_SEDR }}
+          FAIL_ON_FATAL: ${{ inputs.fail_on_fatal }}
 
       - name: Upload Vulnerability Test Report
         uses: actions/upload-artifact@v6
@@ -137,9 +149,10 @@ jobs:
     env:
       VERSION: ${{ inputs.semantic_version }}
       PROJECT_NAME: ${{ inputs.project_name }}
-      GRADLE_PROPERTIES_FILE: ${{ inputs.project_name }}/gradle.properties
+      PROJECT_DIR: ${{ inputs.project_dir || inputs.project_name }}
+      GRADLE_PROPERTIES_FILE: ${{ inputs.project_dir || inputs.project_name }}/gradle.properties
       GRADLE_VERSION_REGEX: ${{ inputs.gradle_version_regex }}
-      REPORTS_DIR: ${{ inputs.project_name }}/app/build/reports
+      REPORTS_DIR: ${{ inputs.project_dir || inputs.project_name }}/${{ inputs.reports_subpath }}
       GITHUB_ACTOR: ${{ github.actor }}
       GITHUB_TOKEN: ${{ github.token }}
 
@@ -162,12 +175,12 @@ jobs:
       - name: Generate system-test keystore
         uses: ./.github/actions/generate-keystore
         with:
-          keystore_path: ${{ env.PROJECT_NAME }}/app/src/testSystem/resources/ssl/keystore.p12
+          keystore_path: ${{ env.PROJECT_DIR }}/app/src/testSystem/resources/ssl/keystore.p12
           ssl_keystore_password: ${{ secrets.SSL_KEYSTORE_PASSWORD }}
 
       - name: Test for secure behavior
         run: |
-          cd ${{ env.PROJECT_NAME }}
+          cd ${{ env.PROJECT_DIR }}
           ./gradlew ${{ inputs.secure_behavior_task }} -Dcucumber_filter_tags="@StormyFlow"  
         env:
           POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}

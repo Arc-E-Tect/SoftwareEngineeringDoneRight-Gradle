@@ -5,6 +5,7 @@ on:
       - main
     paths:
       - 'sedr_utils/jacoco-exclusion-report/**'
+      - '.github/workflows/security-scan.yml'
       - '.github/workflows/jacoco-exclusion-report-release.yml'
 
 jobs:
@@ -22,15 +23,18 @@ jobs:
     uses: ./.github/workflows/security-scan.yml
     with:
       fail_on_fatal: true
+      project_dir: sedr_utils/jacoco-exclusion-report
       project_name: 'jacoco-exclusion-report'
       semantic_version: ${{ needs.Calculate-Version.outputs.next_version }}
+      vulnerability_scan: true
       secure_behavior: false
+      reports_subpath: build/reports
     secrets:
       NVD_APIKEY_SEDR: ${{ secrets.NVD_APIKEY_SEDR }}
       POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
       SSL_KEYSTORE_PASSWORD: ${{ secrets.SSL_KEYSTORE_PASSWORD }}
 
-  Build-Plugin:
+  Build:
     name: Build JaCoCo Exclusion Report Plugin
     needs: Calculate-Version
     permissions:
@@ -88,7 +92,7 @@ jobs:
 
   Release-Plugin:
     name: Release JaCoCo Exclusion Report Plugin
-    needs: [Calculate-Version, Build-Plugin, Security-Scan]
+    needs: [Calculate-Version, Build, Security-Scan]
     if: ${{ needs.Calculate-Version.outputs.next_version != '' }}
     uses: ./.github/workflows/semantic-version-apply.yml
     with:
@@ -96,7 +100,7 @@ jobs:
     secrets:
       sem_rel_token_token: ${{ secrets.SEMANTIC_RELEASE_TOKEN }}
 
-  Publish-Plugin:
+  Publish:
     name: Publish JaCoCo Exclusion Report Plugin to Gradle Portal
     needs: [Calculate-Version, Release-Plugin]
     if: ${{ needs.Calculate-Version.outputs.next_version != '' }}
@@ -145,7 +149,7 @@ jobs:
 
   Workflow-Summary:
     name: Workflow Summary
-    needs: [Determine-Release-Type]
+    needs: [Build, Security-Scan, Publish, Release-Plugin, Determine-Release-Type]
     if: always()
     runs-on: ubuntu-latest
     steps:
