@@ -51,8 +51,10 @@ plugins {
 
 == Annotation dependency
 
-The plugin scans for `@ExcludeFromJacocoGeneratedCodeCoverage`, which is provided by the
-`sedr-library` artifact. Add it as a `compileOnly` dependency so it is available at compile
+The plugin scans for `@ExcludeFromJacocoGeneratedCodeCoverage`, which is provided in the GitHub repository https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Library[SoftwareEngineeringDoneRight-Library].
+
+Follow the instructions in the library's README to add it as a dependency in your project.
+Add it as a `compileOnly` dependency so it is available at compile
 time but is not included in your production JAR.
 
 .Groovy DSL
