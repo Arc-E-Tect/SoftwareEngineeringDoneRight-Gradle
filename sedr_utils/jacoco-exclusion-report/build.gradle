@@ -87,3 +87,7 @@ jacocoTestCoverageVerification {
 }
 
 check.dependsOn jacocoTestCoverageVerification
+
+tasks.named("publishPlugins") {
+    notCompatibleWithConfigurationCache("com.gradle.plugin-publish PublishTask does not support configuration cache")
+}
