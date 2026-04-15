@@ -59,7 +59,7 @@ jobs:
           java-version: 21
 
       - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v5
+        uses: gradle/actions/setup-gradle@v6
 
       - name: Update version in Gradle property file
         run: |
@@ -81,7 +81,7 @@ jobs:
 
       - name: Upload test report
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: jacoco-exclusion-report-plugin-test-results
           path: sedr_utils/jacoco-exclusion-report/build/reports/tests/**
@@ -121,7 +121,7 @@ jobs:
           java-version: 21
 
       - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v5
+        uses: gradle/actions/setup-gradle@v6
 
       - name: Update version in Gradle property file
         run: |
