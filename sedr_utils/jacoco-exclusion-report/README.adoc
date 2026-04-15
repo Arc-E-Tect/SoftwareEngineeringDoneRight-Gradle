@@ -61,7 +61,7 @@ time but is not included in your production JAR.
 [source,groovy]
 ----
 dependencies {
-    compileOnly 'com.arc_e_tect.book.sedr:sedr-library:<version>'
+    compileOnly 'com.arc_e_tect.sedr.utils:sedr-library:<version>'
 }
 ----
 
