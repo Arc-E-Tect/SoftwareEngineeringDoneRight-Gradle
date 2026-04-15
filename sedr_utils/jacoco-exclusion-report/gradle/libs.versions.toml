@@ -3,9 +3,11 @@
 [plugins]
 
 plugin-publish              = { id = "com.gradle.plugin-publish",                           version.ref = "plugin-publish" }
-owasp-dependency-check      = { id = "org.owasp.dependencycheck",                           version = "12.2.1" }
+owasp-dependency-check = { id = "org.owasp.dependencycheck", version.ref = "owasp-dependency-check" }
 
 [versions]
+
+owasp-dependency-check = "12.2.1"
 
 javaparser      = "3.28.0"
 junit-jupiter   = "6.0.3"
