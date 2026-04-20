@@ -1,3 +1,11 @@
+# [0.1.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/v0.0.1...v0.1.0) (2026-04-20)
+
+
+### ✨ New and updated features
+
+* **git:** Add security and workflow enhancements ([#5](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/5)) ([a88ffbe](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/a88ffbe24052baf5219c2030949f1c05601454dd)), closes [#5](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/5)
+* **workflow:** Enhance repository security and workflow reliability ([#10](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/10)) ([2fb7c13](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/2fb7c136f5a3343ae8eb7249d0a2eabe79975dd1)), closes [#10](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/10)
+
 ## [0.0.1](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/v0.0.0...v0.0.1) (2026-04-16)
 
 
