@@ -1,3 +1,10 @@
+## [0.1.1](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/v0.1.0...v0.1.1) (2026-04-23)
+
+
+### 🐛 Bug Fixes
+
+* **jacoco-exclusion-report:** remove RUNTIME annotation from plugin classes to fix Plugin Portal compatibility ([#11](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/11)) ([5456671](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/545667123b289d2840763467c1145fe9dc10192b)), closes [#11](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/11)
+
 # [0.1.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/v0.0.1...v0.1.0) (2026-04-20)
 
 
