@@ -1,3 +1,10 @@
+## [0.1.2](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/v0.1.1...v0.1.2) (2026-04-23)
+
+
+### 🐛 Bug Fixes
+
+* Move jacoco-exclusion-report to repo root and update references ([#12](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/12)) ([600b256](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/600b256969415f92a16d4f4174b1afc9fd61becb)), closes [#12](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/12)
+
 ## [0.1.1](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/v0.1.0...v0.1.1) (2026-04-23)
 
 
