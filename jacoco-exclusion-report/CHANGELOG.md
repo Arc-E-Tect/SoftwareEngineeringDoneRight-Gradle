@@ -1,3 +1,15 @@
+## [0.1.3](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/v0.1.2...v0.1.3) (2026-04-23)
+
+
+### 🐛 Bug Fixes
+
+* **workflow:** increase timeout for NVD database update to prevent premature abort ([#16](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/16)) ([ef2d94c](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/ef2d94c1275775c46ebd116edbe880bf086a9cc7)), closes [#16](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/16)
+
+
+### 🔧 Misc
+
+* update project structure and documentation ([0c44cd6](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/0c44cd667e0a0d1ac1dceef3c183bf98e69abe8b))
+
 ## [0.1.2](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/v0.1.1...v0.1.2) (2026-04-23)
 
 
