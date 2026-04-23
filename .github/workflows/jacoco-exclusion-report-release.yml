@@ -4,7 +4,7 @@ on:
     branches:
       - main
     paths:
-      - 'sedr_utils/jacoco-exclusion-report/**'
+      - 'jacoco-exclusion-report/**'
       - '.github/workflows/security-scan.yml'
       - '.github/workflows/jacoco-exclusion-report-release.yml'
 
@@ -13,7 +13,7 @@ jobs:
     uses: ./.github/workflows/semantic-version-calculate.yml
     with:
       fail_on_empty_version: true
-      project_dir: sedr_utils/jacoco-exclusion-report
+      project_dir: jacoco-exclusion-report
       DEBUG: true
     secrets:
       sem_rel_token_token: ${{ secrets.SEMANTIC_RELEASE_TOKEN }}
@@ -23,7 +23,7 @@ jobs:
     uses: ./.github/workflows/security-scan.yml
     with:
       fail_on_fatal: true
-      project_dir: sedr_utils/jacoco-exclusion-report
+      project_dir: jacoco-exclusion-report
       project_name: 'jacoco-exclusion-report'
       semantic_version: ${{ needs.Calculate-Version.outputs.next_version }}
       reports_subpath: build/reports
@@ -41,7 +41,7 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      GRADLE_PROPERTIES_FILE: ./sedr_utils/jacoco-exclusion-report/gradle.properties
+      GRADLE_PROPERTIES_FILE: ./jacoco-exclusion-report/gradle.properties
       GRADLE_VERSION_REGEX: version\s*=\s*[0-9]\\+\.[0-9]\\+\.[0-9]\\+[a-zA-Z0-9.-]*
       VERSION: ${{ needs.Calculate-Version.outputs.next_version }}
 
@@ -72,7 +72,7 @@ jobs:
 
       - name: Build and test JaCoCo Exclusion Report Plugin
         run: |
-          cd sedr_utils/jacoco-exclusion-report
+          cd jacoco-exclusion-report
           chmod +x ./gradlew
           ./gradlew build
         env:
@@ -84,7 +84,7 @@ jobs:
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: jacoco-exclusion-report-plugin-test-results
-          path: sedr_utils/jacoco-exclusion-report/build/reports/tests/**
+          path: jacoco-exclusion-report/build/reports/tests/**
 
   Release-Plugin:
     name: Release JaCoCo Exclusion Report Plugin
@@ -92,7 +92,7 @@ jobs:
     if: ${{ needs.Calculate-Version.outputs.next_version != '' }}
     uses: ./.github/workflows/semantic-version-apply.yml
     with:
-      project_dir: sedr_utils/jacoco-exclusion-report
+      project_dir: jacoco-exclusion-report
     secrets:
       sem_rel_token_token: ${{ secrets.SEMANTIC_RELEASE_TOKEN }}
 
@@ -103,7 +103,7 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      GRADLE_PROPERTIES_FILE: ./sedr_utils/jacoco-exclusion-report/gradle.properties
+      GRADLE_PROPERTIES_FILE: ./jacoco-exclusion-report/gradle.properties
       GRADLE_VERSION_REGEX: version\s*=\s*[0-9]\\+\.[0-9]\\+\.[0-9]\\+[a-zA-Z0-9.-]*
       VERSION: ${{ needs.Calculate-Version.outputs.next_version }}
 
@@ -129,7 +129,7 @@ jobs:
 
       - name: Publish to Gradle Plugin Portal
         run: |
-          cd sedr_utils/jacoco-exclusion-report
+          cd jacoco-exclusion-report
           chmod +x ./gradlew
           ./gradlew publishPlugins --no-daemon --no-configuration-cache
         env:

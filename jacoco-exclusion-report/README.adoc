@@ -5,12 +5,15 @@
 :icons: font
 :source-highlighter: rouge
 
-A Gradle plugin that scans Java source files for the `@ExcludeFromJacocoGeneratedCodeCoverage`
-annotation and generates a human-readable HTML and machine-readable XML audit report of every
-excluded element.
+image:https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/actions/workflows/security-scan.yml/badge.svg[Security Scan,link=https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/actions/workflows/security-scan.yml]
+image:https://img.shields.io/gradle-plugin-portal/v/com.arc-e-tect.jacoco-exclusion-report[Gradle Plugin Portal,link=https://plugins.gradle.org/plugin/com.arc-e-tect.jacoco-exclusion-report]
+image:https://img.shields.io/github/v/release/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle[GitHub release,link=https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/releases]
+image:https://img.shields.io/badge/Java-17%2B-blue[Java 17+,link=https://adoptium.net]
+image:https://img.shields.io/badge/Gradle-8.x%2B-02303A?logo=gradle[Gradle 8+,link=https://gradle.org]
 
-The report gives teams full visibility into _what_ has been excluded from JaCoCo coverage
-enforcement and _why_, without having to hunt through source code.
+A Gradle plugin that scans Java source files for the `@ExcludeFromJacocoGeneratedCodeCoverage` annotation and generates a human-readable HTML and machine-readable XML audit report of every excluded element.
+
+The report gives teams full visibility into _what_ has been excluded from JaCoCo coverage enforcement and _why_, without having to hunt through source code.
 
 == Plugin ID
 

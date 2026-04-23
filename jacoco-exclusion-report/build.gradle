@@ -44,7 +44,7 @@ dependencies {
 }
 
 gradlePlugin {
-    website = 'https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/tree/main/sedr_utils/jacoco-exclusion-report'
+    website = 'https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/tree/main/jacoco-exclusion-report'
     vcsUrl  = 'https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle.git'
     plugins {
         jacocoExclusionReport {
