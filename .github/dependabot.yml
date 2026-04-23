@@ -10,7 +10,7 @@ updates:
       - "github-actions"
 
   - package-ecosystem: "gradle"
-    directory: "/sedr_utils/jacoco-exclusion-report"
+    directory: "/jacoco-exclusion-report"
     schedule:
       interval: "weekly"
       day: "monday"
@@ -19,7 +19,7 @@ updates:
       - "gradle"
 
   - package-ecosystem: "npm"
-    directory: "/sedr_utils/jacoco-exclusion-report"
+    directory: "/jacoco-exclusion-report"
     schedule:
       interval: "weekly"
       day: "monday"

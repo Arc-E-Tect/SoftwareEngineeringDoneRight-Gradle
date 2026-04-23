@@ -142,7 +142,7 @@ module.exports = {
             }
         }],
         ["@semantic-release/git", {
-            "assets": ["!**/node_modules/**", "!**/build/**", "!**/bin/**", "./CHANGELOG.md", "sedr_utils/jacoco-exclusion-report/**"],
+            "assets": ["!**/node_modules/**", "!**/build/**", "!**/bin/**", "./CHANGELOG.md"],
             "message": "chore(release): release <%= nextRelease.version %> - <%= new Date().toLocaleDateString('en-US', {year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric' }) %> [skip ci]\n\n<%= nextRelease.notes %>"
         }],
         "@semantic-release/github",
