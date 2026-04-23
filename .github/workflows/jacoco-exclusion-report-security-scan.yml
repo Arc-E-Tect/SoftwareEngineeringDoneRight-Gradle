@@ -1,0 +1,36 @@
+name: JaCoCo Exclusion Report Plugin - Security Scan
+on:
+  schedule:
+    - cron: '0 7 * * 5'  # Every Friday at 07:00 UTC
+  workflow_dispatch:
+
+jobs:
+  Read-Version:
+    name: Read Current Version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.read-version.outputs.version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Read version from gradle.properties
+        id: read-version
+        run: |
+          VERSION=$(grep -oP 'version\s*=\s*\K\S+' jacoco-exclusion-report/gradle.properties)
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+  Security-Scan:
+    needs: Read-Version
+    uses: ./.github/workflows/security-scan.yml
+    with:
+      project_dir: jacoco-exclusion-report
+      project_name: 'jacoco-exclusion-report'
+      semantic_version: ${{ needs.Read-Version.outputs.version }}
+      fail_on_fatal: true
+      reports_subpath: build/reports
+    secrets:
+      NVD_APIKEY_SEDR: ${{ secrets.NVD_APIKEY_SEDR }}

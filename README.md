@@ -1,7 +1,7 @@
 # SoftwareEngineeringDoneRight-Gradle
 
 [![License](https://img.shields.io/github/license/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle)](LICENSE)
-[![Security Scan](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/actions/workflows/security-scan.yml/badge.svg)](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/actions/workflows/security-scan.yml)
+[![Security Scan](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/actions/workflows/jacoco-exclusion-report-security-scan.yml/badge.svg)](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/actions/workflows/jacoco-exclusion-report-security-scan.yml)
 
 A collection of useful and usable Gradle plugins and utilities for software engineering projects.
 
