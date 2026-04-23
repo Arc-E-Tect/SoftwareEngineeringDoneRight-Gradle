@@ -1,6 +1,5 @@
 package com.arc_e_tect.gradle.jacoco;
 
-import com.arc_e_tect.book.sedr.jacoco.marker.ExcludeFromJacocoGeneratedCodeCoverage;
 import com.arc_e_tect.gradle.jacoco.model.ExcludedElement;
 import com.arc_e_tect.gradle.jacoco.report.HtmlReportWriter;
 import com.arc_e_tect.gradle.jacoco.report.XmlReportWriter;
@@ -66,7 +65,6 @@ public abstract class JacocoExclusionReportTask extends DefaultTask {
      * Creates the task. Instantiated by Gradle infrastructure via {@link javax.inject.Inject}.
      */
     @Inject
-    @ExcludeFromJacocoGeneratedCodeCoverage(justification = "Gradle task constructor — instantiated by Gradle infrastructure, not unit-testable")
     public JacocoExclusionReportTask() {
         setGroup("verification");
         setDescription("Scans sources for @" + JacocoExclusionReportExtension.DEFAULT_ANNOTATION
@@ -78,7 +76,6 @@ public abstract class JacocoExclusionReportTask extends DefaultTask {
      * HTML and XML reports to {@link #getReportDir()}.
      */
     @TaskAction
-    @ExcludeFromJacocoGeneratedCodeCoverage(justification = "Gradle task action — requires a full Gradle test kit to exercise")
     public void generate() {
         AnnotationScanner  scanner     = new AnnotationScanner(getAnnotationName().get());
         HtmlReportWriter   htmlWriter  = new HtmlReportWriter();
@@ -115,7 +112,6 @@ public abstract class JacocoExclusionReportTask extends DefaultTask {
                 elements.size(), outputDir.getAbsolutePath());
     }
 
-    @ExcludeFromJacocoGeneratedCodeCoverage(justification = "Gradle task action — requires a full Gradle test kit to exercise")
     private void scanFile(AnnotationScanner scanner, File file, List<ExcludedElement> elements) {
         try {
             elements.addAll(scanner.scan(file));

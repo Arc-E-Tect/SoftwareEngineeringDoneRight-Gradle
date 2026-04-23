@@ -1,6 +1,5 @@
 package com.arc_e_tect.gradle.jacoco;
 
-import com.arc_e_tect.book.sedr.jacoco.marker.ExcludeFromJacocoGeneratedCodeCoverage;
 import org.gradle.api.file.ConfigurableFileCollection;
 import org.gradle.api.file.DirectoryProperty;
 import org.gradle.api.provider.Property;
@@ -16,7 +15,6 @@ import org.gradle.api.provider.Property;
  * }
  * </pre>
  */
-@ExcludeFromJacocoGeneratedCodeCoverage(justification = "Abstract DSL extension — all concrete methods are Gradle-generated at runtime")
 public abstract class JacocoExclusionReportExtension {
 
     /** For use by the Gradle-generated concrete subclass. */
