@@ -37,7 +37,6 @@ dependencyCheck {
 
 dependencies {
     implementation libs.javaparser.core
-    compileOnly     libs.sedr.library
 
     testImplementation libs.junit.jupiter
     testImplementation libs.assertj.core
@@ -91,9 +90,27 @@ jacocoTestReport {
         xml.required  = true
         html.required = true
     }
+    afterEvaluate {
+        classDirectories.setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it, excludes: [
+                'com/arc_e_tect/gradle/jacoco/JacocoExclusionReportExtension.class',
+                'com/arc_e_tect/gradle/jacoco/JacocoExclusionReportPlugin.class',
+                'com/arc_e_tect/gradle/jacoco/JacocoExclusionReportTask.class',
+            ])
+        }))
+    }
 }
 
 jacocoTestCoverageVerification {
+    afterEvaluate {
+        classDirectories.setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it, excludes: [
+                'com/arc_e_tect/gradle/jacoco/JacocoExclusionReportExtension.class',
+                'com/arc_e_tect/gradle/jacoco/JacocoExclusionReportPlugin.class',
+                'com/arc_e_tect/gradle/jacoco/JacocoExclusionReportTask.class',
+            ])
+        }))
+    }
     violationRules {
         rule {
             limit {

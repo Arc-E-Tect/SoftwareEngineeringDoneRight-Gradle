@@ -1,6 +1,5 @@
 package com.arc_e_tect.gradle.jacoco;
 
-import com.arc_e_tect.book.sedr.jacoco.marker.ExcludeFromJacocoGeneratedCodeCoverage;
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
 import org.gradle.api.plugins.JavaPluginExtension;
@@ -45,7 +44,6 @@ public class JacocoExclusionReportPlugin implements Plugin<Project> {
     public JacocoExclusionReportPlugin() {}
 
     @Override
-    @ExcludeFromJacocoGeneratedCodeCoverage(justification = "Gradle plugin wiring — requires a full Gradle test kit to exercise")
     public void apply(Project project) {
         JacocoExclusionReportExtension ext = project.getExtensions()
                 .create(JacocoExclusionReportExtension.NAME,
