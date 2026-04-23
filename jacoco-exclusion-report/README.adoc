@@ -5,7 +5,7 @@
 :icons: font
 :source-highlighter: rouge
 
-image:https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/actions/workflows/security-scan.yml/badge.svg[Security Scan,link=https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/actions/workflows/security-scan.yml]
+image:https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/actions/workflows/jacoco-exclusion-report-security-scan.yml/badge.svg[Security Scan,link=https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/actions/workflows/jacoco-exclusion-report-security-scan.yml]
 image:https://img.shields.io/gradle-plugin-portal/v/com.arc-e-tect.jacoco-exclusion-report[Gradle Plugin Portal,link=https://plugins.gradle.org/plugin/com.arc-e-tect.jacoco-exclusion-report]
 image:https://img.shields.io/github/v/release/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle[GitHub release,link=https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/releases]
 image:https://img.shields.io/badge/Java-17%2B-blue[Java 17+,link=https://adoptium.net]
