@@ -96,7 +96,7 @@ jobs:
         run: |
           cd ${{ env.PROJECT_DIR }}
           OUTFILE="$RUNNER_TEMP/nvd-update-output.txt"
-          timeout 900 ./gradlew dependencyCheckUpdate --no-configuration-cache --no-parallel 2>&1 | tee "$OUTFILE"
+          timeout 1800 ./gradlew dependencyCheckUpdate --no-configuration-cache --no-parallel 2>&1 | tee "$OUTFILE"
           EXIT_CODE="${PIPESTATUS[0]}"
           if [ "$EXIT_CODE" -eq 124 ]; then
             echo "::warning title=NVD Database Update Timeout::The NVD database update exceeded the 15-minute time limit and was aborted. The vulnerability scan will be skipped. Review the build at a later time."
