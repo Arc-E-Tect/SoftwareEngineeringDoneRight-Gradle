@@ -3,10 +3,35 @@ package com.arc_e_tect.gradle.gherkin;
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
 
+/**
+ * Gradle plugin that registers the {@code generateFeatureDocs} task and wires
+ * the {@code gherkinToAsciidoc} DSL extension into the project.
+ *
+ * <h2>Usage</h2>
+ * <pre>
+ * plugins {
+ *     id 'com.arc-e-tect.gherkin-to-asciidoc'
+ * }
+ *
+ * gherkinToAsciidoc {
+ *     sourceDir = layout.projectDirectory.dir('src/test/resources/features')
+ * }
+ * </pre>
+ *
+ * <h2>Defaults</h2>
+ * <ul>
+ *   <li>Source directory: {@code src/test/resources/features}</li>
+ *   <li>Include sub-directories: {@code false}</li>
+ *   <li>Output directory: {@code build/generated-docs}</li>
+ *   <li>Output file name: {@code features.adoc}</li>
+ * </ul>
+ */
 public class GherkinToAsciidocPlugin implements Plugin<Project> {
 
+    /** Name of the Gradle task registered by this plugin. */
     public static final String TASK_NAME = "generateFeatureDocs";
 
+    /** Creates a new plugin instance. Instantiated by Gradle infrastructure. */
     public GherkinToAsciidocPlugin() {}
 
     @Override
