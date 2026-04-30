@@ -1,0 +1,171 @@
+= Gherkin to AsciiDoc Gradle Plugin
+:toc: left
+:toc-title: Contents
+:toclevels: 2
+:icons: font
+:source-highlighter: rouge
+
+image:https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/actions/workflows/gherkin-to-asciidoc-security-scan.yml/badge.svg[Security Scan,link=https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/actions/workflows/gherkin-to-asciidoc-security-scan.yml]
+image:https://img.shields.io/gradle-plugin-portal/v/com.arc-e-tect.gherkin-to-asciidoc[Gradle Plugin Portal,link=https://plugins.gradle.org/plugin/com.arc-e-tect.gherkin-to-asciidoc]
+image:https://img.shields.io/github/v/release/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle[GitHub release,link=https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/releases]
+image:https://img.shields.io/badge/Java-21%2B-blue[Java 21+,link=https://adoptium.net]
+image:https://img.shields.io/badge/Gradle-8.x%2B-02303A?logo=gradle[Gradle 8+,link=https://gradle.org]
+
+A Gradle plugin that scans `.feature` files for `Scenario` and `Scenario Outline` titles and generates an AsciiDoc file (`features.adoc`) listing all scenarios found.
+
+The generated document gives teams a living, human-readable index of every behaviour specification defined in Gherkin, ready to be included directly into AsciiDoc-based project documentation.
+
+== Plugin ID
+
+[source]
+----
+com.arc-e-tect.gherkin-to-asciidoc
+----
+
+== Requirements
+
+[cols="1,1",options="header"]
+|===
+| Requirement | Version
+| Gradle      | 8.x +
+| Java        | 21 +
+| Gherkin     | 32.x (bundled)
+|===
+
+== Applying the Plugin
+
+=== Using the `plugins` block (recommended)
+
+.Groovy DSL (`build.gradle`)
+[source,groovy]
+----
+plugins {
+    id 'com.arc-e-tect.gherkin-to-asciidoc' version '<version>'
+}
+----
+
+.Kotlin DSL (`build.gradle.kts`)
+[source,kotlin]
+----
+plugins {
+    id("com.arc-e-tect.gherkin-to-asciidoc") version "<version>"
+}
+----
+
+[[configuration]]
+== Configuration
+
+The plugin registers a `gherkinToAsciidoc` extension that accepts the following properties.
+All properties have sensible defaults and do not need to be set for a typical project.
+
+.Groovy DSL
+[source,groovy]
+----
+gherkinToAsciidoc {
+    // Directory containing .feature files to scan (scanned non-recursively by default).
+    // Default: 'src/test/resources/features' relative to the project directory.
+    // Mutually exclusive with sourceFile.
+    sourceDir = file('src/test/resources/features')
+
+    // Single .feature file to parse instead of a directory.
+    // Mutually exclusive with sourceDir and includeSubDirs.
+    // sourceFile = file('src/test/resources/features/login.feature')
+
+    // When true, recursively scan all sub-directories under sourceDir.
+    // Cannot be used when sourceFile is set.
+    // Default: false
+    includeSubDirs = false
+
+    // Directory where the generated AsciiDoc file will be written.
+    // Default: "$buildDir/generated-docs"
+    outputDir = file("$buildDir/generated-docs")
+
+    // Name of the generated AsciiDoc file.
+    // Default: 'features.adoc'
+    outputFileName = 'features.adoc'
+}
+----
+
+.Kotlin DSL (`build.gradle.kts`)
+[source,kotlin]
+----
+gherkinToAsciidoc {
+    sourceDir.set(file("src/test/resources/features"))
+    includeSubDirs.set(false)
+    outputDir.set(layout.buildDirectory.dir("generated-docs"))
+    outputFileName.set("features.adoc")
+}
+----
+
+=== Configuration Properties
+
+[cols="1,1,1,3",options="header"]
+|===
+| Property        | Type      | Default                              | Description
+| `sourceDir`     | Directory | `src/test/resources/features`        | Directory containing `.feature` files to scan.
+Mutually exclusive with `sourceFile`.
+| `sourceFile`    | File      | —                                    | Single `.feature` file to parse.
+Mutually exclusive with `sourceDir` and `includeSubDirs`.
+| `includeSubDirs`| Boolean   | `false`                              | When `true`, recursively scans all sub-directories under `sourceDir`.
+Cannot be combined with `sourceFile`.
+| `outputDir`     | Directory | `$buildDir/generated-docs`           | Directory where the generated AsciiDoc file is written.
+| `outputFileName`| String    | `features.adoc`                      | Name of the generated AsciiDoc file.
+|===
+
+[IMPORTANT]
+====
+`sourceDir` and `sourceFile` are mutually exclusive.
+Setting both will cause the `generateFeatureDocs` task to fail with a descriptive error.
+
+`includeSubDirs` cannot be combined with `sourceFile`.
+====
+
+== Running the Task
+
+The plugin registers a single task named `generateFeatureDocs` in the `documentation` group:
+
+[source,bash]
+----
+./gradlew generateFeatureDocs
+----
+
+The task scans the configured source location, collects every `Scenario` and `Scenario Outline` title, and writes the result to `<outputDir>/<outputFileName>`.
+
+== Sample Output
+
+Given the following feature file:
+
+[source,gherkin]
+----
+Feature: User authentication
+
+  Scenario: User logs in successfully
+    Given the login page is open
+    When the user submits valid credentials
+    Then the dashboard is displayed
+
+  Scenario Outline: User logs in with different credential sets
+    Given the login page is open
+    When the user submits "<username>" and "<password>"
+    Then the result is "<outcome>"
+
+    Examples:
+      | username | password | outcome |
+      | alice    | secret   | success |
+      | bob      | wrong    | failure |
+----
+
+The plugin generates:
+
+[source,asciidoc]
+----
+= Feature Scenarios
+
+* Scenario: User logs in successfully
+* Scenario Outline: User logs in with different credential sets
+----
+
+== License
+
+This plugin is released under the MIT License.
+See the link:../LICENSE[LICENSE] file in the repository root for details.
