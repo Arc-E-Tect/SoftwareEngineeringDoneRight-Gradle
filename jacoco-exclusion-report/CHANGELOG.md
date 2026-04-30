@@ -1,3 +1,15 @@
+## [0.2.2](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/v0.2.1...v0.2.2) (2026-04-30)
+
+
+### 📝 Documentation
+
+* **gherkin-to-asciidoc:** add Javadoc to all public API members ([#20](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/20)) ([07b0c21](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/07b0c21c9f284d779ece9e0f8867dd9c24970d45)), closes [#20](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/20)
+
+
+### 🔧 Misc
+
+* reduce timeout for NVD database update to 15 minutes ([#21](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/21)) ([05b9373](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/05b9373e82ea3bea328a0d0fc08a991e0d23dbb0)), closes [#21](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/21)
+
 ## [0.2.1](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/v0.2.0...v0.2.1) (2026-04-30)
 
 
