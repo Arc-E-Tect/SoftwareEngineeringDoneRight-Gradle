@@ -1,0 +1,91 @@
+name: Gherkin to AsciiDoc Plugin - Build
+on:
+  push:
+    branches-ignore:
+      - main
+    paths:
+      - 'gherkin-to-asciidoc/**'
+      - '.github/workflows/**'
+      - '.github/actions/**'
+
+jobs:
+  Calculate-Version:
+    uses: ./.github/workflows/semantic-version-calculate.yml
+    with:
+      fail_on_empty_version: false
+      fail_on_existing_tag: false
+      project_dir: gherkin-to-asciidoc
+    secrets:
+      sem_rel_token_token: ${{ secrets.SEMANTIC_RELEASE_TOKEN }}
+
+  Determine-Release-Type:
+    needs: Calculate-Version
+    uses: ./.github/workflows/determine-release-type.yml
+
+  Build-Plugin:
+    name: Build Gherkin to AsciiDoc Plugin
+    needs: Calculate-Version
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+
+    runs-on: ubuntu-latest
+
+    env:
+      GRADLE_PROPERTIES_FILE: ./gherkin-to-asciidoc/gradle.properties
+      GRADLE_VERSION_REGEX: version\s*=\s*[0-9]\\+\.[0-9]\\+\.[0-9]\\+[a-zA-Z0-9.-]*
+      VERSION: ${{ needs.Calculate-Version.outputs.next_version }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Setup Java
+        uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5
+        with:
+          distribution: 'temurin'
+          java-version: 21
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@0723195856401067f7a2779048b490ace7a47d7c # v5
+
+      - name: Update version in Gradle property file
+        run: |
+          echo "VERSION=${{ env.VERSION }}"
+          echo ===== Before - ${{ env.GRADLE_PROPERTIES_FILE }} =====
+          cat ${{ env.GRADLE_PROPERTIES_FILE }}
+          sed -i "s/${{ env.GRADLE_VERSION_REGEX }}/version = ${{ env.VERSION }}/g" ${{ env.GRADLE_PROPERTIES_FILE }}
+          echo ===== After - ${{ env.GRADLE_PROPERTIES_FILE }} =====
+          cat ${{ env.GRADLE_PROPERTIES_FILE }}
+
+      - name: Build and test Gherkin to AsciiDoc Plugin
+        run: |
+          cd gherkin-to-asciidoc
+          chmod +x ./gradlew
+          ./gradlew build
+        env:
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.SEDR_AUTOMATION_TOKEN }}
+
+      - name: Validate Plugin
+        run: |
+          cd gherkin-to-asciidoc
+          ./gradlew validatePlugins
+        env:
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.SEDR_AUTOMATION_TOKEN }}
+
+  Workflow-Summary:
+    name: Workflow Summary
+    needs: [Build-Plugin, Determine-Release-Type]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Output build completion
+        run: |
+          echo "Gherkin to AsciiDoc Plugin ${{ needs.Determine-Release-Type.outputs.release_type }} build workflow completed"
+          echo "::notice title=Build Complete::Gherkin to AsciiDoc Plugin ${{ needs.Determine-Release-Type.outputs.release_type }} build workflow completed"
