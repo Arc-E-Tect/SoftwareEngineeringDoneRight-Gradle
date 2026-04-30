@@ -18,12 +18,26 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Stream;
 
+/**
+ * Parses a single Gherkin {@code .feature} file and extracts all scenario titles.
+ *
+ * <p>Titles are returned in document order as {@code "keyword: name"} strings
+ * (e.g. {@code "Scenario: User logs in"}).  Scenarios nested inside {@code Rule}
+ * blocks are also included.</p>
+ *
+ * <p>If the file cannot be read or parsed, the error is logged as a warning and
+ * an empty list is returned — the task never fails due to a single bad file.</p>
+ */
 public class FeatureParser {
 
     private static final Logger LOGGER = Logging.getLogger(FeatureParser.class);
 
     private final GherkinParser parser;
 
+    /**
+     * Creates a new {@code FeatureParser} with a pre-configured {@link GherkinParser}.
+     * Source envelopes and pickles are excluded from parsing to minimise memory usage.
+     */
     public FeatureParser() {
         this.parser = GherkinParser.builder()
                 .includeSource(false)
@@ -31,6 +45,13 @@ public class FeatureParser {
                 .build();
     }
 
+    /**
+     * Parses the given {@code .feature} file and returns all scenario titles.
+     *
+     * @param featureFile the Gherkin feature file to parse; must not be {@code null}
+     * @return unmodifiable list of scenario titles in document order; empty if the file
+     *         cannot be read, is empty, or contains no scenarios
+     */
     public List<String> parse(File featureFile) {
         List<String> titles = new ArrayList<>();
         try (Stream<Envelope> envelopes = parser.parse(featureFile.toPath())) {

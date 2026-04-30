@@ -25,37 +25,90 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Gradle task that scans {@code .feature} files and writes all scenario titles
+ * to a single AsciiDoc file.
+ *
+ * <p>Caching is intentionally disabled: the output depends entirely on the
+ * contents of the feature files and regeneration is cheap.</p>
+ *
+ * <p>Either {@link #getSourceDir()} or {@link #getSourceFile()} must be
+ * configured, but not both.  When neither is set the task falls back to the
+ * default source directory ({@value GherkinToAsciidocExtension#DEFAULT_SOURCE_DIR})
+ * relative to the project directory.</p>
+ */
 @DisableCachingByDefault(because = "Generated documentation depends on source file content and is cheap to regenerate")
 public abstract class GenerateFeatureDocsTask extends DefaultTask {
 
+    /**
+     * Optional source directory containing the {@code .feature} files to process.
+     * Mutually exclusive with {@link #getSourceFile()}.
+     *
+     * @return mutable directory property for the feature file source directory
+     */
     @Optional
     @InputDirectory
     @PathSensitive(PathSensitivity.RELATIVE)
     public abstract DirectoryProperty getSourceDir();
 
+    /**
+     * Optional single {@code .feature} file to process.
+     * Mutually exclusive with {@link #getSourceDir()}.
+     *
+     * @return mutable file property for a single feature file
+     */
     @Optional
     @InputFile
     @PathSensitive(PathSensitivity.RELATIVE)
     public abstract RegularFileProperty getSourceFile();
 
+    /**
+     * Whether to recursively scan sub-directories when {@link #getSourceDir()} is used.
+     *
+     * @return mutable boolean property controlling recursive directory scanning
+     */
     @Input
     public abstract Property<Boolean> getIncludeSubDirs();
 
+    /**
+     * Directory where the generated AsciiDoc file will be written.
+     *
+     * @return mutable directory property for the output directory
+     */
     @OutputDirectory
     public abstract DirectoryProperty getOutputDir();
 
+    /**
+     * Name of the generated AsciiDoc file (without path).
+     *
+     * @return mutable string property for the output file name
+     */
     @Input
     public abstract Property<String> getOutputFileName();
 
+    /**
+     * Root directory of the project, used to resolve the default source directory
+     * when neither {@link #getSourceDir()} nor {@link #getSourceFile()} is set.
+     *
+     * @return mutable directory property for the project root directory
+     */
     @Internal
     public abstract DirectoryProperty getProjectDirectory();
 
+    /**
+     * Creates a new task instance.
+     * Invoked by Gradle's dependency injection infrastructure.
+     */
     @Inject
     public GenerateFeatureDocsTask() {
         setGroup("documentation");
         setDescription("Scans .feature files and generates an AsciiDoc file with all scenario titles.");
     }
 
+    /**
+     * Task action: collects {@code .feature} files, parses scenario titles,
+     * and writes them to the configured AsciiDoc output file.
+     */
     @TaskAction
     public void generate() {
         boolean sourceDirSet = getSourceDir().isPresent();
