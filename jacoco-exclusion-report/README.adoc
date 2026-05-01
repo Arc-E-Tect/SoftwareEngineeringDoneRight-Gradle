@@ -89,8 +89,8 @@ You can define your own annotation instead of using `ExcludeFromJacocoGeneratedC
 To keep the JaCoCo exclusion working automatically, the annotation's _simple name_ must contain
 the substring `Generated` (this is the convention JaCoCo relies on). For example,
 `MyProjectGeneratedExclusion` would work; `MyProjectExclusion` would not.
-Tell the plugin which annotation to scan for via the `annotationName` configuration property
-(see <<configuration>>).
+ Tell the plugin which annotation to scan for via the `annotationName` configuration property
+ (see <<jacoco-configuration>>).
 Using `ExcludeFromJacocoGeneratedCodeCoverage` from `sedr-library` is recommended because it
 carries a `justification` attribute that surfaces the reason for each exclusion directly in the
 generated reports.
@@ -132,8 +132,8 @@ public MyTask() { ... }
 The `justification` attribute is optional but strongly recommended. It is included verbatim in
 both the HTML and XML reports and forms the documentary record of why each exclusion exists.
 
-[[configuration]]
-== Configuration
+[[jacoco-configuration]]
+== JaCoCo Configuration
 
 The plugin registers a `jacocoExclusionReport` extension that accepts the following properties.
 All properties have sensible defaults and do not need to be set for a typical project.
