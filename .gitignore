@@ -55,3 +55,4 @@ bin/
 /sedr-library-maven-central-publishing.md
 /worktrees/
 tmp/
+/.idea/copilotDiffState.xml
