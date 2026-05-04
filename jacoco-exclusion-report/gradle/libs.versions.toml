@@ -7,7 +7,7 @@ owasp-dependency-check = { id = "org.owasp.dependencycheck", version.ref = "owas
 
 [versions]
 
-owasp-dependency-check = "12.2.1"
+owasp-dependency-check = "12.2.2"
 
 javaparser      = "3.28.0"
 junit-jupiter   = "6.0.3"
