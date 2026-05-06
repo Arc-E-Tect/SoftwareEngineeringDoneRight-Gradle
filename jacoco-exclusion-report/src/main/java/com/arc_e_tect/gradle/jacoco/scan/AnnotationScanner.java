@@ -3,6 +3,7 @@ package com.arc_e_tect.gradle.jacoco.scan;
 import com.arc_e_tect.gradle.jacoco.model.ExcludedElement;
 import com.arc_e_tect.gradle.jacoco.model.ExcludedElement.ElementType;
 import com.github.javaparser.JavaParser;
+import com.github.javaparser.ParserConfiguration;
 import com.github.javaparser.ParseResult;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.NodeList;
@@ -48,7 +49,10 @@ public class AnnotationScanner {
     public List<ExcludedElement> scan(File sourceFile) throws IOException {
         List<ExcludedElement> results = new ArrayList<>();
 
-        ParseResult<CompilationUnit> parseResult = new JavaParser().parse(sourceFile);
+        ParseResult<CompilationUnit> parseResult = new JavaParser(
+                new ParserConfiguration()
+                        .setLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_21))
+                .parse(sourceFile);
         if (!parseResult.isSuccessful() || parseResult.getResult().isEmpty()) {
             return results;
         }
