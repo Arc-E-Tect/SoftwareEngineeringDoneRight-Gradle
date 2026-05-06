@@ -18,7 +18,7 @@ import org.gradle.api.provider.Property;
 public abstract class JacocoExclusionReportExtension {
 
     /** For use by the Gradle-generated concrete subclass. */
-    protected JacocoExclusionReportExtension() {}
+    public JacocoExclusionReportExtension() {}
 
     /** Extension DSL block name, i.e. the name used to register the extension with the project. */
     public static final String NAME          = "jacocoExclusionReport";
