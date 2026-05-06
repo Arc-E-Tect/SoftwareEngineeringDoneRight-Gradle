@@ -33,18 +33,10 @@ No passwords, secrets, or any other sensitive information is stored in the repos
 - **Template files**: `*.example`, `*.sample`, `*.template`
 
 ### Configuration Files
-All configuration files must use environment variable references:
-```yaml
-# ✅ CORRECT
-spring:
-  datasource:
-    password: ${POSTGRES_PASSWORD}
+All configuration files must use environment variable references.
 
-# ❌ WRONG - Will be blocked by pre-commit hook
-spring:
-  datasource:
-    password: EXAMPLE_PASSWORD
-```
+- Correct: use an environment variable placeholder such as `${POSTGRES_PASSWORD}`.
+- Wrong: hardcode a value such as `EXAMPLE_PASSWORD`.
 
 ### Test Credentials
 Test credentials are passed through from environment variables with **NO defaults**:
@@ -120,6 +112,9 @@ All secrets must be used through variable names which can be mapped to environme
 - Maintain configuration cache compatibility when altering Gradle logic.
 - Keep README/test READMEs aligned with any change in commands, secrets, or images.
 - Prefer good examples over prescriptive snippets: show what to avoid (e.g., inline coordinates, manual Test tasks) and what to adopt (catalog aliases, test suites DSL).
+- Treat the root `README.adoc` as the top-level documentation index.
+- The root `README.adoc` must include both plugin READMEs via `include::jacoco-exclusion-report/README.adoc[]` and `include::gherkin-to-asciidoc/README.adoc[]` so the repository docs stay centralized.
+- Keep a clear TOC in the root `README.adoc` so readers can jump quickly to the relevant plugin documentation.
 
 ## Docker images
 When pulling images from Docker Hub, always prefer the latest version available with a version number. When there is an `alpine` variant available, prefer that over the default. Do not use `latest` tags as the version to pull.

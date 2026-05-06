@@ -52,8 +52,8 @@ plugins {
 }
 ----
 
-[[configuration]]
-== Configuration
+[[gherkin-configuration]]
+== Gherkin Configuration
 
 The plugin registers a `gherkinToAsciidoc` extension that accepts the following properties.
 All properties have sensible defaults and do not need to be set for a typical project.
