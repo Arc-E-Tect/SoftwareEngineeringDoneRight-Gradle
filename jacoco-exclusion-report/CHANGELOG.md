@@ -1,3 +1,10 @@
+# [0.3.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/v0.2.3...v0.3.0) (2026-05-06)
+
+
+### ✨ New and updated features
+
+* Add JaCoCo exclusion report example and fix compatibility issues ([#25](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/25)) ([e0c7013](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/e0c7013184bfeb927ccadf2d5d71d3686a038288)), closes [#25](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/25)
+
 ## [0.2.3](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/v0.2.2...v0.2.3) (2026-05-01)
 
 
