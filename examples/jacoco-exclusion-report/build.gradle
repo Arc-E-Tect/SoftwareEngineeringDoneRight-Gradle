@@ -1,0 +1,34 @@
+plugins {
+    id 'java'
+    id 'jacoco'
+    alias(libs.plugins.jacoco.exclusion.report)
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // The sedr-library provides the @ExcludeFromJacocoGeneratedCodeCoverage annotation.
+    // The annotation has RetentionPolicy.RUNTIME so it must be on the runtime classpath.
+    implementation libs.sedr.library
+}
+
+test {
+    useJUnitPlatform()
+    finalizedBy jacocoTestReport
+}
+
+jacocoTestReport {
+    dependsOn test
+    reports {
+        xml.required = true
+        html.required = true
+    }
+}

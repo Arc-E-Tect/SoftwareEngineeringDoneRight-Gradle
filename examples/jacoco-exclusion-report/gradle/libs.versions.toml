@@ -1,0 +1,12 @@
+[plugins]
+
+jacoco-exclusion-report = { id = "com.arc-e-tect.jacoco-exclusion-report", version.ref = "jacoco-exclusion-report" }
+
+[versions]
+
+jacoco-exclusion-report = "0.0.1"
+sedr-library             = "0.3.2"
+
+[libraries]
+
+sedr-library = { module = "com.arc-e-tect.sedr.utils:sedr-library", version.ref = "sedr-library" }
