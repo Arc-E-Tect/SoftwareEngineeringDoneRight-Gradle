@@ -4,7 +4,9 @@ on:
     branches:
       - main
     paths:
-      - 'gherkin-to-asciidoc/**'
+      - 'gherkin-to-asciidoc/*.gradle'
+      - 'gherkin-to-asciidoc/gradle/**'
+      - 'gherkin-to-asciidoc/src/main/**'
       - '.github/workflows/security-scan.yml'
       - '.github/workflows/gherkin-to-asciidoc-release.yml'
 
