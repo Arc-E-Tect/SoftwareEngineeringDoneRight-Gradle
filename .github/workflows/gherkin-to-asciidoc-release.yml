@@ -7,8 +7,6 @@ on:
       - 'gherkin-to-asciidoc/*.gradle'
       - 'gherkin-to-asciidoc/gradle/**'
       - 'gherkin-to-asciidoc/src/main/**'
-      - '.github/workflows/security-scan.yml'
-      - '.github/workflows/gherkin-to-asciidoc-release.yml'
 
 jobs:
   Calculate-Version:

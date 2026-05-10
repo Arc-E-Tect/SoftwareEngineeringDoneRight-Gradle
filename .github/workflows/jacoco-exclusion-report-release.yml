@@ -7,8 +7,6 @@ on:
       - 'jacoco-exclusion-report/*.gradle'
       - 'jacoco-exclusion-report/gradle/**'
       - 'jacoco-exclusion-report/src/main/**'
-      - '.github/workflows/security-scan.yml'
-      - '.github/workflows/jacoco-exclusion-report-release.yml'
 
 jobs:
   Calculate-Version:
