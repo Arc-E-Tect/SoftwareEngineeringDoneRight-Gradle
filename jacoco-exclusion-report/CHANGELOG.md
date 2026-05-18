@@ -1,3 +1,17 @@
+## [0.3.1](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/v0.3.0...v0.3.1) (2026-05-18)
+
+
+### 🐛 Bug Fixes
+
+* **examples:** add refreshVersions plugin to jacoco-exclusion-report example ([#29](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/29)) ([68b2541](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/68b2541e0bde574f588b8832ac78482585fc9284)), closes [#29](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/29)
+
+
+### 🔧 Misc
+
+* dependency updates for Gradle plugin repository ([#30](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/30)) ([66b4991](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/66b49914b56e86b3695a41b4ae41a7580592f110)), closes [#30](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/30)
+* Remove outdated paths and update dependencies in workflows ([#27](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/27)) ([23111cd](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/23111cd4c31631bc1674191fb19f570fff8f37ff)), closes [#27](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/27)
+* Update dependencies and workflow paths for maintenance ([#26](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/26)) ([c48258a](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/c48258a6f1ebe14073680fc286ef9971fb029624)), closes [#26](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/26)
+
 # [0.3.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/v0.2.3...v0.3.0) (2026-05-06)
 
 
