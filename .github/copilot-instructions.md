@@ -98,6 +98,7 @@ All secrets must be used through variable names which can be mapped to environme
   - Required secrets and inputs must be defined in reusable workflows
 
 ## Dependencies and versions
+- Use the Gradle Plugin Portal (`gradlePluginPortal()`) for Gradle plugins and Maven Central (`mavenCentral()`) for all other dependencies. Never add `mavenLocal()` to any repository block unless the user explicitly requests it.
 - All dependencies must come from `gradle/libs.versions.toml` using `version.ref`; no inline versions or direct coordinates in `build.gradle`.
 - WireMock, Testcontainers, and any new libs must be added to the catalog first, then referenced via `libs.<alias>`.
 - Default dependency aliases in `libs.versions.toml` must include `iff` across all alias categories (`libraries`, `bundles`, `plugins`, and `versions`).
