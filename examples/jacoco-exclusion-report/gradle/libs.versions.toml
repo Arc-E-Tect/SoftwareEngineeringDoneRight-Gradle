@@ -12,4 +12,3 @@ sedr-library = "0.3.4"
 [libraries]
 
 sedr-library = { module = "com.arc-e-tect.sedr.utils:sedr-library", version.ref = "sedr-library" }
-
