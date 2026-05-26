@@ -1,3 +1,16 @@
+## [0.3.2](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/v0.3.1...v0.3.2) (2026-05-26)
+
+
+### 🐛 Bug Fixes
+
+* Remove Gradle and npm from dependabot configuration ([#34](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/34)) ([7c7b6a2](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/7c7b6a21368fc0b1c7cddeac7523852f70e94c5a)), closes [#34](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/34)
+
+
+### 🔧 Misc
+
+* dependency updates for Gradle plugin repository ([#36](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/36)) ([e62629b](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/e62629bbcf3fa359f8587bd8096488863da54fc3)), closes [#36](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/36)
+* update VCS mappings, clarify Gradle repository usage, and remove mavenLocal from example settings ([#33](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/33)) ([6a89a58](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/6a89a5830281b7a8829ce2b34129d05dbaa87369)), closes [#33](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/33)
+
 ## [0.3.1](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/v0.3.0...v0.3.1) (2026-05-18)
 
 
