@@ -4,11 +4,13 @@
 
 plugin-publish-iff = { id = "com.gradle.plugin-publish", version.ref = "plugin-publish-iff" }
 owasp-dependency-check-iff = { id = "org.owasp.dependencycheck", version.ref = "owasp-dependency-check-iff" }
+jreleaser-iff = { id = "org.jreleaser", version.ref = "jreleaser-iff" }
 
 [versions]
 
 plugin-publish-iff = "2.1.1"
 owasp-dependency-check-iff = "12.2.2"
+jreleaser-iff = "1.24.0"
 archunit-junit5-iff = "1.4.1"
 junit-jupiter-iff = "6.1.0"
 junit-platform-iff = "6.1.0"

@@ -46,6 +46,7 @@ Set `failOnDuplicateRules = true` if those collisions should stop the build.
 
 This repository ships `architecture-validator-spring-rules` as the built-in Spring companion artifact.
 It is just another rule pack from the plugin’s perspective.
+The artifact is published to Maven Central and GitHub Packages.
 Setting `useSpringRulePack = true` adds it to the `testArchitecture` suite automatically.
 It does not replace the built-in generated `HexagonalArchitectureTest`.
 Instead, the `testArchitecture` suite runs the vanilla generated hexagonal rules and then adds the Spring-specific companion tests from the external rule-pack JAR.
