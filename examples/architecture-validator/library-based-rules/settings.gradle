@@ -1,0 +1,26 @@
+pluginManagement {
+    includeBuild('../../../architecture-validator')
+    repositories {
+        gradlePluginPortal()
+    }
+}
+
+plugins {
+    id 'org.gradle.toolchains.foojay-resolver-convention' version '1.0.0'
+    id 'de.fayard.refreshVersions' version '0.60.6'
+}
+
+refreshVersions {
+    rejectVersionIf {
+        candidate.stabilityLevel.isLessStableThan(current.stabilityLevel)
+    }
+}
+
+includeBuild('../../../architecture-validator')
+includeBuild('layer-validator') {
+    dependencySubstitution {
+        substitute module('com.org.ea:layer-validator') using project(':')
+    }
+}
+
+rootProject.name = 'architecture-validator-library-based-rules'

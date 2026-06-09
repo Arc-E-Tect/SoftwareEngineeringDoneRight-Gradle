@@ -1,0 +1,199 @@
+= Architecture Validator Gradle Plugin
+:toc: left
+:toc-title: Contents
+:toclevels: 2
+:icons: font
+:source-highlighter: rouge
+
+image:https://img.shields.io/badge/Java-21%2B-blue[Java 21+,link=https://adoptium.net]
+image:https://img.shields.io/badge/Gradle-8.x%2B-02303A?logo=gradle[Gradle 8+,link=https://gradle.org]
+
+The Architecture Validator plugin generates and runs ArchUnit-based architecture tests from a small Gradle DSL.
+It focuses on Hexagonal Architecture by default and can also attach external rule packs, including the companion Spring rule pack shipped in this repository.
+
+== Plugin ID
+
+[source]
+----
+com.arc-e-tect.architecture-validator
+----
+
+== Requirements
+
+[cols="1,1",options="header"]
+|===
+| Requirement | Version
+| Gradle | 8.x +
+| Java | 21 +
+|===
+
+== Applying the Plugin
+
+=== Using the `plugins` block
+
+.Groovy DSL (`build.gradle`)
+[source,groovy]
+----
+plugins {
+    id 'java'
+    id 'com.arc-e-tect.architecture-validator' version '<version>'
+}
+----
+
+.Kotlin DSL (`build.gradle.kts`)
+[source,kotlin]
+----
+plugins {
+    java
+    id("com.arc-e-tect.architecture-validator") version "<version>"
+}
+----
+
+== What the Plugin Adds
+
+The plugin creates a `testArchitecture` JVM test suite.
+It generates the built-in `HexagonalArchitectureTest` class under `build/generated/testArchitecture/java`.
+It compiles user-provided tests from `src/testArchitecture/java` by default.
+It can discover external rule packs on the `testArchitectureImplementation` classpath and generate a bridge suite that runs those rule-pack tests through JUnit Platform.
+
+== Configuration
+
+The plugin registers the `architectureValidator` extension.
+All properties are lazy Gradle properties so they work with configuration cache and multi-module builds.
+
+[source,groovy]
+----
+architectureValidator {
+    basePackage = 'com.example.architecture'
+    testDirectory = file('src/testArchitecture/java')
+
+    failOnViolation = true
+    maxAllowedViolations = 0
+    ignoreFailures = false
+    failOnDuplicateRules = false
+
+    useSpringRulePack = false
+    springRulePackCoordinate = 'com.arc-e-tect:architecture-validator-spring-rules'
+
+    hexagonalArchitecture {
+        inPorts = ['..application.port.in..']
+        outPorts = ['..application.port.out..']
+        domainModel = ['..application.domain..']
+        adapters = ['..adapter..', '..adapters..']
+        applicationServices = ['..application.domain.service..', '..application.service..']
+        commonPackages = ['..application.common..']
+    }
+}
+----
+
+=== Extension Properties
+
+[cols="1,1,3",options="header"]
+|===
+| Property | Default | Purpose
+| `basePackage` | project group | Package root imported by generated tests and companion rule packs.
+| `testDirectory` | `src/testArchitecture/java` | Location for user-supplied ArchUnit tests.
+| `failOnViolation` | `true` | Enables the post-test violation threshold check.
+| `maxAllowedViolations` | `0` | Maximum number of failing architecture rule tests before the build fails.
+| `ignoreFailures` | `false` | Keeps the build green even when architecture tests fail.
+| `failOnDuplicateRules` | `false` | Turns duplicate rule detection across local and external rule packs into a build failure instead of a warning.
+| `useSpringRulePack` | `false` | Adds the companion Spring Hexagonal rule-pack JAR to the generated test suite dependencies.
+| `springRulePackCoordinate` | `com.arc-e-tect:architecture-validator-spring-rules` | Maven coordinate prefix used when the Spring rule pack is enabled.
+|===
+
+== Built-in Vanilla Hexagonal Rules
+
+The generated `HexagonalArchitectureTest` is based on the Hexagonal guidance used in the `family-ties` project.
+It enforces four broad invariants.
+
+* Domain and core application packages must remain free of adapter dependencies.
+* Port packages must remain interface-only contracts.
+* Port signatures must stay free of framework dependencies.
+* Application services must collaborate with adapters through ports instead of direct dependencies.
+
+== Companion Spring Rule Pack
+
+The repository also publishes `architecture-validator-spring-rules` as a separate JAR.
+Its rules are generalized from the Hexagonal tests used in the `red-thread` project.
+The rule pack focuses on Spring stereotypes and wiring boundaries.
+
+[source,groovy]
+----
+architectureValidator {
+    basePackage = 'com.example.order'
+    useSpringRulePack = true
+}
+----
+
+You can also add the artifact manually.
+
+[source,groovy]
+----
+dependencies {
+    testArchitectureImplementation 'com.arc-e-tect:architecture-validator-spring-rules:<version>'
+}
+----
+
+== Library-Based Rule Packs
+
+Any JAR added to `testArchitectureImplementation` can contribute rule-pack tests.
+The plugin scans dependency directories and JARs for classes whose names end with `Test`.
+It then generates an `ExternalRulePackSuite` class that selects the discovered packages through JUnit Platform.
+
+[source,groovy]
+----
+dependencies {
+    testArchitectureImplementation 'com.org.ea:layer-validator:1.0.0'
+}
+----
+
+If two rule packs contribute the same simple test class name, the plugin logs a warning by default.
+Set `failOnDuplicateRules = true` if duplicate rules should fail the build.
+
+== Running the Suite
+
+[source,bash]
+----
+./gradlew testArchitecture
+----
+
+The suite writes XML and HTML reports under `build/reports/architecture-validator/`.
+Generated sources remain under `build/generated/testArchitecture/java` and should never be committed.
+
+== Multi-Module Usage
+
+The plugin is designed to be applied per module.
+A root build can supply shared defaults and each subproject can override package patterns locally.
+
+[source,groovy]
+----
+subprojects {
+    apply plugin: 'java'
+    apply plugin: 'com.arc-e-tect.architecture-validator'
+
+    architectureValidator {
+        basePackage = 'com.example.multi'
+        hexagonalArchitecture {
+            inPorts = ['..application.port.in..']
+            outPorts = ['..application.port.out..']
+        }
+    }
+}
+----
+
+== Examples and Further Docs
+
+The repository contains five example projects under `examples/architecture-validator`.
+They cover the vanilla, Spring, hybrid, multi-module, and external rule-pack scenarios required by the plugin specification.
+
+Additional documentation is available in the `docs/` directory.
+
+* `docs/user-guide.md`
+* `docs/templating-tutorial.md`
+* `docs/library-rule-packs-guide.md`
+* `docs/api-documentation.md`
+
+== License
+
+This plugin is part of the _Software Engineering Done Right_ project.
+See link:../LICENSE[LICENSE] for details.

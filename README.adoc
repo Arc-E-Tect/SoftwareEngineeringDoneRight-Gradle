@@ -20,6 +20,9 @@ A collection of useful and usable Gradle plugins and utilities for software engi
 |link:jacoco-exclusion-report/README.adoc[JaCoCo Exclusion Report]
 |Gradle plugin that scans Java sources for `@ExcludeFromJacocoGeneratedCodeCoverage` and generates an HTML + XML audit report of every excluded element, giving teams full visibility into what has been excluded from JaCoCo coverage enforcement and why.
 
+|link:architecture-validator/README.adoc[Architecture Validator]
+|Gradle plugin that generates and runs ArchUnit-based Hexagonal Architecture tests, supports external rule packs, and ships a separate Spring companion rule-pack artifact.
+
 |link:gherkin-to-asciidoc/README.adoc[Gherkin to AsciiDoc]
 |Gradle plugin that scans `.feature` files for `Scenario` and `Scenario Outline` titles and generates an AsciiDoc file listing all scenarios, providing a living index of behaviour specifications ready to embed in project documentation.
 |===
@@ -27,6 +30,8 @@ A collection of useful and usable Gradle plugins and utilities for software engi
 == Documentation
 
 The complete plugin documentation is included below so this page acts as the top-level index for the repository.
+
+include::architecture-validator/README.adoc[leveloffset=+1]
 
 include::jacoco-exclusion-report/README.adoc[leveloffset=+1]
 

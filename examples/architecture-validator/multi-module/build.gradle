@@ -1,0 +1,43 @@
+plugins {
+    id 'com.arc-e-tect.architecture-validator' apply false
+}
+
+subprojects {
+    apply plugin: 'java'
+    apply plugin: 'com.arc-e-tect.architecture-validator'
+
+    group = 'com.example.multi'
+    version = '0.0.1'
+
+    java {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(21)
+        }
+    }
+
+    repositories {
+        mavenCentral()
+    }
+
+    architectureValidator {
+        basePackage = "com.example.multi.${project.name}"
+        ignoreFailures = true
+        hexagonalArchitecture {
+            domainModel = ['..domain..', '..model..']
+            adapters = ['..adapters..', '..adapter..', '..persistence..']
+            applicationServices = ['..service..']
+            inPorts = ['..port.in..']
+            outPorts = ['..port.out..']
+        }
+    }
+}
+
+tasks.register('aggregateArchitectureReports', Copy) {
+    dependsOn(subprojects.collect { it.tasks.named('testArchitecture') })
+    into(layout.buildDirectory.dir('reports/architecture-validator/aggregate'))
+    subprojects.each { subproject ->
+        from(subproject.layout.buildDirectory.dir('reports/architecture-validator')) {
+            into(subproject.name)
+        }
+    }
+}
