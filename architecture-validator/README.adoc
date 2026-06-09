@@ -103,7 +103,7 @@ architectureValidator {
 
 == Built-in Vanilla Hexagonal Rules
 
-The generated `HexagonalArchitectureTest` is based on the Hexagonal guidance used in the `family-ties` project.
+The generated `HexagonalArchitectureTest` provides the built-in vanilla Hexagonal rule set for the plugin.
 It enforces four broad invariants.
 
 * Domain and core application packages must remain free of adapter dependencies.
@@ -114,7 +114,6 @@ It enforces four broad invariants.
 == Companion Spring Rule Pack
 
 The repository also publishes `architecture-validator-spring-rules` as a separate JAR.
-Its rules are generalized from the Hexagonal tests used in the `red-thread` project.
 The rule pack focuses on Spring stereotypes and wiring boundaries.
 
 [source,groovy]
