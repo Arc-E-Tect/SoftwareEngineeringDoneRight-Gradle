@@ -5,6 +5,10 @@ on:
       - main
     paths:
       - 'architecture-validator/*.gradle'
+      - 'architecture-validator/package.json'
+      - 'architecture-validator/package-lock.json'
+      - 'architecture-validator/release.config.js'
+      - 'architecture-validator/CHANGELOG.md'
       - 'architecture-validator/gradle/**'
       - 'architecture-validator/src/main/**'
       - 'architecture-validator/spring-rules/src/main/**'
