@@ -46,6 +46,7 @@ public class ArchitectureValidatorPlugin implements Plugin<Project> {
                     task.getApplicationServices().set(extension.getHexagonalArchitecture().getApplicationServices());
                     task.getCommonPackages().set(extension.getHexagonalArchitecture().getCommonPackages());
                     task.getFailOnDuplicateRules().set(extension.getFailOnDuplicateRules());
+                    task.getUseBuiltInHexagonalRulePack().set(extension.getUseBuiltInHexagonalRulePack());
                     task.getUserTestsDirectory().set(extension.getTestDirectory());
                     task.getOutputDirectory().set(project.getLayout().getBuildDirectory().dir("generated/testArchitecture/java"));
                 });

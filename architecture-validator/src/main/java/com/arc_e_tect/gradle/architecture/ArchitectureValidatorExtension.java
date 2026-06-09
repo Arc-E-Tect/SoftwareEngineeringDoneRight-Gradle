@@ -18,6 +18,7 @@ public class ArchitectureValidatorExtension {
     private final Property<Integer> maxAllowedViolations;
     private final Property<Boolean> ignoreFailures;
     private final Property<Boolean> failOnDuplicateRules;
+    private final Property<Boolean> useBuiltInHexagonalRulePack;
     private final Property<Boolean> useSpringRulePack;
     private final Property<String> springRulePackCoordinate;
     private final HexagonalArchitectureExtension hexagonalArchitecture;
@@ -30,6 +31,7 @@ public class ArchitectureValidatorExtension {
         maxAllowedViolations = objects.property(Integer.class).convention(0);
         ignoreFailures = objects.property(Boolean.class).convention(false);
         failOnDuplicateRules = objects.property(Boolean.class).convention(false);
+        useBuiltInHexagonalRulePack = objects.property(Boolean.class).convention(true);
         useSpringRulePack = objects.property(Boolean.class).convention(false);
         springRulePackCoordinate = objects.property(String.class)
                 .convention("com.arc-e-tect:architecture-validator-spring-rules");
@@ -58,6 +60,10 @@ public class ArchitectureValidatorExtension {
 
     public Property<Boolean> getFailOnDuplicateRules() {
         return failOnDuplicateRules;
+    }
+
+    public Property<Boolean> getUseBuiltInHexagonalRulePack() {
+        return useBuiltInHexagonalRulePack;
     }
 
     public Property<Boolean> getUseSpringRulePack() {

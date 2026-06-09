@@ -45,6 +45,7 @@ public abstract class GenerateArchitectureTestsTask extends DefaultTask {
     public GenerateArchitectureTestsTask() {
         setGroup("verification");
         setDescription("Generates the built-in hexagonal architecture tests.");
+        getUseBuiltInHexagonalRulePack().convention(true);
     }
 
     @Input
@@ -71,6 +72,9 @@ public abstract class GenerateArchitectureTestsTask extends DefaultTask {
     @Input
     public abstract Property<Boolean> getFailOnDuplicateRules();
 
+    @Input
+    public abstract Property<Boolean> getUseBuiltInHexagonalRulePack();
+
     @Internal
     public abstract DirectoryProperty getUserTestsDirectory();
 
@@ -85,27 +89,29 @@ public abstract class GenerateArchitectureTestsTask extends DefaultTask {
         Path outputRoot = getOutputDirectory().get().getAsFile().toPath();
         resetOutputDirectory(outputRoot);
 
-        String template = loadTemplate();
-        Map<String, String> replacements = Map.of(
-                "${generatedPackage}", GENERATED_PACKAGE,
-                "${basePackage}", escapeJava(getBasePackage().getOrElse("")),
-                "${inPorts}", javaArrayLiteral(getInPorts().get()),
-                "${outPorts}", javaArrayLiteral(getOutPorts().get()),
-                "${domainModel}", javaArrayLiteral(getDomainModel().get()),
-                "${adapters}", javaArrayLiteral(getAdapters().get()),
-                "${applicationServices}", javaArrayLiteral(getApplicationServices().get()),
-                "${commonPackages}", javaArrayLiteral(getCommonPackages().get())
-        );
-
-        String rendered = template;
-        for (Map.Entry<String, String> entry : replacements.entrySet()) {
-            rendered = rendered.replace(entry.getKey(), entry.getValue());
-        }
-
-        Path target = outputRoot.resolve("com/arc_e_tect/gradle/architecture/generated/HexagonalArchitectureTest.java");
         try {
-            Files.createDirectories(target.getParent());
-            Files.writeString(target, rendered, StandardCharsets.UTF_8);
+            if (getUseBuiltInHexagonalRulePack().getOrElse(true)) {
+                String template = loadTemplate();
+                Map<String, String> replacements = Map.of(
+                        "${generatedPackage}", GENERATED_PACKAGE,
+                        "${basePackage}", escapeJava(getBasePackage().getOrElse("")),
+                        "${inPorts}", javaArrayLiteral(getInPorts().get()),
+                        "${outPorts}", javaArrayLiteral(getOutPorts().get()),
+                        "${domainModel}", javaArrayLiteral(getDomainModel().get()),
+                        "${adapters}", javaArrayLiteral(getAdapters().get()),
+                        "${applicationServices}", javaArrayLiteral(getApplicationServices().get()),
+                        "${commonPackages}", javaArrayLiteral(getCommonPackages().get())
+                );
+
+                String rendered = template;
+                for (Map.Entry<String, String> entry : replacements.entrySet()) {
+                    rendered = rendered.replace(entry.getKey(), entry.getValue());
+                }
+
+                Path target = outputRoot.resolve("com/arc_e_tect/gradle/architecture/generated/HexagonalArchitectureTest.java");
+                Files.createDirectories(target.getParent());
+                Files.writeString(target, rendered, StandardCharsets.UTF_8);
+            }
             generateExternalRulePackSuite(outputRoot);
         } catch (IOException exception) {
             throw new GradleException("Failed to generate architecture tests", exception);
@@ -182,7 +188,9 @@ public abstract class GenerateArchitectureTestsTask extends DefaultTask {
     private void warnOrFailOnDuplicateRules(Set<String> discoveredClasses) {
         Map<String, List<String>> duplicates = new LinkedHashMap<>();
         Set<String> localRuleNames = new LinkedHashSet<>();
-        localRuleNames.add("HexagonalArchitectureTest");
+        if (getUseBuiltInHexagonalRulePack().getOrElse(true)) {
+            localRuleNames.add("HexagonalArchitectureTest");
+        }
         localRuleNames.addAll(discoverLocalRuleNames());
 
         Map<String, List<String>> externalBySimpleName = discoveredClasses.stream()

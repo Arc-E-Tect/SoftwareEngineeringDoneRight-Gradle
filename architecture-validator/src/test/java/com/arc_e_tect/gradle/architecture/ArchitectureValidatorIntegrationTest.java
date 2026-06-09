@@ -231,6 +231,66 @@ class ArchitectureValidatorIntegrationTest {
         assertThat(result.getOutput()).contains("Duplicate architecture rules discovered");
     }
 
+    @Test
+    @DisplayName("disablingBuiltInHexagonalRulePackShouldSkipGeneratedHexagonalTest")
+    void disablingBuiltInHexagonalRulePackShouldSkipGeneratedHexagonalTest() throws IOException {
+        Path projectDir = tempDir.resolve("disable-built-in-it");
+        Files.createDirectories(projectDir);
+
+        String architectureValidatorRoot = new File(".").getCanonicalFile().getAbsolutePath();
+        String normalizedRoot = architectureValidatorRoot.replace("\\", "\\\\");
+
+        write(projectDir.resolve("settings.gradle"), """
+                pluginManagement {
+                    repositories {
+                        gradlePluginPortal()
+                    }
+                }
+
+                includeBuild('%s')
+
+                rootProject.name = 'disable-built-in-it'
+                """.formatted(normalizedRoot));
+
+        write(projectDir.resolve("build.gradle"), """
+                plugins {
+                    id 'java'
+                    id 'com.arc-e-tect.architecture-validator'
+                }
+
+                group = 'com.example.disablebuiltin'
+                version = '0.0.1'
+
+                repositories {
+                    mavenCentral()
+                }
+
+                architectureValidator {
+                    basePackage = 'com.example.disablebuiltin'
+                    useBuiltInHexagonalRulePack = false
+                    ignoreFailures = true
+                }
+                """);
+
+        write(projectDir.resolve("src/main/java/com/example/disablebuiltin/Dummy.java"), """
+                package com.example.disablebuiltin;
+
+                public class Dummy {
+                }
+                """);
+
+        BuildResult result = GradleRunner.create()
+                .withProjectDir(projectDir.toFile())
+                .withPluginClasspath()
+                .withArguments("generateArchitectureTests")
+                .build();
+
+        assertThat(result.task(":generateArchitectureTests").getOutcome()).isEqualTo(TaskOutcome.SUCCESS);
+
+        Path generatedHexagonal = projectDir.resolve("build/generated/testArchitecture/java/com/arc_e_tect/gradle/architecture/generated/HexagonalArchitectureTest.java");
+        assertThat(generatedHexagonal).doesNotExist();
+    }
+
     private void write(Path file, String contents) throws IOException {
         Files.createDirectories(file.getParent());
         Files.writeString(file, contents, StandardCharsets.UTF_8);

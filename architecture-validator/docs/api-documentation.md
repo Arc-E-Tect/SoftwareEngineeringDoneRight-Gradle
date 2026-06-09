@@ -15,6 +15,7 @@ It also wires report locations and the post-execution threshold check.
 - `maxAllowedViolations`
 - `ignoreFailures`
 - `failOnDuplicateRules`
+- `useBuiltInHexagonalRulePack`
 - `useSpringRulePack`
 - `springRulePackCoordinate`
 - `hexagonalArchitecture`
@@ -33,6 +34,7 @@ It also wires report locations and the post-execution threshold check.
 ## Generator task
 
 `GenerateArchitectureTestsTask` renders the built-in vanilla `HexagonalArchitectureTest` source file.
+That generation is controlled by `useBuiltInHexagonalRulePack`.
 It also scans the rule-pack classpath and generates `ExternalRulePackSuite` when dependency rule packs are present.
 
 ## Generated classes

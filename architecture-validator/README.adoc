@@ -71,6 +71,7 @@ architectureValidator {
     maxAllowedViolations = 0
     ignoreFailures = false
     failOnDuplicateRules = false
+    useBuiltInHexagonalRulePack = true
 
     useSpringRulePack = false
     springRulePackCoordinate = 'com.arc-e-tect:architecture-validator-spring-rules'
@@ -97,9 +98,12 @@ architectureValidator {
 | `maxAllowedViolations` | `0` | Maximum number of failing architecture rule tests before the build fails.
 | `ignoreFailures` | `false` | Keeps the build green even when architecture tests fail.
 | `failOnDuplicateRules` | `false` | Turns duplicate rule detection across local and external rule packs into a build failure instead of a warning.
+| `useBuiltInHexagonalRulePack` | `true` | Enables generation and execution of the built-in `HexagonalArchitectureTest`.
 | `useSpringRulePack` | `false` | Adds the companion Spring Hexagonal rule-pack JAR to the generated test suite dependencies.
 | `springRulePackCoordinate` | `com.arc-e-tect:architecture-validator-spring-rules` | Maven coordinate prefix used when the Spring rule pack is enabled.
 |===
+
+To run only external/user rule packs and disable the built-in vanilla validator, set `useBuiltInHexagonalRulePack = false`.
 
 == Built-in Vanilla Hexagonal Rules
 

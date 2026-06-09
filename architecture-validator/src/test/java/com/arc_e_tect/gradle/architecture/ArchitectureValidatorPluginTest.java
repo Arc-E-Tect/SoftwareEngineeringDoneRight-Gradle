@@ -36,6 +36,7 @@ class ArchitectureValidatorPluginTest {
         assertThat(extension.getMaxAllowedViolations().get()).isZero();
         assertThat(extension.getIgnoreFailures().get()).isFalse();
         assertThat(extension.getFailOnDuplicateRules().get()).isFalse();
+        assertThat(extension.getUseBuiltInHexagonalRulePack().get()).isTrue();
         assertThat(extension.getUseSpringRulePack().get()).isFalse();
     }
 

@@ -84,4 +84,63 @@ class GenerateArchitectureTestsTaskTest {
                 .contains("com.example.rules")
                 .contains("@IncludeClassNamePatterns({\".*Test\"})");
     }
+
+        @Test
+        @DisplayName("generateShouldSkipBuiltInHexagonalWhenDisabled")
+        void generateShouldSkipBuiltInHexagonalWhenDisabled() {
+                GenerateArchitectureTestsTask task = ProjectBuilder.builder()
+                                .withProjectDir(tempDir.toFile())
+                                .build()
+                                .getTasks()
+                                .create("generateArchitectureTestsWithoutBuiltIn", GenerateArchitectureTestsTask.class);
+
+                task.getBasePackage().set("com.example.architecture");
+                task.getInPorts().set(List.of("..application.port.in.."));
+                task.getOutPorts().set(List.of("..application.port.out.."));
+                task.getDomainModel().set(List.of("..application.domain.."));
+                task.getAdapters().set(List.of("..adapter.."));
+                task.getApplicationServices().set(List.of("..application.service.."));
+                task.getCommonPackages().set(List.of("..application.common.."));
+                task.getFailOnDuplicateRules().set(false);
+                task.getUseBuiltInHexagonalRulePack().set(false);
+                task.getUserTestsDirectory().set(tempDir.resolve("user-tests").toFile());
+                task.getOutputDirectory().set(tempDir.resolve("generated").toFile());
+
+                task.generate();
+
+                Path generatedFile = tempDir.resolve("generated/com/arc_e_tect/gradle/architecture/generated/HexagonalArchitectureTest.java");
+                assertThat(generatedFile).doesNotExist();
+        }
+
+        @Test
+        @DisplayName("generateShouldCreateExternalRulePackSuiteWhenBuiltInHexagonalDisabled")
+        void generateShouldCreateExternalRulePackSuiteWhenBuiltInHexagonalDisabled() throws Exception {
+                GenerateArchitectureTestsTask task = ProjectBuilder.builder()
+                                .withProjectDir(tempDir.toFile())
+                                .build()
+                                .getTasks()
+                                .create("generateArchitectureTestsWithExternalRulesNoBuiltIn", GenerateArchitectureTestsTask.class);
+
+                Path fakeRulePackRoot = tempDir.resolve("rule-pack-no-built-in");
+                Files.createDirectories(fakeRulePackRoot.resolve("com/example/rules"));
+                Files.write(fakeRulePackRoot.resolve("com/example/rules/LayeredRulesTest.class"), new byte[] {0});
+
+                task.getBasePackage().set("com.example.architecture");
+                task.getInPorts().set(List.of("..application.port.in.."));
+                task.getOutPorts().set(List.of("..application.port.out.."));
+                task.getDomainModel().set(List.of("..application.domain.."));
+                task.getAdapters().set(List.of("..adapter.."));
+                task.getApplicationServices().set(List.of("..application.service.."));
+                task.getCommonPackages().set(List.of("..application.common.."));
+                task.getFailOnDuplicateRules().set(false);
+                task.getUseBuiltInHexagonalRulePack().set(false);
+                task.getUserTestsDirectory().set(tempDir.resolve("user-tests").toFile());
+                task.getRulePackClasspath().from(fakeRulePackRoot.toFile());
+                task.getOutputDirectory().set(tempDir.resolve("generated").toFile());
+
+                task.generate();
+
+                Path generatedSuite = tempDir.resolve("generated/com/arc_e_tect/gradle/architecture/generated/ExternalRulePackSuite.java");
+                assertThat(generatedSuite).exists();
+        }
 }
