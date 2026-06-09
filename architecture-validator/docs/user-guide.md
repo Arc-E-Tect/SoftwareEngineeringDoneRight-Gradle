@@ -46,6 +46,9 @@ The Gradle HTML report is the fastest way to inspect which rule failed and which
 The plugin always regenerates its built-in tests under `build/generated/testArchitecture/java`.
 Those sources are derived artifacts and must not be versioned.
 
+If you want to extend the plugin with an additional built-in generated template, see `docs/templating-tutorial.md`.
+That tutorial now also points to `docs/templating-tutorial-example/`, which shows the final end-state source files for a two-template design with both `hexagonal` and `layered` built-in options.
+
 ## Handling violations
 
 Set `ignoreFailures = true` when the suite should report but not fail the build.
