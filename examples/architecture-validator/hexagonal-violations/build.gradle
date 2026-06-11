@@ -1,0 +1,29 @@
+plugins {
+    id 'java'
+    id 'com.arc-e-tect.architecture-validator'
+}
+
+group = 'com.example.hexapp'
+version = '0.0.1'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+architectureValidator {
+    basePackage = 'com.example.hexapp'
+
+    hexagonalArchitecture {
+        inPorts = ['..port.in..']
+        outPorts = ['..port.out..']
+        domainModel = ['..domain..']
+        adapters = ['..adapter..']
+        applicationServices = ['..application..']
+    }
+}

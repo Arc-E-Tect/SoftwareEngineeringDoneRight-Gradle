@@ -18,7 +18,10 @@ refreshVersions {
 
 includeBuild('../../../architecture-validator') {
     dependencySubstitution {
-        substitute module('com.arc-e-tect:architecture-validator-spring-rules') using project(':spring-rules')
+        substitute module('com.arc-e-tect:spring-rules') using project(':spring-rules')
+        substitute module('com.arc-e-tect:spring-rules:1.0.0') using project(':spring-rules')
+        substitute module('com.arc-e-tect:architecture-validation-spring-rules') using project(':spring-rules')
+        substitute module('com.arc-e-tect:architecture-validation-spring-rules:1.0.0') using project(':spring-rules')
     }
 }
 

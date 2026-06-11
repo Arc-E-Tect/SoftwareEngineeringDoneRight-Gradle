@@ -18,11 +18,10 @@ repositories {
 
 dependencies {
     implementation libs.spring.context.iff
+    testArchitectureImplementation 'com.arc-e-tect:spring-rules:1.0.0'
 }
 
 architectureValidator {
     basePackage = 'com.example.spring'
     ignoreFailures = true
-    useSpringRulePack = true
-    springRulePackCoordinate = 'com.arc-e-tect:spring-rules'
 }
