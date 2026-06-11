@@ -49,6 +49,6 @@ The plugin configures the `testArchitecture` suite to emit XML and HTML reports 
 
 == Companion Spring Artifact
 
-The `spring-rules` subproject publishes `architecture-validator-hexagonal-spring-rules`.
+The companion `spring-rules` project in SoftwareEngineeringDoneRight-Library publishes `architecture-validator-hexagonal-spring-rules`.
 Its rule classes read the same system properties that the main plugin passes into the `testArchitecture` task.
 The artifact is consumed through `testArchitectureImplementation` like any other external rule-pack.
