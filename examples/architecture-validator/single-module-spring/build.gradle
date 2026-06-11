@@ -18,7 +18,7 @@ repositories {
 
 dependencies {
     implementation libs.spring.context.iff
-    testArchitectureImplementation 'com.arc-e-tect:spring-rules:1.0.0'
+    testArchitectureImplementation 'com.arc-e-tect:architecture-validator-hexagonal-spring-rules:1.0.0'
 }
 
 architectureValidator {

@@ -9,5 +9,4 @@ refreshVersions {
     }
 }
 
-rootProject.name = 'architecture-validator'
-include('spring-rules')
+rootProject.name = 'architecture-validator-hexagonal-spring-rules'

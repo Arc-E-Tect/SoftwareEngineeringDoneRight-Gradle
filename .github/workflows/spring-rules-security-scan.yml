@@ -1,7 +1,7 @@
-name: Architecture Validator Plugin - Security Scan
+name: Architecture Validator Spring Rules - Security Scan
 on:
   schedule:
-    - cron: '0 7 * * 5'  # Every Friday at 07:00 UTC
+    - cron: '0 8 * * 5'  # Every Friday at 08:00 UTC
   workflow_dispatch:
 
 jobs:
@@ -20,15 +20,15 @@ jobs:
       - name: Read version from gradle.properties
         id: read-version
         run: |
-          VERSION=$(grep -oP 'version\s*=\s*\K\S+' architecture-validator/plugin/gradle.properties)
+          VERSION=$(grep -oP 'version\s*=\s*\K\S+' architecture-validator/spring-rules/gradle.properties)
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
   Security-Scan:
     needs: Read-Version
     uses: ./.github/workflows/security-scan.yml
     with:
-      project_dir: architecture-validator/plugin
-      project_name: 'architecture-validator'
+      project_dir: architecture-validator/spring-rules
+      project_name: 'architecture-validator-hexagonal-spring-rules'
       semantic_version: ${{ needs.Read-Version.outputs.version }}
       fail_on_fatal: true
       reports_subpath: build/reports

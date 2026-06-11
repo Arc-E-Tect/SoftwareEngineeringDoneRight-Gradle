@@ -4,7 +4,7 @@ on:
     branches-ignore:
       - main
     paths:
-      - 'architecture-validator/**'
+      - 'architecture-validator/plugin/**'
       - 'examples/architecture-validator/**'
       - '.github/workflows/**'
       - '.github/actions/**'
@@ -15,7 +15,7 @@ jobs:
     with:
       fail_on_empty_version: false
       fail_on_existing_tag: false
-      project_dir: architecture-validator
+      project_dir: architecture-validator/plugin
     secrets:
       sem_rel_token_token: ${{ secrets.SEMANTIC_RELEASE_TOKEN }}
 
@@ -34,7 +34,7 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      GRADLE_PROPERTIES_FILE: ./architecture-validator/gradle.properties
+      GRADLE_PROPERTIES_FILE: ./architecture-validator/plugin/gradle.properties
       GRADLE_VERSION_REGEX: version\s*=\s*[0-9]\\+\.[0-9]\\+\.[0-9]\\+[a-zA-Z0-9.-]*
       VERSION: ${{ needs.Calculate-Version.outputs.next_version }}
 
@@ -65,7 +65,7 @@ jobs:
 
       - name: Build and test Architecture Validator Plugin
         run: |
-          cd architecture-validator
+          cd architecture-validator/plugin
           chmod +x ./gradlew
           ./gradlew build
         env:
@@ -74,7 +74,7 @@ jobs:
 
       - name: Validate Plugin
         run: |
-          cd architecture-validator
+          cd architecture-validator/plugin
           ./gradlew validatePlugins
         env:
           GITHUB_ACTOR: ${{ github.actor }}

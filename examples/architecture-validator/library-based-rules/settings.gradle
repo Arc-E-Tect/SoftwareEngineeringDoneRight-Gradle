@@ -1,5 +1,5 @@
 pluginManagement {
-    includeBuild('../../../architecture-validator')
+    includeBuild('../../../architecture-validator/plugin')
     repositories {
         gradlePluginPortal()
     }
@@ -16,7 +16,7 @@ refreshVersions {
     }
 }
 
-includeBuild('../../../architecture-validator')
+includeBuild('../../../architecture-validator/plugin')
 includeBuild('layer-validator') {
     dependencySubstitution {
         substitute module('com.org.ea:layer-validator') using project(':')
