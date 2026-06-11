@@ -1,3 +1,11 @@
+## [0.4.1](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/v0.4.0...v0.4.1) (2026-06-11)
+
+
+### 🐛 Bug Fixes
+
+* Add Gradle Architecture Validator Plugin and supporting examples ([#40](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/40)) ([d30a580](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/d30a5806d916c6bca3918793c6107e325fd330d5)), closes [#40](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/40)
+* Update vulnerability scanning configuration and improve documentation ([#41](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/41)) ([39c769d](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/39c769dc423443efd31d5170639b31de56679175)), closes [#41](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/41)
+
 ## [0.3.3](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/v0.3.2...v0.3.3) (2026-06-07)
 
 
