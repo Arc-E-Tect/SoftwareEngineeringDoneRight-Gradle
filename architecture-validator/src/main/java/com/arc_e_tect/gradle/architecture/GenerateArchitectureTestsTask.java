@@ -14,6 +14,7 @@ import org.gradle.api.tasks.TaskAction;
 import org.gradle.work.DisableCachingByDefault;
 
 import javax.inject.Inject;
+import com.arc_e_tect.sedr.utils.jacoco.marker.ExcludeFromJacocoGeneratedCodeCoverage;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -170,6 +171,9 @@ public abstract class GenerateArchitectureTestsTask extends DefaultTask {
         }
     }
 
+    @ExcludeFromJacocoGeneratedCodeCoverage(
+            justification = "JAR-scanning path is only reachable when a real JAR-packaged rule pack is on the compile classpath."
+                    + " Unit tests supply directories, not JARs. Covered by the testComponent suite.")
     private Collection<String> discoverRulePackTestsFromJar(File jarFile) throws IOException {
         List<String> classNames = new ArrayList<>();
         try (JarFile archive = new JarFile(jarFile)) {

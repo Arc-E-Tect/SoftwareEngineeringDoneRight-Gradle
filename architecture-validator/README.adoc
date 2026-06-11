@@ -73,9 +73,6 @@ architectureValidator {
     failOnDuplicateRules = false
     useBuiltInHexagonalRulePack = true
 
-    useSpringRulePack = false
-    springRulePackCoordinate = 'com.arc-e-tect:architecture-validator-spring-rules'
-
     hexagonalArchitecture {
         inPorts = ['..application.port.in..']
         outPorts = ['..application.port.out..']
@@ -99,8 +96,6 @@ architectureValidator {
 | `ignoreFailures` | `false` | Keeps the build green even when architecture tests fail.
 | `failOnDuplicateRules` | `false` | Turns duplicate rule detection across local and external rule packs into a build failure instead of a warning.
 | `useBuiltInHexagonalRulePack` | `true` | Enables generation and execution of the built-in `HexagonalArchitectureTest`.
-| `useSpringRulePack` | `false` | Adds the companion Spring Hexagonal rule-pack JAR to the generated test suite dependencies.
-| `springRulePackCoordinate` | `com.arc-e-tect:architecture-validator-spring-rules` | Maven coordinate prefix used when the Spring rule pack is enabled.
 |===
 
 To run only external/user rule packs and disable the built-in vanilla validator, set `useBuiltInHexagonalRulePack = false`.
@@ -117,25 +112,18 @@ It enforces four broad invariants.
 
 == Companion Spring Rule Pack
 
-The repository also publishes `architecture-validator-spring-rules` as a separate JAR.
+The repository also publishes `architecture-validation-spring-rules` as a separate JAR.
 The artifact is available from Maven Central and GitHub Packages.
-The rule pack focuses on Spring stereotypes and wiring boundaries.
+The rule pack focuses on Spring stereotypes, dependency direction, and framework leakage boundaries.
 
-[source,groovy]
-----
-architectureValidator {
-    basePackage = 'com.example.order'
-    useSpringRulePack = true
-}
-----
-
-You can also add the artifact manually.
-No additional repository configuration is needed when consuming it from Maven Central.
+Spring is treated as the first general rule-pack.
+It is enabled the same way as any other external rule-pack: add it to `testArchitectureImplementation`.
+No plugin toggle is required.
 
 [source,groovy]
 ----
 dependencies {
-    testArchitectureImplementation 'com.arc-e-tect:architecture-validator-spring-rules:<version>'
+    testArchitectureImplementation 'com.arc-e-tect:architecture-validation-spring-rules:<version>'
 }
 ----
 
@@ -154,6 +142,23 @@ dependencies {
 
 If two rule packs contribute the same simple test class name, the plugin logs a warning by default.
 Set `failOnDuplicateRules = true` if duplicate rules should fail the build.
+
+== Canonical Acceptance Example
+
+The repository contains a deliberately broken example at `examples/architecture-validator/hexagonal-violations`.
+It is the canonical acceptance example for the plugin.
+Running it should fail with exactly four intended violations:
+
+- `domain_must_not_depend_on_adapters`
+- `inbound_ports_reside_in_correct_package`
+- `adapters_must_not_access_domain_directly`
+- `application_services_must_not_depend_on_adapters`
+
+[source,bash]
+----
+cd examples/architecture-validator/hexagonal-violations
+./gradlew clean testArchitecture
+----
 
 == Running the Suite
 
@@ -188,15 +193,16 @@ subprojects {
 
 == Examples and Further Docs
 
-The repository contains five example projects under `examples/architecture-validator`.
+The repository contains six example projects under `examples/architecture-validator`.
 They cover the vanilla, Spring, hybrid, multi-module, and external rule-pack scenarios required by the plugin specification.
+The canonical `hexagonal-violations` example complements them as the focused regression example.
 
 Additional documentation is available in the `docs/` directory.
 
-* `docs/user-guide.md`
+* `docs/user-guide.adoc`
 * `docs/templating-tutorial.md`
-* `docs/library-rule-packs-guide.md`
-* `docs/api-documentation.md`
+* `docs/library-rule-packs-guide.adoc`
+* `docs/api-documentation.adoc`
 
 == License
 

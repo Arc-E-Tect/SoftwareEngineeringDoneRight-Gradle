@@ -1,11 +1,14 @@
-# API Documentation
+= API Documentation
+:toc: left
+:toc-title: Contents
+:toclevels: 2
 
-## Plugin class
+== Plugin Class
 
 `ArchitectureValidatorPlugin` registers the extension, the generator task, and the `testArchitecture` suite.
-It also wires report locations and the post-execution threshold check.
+It also wires report locations, classpath inputs, and the post-execution threshold check.
 
-## Extension
+== Extension
 
 `ArchitectureValidatorExtension` exposes the public DSL.
 
@@ -18,7 +21,7 @@ It also wires report locations and the post-execution threshold check.
 - `useBuiltInHexagonalRulePack`
 - `hexagonalArchitecture`
 
-## Nested hexagonal extension
+== Nested Hexagonal Extension
 
 `HexagonalArchitectureExtension` contains these package-pattern lists.
 
@@ -29,23 +32,23 @@ It also wires report locations and the post-execution threshold check.
 - `applicationServices`
 - `commonPackages`
 
-## Generator task
+== Generator Task
 
-`GenerateArchitectureTestsTask` renders the built-in vanilla `HexagonalArchitectureTest` source file.
+`GenerateArchitectureTestsTask` renders the built-in vanilla `HexagonalArchitectureTest` source file from a template.
 That generation is controlled by `useBuiltInHexagonalRulePack`.
 It also scans the rule-pack classpath and generates `ExternalRulePackSuite` when dependency rule packs are present.
 
-## Generated classes
+== Generated Classes
 
 - `HexagonalArchitectureTest` is the built-in vanilla hexagonal rule set.
 - `ExternalRulePackSuite` is generated only when dependency rule packs are discovered.
 
-## Reports
+== Reports
 
 The plugin configures the `testArchitecture` suite to emit XML and HTML reports under `build/reports/architecture-validator/`.
 
-## Companion Spring artifact
+== Companion Spring Artifact
 
 The `spring-rules` subproject publishes `architecture-validation-spring-rules`.
 Its rule classes read the same system properties that the main plugin passes into the `testArchitecture` task.
-The artifact is consumed through `testArchitectureImplementation` like any other external rule pack.
+The artifact is consumed through `testArchitectureImplementation` like any other external rule-pack.

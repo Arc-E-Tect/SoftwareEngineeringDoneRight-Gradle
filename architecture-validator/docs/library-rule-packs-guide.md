@@ -44,35 +44,17 @@ Set `failOnDuplicateRules = true` if those collisions should stop the build.
 
 ## Companion Spring rule pack
 
-This repository ships `architecture-validator-spring-rules` as the built-in Spring companion artifact.
+This repository ships `architecture-validation-spring-rules` as the built-in Spring companion artifact.
 It is just another rule pack from the plugin’s perspective.
 The artifact is published to Maven Central and GitHub Packages.
-Setting `useSpringRulePack = true` adds it to the `testArchitecture` suite automatically.
 It does not replace the built-in generated `HexagonalArchitectureTest`.
 Instead, the `testArchitecture` suite runs the vanilla generated hexagonal rules and then adds the Spring-specific companion tests from the external rule-pack JAR.
 
-You can enable it through the extension:
-
-```groovy
-architectureValidator {
-    basePackage = 'com.example.order'
-    useSpringRulePack = true
-
-    hexagonalArchitecture {
-        inPorts = ['..application.port.in..']
-        outPorts = ['..application.port.out..']
-        domainModel = ['..application.domain..']
-        adapters = ['..adapter..', '..adapters..']
-        applicationServices = ['..application.service..']
-    }
-}
-```
-
-You can also add the companion explicitly like any other external rule pack:
+Enable it exactly like any other external rule pack:
 
 ```groovy
 dependencies {
-    testArchitectureImplementation 'com.arc-e-tect:architecture-validator-spring-rules:<version>'
+    testArchitectureImplementation 'com.arc-e-tect:architecture-validation-spring-rules:<version>'
 }
 ```
 

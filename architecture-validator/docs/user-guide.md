@@ -66,9 +66,9 @@ Use `maxAllowedViolations` when teams want a gradual ratchet instead of an immed
 
 ## Spring rule pack
 
-Set `useSpringRulePack = true` to add the companion Spring rule pack automatically.
+Spring is treated as the first general rule pack.
+Add the companion Spring rule pack explicitly to `testArchitectureImplementation`.
 The companion artifact is published to Maven Central and GitHub Packages.
-You can also add the dependency manually to `testArchitectureImplementation`.
 
 ## Multi-module builds
 

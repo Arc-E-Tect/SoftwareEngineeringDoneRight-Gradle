@@ -1,0 +1,71 @@
+= Library-Based Rule Packs Guide
+:toc: left
+:toc-title: Contents
+:toclevels: 2
+
+== Overview
+
+External rule packs let an architecture team publish shared ArchUnit rules once and reuse them across many services.
+The Architecture Validator plugin consumes those JARs from `testArchitectureImplementation`.
+
+== Rule-Pack Structure
+
+A rule-pack JAR should package ordinary JUnit or ArchUnit test classes.
+The plugin discovers classes whose names end with `Test` from dependency directories and JARs.
+
+== Publishing Model
+
+Package the rule pack as a normal Java library with `maven-publish`.
+Give it a stable coordinate and publish it to the same repository your application builds can consume.
+
+== Using a Rule Pack
+
+[source,groovy]
+----
+dependencies {
+    testArchitectureImplementation 'com.org.ea:layer-validator:1.0.0'
+}
+----
+
+The plugin scans that dependency, generates `ExternalRulePackSuite`, and executes the discovered packages via JUnit Platform.
+
+== Turning Off the Built-In Hexagonal Test
+
+If you want to run only external rule packs and skip the built-in hexagonal rules, disable the built-in validator in the extension.
+
+[source,groovy]
+----
+architectureValidator {
+    useBuiltInHexagonalRulePack = false
+}
+----
+
+With this setting in place, `ExternalRulePackSuite` and any user-provided tests in `src/testArchitecture/java` still run, but the built-in vanilla hexagonal class is not generated or executed.
+
+== Duplicate Rules
+
+When multiple rule packs contribute the same simple test class name, the plugin warns by default.
+Set `failOnDuplicateRules = true` if those collisions should stop the build.
+
+== Spring as the First General Rule Pack
+
+This repository ships `architecture-validation-spring-rules` as the first official general rule-pack.
+It is not enabled by a plugin toggle.
+It is consumed exactly like any other external rule-pack.
+
+[source,groovy]
+----
+dependencies {
+    testArchitectureImplementation 'com.arc-e-tect:architecture-validation-spring-rules:<version>'
+}
+----
+
+The artifact is published to Maven Central and GitHub Packages.
+The plugin passes package configuration to the Spring companion through system properties such as `architectureValidator.basePackage`, `architectureValidator.inPorts`, `architectureValidator.outPorts`, `architectureValidator.domainModel`, `architectureValidator.adapters`, and `architectureValidator.applicationServices`.
+
+Compared with the built-in `HexagonalArchitectureTest`, the Spring companion adds richer checks for stereotype placement, repository access, dependency direction, and framework leakage.
+
+== Enterprise Guidance
+
+Keep rule-pack tests generic.
+Use package-pattern conventions and system properties instead of hard-coded service-specific package names so the same rule pack remains reusable across projects.

@@ -3,6 +3,8 @@ package com.arc_e_tect.gradle.architecture;
 import org.gradle.api.GradleException;
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
+import org.gradle.api.plugins.JavaPluginExtension;
+import org.gradle.api.tasks.SourceSet;
 import org.gradle.api.plugins.jvm.JvmTestSuite;
 import org.gradle.api.provider.Provider;
 import org.gradle.api.tasks.testing.Test;
@@ -11,8 +13,11 @@ import org.gradle.api.tasks.testing.TestListener;
 import org.gradle.api.tasks.testing.TestResult;
 import org.gradle.testing.base.TestingExtension;
 
+import com.arc_e_tect.sedr.utils.jacoco.marker.ExcludeFromJacocoGeneratedCodeCoverage;
+
 import java.util.concurrent.atomic.AtomicLong;
 
+@ExcludeFromJacocoGeneratedCodeCoverage(justification = "Gradle plugin wiring — requires GradleTestKit to exercise")
 public class ArchitectureValidatorPlugin implements Plugin<Project> {
 
     public static final String TEST_ARCHITECTURE_TASK_NAME = "testArchitecture";
@@ -61,6 +66,13 @@ public class ArchitectureValidatorPlugin implements Plugin<Project> {
         project.getDependencies().add(TEST_ARCHITECTURE_TASK_NAME + "Implementation", "com.tngtech.archunit:archunit-junit5:1.4.1");
         project.getDependencies().add(TEST_ARCHITECTURE_TASK_NAME + "Implementation", "org.junit.platform:junit-platform-suite-api:6.1.0");
         project.getDependencies().add(TEST_ARCHITECTURE_TASK_NAME + "RuntimeOnly", "org.junit.platform:junit-platform-suite-engine:6.1.0");
+
+        JavaPluginExtension javaExtension = project.getExtensions().getByType(JavaPluginExtension.class);
+        SourceSet mainSourceSet = javaExtension.getSourceSets().getByName(SourceSet.MAIN_SOURCE_SET_NAME);
+        project.getDependencies().add(
+            TEST_ARCHITECTURE_TASK_NAME + "Implementation",
+            project.getDependencies().create(mainSourceSet.getOutput()));
+
         generateTask.configure(task -> task.getRulePackClasspath().from(project.getConfigurations().named(TEST_ARCHITECTURE_TASK_NAME + "CompileClasspath")));
 
         project.getTasks().named("compileTestArchitectureJava").configure(task -> task.dependsOn(generateTask));
@@ -79,11 +91,6 @@ public class ArchitectureValidatorPlugin implements Plugin<Project> {
     ) {
         AtomicLong failedTests = new AtomicLong();
 
-        if (extension.getUseSpringRulePack().getOrElse(false)) {
-            String springCoordinate = extension.getSpringRulePackCoordinate().get() + ':' + PluginMetadata.pluginVersion();
-            project.getDependencies().add(TEST_ARCHITECTURE_TASK_NAME + "Implementation", springCoordinate);
-        }
-
         testTask.useJUnitPlatform();
         testTask.setIgnoreFailures(true);
         testTask.systemProperty("architectureValidator.basePackage", extension.getBasePackage().getOrElse(""));
@@ -96,26 +103,7 @@ public class ArchitectureValidatorPlugin implements Plugin<Project> {
         testTask.getReports().getHtml().getOutputLocation().set(project.getLayout().getBuildDirectory().dir("reports/architecture-validator/html"));
         testTask.getReports().getJunitXml().getOutputLocation().set(project.getLayout().getBuildDirectory().dir("reports/architecture-validator/xml"));
 
-        testTask.addTestListener(new TestListener() {
-            @Override
-            public void beforeSuite(TestDescriptor suite) {
-            }
-
-            @Override
-            public void afterSuite(TestDescriptor suite, TestResult result) {
-                if (suite.getParent() == null) {
-                    failedTests.set(result.getFailedTestCount());
-                }
-            }
-
-            @Override
-            public void beforeTest(TestDescriptor testDescriptor) {
-            }
-
-            @Override
-            public void afterTest(TestDescriptor testDescriptor, TestResult result) {
-            }
-        });
+        testTask.addTestListener(new ArchitectureValidationTestListener(failedTests));
 
         testTask.doLast(task -> {
             if (extension.getIgnoreFailures().getOrElse(false) || !extension.getFailOnViolation().getOrElse(true)) {
@@ -128,5 +116,32 @@ public class ArchitectureValidatorPlugin implements Plugin<Project> {
                                 + " failing rule(s); maxAllowedViolations=" + maxAllowedViolations);
             }
         });
+    }
+
+    static final class ArchitectureValidationTestListener implements TestListener {
+        private final AtomicLong failedTests;
+
+        ArchitectureValidationTestListener(AtomicLong failedTests) {
+            this.failedTests = failedTests;
+        }
+
+        @Override
+        public void beforeSuite(TestDescriptor suite) {
+        }
+
+        @Override
+        public void afterSuite(TestDescriptor suite, TestResult result) {
+            if (suite.getParent() == null) {
+                failedTests.set(result.getFailedTestCount());
+            }
+        }
+
+        @Override
+        public void beforeTest(TestDescriptor testDescriptor) {
+        }
+
+        @Override
+        public void afterTest(TestDescriptor testDescriptor, TestResult result) {
+        }
     }
 }
