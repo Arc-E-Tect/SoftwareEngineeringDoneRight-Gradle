@@ -67,7 +67,7 @@ jobs:
         run: |
           cd architecture-validator/spring-rules
           chmod +x ./gradlew
-          ./gradlew build
+          ./gradlew build --configuration-cache
         env:
           GITHUB_ACTOR: ${{ github.actor }}
           GITHUB_TOKEN: ${{ secrets.SEDR_AUTOMATION_TOKEN }}

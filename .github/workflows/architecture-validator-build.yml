@@ -67,7 +67,7 @@ jobs:
         run: |
           cd architecture-validator/plugin
           chmod +x ./gradlew
-          ./gradlew build
+          ./gradlew build --configuration-cache
         env:
           GITHUB_ACTOR: ${{ github.actor }}
           GITHUB_TOKEN: ${{ secrets.SEDR_AUTOMATION_TOKEN }}
@@ -75,7 +75,7 @@ jobs:
       - name: Validate Plugin
         run: |
           cd architecture-validator/plugin
-          ./gradlew validatePlugins
+          ./gradlew validatePlugins --configuration-cache
         env:
           GITHUB_ACTOR: ${{ github.actor }}
           GITHUB_TOKEN: ${{ secrets.SEDR_AUTOMATION_TOKEN }}
