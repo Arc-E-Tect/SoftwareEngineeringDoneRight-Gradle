@@ -273,7 +273,7 @@ Once the generator works, update the user-facing docs.
 At minimum:
 
 - `README.adoc`
-- `docs/user-guide.md`
+- `docs/user-guide.adoc`
 - this tutorial
 
 Add a small configuration example.

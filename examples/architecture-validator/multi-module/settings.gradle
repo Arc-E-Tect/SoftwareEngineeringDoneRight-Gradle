@@ -1,5 +1,5 @@
 pluginManagement {
-    includeBuild('../../../architecture-validator/plugin')
+    includeBuild('../../../architecture-validator')
     repositories {
         gradlePluginPortal()
     }
@@ -16,7 +16,7 @@ refreshVersions {
     }
 }
 
-includeBuild('../../../architecture-validator/plugin')
+includeBuild('../../../architecture-validator')
 include('app', 'domain', 'adapters')
 
 rootProject.name = 'architecture-validator-multi-module'

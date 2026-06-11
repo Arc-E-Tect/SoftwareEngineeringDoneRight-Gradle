@@ -4,20 +4,20 @@ on:
     branches:
       - main
     paths:
-      - 'architecture-validator/plugin/*.gradle'
-      - 'architecture-validator/plugin/package.json'
-      - 'architecture-validator/plugin/package-lock.json'
-      - 'architecture-validator/plugin/release.config.js'
-      - 'architecture-validator/plugin/CHANGELOG.md'
-      - 'architecture-validator/plugin/gradle/**'
-      - 'architecture-validator/plugin/src/main/**'
+      - 'architecture-validator/*.gradle'
+      - 'architecture-validator/package.json'
+      - 'architecture-validator/package-lock.json'
+      - 'architecture-validator/release.config.js'
+      - 'architecture-validator/CHANGELOG.md'
+      - 'architecture-validator/gradle/**'
+      - 'architecture-validator/src/main/**'
 
 jobs:
   Calculate-Version:
     uses: ./.github/workflows/semantic-version-calculate.yml
     with:
       fail_on_empty_version: true
-      project_dir: architecture-validator/plugin
+      project_dir: architecture-validator
       DEBUG: true
     secrets:
       sem_rel_token_token: ${{ secrets.SEMANTIC_RELEASE_TOKEN }}
@@ -27,7 +27,7 @@ jobs:
     uses: ./.github/workflows/security-scan.yml
     with:
       fail_on_fatal: true
-      project_dir: architecture-validator/plugin
+      project_dir: architecture-validator
       project_name: 'architecture-validator'
       semantic_version: ${{ needs.Calculate-Version.outputs.next_version }}
       reports_subpath: build/reports
@@ -45,7 +45,7 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      GRADLE_PROPERTIES_FILE: ./architecture-validator/plugin/gradle.properties
+      GRADLE_PROPERTIES_FILE: ./architecture-validator/gradle.properties
       GRADLE_VERSION_REGEX: version\s*=\s*[0-9]\\+\.[0-9]\\+\.[0-9]\\+[a-zA-Z0-9.-]*
       VERSION: ${{ needs.Calculate-Version.outputs.next_version }}
 
@@ -76,7 +76,7 @@ jobs:
 
       - name: Build and test Architecture Validator Plugin
         run: |
-          cd architecture-validator/plugin
+          cd architecture-validator
           chmod +x ./gradlew
           ./gradlew build --configuration-cache
         env:
@@ -88,7 +88,7 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: architecture-validator-plugin-test-results
-          path: architecture-validator/plugin/build/reports/tests/**
+          path: architecture-validator/build/reports/tests/**
 
   Release-Plugin:
     name: Release Architecture Validator Plugin
@@ -96,7 +96,7 @@ jobs:
     if: ${{ needs.Calculate-Version.outputs.next_version != '' }}
     uses: ./.github/workflows/semantic-version-apply.yml
     with:
-      project_dir: architecture-validator/plugin
+      project_dir: architecture-validator
     secrets:
       sem_rel_token_token: ${{ secrets.SEMANTIC_RELEASE_TOKEN }}
 
@@ -110,7 +110,7 @@ jobs:
       packages: write
 
     env:
-      GRADLE_PROPERTIES_FILE: ./architecture-validator/plugin/gradle.properties
+      GRADLE_PROPERTIES_FILE: ./architecture-validator/gradle.properties
       GRADLE_VERSION_REGEX: version\s*=\s*[0-9]\\+\.[0-9]\\+\.[0-9]\\+[a-zA-Z0-9.-]*
       VERSION: ${{ needs.Calculate-Version.outputs.next_version }}
 
@@ -136,7 +136,7 @@ jobs:
 
       - name: Publish to Gradle Plugin Portal
         run: |
-          cd architecture-validator/plugin
+          cd architecture-validator
           chmod +x ./gradlew
           ./gradlew publishPlugins --no-daemon --no-configuration-cache
         env:

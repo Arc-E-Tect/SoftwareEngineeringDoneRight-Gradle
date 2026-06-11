@@ -21,7 +21,7 @@ A collection of useful and usable Gradle plugins and utilities for software engi
 |Gradle plugin that scans Java sources for `@ExcludeFromJacocoGeneratedCodeCoverage` and generates an HTML + XML audit report of every excluded element, giving teams full visibility into what has been excluded from JaCoCo coverage enforcement and why.
 
 |link:architecture-validator/README.adoc[Architecture Validator]
-|Contains the core architecture-validator plugin at `architecture-validator/plugin`.
+|Contains the core architecture-validator plugin at `architecture-validator`.
 The companion Spring rule pack is maintained in the SoftwareEngineeringDoneRight-Library repository as `spring-rules`.
 
 |link:gherkin-to-asciidoc/README.adoc[Gherkin to AsciiDoc]
