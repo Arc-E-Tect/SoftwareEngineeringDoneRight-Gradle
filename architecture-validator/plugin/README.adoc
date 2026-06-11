@@ -11,6 +11,9 @@ image:https://img.shields.io/badge/Gradle-8.x%2B-02303A?logo=gradle[Gradle 8+,li
 The Architecture Validator plugin generates and runs ArchUnit-based architecture tests from a small Gradle DSL.
 It focuses on Hexagonal Architecture by default and can also attach external rule packs, including the companion Spring rule pack shipped in this repository.
 
+This plugin is now maintained as a standalone Gradle project under `architecture-validator/plugin`.
+The Spring companion rules are published from the separate `architecture-validator/spring-rules` project.
+
 == Plugin ID
 
 [source]
@@ -207,4 +210,4 @@ Additional documentation is available in the `docs/` directory.
 == License
 
 This plugin is part of the _Software Engineering Done Right_ project.
-See link:../LICENSE[LICENSE] for details.
+See link:../../LICENSE[LICENSE] for details.
