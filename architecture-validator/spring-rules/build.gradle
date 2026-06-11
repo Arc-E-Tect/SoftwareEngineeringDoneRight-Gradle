@@ -118,4 +118,9 @@ test {
 
 tasks.withType(Javadoc).configureEach {
     options.memberLevel = org.gradle.external.javadoc.JavadocMemberLevel.PACKAGE
+    options.addBooleanOption('html5', true)
+    options.addStringOption('Xdoclint:none', '-quiet')
+    options.links('https://docs.oracle.com/javase/21/docs/api/')
+    options.docTitle = "Architecture Validator Spring Rules API"
+    options.windowTitle = "Spring Hexagonal Architecture Rules (${project.version})"
 }

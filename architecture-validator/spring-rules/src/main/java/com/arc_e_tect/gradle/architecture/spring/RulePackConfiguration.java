@@ -5,6 +5,26 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+/**
+ * Internal configuration for Spring Hexagonal architecture rule pack tests.
+ * 
+ * <p>This class provides centralized access to system properties that define architectural
+ * package boundaries for Spring applications following the Hexagonal (ports and adapters) pattern.
+ * Property names are prefixed with {@code architectureValidator} for consistency with the
+ * Architecture Validator plugin configuration.
+ * 
+ * <p>Supported properties:
+ * <ul>
+ *   <li>{@code architectureValidator.basePackage} - Root package to validate</li>
+ *   <li>{@code architectureValidator.inPorts} - Comma-separated in-port packages</li>
+ *   <li>{@code architectureValidator.outPorts} - Comma-separated out-port packages</li>
+ *   <li>{@code architectureValidator.domainModel} - Comma-separated domain model packages</li>
+ *   <li>{@code architectureValidator.adapters} - Comma-separated adapter packages</li>
+ *   <li>{@code architectureValidator.applicationServices} - Comma-separated application service packages</li>
+ * </ul>
+ *
+ * @since 0.4.0
+ */
 final class RulePackConfiguration {
 
     private RulePackConfiguration() {
