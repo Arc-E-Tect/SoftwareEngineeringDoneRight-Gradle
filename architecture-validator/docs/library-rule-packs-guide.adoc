@@ -62,8 +62,15 @@ dependencies {
 
 The artifact is published to Maven Central and GitHub Packages.
 The plugin passes package configuration to the Spring companion through system properties such as `architectureValidator.basePackage`, `architectureValidator.inPorts`, `architectureValidator.outPorts`, `architectureValidator.domainModel`, `architectureValidator.adapters`, and `architectureValidator.applicationServices`.
+The companion does not replace the built-in generated `HexagonalArchitectureTest`.
+The `testArchitecture` suite runs the built-in generated hexagonal rules and then adds the Spring-specific companion tests from the external rule-pack JAR.
 
-Compared with the built-in `HexagonalArchitectureTest`, the Spring companion adds richer checks for stereotype placement, repository access, dependency direction, and framework leakage.
+Compared with the built-in `HexagonalArchitectureTest`, the Spring companion adds focused test classes.
+
+- `SpringHexagonalArchitectureTest` checks stereotype placement, repository access, dependency direction, and framework leakage.
+- `PortContractTest` reinforces interface-only port contracts and domain-safe signatures.
+- `DependencyDirectionTest` adds Spring wiring direction rules around application and adapter boundaries.
+- `DomainIsolationTest` strengthens framework isolation in domain and application-service packages.
 
 == Enterprise Guidance
 

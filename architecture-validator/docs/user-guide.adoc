@@ -54,6 +54,11 @@ Those sources are derived artifacts and must not be committed.
 If you need to disable the built-in vanilla `HexagonalArchitectureTest`, set `useBuiltInHexagonalRulePack = false`.
 With this setting, the built-in validator is skipped while user tests from `src/testArchitecture/java` and external rule-pack tests from `testArchitectureImplementation` still run.
 
+== Templating Tutorial
+
+If you want to extend the plugin with an additional built-in generated template, see `docs/templating-tutorial.md`.
+That tutorial points to `docs/templating-tutorial-example/`, which shows the end-state source files for a two-template design with both `hexagonal` and `layered` built-in options.
+
 == Handling Violations
 
 Set `ignoreFailures = true` when the suite should report but not fail the build.

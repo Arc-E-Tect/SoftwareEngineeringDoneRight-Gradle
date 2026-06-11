@@ -1,5 +1,5 @@
 pluginManagement {
-    includeBuild('../../../architecture-validator/plugin')
+    includeBuild('../../../architecture-validator')
     repositories {
         gradlePluginPortal()
     }
@@ -16,6 +16,6 @@ refreshVersions {
     }
 }
 
-includeBuild('../../../architecture-validator/plugin')
+includeBuild('../../../architecture-validator')
 
 rootProject.name = 'architecture-validator-hexagonal-violations'

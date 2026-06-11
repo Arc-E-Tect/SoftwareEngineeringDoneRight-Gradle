@@ -20,14 +20,14 @@ jobs:
       - name: Read version from gradle.properties
         id: read-version
         run: |
-          VERSION=$(grep -oP 'version\s*=\s*\K\S+' architecture-validator/plugin/gradle.properties)
+          VERSION=$(grep -oP 'version\s*=\s*\K\S+' architecture-validator/gradle.properties)
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
   Security-Scan:
     needs: Read-Version
     uses: ./.github/workflows/security-scan.yml
     with:
-      project_dir: architecture-validator/plugin
+      project_dir: architecture-validator
       project_name: 'architecture-validator'
       semantic_version: ${{ needs.Read-Version.outputs.version }}
       fail_on_fatal: true

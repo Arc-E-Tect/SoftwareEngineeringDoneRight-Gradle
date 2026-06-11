@@ -50,7 +50,7 @@ dependencies {
 }
 
 gradlePlugin {
-    website = 'https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/tree/main/architecture-validator/plugin'
+    website = 'https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/tree/main/architecture-validator'
     vcsUrl = 'https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle.git'
     plugins {
         architectureValidator {
