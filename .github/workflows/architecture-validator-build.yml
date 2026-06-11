@@ -5,6 +5,7 @@ on:
       - main
     paths:
       - 'architecture-validator/**'
+      - 'examples/architecture-validator/**'
       - '.github/workflows/**'
       - '.github/actions/**'
 
@@ -79,9 +80,49 @@ jobs:
           GITHUB_ACTOR: ${{ github.actor }}
           GITHUB_TOKEN: ${{ secrets.SEDR_AUTOMATION_TOKEN }}
 
+  Build-Example:
+    name: Smoke-test canonical violations example
+    needs: Build-Plugin
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Setup Java
+        uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5
+        with:
+          distribution: 'temurin'
+          java-version: 21
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@50e97c2cd7a37755bbfafc9c5b7cafaece252f6e # v6.1.0
+
+      - name: Run canonical violations example (expects 4 rule failures)
+        run: |
+          cd examples/architecture-validator/hexagonal-violations
+          chmod +x ./gradlew
+          ./gradlew clean testArchitecture --no-daemon 2>&1 | tee "$RUNNER_TEMP/hexagonal-violations-output.txt" || true
+
+      - name: Assert exactly four expected rule names are present
+        run: |
+          VIOLATIONS=0
+          grep -q "domain_must_not_depend_on_adapters" "$RUNNER_TEMP/hexagonal-violations-output.txt" && VIOLATIONS=$((VIOLATIONS+1))
+          grep -q "inbound_ports_reside_in_correct_package" "$RUNNER_TEMP/hexagonal-violations-output.txt" && VIOLATIONS=$((VIOLATIONS+1))
+          grep -q "adapters_must_not_access_domain_directly" "$RUNNER_TEMP/hexagonal-violations-output.txt" && VIOLATIONS=$((VIOLATIONS+1))
+          grep -q "application_services_must_not_depend_on_adapters" "$RUNNER_TEMP/hexagonal-violations-output.txt" && VIOLATIONS=$((VIOLATIONS+1))
+          echo "Detected violation count: $VIOLATIONS"
+          if [ "$VIOLATIONS" -ne 4 ]; then
+            echo "::error::Expected 4 architecture violations but found $VIOLATIONS"
+            exit 1
+          fi
+
   Workflow-Summary:
     name: Workflow Summary
-    needs: [Build-Plugin, Determine-Release-Type]
+    needs: [Build-Plugin, Build-Example, Determine-Release-Type]
     if: always()
     runs-on: ubuntu-latest
     steps:
