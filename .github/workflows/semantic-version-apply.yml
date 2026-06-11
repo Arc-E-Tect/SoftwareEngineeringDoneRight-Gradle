@@ -23,6 +23,10 @@ jobs:
   Apply-Version:
     name: Apply Version
 
+    concurrency:
+      group: semantic-version-apply-${{ github.repository }}-${{ github.ref_name }}
+      cancel-in-progress: false
+
     runs-on: ubuntu-latest
 
     outputs:
