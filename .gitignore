@@ -55,4 +55,5 @@ bin/
 /sedr-library-maven-central-publishing.md
 /worktrees/
 tmp/
+/architecture-validator/gradle-architecture-requirements.md
 /.idea/copilotDiffState.xml
