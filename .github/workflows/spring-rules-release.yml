@@ -11,6 +11,7 @@ on:
       - 'architecture-validator/spring-rules/CHANGELOG.md'
       - 'architecture-validator/spring-rules/gradle/**'
       - 'architecture-validator/spring-rules/src/main/**'
+      - '.github/workflows/semantic-version-apply.yml'
 
 jobs:
   Calculate-Version:
