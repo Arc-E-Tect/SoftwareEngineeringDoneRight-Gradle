@@ -1,0 +1,28 @@
+= Multi-Module Example
+:toc: left
+
+This example applies the plugin to three subprojects.
+It shows that each module can run `testArchitecture` independently while the root build also aggregates the generated reports.
+
+== Run
+
+[source,bash]
+----
+./gradlew testArchitecture
+./gradlew aggregateArchitectureReports
+----
+
+== Intentional violation
+
+The `app` module depends directly on `DatabaseAdapter` from the `adapters` module.
+That crosses the Hexagonal boundary and should be reported by the `app:testArchitecture` task.
+
+== Reports
+
+Each module writes its own reports under its local `build/reports/architecture-validator/` directory.
+The root `aggregateArchitectureReports` task copies all module reports into `build/reports/architecture-validator/aggregate/`.
+
+== Fix
+
+Move the adapter behind an outbound port in the app module.
+Let the `adapters` module implement that port instead of being referenced directly by the service.

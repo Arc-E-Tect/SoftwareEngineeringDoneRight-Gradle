@@ -1,0 +1,122 @@
+plugins {
+    id 'java-gradle-plugin'
+    id 'jacoco'
+    id 'maven-publish'
+    alias(libs.plugins.plugin.publish.iff)
+    alias(libs.plugins.owasp.dependency.check.iff)
+    alias(libs.plugins.jacoco.exclusion.report.iff)
+}
+
+def pluginVersionForResources = project.version.toString()
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+repositories {
+    mavenLocal()
+    maven {
+        name = 'GitHubPackages'
+        url = uri('https://maven.pkg.github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Code')
+        credentials {
+            username = System.getenv('GITHUB_ACTOR') ?: project.findProperty('gpr.user')
+            password = System.getenv('GITHUB_TOKEN') ?: project.findProperty('gpr.key')
+        }
+    }
+    mavenCentral()
+}
+
+dependencyCheck {
+    failBuildOnCVSS = (System.getenv('FAIL_ON_FATAL') == 'true') ? 0 : 11
+    nvd {
+        apiKey = System.getenv('NVD_APIKEY_SEDR')
+    }
+    analyzers {
+        nodeAuditEnabled = false
+        nodeEnabled = false
+    }
+}
+
+dependencies {
+    implementation libs.archunit.junit5.iff
+    implementation libs.sedr.library.iff
+
+    testImplementation gradleTestKit()
+    testImplementation libs.junit.jupiter.iff
+    testImplementation libs.assertj.core.iff
+    testRuntimeOnly libs.junit.platform.launcher.iff
+}
+
+gradlePlugin {
+    website = 'https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/tree/main/architecture-validator/plugin'
+    vcsUrl = 'https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle.git'
+    plugins {
+        architectureValidator {
+            id = 'com.arc-e-tect.architecture-validator'
+            implementationClass = 'com.arc_e_tect.gradle.architecture.ArchitectureValidatorPlugin'
+            displayName = 'Architecture Validator'
+            description = 'Generates and runs ArchUnit-based architecture tests for hexagonal architectures.'
+            tags = ['architecture', 'archunit', 'hexagonal', 'testing']
+            compatibility {
+                features {
+                    configurationCache = true
+                }
+            }
+        }
+    }
+}
+
+publishing {
+    repositories {
+        maven {
+            name = 'GitHubPackages'
+            url = uri('https://maven.pkg.github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Code')
+            credentials {
+                username = System.getenv('GITHUB_ACTOR') ?: project.findProperty('gpr.user')
+                password = System.getenv('GITHUB_TOKEN') ?: project.findProperty('gpr.key')
+            }
+        }
+    }
+}
+
+processResources {
+    inputs.property('pluginVersion', pluginVersionForResources)
+    filesMatching('architecture-validator.properties') {
+        expand(pluginVersion: pluginVersionForResources)
+    }
+}
+
+test {
+    useJUnitPlatform()
+    testLogging {
+        events 'passed', 'skipped', 'failed'
+        showStandardStreams = true
+    }
+    finalizedBy jacocoTestReport
+}
+
+jacocoTestReport {
+    dependsOn test
+    reports {
+        xml.required = true
+        html.required = true
+    }
+}
+
+jacocoTestCoverageVerification {
+    violationRules {
+        rule {
+            limit {
+                minimum = 0.9
+            }
+        }
+    }
+}
+
+check.dependsOn jacocoTestCoverageVerification
+
+tasks.named('publishPlugins') {
+    notCompatibleWithConfigurationCache('com.gradle.plugin-publish PublishTask does not support configuration cache')
+}

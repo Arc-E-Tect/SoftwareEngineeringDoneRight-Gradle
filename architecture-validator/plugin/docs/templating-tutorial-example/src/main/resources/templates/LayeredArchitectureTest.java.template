@@ -1,0 +1,55 @@
+package ${generatedPackage};
+
+import com.tngtech.archunit.core.domain.JavaClasses;
+import com.tngtech.archunit.core.importer.ClassFileImporter;
+import com.tngtech.archunit.core.importer.ImportOption;
+import org.junit.jupiter.api.Test;
+
+import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
+
+class LayeredArchitectureTest {
+
+    private static final String BASE_PACKAGE = "${basePackage}";
+
+    private final JavaClasses classes = new ClassFileImporter()
+            .withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS)
+            .importPackages(BASE_PACKAGE);
+
+    @Test
+    void presentationLayerShouldNotDependOnInfrastructure() {
+        noClasses()
+                .that().resideInAnyPackage(
+                        ${presentation})
+                .should().dependOnClassesThat().resideInAnyPackage(
+                        ${infrastructure})
+                .because("Presentation should not depend directly on infrastructure")
+                .allowEmptyShould(true)
+                .check(classes);
+    }
+
+    @Test
+    void applicationLayerShouldNotDependOnPresentation() {
+        noClasses()
+                .that().resideInAnyPackage(
+                        ${application})
+                .should().dependOnClassesThat().resideInAnyPackage(
+                        ${presentation})
+                .because("Application should not depend on presentation")
+                .allowEmptyShould(true)
+                .check(classes);
+    }
+
+    @Test
+    void domainLayerShouldOnlyBeDependedOnInward() {
+        noClasses()
+                .that().resideInAnyPackage(
+                        ${domain})
+                .should().dependOnClassesThat().resideInAnyPackage(
+                        ${presentation},
+                        ${application},
+                        ${infrastructure})
+                .because("Domain should remain the innermost layer")
+                .allowEmptyShould(true)
+                .check(classes);
+    }
+}

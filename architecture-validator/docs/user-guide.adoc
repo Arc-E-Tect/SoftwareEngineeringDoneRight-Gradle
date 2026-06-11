@@ -1,0 +1,84 @@
+= Architecture Validator User Guide
+:toc: left
+:toc-title: Contents
+:toclevels: 2
+
+== Installation
+
+Apply the plugin with `com.arc-e-tect.architecture-validator`.
+The examples in this repository consume it through a composite build.
+Normal projects can use the Gradle Plugin Portal once the plugin is published.
+
+== Core Workflow
+
+The plugin creates a `testArchitecture` suite.
+That suite compiles generated tests from `build/generated/testArchitecture/java`, user tests from `src/testArchitecture/java`, and external rule packs added to `testArchitectureImplementation`.
+
+== Typical Configuration
+
+[source,groovy]
+----
+plugins {
+    id 'java'
+    id 'com.arc-e-tect.architecture-validator' version '<version>'
+}
+
+architectureValidator {
+    basePackage = 'com.example.order'
+    failOnViolation = true
+    maxAllowedViolations = 0
+    ignoreFailures = false
+
+    hexagonalArchitecture {
+        inPorts = ['..application.port.in..']
+        outPorts = ['..application.port.out..']
+        domainModel = ['..application.domain..']
+        adapters = ['..adapter..', '..adapters..']
+        applicationServices = ['..application.service..']
+        commonPackages = ['..application.common..']
+    }
+}
+----
+
+== Reports
+
+Run `./gradlew testArchitecture`.
+The suite emits HTML and XML reports under `build/reports/architecture-validator/`.
+The HTML report is the fastest way to inspect which rule failed and which classes triggered the failure.
+
+== Generated Tests
+
+The plugin regenerates its built-in tests under `build/generated/testArchitecture/java`.
+Those sources are derived artifacts and must not be committed.
+
+If you need to disable the built-in vanilla `HexagonalArchitectureTest`, set `useBuiltInHexagonalRulePack = false`.
+With this setting, the built-in validator is skipped while user tests from `src/testArchitecture/java` and external rule-pack tests from `testArchitectureImplementation` still run.
+
+== Handling Violations
+
+Set `ignoreFailures = true` when the suite should report but not fail the build.
+Use `maxAllowedViolations` when teams want a gradual ratchet instead of an immediate zero-violation gate.
+
+== Spring Rule Pack
+
+Spring is treated as the first general rule-pack.
+Add it explicitly through `testArchitectureImplementation`.
+
+[source,groovy]
+----
+dependencies {
+    testArchitectureImplementation 'com.arc-e-tect:architecture-validator-hexagonal-spring-rules:<version>'
+}
+----
+
+The companion artifact is published to Maven Central and GitHub Packages.
+
+== Multi-Module Builds
+
+Apply the plugin to each Java subproject.
+Keep shared conventions in the root build and override patterns only in the modules that differ from the default layout.
+
+== Canonical Acceptance Example
+
+The focused regression example lives at `examples/architecture-validator/hexagonal-violations`.
+It should fail with exactly four intended rule names.

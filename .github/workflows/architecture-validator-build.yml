@@ -1,0 +1,132 @@
+name: Architecture Validator Plugin - Build
+on:
+  push:
+    branches-ignore:
+      - main
+    paths:
+      - 'architecture-validator/plugin/**'
+      - 'examples/architecture-validator/**'
+      - '.github/workflows/**'
+      - '.github/actions/**'
+
+jobs:
+  Calculate-Version:
+    uses: ./.github/workflows/semantic-version-calculate.yml
+    with:
+      fail_on_empty_version: false
+      fail_on_existing_tag: false
+      project_dir: architecture-validator/plugin
+    secrets:
+      sem_rel_token_token: ${{ secrets.SEMANTIC_RELEASE_TOKEN }}
+
+  Determine-Release-Type:
+    needs: Calculate-Version
+    uses: ./.github/workflows/determine-release-type.yml
+
+  Build-Plugin:
+    name: Build Architecture Validator Plugin
+    needs: Calculate-Version
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+
+    runs-on: ubuntu-latest
+
+    env:
+      GRADLE_PROPERTIES_FILE: ./architecture-validator/plugin/gradle.properties
+      GRADLE_VERSION_REGEX: version\s*=\s*[0-9]\\+\.[0-9]\\+\.[0-9]\\+[a-zA-Z0-9.-]*
+      VERSION: ${{ needs.Calculate-Version.outputs.next_version }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Setup Java
+        uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5
+        with:
+          distribution: 'temurin'
+          java-version: 21
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@50e97c2cd7a37755bbfafc9c5b7cafaece252f6e # v6.1.0
+
+      - name: Update version in Gradle property file
+        run: |
+          echo "VERSION=${{ env.VERSION }}"
+          echo ===== Before - ${{ env.GRADLE_PROPERTIES_FILE }} =====
+          cat ${{ env.GRADLE_PROPERTIES_FILE }}
+          sed -i "s/${{ env.GRADLE_VERSION_REGEX }}/version = ${{ env.VERSION }}/g" ${{ env.GRADLE_PROPERTIES_FILE }}
+          echo ===== After - ${{ env.GRADLE_PROPERTIES_FILE }} =====
+          cat ${{ env.GRADLE_PROPERTIES_FILE }}
+
+      - name: Build and test Architecture Validator Plugin
+        run: |
+          cd architecture-validator/plugin
+          chmod +x ./gradlew
+          ./gradlew build --configuration-cache
+        env:
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.SEDR_AUTOMATION_TOKEN }}
+
+      - name: Validate Plugin
+        run: |
+          cd architecture-validator/plugin
+          ./gradlew validatePlugins --configuration-cache
+        env:
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.SEDR_AUTOMATION_TOKEN }}
+
+  Build-Example:
+    name: Smoke-test canonical violations example
+    needs: Build-Plugin
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Setup Java
+        uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5
+        with:
+          distribution: 'temurin'
+          java-version: 21
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@50e97c2cd7a37755bbfafc9c5b7cafaece252f6e # v6.1.0
+
+      - name: Run canonical violations example (expects 4 rule failures)
+        run: |
+          cd examples/architecture-validator/hexagonal-violations
+          chmod +x ./gradlew
+          ./gradlew clean testArchitecture --no-daemon 2>&1 | tee "$RUNNER_TEMP/hexagonal-violations-output.txt" || true
+
+      - name: Assert exactly four expected rule names are present
+        run: |
+          VIOLATIONS=0
+          grep -q "domain_must_not_depend_on_adapters" "$RUNNER_TEMP/hexagonal-violations-output.txt" && VIOLATIONS=$((VIOLATIONS+1))
+          grep -q "inbound_ports_reside_in_correct_package" "$RUNNER_TEMP/hexagonal-violations-output.txt" && VIOLATIONS=$((VIOLATIONS+1))
+          grep -q "adapters_must_not_access_domain_directly" "$RUNNER_TEMP/hexagonal-violations-output.txt" && VIOLATIONS=$((VIOLATIONS+1))
+          grep -q "application_services_must_not_depend_on_adapters" "$RUNNER_TEMP/hexagonal-violations-output.txt" && VIOLATIONS=$((VIOLATIONS+1))
+          echo "Detected violation count: $VIOLATIONS"
+          if [ "$VIOLATIONS" -ne 4 ]; then
+            echo "::error::Expected 4 architecture violations but found $VIOLATIONS"
+            exit 1
+          fi
+
+  Workflow-Summary:
+    name: Workflow Summary
+    needs: [Build-Plugin, Build-Example, Determine-Release-Type]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Output build completion
+        run: |
+          echo "Architecture Validator Plugin ${{ needs.Determine-Release-Type.outputs.release_type }} build workflow completed"
+          echo "::notice title=Build Complete::Architecture Validator Plugin ${{ needs.Determine-Release-Type.outputs.release_type }} build workflow completed"

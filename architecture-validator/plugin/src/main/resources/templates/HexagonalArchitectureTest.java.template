@@ -1,0 +1,72 @@
+package ${generatedPackage};
+
+import com.tngtech.archunit.junit.AnalyzeClasses;
+import com.tngtech.archunit.junit.ArchTest;
+import com.tngtech.archunit.lang.ArchRule;
+
+import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
+import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
+
+@AnalyzeClasses(packages = "${basePackage}")
+class HexagonalArchitectureTest {
+
+    @ArchTest
+    static final ArchRule domain_must_not_depend_on_adapters =
+            noClasses()
+                    .that().resideInAnyPackage(
+                            ${domainModel})
+                    .should().dependOnClassesThat().resideInAnyPackage(
+                            ${adapters})
+                    .allowEmptyShould(true)
+                    .as("Domain classes must not depend on adapters");
+
+    @ArchTest
+    static final ArchRule domain_must_not_depend_on_application_services =
+            noClasses()
+                    .that().resideInAnyPackage(
+                            ${domainModel})
+                    .should().dependOnClassesThat().resideInAnyPackage(
+                            ${applicationServices})
+                    .allowEmptyShould(true)
+                    .as("Domain classes must not depend on application services");
+
+    @ArchTest
+    static final ArchRule inbound_ports_reside_in_correct_package =
+            classes()
+                    .that().haveSimpleNameEndingWith("UseCase")
+                        .or().haveSimpleNameEndingWith("InputPort")
+                    .should().resideInAnyPackage(
+                            ${inPorts})
+                    .allowEmptyShould(true)
+                    .as("Inbound port interfaces must reside in the inbound ports package");
+
+    @ArchTest
+    static final ArchRule outbound_ports_reside_in_correct_package =
+            classes()
+                    .that().haveSimpleNameEndingWith("Repository")
+                        .or().haveSimpleNameEndingWith("OutputPort")
+                    .should().resideInAnyPackage(
+                            ${outPorts})
+                    .allowEmptyShould(true)
+                    .as("Outbound port interfaces must reside in the outbound ports package");
+
+    @ArchTest
+    static final ArchRule adapters_must_not_access_domain_directly =
+            noClasses()
+                    .that().resideInAnyPackage(
+                            ${adapters})
+                    .should().dependOnClassesThat().resideInAnyPackage(
+                            ${domainModel})
+                    .allowEmptyShould(true)
+                    .as("Adapters must not access domain classes directly — only via ports");
+
+    @ArchTest
+    static final ArchRule application_services_must_not_depend_on_adapters =
+            noClasses()
+                    .that().resideInAnyPackage(
+                            ${applicationServices})
+                    .should().dependOnClassesThat().resideInAnyPackage(
+                            ${adapters})
+                    .allowEmptyShould(true)
+                    .as("Application services must not depend on adapters");
+}

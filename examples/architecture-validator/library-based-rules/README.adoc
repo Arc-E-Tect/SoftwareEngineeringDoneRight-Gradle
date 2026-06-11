@@ -1,0 +1,27 @@
+= Library-Based Rules Example
+:toc: left
+
+This example adds a custom external rule-pack build named `layer-validator`.
+The main project consumes that JAR through `testArchitectureImplementation`.
+
+== Run
+
+[source,bash]
+----
+./gradlew testArchitecture
+----
+
+== What it proves
+
+The plugin discovers rule-pack test classes from a dependency build.
+It generates `ExternalRulePackSuite` and runs the external rules together with the built-in vanilla rules.
+
+== Intentional violation
+
+`OrderApplicationService` depends directly on `DatabaseAdapter`.
+That violates both the built-in vanilla rules and the external `LayeredRulesTest` rule pack.
+
+== Fix
+
+Refactor the adapter behind an outbound port.
+Then keep the external rule pack in place as a reusable architectural safety net.
