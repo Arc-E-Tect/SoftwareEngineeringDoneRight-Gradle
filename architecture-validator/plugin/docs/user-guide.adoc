@@ -67,7 +67,7 @@ Add it explicitly through `testArchitectureImplementation`.
 [source,groovy]
 ----
 dependencies {
-    testArchitectureImplementation 'com.arc-e-tect:architecture-validator-hexagonal-spring-rules:<version>'
+    testArchitectureImplementation 'com.arc-e-tect.architecture-validator:architecture-validator-hexagonal-spring-rules:<version>'
 }
 ----
 

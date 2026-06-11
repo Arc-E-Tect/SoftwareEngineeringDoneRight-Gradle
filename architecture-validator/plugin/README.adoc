@@ -9,10 +9,10 @@ image:https://img.shields.io/badge/Java-21%2B-blue[Java 21+,link=https://adoptiu
 image:https://img.shields.io/badge/Gradle-8.x%2B-02303A?logo=gradle[Gradle 8+,link=https://gradle.org]
 
 The Architecture Validator plugin generates and runs ArchUnit-based architecture tests from a small Gradle DSL.
-It focuses on Hexagonal Architecture by default and can also attach external rule packs, including the companion Spring rule pack shipped in this repository.
+It focuses on Hexagonal Architecture by default and can also attach external rule packs, including the companion Spring rule pack maintained in the SoftwareEngineeringDoneRight-Library repository.
 
 This plugin is now maintained as a standalone Gradle project under `architecture-validator/plugin`.
-The Spring companion rules are published from the separate `architecture-validator/spring-rules` project.
+The Spring companion rules are published from the separate `spring-rules` project in SoftwareEngineeringDoneRight-Library.
 
 == Plugin ID
 
@@ -115,7 +115,7 @@ It enforces four broad invariants.
 
 == Companion Spring Rule Pack
 
-The repository also publishes `architecture-validator-hexagonal-spring-rules` as a separate JAR.
+The companion spring-rules project publishes `architecture-validator-hexagonal-spring-rules` as a separate JAR.
 The artifact is available from Maven Central and GitHub Packages.
 The rule pack focuses on Spring stereotypes, dependency direction, and framework leakage boundaries.
 
@@ -126,7 +126,7 @@ No plugin toggle is required.
 [source,groovy]
 ----
 dependencies {
-    testArchitectureImplementation 'com.arc-e-tect:architecture-validator-hexagonal-spring-rules:<version>'
+    testArchitectureImplementation 'com.arc-e-tect.architecture-validator:architecture-validator-hexagonal-spring-rules:<version>'
 }
 ----
 

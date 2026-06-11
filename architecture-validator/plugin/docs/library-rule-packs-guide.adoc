@@ -49,14 +49,14 @@ Set `failOnDuplicateRules = true` if those collisions should stop the build.
 
 == Spring as the First General Rule Pack
 
-This repository ships `architecture-validator-hexagonal-spring-rules` as the first official general rule-pack.
+The companion spring-rules project in SoftwareEngineeringDoneRight-Library publishes `architecture-validator-hexagonal-spring-rules` as the first official general rule-pack.
 It is not enabled by a plugin toggle.
 It is consumed exactly like any other external rule-pack.
 
 [source,groovy]
 ----
 dependencies {
-    testArchitectureImplementation 'com.arc-e-tect:architecture-validator-hexagonal-spring-rules:<version>'
+    testArchitectureImplementation 'com.arc-e-tect.architecture-validator:architecture-validator-hexagonal-spring-rules:<version>'
 }
 ----
 
