@@ -1,3 +1,10 @@
+## [0.4.6](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/v0.4.5...v0.4.6) (2026-06-12)
+
+
+### 🔧 Misc
+
+* Update workflows and Node.js engine version ([#47](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/47)) ([d2e4976](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/d2e4976c86f2463eb2192793a669ad061ae0b784)), closes [#47](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/47)
+
 ## [0.4.4](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/v0.4.3...v0.4.4) (2026-06-12)
 
 
