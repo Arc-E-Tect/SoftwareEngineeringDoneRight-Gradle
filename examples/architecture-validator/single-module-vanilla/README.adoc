@@ -1,27 +1,32 @@
 = Single-Module Vanilla Example
 :toc: left
 
-This example shows the Architecture Validator plugin in a plain Java service with no Spring dependencies.
-It intentionally violates the Hexagonal boundary by letting an application service construct an adapter directly.
+== Description
 
-== Run
+This example applies the Architecture Validator plugin to a plain Java project with no Spring dependencies.
+The code contains a deliberate Hexagonal Architecture boundary violation.
+
+== Intent
+
+This example is intended to show how the default generated rules detect a direct dependency from an application service to an adapter implementation.
+It also shows how to inspect the generated HTML and XML architecture reports.
+
+== Build And Run
 
 [source,bash]
 ----
-./gradlew testArchitecture
+./gradlew clean testArchitecture
 ----
 
-== Expected violation
+== What To Expect
 
 `OrderApplicationService` depends directly on `DatabaseAdapter`.
-That should fail the generated vanilla rule that keeps application services independent from adapters.
-
-== Where to look
+The project is configured with `ignoreFailures = true`, so the task completes successfully while still reporting violations in the generated report output.
 
 Open `build/reports/architecture-validator/html/index.html` after running the suite.
 The XML report is written under `build/reports/architecture-validator/xml/`.
 
-== Fix
+== Suggested Fix
 
 Introduce an outbound port in `application.port.out`.
 Depend on that interface from the application service.

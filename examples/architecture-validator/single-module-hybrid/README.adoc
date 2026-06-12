@@ -1,28 +1,37 @@
 = Single-Module Hybrid Example
 :toc: left
 
-This example combines the plugin-generated vanilla rules with user-provided annotation-style and imperative ArchUnit tests.
-It proves that all three styles can coexist in the same `testArchitecture` suite.
+== Description
 
-== Run
+This example combines plugin-generated vanilla rules with user-provided ArchUnit tests.
+It uses both annotation-style and imperative-style custom rules in the same project.
+
+== Intent
+
+This example is intended to show that generated and hand-written architecture rules can run together in one `testArchitecture` suite.
+It also demonstrates how one architectural issue is surfaced by multiple rule styles.
+
+== Build And Run
 
 [source,bash]
 ----
-./gradlew testArchitecture
+./gradlew clean testArchitecture
 ----
 
-== Included rule styles
+== Included Rule Styles
 
 The plugin generates `HexagonalArchitectureTest` under the build directory.
 `CustomAnnotationTest` shows the annotation-driven ArchUnit style.
 `CustomImperativeTest` shows the imperative `check(classes)` style.
 
-== Intentional violation
+== What To Expect
 
 `OrderApplicationService` still depends directly on `DatabaseAdapter`.
-That keeps the example red so all three rule styles have something visible to report.
+The project is configured with `ignoreFailures = true`, so the build completes while the report still lists the violations found by the configured rules.
 
-== Fix
+Open `build/reports/architecture-validator/html/index.html` to review the report.
+
+== Suggested Fix
 
 Replace the direct adapter dependency with an outbound port interface.
 Then let the adapter implement that port.
