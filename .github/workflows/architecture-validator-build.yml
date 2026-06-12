@@ -5,7 +5,6 @@ on:
       - main
     paths:
       - 'architecture-validator/**'
-      - 'examples/architecture-validator/**'
       - '.github/workflows/**'
       - '.github/actions/**'
 
