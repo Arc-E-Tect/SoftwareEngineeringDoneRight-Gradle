@@ -112,6 +112,9 @@ All secrets must be used through variable names which can be mapped to environme
 ## Project rules
 - Maintain configuration cache compatibility when altering Gradle logic.
 - Keep README/test READMEs aligned with any change in commands, secrets, or images.
+- Every example project under `examples/` must have its own README.adoc that explains the purpose of the example, how to build and run it, and the expected outcome.
+- Every example README.adoc under `examples/` must be included from `examples/README.adoc` so the examples index stays complete.
+- Every example project under `examples/` must have its own dedicated GitHub Actions workflow in `.github/workflows/` that is triggered by source and build configuration changes for that example and performs at least a sanity `./gradlew build` (or an explicit expected-failure assertion for intentionally failing examples).
 - Prefer good examples over prescriptive snippets: show what to avoid (e.g., inline coordinates, manual Test tasks) and what to adopt (catalog aliases, test suites DSL).
 - Treat the root `README.adoc` as the top-level documentation index.
 - The root `README.adoc` must include both plugin READMEs via `include::jacoco-exclusion-report/README.adoc[]` and `include::gherkin-to-asciidoc/README.adoc[]` so the repository docs stay centralized.
