@@ -12,8 +12,8 @@ jacoco-exclusion-report-iff = { id = "com.arc-e-tect.jacoco-exclusion-report", v
 plugin-publish-iff = "2.1.1"
 owasp-dependency-check-iff = "12.2.2"
 jreleaser-iff = "1.24.0"
-jacoco-exclusion-report-iff = "0.3.3"
-archunit-junit5-iff = "1.4.1"
+jacoco-exclusion-report-iff = "0.4.1"
+archunit-junit5-iff = "1.4.2"
 junit-jupiter-iff = "6.1.0"
 junit-platform-iff = "6.1.0"
 assertj-core-iff = "3.27.7"
@@ -30,3 +30,4 @@ junit-platform-suite-engine-iff = { module = "org.junit.platform:junit-platform-
 assertj-core-iff = { module = "org.assertj:assertj-core", version.ref = "assertj-core-iff" }
 spring-context-iff = { module = "org.springframework:spring-context", version.ref = "spring-context-iff" }
 sedr-library-iff = { module = "com.arc-e-tect.sedr.utils:sedr-library", version.ref = "sedr-library-iff" }
+
