@@ -3,7 +3,7 @@ plugins {
     id 'com.arc-e-tect.architecture-validator'
 }
 
-group = 'com.example.hexapp'
+group = 'com.arc-e-tect.example.hexapp'
 version = '0.0.1'
 
 java {
@@ -17,7 +17,7 @@ repositories {
 }
 
 architectureValidator {
-    basePackage = 'com.example.hexapp'
+    basePackage = 'com.arc_e_tect.example.hexapp'
 
     hexagonalArchitecture {
         inPorts = ['..port.in..']

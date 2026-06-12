@@ -6,7 +6,7 @@ subprojects {
     apply plugin: 'java'
     apply plugin: 'com.arc-e-tect.architecture-validator'
 
-    group = 'com.example.multi'
+    group = 'com.arc-e-tect.example.multi'
     version = '0.0.1'
 
     java {
@@ -20,7 +20,7 @@ subprojects {
     }
 
     architectureValidator {
-        basePackage = "com.example.multi.${project.name}"
+        basePackage = "com.arc_e_tect.example.multi.${project.name}"
         ignoreFailures = true
         hexagonalArchitecture {
             domainModel = ['..domain..', '..model..']

@@ -3,7 +3,7 @@ plugins {
     id 'com.arc-e-tect.architecture-validator'
 }
 
-group = 'com.example.vanilla'
+group = 'com.arc-e-tect.example.vanilla'
 version = '0.0.1'
 
 java {
@@ -17,6 +17,6 @@ repositories {
 }
 
 architectureValidator {
-    basePackage = 'com.example.vanilla'
+    basePackage = 'com.arc_e_tect.example.vanilla'
     ignoreFailures = true
 }
