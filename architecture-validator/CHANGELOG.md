@@ -1,3 +1,16 @@
+## [0.4.7](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/v0.4.6...v0.4.7) (2026-06-12)
+
+
+### 🐛 Bug Fixes
+
+* update group and base package for examples to reflect `arc-e-tect` namespace ([#49](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/49)) ([4a919e9](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/4a919e96db25e4238b75e9d7781231dda8168e8d)), closes [#49](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/49)
+
+
+### 🔧 Misc
+
+* dependency updates for Gradle plugin repository ([#48](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/48)) ([9bba966](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/9bba9666d14aba8a35afc9120a3200dba833882c)), closes [#48](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/48)
+* dependency updates for Gradle plugin repository ([#50](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/50)) ([93dff75](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/93dff7592f26dd7d23f7e5a3688816b29be8e03c)), closes [#50](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/50)
+
 ## [0.4.6](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/v0.4.5...v0.4.6) (2026-06-12)
 
 
