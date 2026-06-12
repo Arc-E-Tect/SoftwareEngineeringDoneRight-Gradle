@@ -1,0 +1,36 @@
+= Hexagonal Violations Example
+:toc: left
+
+== Description
+
+This example applies the Architecture Validator plugin to a single-module Hexagonal Architecture sample with multiple intentional violations.
+The sample contains violations across adapter, application, and port placement boundaries.
+
+== Intent
+
+This example is intended to show what a failing architecture validation run looks like.
+It also demonstrates that user-provided tests in `src/testArchitecture/java` run alongside generated architecture tests.
+
+== Build And Run
+
+[source,bash]
+----
+./gradlew clean testArchitecture
+----
+
+== What To Expect
+
+The build is expected to fail.
+The project does not enable `ignoreFailures`, so detected violations cause `testArchitecture` to fail.
+You should see failures related to application services depending on adapters, adapters bypassing ports, and naming or placement rules for architecture elements.
+
+== Reports
+
+Open `build/reports/architecture-validator/html/index.html` to inspect the full violation report.
+The XML report is generated under `build/reports/architecture-validator/xml/`.
+
+== Suggested Fix
+
+Move adapter interactions behind explicit outbound ports.
+Keep web adapters dependent on inbound ports instead of domain classes.
+Place `UseCase` interfaces under the configured inbound port package.

@@ -1,27 +1,37 @@
 = Library-Based Rules Example
 :toc: left
 
-This example adds a custom external rule-pack build named `layer-validator`.
-The main project consumes that JAR through `testArchitectureImplementation`.
+== Description
 
-== Run
+This example applies the Architecture Validator plugin and adds an external rule pack published from the local `layer-validator` build.
+The main module consumes that rule pack through `testArchitectureImplementation`.
+
+== Intent
+
+This example is intended to show how custom rule packs can be layered on top of the built-in generated rules.
+It demonstrates how external and generated rules can report the same architectural problem from different perspectives.
+
+== Build And Run
 
 [source,bash]
 ----
-./gradlew testArchitecture
+./gradlew clean testArchitecture
 ----
 
-== What it proves
+== What It Proves
 
 The plugin discovers rule-pack test classes from a dependency build.
 It generates `ExternalRulePackSuite` and runs the external rules together with the built-in vanilla rules.
 
-== Intentional violation
+== What To Expect
 
 `OrderApplicationService` depends directly on `DatabaseAdapter`.
 That violates both the built-in vanilla rules and the external `LayeredRulesTest` rule pack.
+The project is configured with `ignoreFailures = true`, so Gradle completes while the violation remains visible in the report output.
 
-== Fix
+Open `build/reports/architecture-validator/html/index.html` to inspect details.
+
+== Suggested Fix
 
 Refactor the adapter behind an outbound port.
 Then keep the external rule pack in place as a reusable architectural safety net.

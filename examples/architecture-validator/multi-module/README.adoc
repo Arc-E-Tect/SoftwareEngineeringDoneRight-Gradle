@@ -1,28 +1,36 @@
 = Multi-Module Example
 :toc: left
 
-This example applies the plugin to three subprojects.
-It shows that each module can run `testArchitecture` independently while the root build also aggregates the generated reports.
+== Description
 
-== Run
+This example applies the Architecture Validator plugin to a multi-module project with `app`, `adapters`, and `domain` subprojects.
+Each module runs architecture checks independently, and the root project can aggregate the module reports.
+
+== Intent
+
+This example is intended to show how architecture rules behave in a modular Gradle build.
+It demonstrates both per-module validation and centralized report collection.
+
+== Build And Run
 
 [source,bash]
 ----
-./gradlew testArchitecture
+./gradlew clean testArchitecture
 ./gradlew aggregateArchitectureReports
 ----
 
-== Intentional violation
+== What To Expect
 
 The `app` module depends directly on `DatabaseAdapter` from the `adapters` module.
-That crosses the Hexagonal boundary and should be reported by the `app:testArchitecture` task.
+That crosses the Hexagonal boundary and is reported by `:app:testArchitecture`.
+The subprojects are configured with `ignoreFailures = true`, so the build can complete while still surfacing violations in the reports.
 
 == Reports
 
 Each module writes its own reports under its local `build/reports/architecture-validator/` directory.
 The root `aggregateArchitectureReports` task copies all module reports into `build/reports/architecture-validator/aggregate/`.
 
-== Fix
+== Suggested Fix
 
 Move the adapter behind an outbound port in the app module.
 Let the `adapters` module implement that port instead of being referenced directly by the service.

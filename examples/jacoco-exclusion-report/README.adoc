@@ -1,0 +1,34 @@
+= JaCoCo Exclusion Report Example
+:toc: left
+
+== Description
+
+This example applies the JaCoCo Exclusion Report plugin to a simple Java model class.
+The sample class includes methods annotated with `@ExcludeFromJacocoGeneratedCodeCoverage`, both with and without a justification.
+
+== Intent
+
+This example is intended to show how exclusion metadata is extracted into an HTML and XML audit report.
+It also highlights why adding a justification to exclusions improves reviewability.
+
+== Build And Run
+
+[source,bash]
+----
+./gradlew clean jacocoExclusionReport
+----
+
+== What To Expect
+
+The build is expected to pass.
+The plugin scans Java sources and generates exclusion reports under `build/reports/jacoco-exclusions/`.
+You should see `index.html` for human-readable output and `exclusions.xml` for machine-readable output.
+
+== Optional Full Build Flow
+
+[source,bash]
+----
+./gradlew clean test jacocoTestReport
+----
+
+When run this way, the exclusion report is still produced as part of the coverage reporting flow.

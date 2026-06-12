@@ -1,0 +1,21 @@
+= Examples
+:toc: left
+
+This directory contains runnable example projects for the Gradle plugins in this repository.
+Each example has its own README with description, intent, run instructions, and expected behavior.
+
+== Architecture Validator Examples
+
+include::architecture-validator/single-module-vanilla/README.adoc[leveloffset=+1]
+
+include::architecture-validator/single-module-hybrid/README.adoc[leveloffset=+1]
+
+include::architecture-validator/library-based-rules/README.adoc[leveloffset=+1]
+
+include::architecture-validator/multi-module/README.adoc[leveloffset=+1]
+
+include::architecture-validator/hexagonal-violations/README.adoc[leveloffset=+1]
+
+== JaCoCo Exclusion Report Example
+
+include::jacoco-exclusion-report/README.adoc[leveloffset=+1]
