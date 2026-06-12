@@ -1,3 +1,10 @@
+## [0.4.5](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/v0.4.4...v0.4.5) (2026-06-12)
+
+
+### 🔧 Misc
+
+* dependency updates for Gradle plugin repository ([#45](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/45)) ([3da2bff](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/3da2bff82b31326e78cfa6973c546d1b81b0250b)), closes [#45](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/45)
+
 # [0.2.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/v0.1.3...v0.2.0) (2026-04-30)
 
 
