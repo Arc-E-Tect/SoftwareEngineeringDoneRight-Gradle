@@ -1,3 +1,10 @@
+## [0.4.4](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/v0.4.3...v0.4.4) (2026-06-12)
+
+
+### 🔧 Misc
+
+* Reorder repositories and refactor Architecture Validator layout ([#46](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/46)) ([de8385c](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/de8385c039a519f1d8d23609dc869a4c76b9a1c8)), closes [#46](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/46)
+
 ## [0.4.3](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/v0.4.2...v0.4.3) (2026-06-11)
 
 
