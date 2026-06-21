@@ -9,7 +9,7 @@ owasp-dependency-check      = { id = "org.owasp.dependencycheck",     version.re
 
 owasp-dependency-check = "12.2.2"
 
-gherkin = "40.0.0"
+gherkin = "41.0.0"
 junit-jupiter = "6.1.0"
 junit-platform = "6.1.0"
 assertj         = "3.27.7"
