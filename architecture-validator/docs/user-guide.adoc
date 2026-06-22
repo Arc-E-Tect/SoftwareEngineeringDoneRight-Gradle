@@ -54,6 +54,36 @@ Those sources are derived artifacts and must not be committed.
 If you need to disable the built-in vanilla `HexagonalArchitectureTest`, set `useBuiltInHexagonalRulePack = false`.
 With this setting, the built-in validator is skipped while user tests from `src/testArchitecture/java` and external rule-pack tests from `testArchitectureImplementation` still run.
 
+== Built-In Hexagonal Architecture Rules
+
+The plugin provides six built-in architecture rules that enforce key Hexagonal Architecture (also known as Ports & Adapters) principles:
+
+=== Rule: `domain_must_not_depend_on_adapters`
+Domain classes (identified by the `domainModel` package pattern) must not depend on adapter classes (identified by the `adapters` package pattern).
+This rule ensures that the domain logic remains independent of external technology concerns like databases, web frameworks, or message brokers.
+
+=== Rule: `domain_must_not_depend_on_application_services`
+Domain classes must not depend on application service classes (identified by the `applicationServices` package pattern).
+This preserves the domain's isolation from orchestration logic and keeps the domain layer focused solely on business rules.
+
+=== Rule: `inbound_ports_reside_in_correct_package`
+Inbound port interfaces—identified by names ending with `UseCase` or `InputPort`—must reside in the configured `inPorts` package.
+This centralizes the definition of use cases and ensures the application's entry points are clearly located and discoverable.
+
+=== Rule: `outbound_ports_reside_in_correct_package`
+Outbound port interfaces—identified by names ending with `Repository` or `OutputPort`—must reside in the configured `outPorts` package.
+This centralizes the definition of outbound dependencies (e.g., persistence, external APIs) and makes them easily identifiable.
+
+=== Rule: `adapters_must_not_access_domain_directly`
+Adapters must not depend directly on domain classes; they must access the domain only through inbound and outbound ports.
+This enforces the Ports & Adapters principle that all external technology interactions are decoupled from domain logic through well-defined interfaces.
+
+=== Rule: `application_services_must_not_depend_on_adapters`
+Application services must not depend on adapter classes.
+This prevents leakage of infrastructure concerns into the application service layer and ensures that orchestration logic remains independent of specific technology choices.
+
+All six rules are configured with `allowEmptyShould(true)`, meaning they will pass without failure if no classes match the rule criteria (e.g., if the domain layer is empty). When violations occur, the HTML report clearly identifies the offending classes and the rule that triggered the violation.
+
 == Templating Tutorial
 
 If you want to extend the plugin with an additional built-in generated template, see `docs/templating-tutorial.md`.
