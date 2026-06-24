@@ -33,8 +33,9 @@ class HexagonalArchitectureTest {
     @ArchTest
     static final ArchRule inbound_ports_reside_in_correct_package =
             classes()
-                    .that().haveSimpleNameEndingWith("UseCase")
-                        .or().haveSimpleNameEndingWith("InputPort")
+                    .that().areInterfaces()
+                    .and().haveSimpleNameEndingWith("UseCase")
+                        .or().areInterfaces().and().haveSimpleNameEndingWith("InputPort")
                     .should().resideInAnyPackage(
                             ${inPorts})
                     .allowEmptyShould(true)
@@ -43,8 +44,9 @@ class HexagonalArchitectureTest {
     @ArchTest
     static final ArchRule outbound_ports_reside_in_correct_package =
             classes()
-                    .that().haveSimpleNameEndingWith("Repository")
-                        .or().haveSimpleNameEndingWith("OutputPort")
+                    .that().areInterfaces()
+                    .and().haveSimpleNameEndingWith("Repository")
+                        .or().areInterfaces().and().haveSimpleNameEndingWith("OutputPort")
                     .should().resideInAnyPackage(
                             ${outPorts})
                     .allowEmptyShould(true)

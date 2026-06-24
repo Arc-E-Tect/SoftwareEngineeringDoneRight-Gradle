@@ -92,7 +92,7 @@ architectureValidator {
 [cols="1,1,3",options="header"]
 |===
 | Property | Default | Purpose
-| `basePackage` | project group | Package root imported by generated tests and companion rule packs.
+| `basePackage` | inferred from `src/main/java` package layout, then project group | Package root imported by generated tests and companion rule packs. Generated tests never use an empty package root.
 | `testDirectory` | `src/testArchitecture/java` | Location for user-supplied ArchUnit tests.
 | `failOnViolation` | `true` | Enables the post-test violation threshold check.
 | `maxAllowedViolations` | `0` | Maximum number of failing architecture rule tests before the build fails.
@@ -100,6 +100,8 @@ architectureValidator {
 | `failOnDuplicateRules` | `false` | Turns duplicate rule detection across local and external rule packs into a build failure instead of a warning.
 | `useBuiltInHexagonalRulePack` | `true` | Enables generation and execution of the built-in `HexagonalArchitectureTest`.
 |===
+
+If no non-empty package root can be resolved for generated tests, the plugin fails fast and asks you to configure `architectureValidator.basePackage` explicitly.
 
 To run only external/user rule packs and disable the built-in vanilla validator, set `useBuiltInHexagonalRulePack = false`.
 

@@ -40,6 +40,10 @@ architectureValidator {
 }
 ----
 
+If `basePackage` is not set, generated tests resolve it from the `src/main/java` package layout first and then fall back to the project group.
+Generated tests never run with an empty root package.
+If the plugin cannot resolve a non-empty package root, generation fails fast and requests an explicit `architectureValidator.basePackage` value.
+
 == Reports
 
 Run `./gradlew testArchitecture`.
@@ -53,6 +57,14 @@ Those sources are derived artifacts and must not be committed.
 
 If you need to disable the built-in vanilla `HexagonalArchitectureTest`, set `useBuiltInHexagonalRulePack = false`.
 With this setting, the built-in validator is skipped while user tests from `src/testArchitecture/java` and external rule-pack tests from `testArchitectureImplementation` still run.
+
+The built-in port placement checks target interfaces only:
+
+- Inbound ports: names ending with `UseCase` or `InputPort`.
+- Outbound ports: names ending with `Repository` or `OutputPort`.
+
+Both rules use `allowEmptyShould(true)`.
+This means projects can start with an empty hexagonal package structure and still pass architecture validation until source types are added.
 
 == Templating Tutorial
 

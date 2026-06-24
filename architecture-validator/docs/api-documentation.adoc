@@ -37,6 +37,8 @@ It also wires report locations, classpath inputs, and the post-execution thresho
 `GenerateArchitectureTestsTask` renders the built-in vanilla `HexagonalArchitectureTest` source file from a template.
 That generation is controlled by `useBuiltInHexagonalRulePack`.
 It also scans the rule-pack classpath and generates `ExternalRulePackSuite` when dependency rule packs are present.
+Generated built-in tests always use a non-empty `basePackage` scope.
+When `basePackage` is not provided explicitly, the task infers it from the `src/main/java` package layout and then falls back to the project group.
 
 == Generated Classes
 

@@ -1,6 +1,7 @@
 package com.arc_e_tect.gradle.architecture;
 
 import org.gradle.testfixtures.ProjectBuilder;
+import org.gradle.api.GradleException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -57,6 +58,60 @@ class GenerateArchitectureTestsTaskTest {
                 .contains("application_services_must_not_depend_on_adapters")
                 .contains("@ArchTest");
     }
+
+        @Test
+        @DisplayName("generateShouldInferBasePackageFromMainJavaLayoutWhenBlank")
+        void generateShouldInferBasePackageFromMainJavaLayoutWhenBlank() throws Exception {
+                GenerateArchitectureTestsTask task = newTask("generateArchitectureTestsInferBasePackage");
+
+                Files.createDirectories(tempDir.resolve("src/main/java/com/example/inventory/application/port/in"));
+                Files.createDirectories(tempDir.resolve("src/main/java/com/example/inventory/application/port/out"));
+                Files.createDirectories(tempDir.resolve("src/main/java/com/example/inventory/adapter/out/persistence"));
+                Files.writeString(tempDir.resolve("src/main/java/com/example/inventory/application/port/in/.gitkeep"), "");
+                Files.writeString(tempDir.resolve("src/main/java/com/example/inventory/application/port/out/.gitkeep"), "");
+                Files.writeString(tempDir.resolve("src/main/java/com/example/inventory/adapter/out/persistence/.gitkeep"), "");
+
+                task.getBasePackage().set("");
+                task.getInPorts().set(List.of("..application.port.in.."));
+                task.getOutPorts().set(List.of("..application.port.out.."));
+                task.getDomainModel().set(List.of("..application.domain.."));
+                task.getAdapters().set(List.of("..adapter..", "..adapters.."));
+                task.getApplicationServices().set(List.of("..application.service.."));
+                task.getCommonPackages().set(List.of("..application.common.."));
+                task.getFailOnDuplicateRules().set(false);
+                task.getUserTestsDirectory().set(tempDir.resolve("user-tests").toFile());
+                task.getMainSourceDirectory().set(tempDir.resolve("src/main/java").toFile());
+                task.getOutputDirectory().set(tempDir.resolve("generated").toFile());
+
+                task.generate();
+
+                Path generatedFile = tempDir.resolve("generated/com/arc_e_tect/gradle/architecture/generated/HexagonalArchitectureTest.java");
+                assertThat(generatedFile).exists();
+                String contents = Files.readString(generatedFile);
+                assertThat(contents).contains("@AnalyzeClasses(packages = \"com.example.inventory\")");
+        }
+
+        @Test
+        @DisplayName("generateShouldFailWhenBasePackageCannotBeResolved")
+        void generateShouldFailWhenBasePackageCannotBeResolved() {
+                GenerateArchitectureTestsTask task = newTask("generateArchitectureTestsNoBasePackage");
+
+                task.getBasePackage().set("");
+                task.getInPorts().set(List.of("..application.port.in.."));
+                task.getOutPorts().set(List.of("..application.port.out.."));
+                task.getDomainModel().set(List.of("..application.domain.."));
+                task.getAdapters().set(List.of("..adapter..", "..adapters.."));
+                task.getApplicationServices().set(List.of("..application.service.."));
+                task.getCommonPackages().set(List.of("..application.common.."));
+                task.getFailOnDuplicateRules().set(false);
+                task.getUserTestsDirectory().set(tempDir.resolve("user-tests").toFile());
+                task.getMainSourceDirectory().set(tempDir.resolve("src/main/java").toFile());
+                task.getOutputDirectory().set(tempDir.resolve("generated").toFile());
+
+                assertThatThrownBy(task::generate)
+                                .isInstanceOf(GradleException.class)
+                                .hasMessageContaining("Unable to resolve architectureValidator.basePackage");
+        }
 
     @Test
     @DisplayName("generateShouldCreateExternalRulePackSuiteWhenRulePackTestsExist")
@@ -403,6 +458,7 @@ class GenerateArchitectureTestsTaskTest {
                 task.getFailOnDuplicateRules().set(false);
                 task.getUseBuiltInHexagonalRulePack().set(true);
                 task.getUserTestsDirectory().set(tempDir.resolve("user-tests").toFile());
+                task.getMainSourceDirectory().set(tempDir.resolve("src/main/java").toFile());
                 task.getOutputDirectory().set(outputRoot.toFile());
         }
 }
