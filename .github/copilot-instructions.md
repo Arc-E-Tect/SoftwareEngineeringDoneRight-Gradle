@@ -120,6 +120,10 @@ All secrets must be used through variable names which can be mapped to environme
 - The root `README.adoc` must include both plugin READMEs via `include::jacoco-exclusion-report/README.adoc[]` and `include::gherkin-to-asciidoc/README.adoc[]` so the repository docs stay centralized.
 - Keep a clear TOC in the root `README.adoc` so readers can jump quickly to the relevant plugin documentation.
 
+### Architecture Validator Plugin
+- When modifying the built-in hexagonal architecture validation rules (in `architecture-validator/src/main/resources/templates/HexagonalArchitectureTest.java.template`), the corresponding documentation section "Built-In Hexagonal Architecture Rules" in `architecture-validator/docs/user-guide.adoc` must be updated to reflect the rule changes.
+- Keep the rule descriptions, code patterns, and architectural principles documented in the user guide aligned with the actual ArchUnit rule implementations.
+
 ## Docker images
 When pulling images from Docker Hub, always prefer the latest version available with a version number. When there is an `alpine` variant available, prefer that over the default. Do not use `latest` tags as the version to pull.
 
