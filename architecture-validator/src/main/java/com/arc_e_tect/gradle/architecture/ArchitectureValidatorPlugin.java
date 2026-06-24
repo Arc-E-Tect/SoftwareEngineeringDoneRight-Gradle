@@ -44,6 +44,7 @@ public class ArchitectureValidatorPlugin implements Plugin<Project> {
                 GenerateArchitectureTestsTask.class,
                 task -> {
                     task.getBasePackage().set(extension.getBasePackage());
+                    task.getFallbackBasePackage().set(defaultBasePackage);
                     task.getInPorts().set(extension.getHexagonalArchitecture().getInPorts());
                     task.getOutPorts().set(extension.getHexagonalArchitecture().getOutPorts());
                     task.getDomainModel().set(extension.getHexagonalArchitecture().getDomainModel());
@@ -53,6 +54,7 @@ public class ArchitectureValidatorPlugin implements Plugin<Project> {
                     task.getFailOnDuplicateRules().set(extension.getFailOnDuplicateRules());
                     task.getUseBuiltInHexagonalRulePack().set(extension.getUseBuiltInHexagonalRulePack());
                     task.getUserTestsDirectory().set(extension.getTestDirectory());
+                    task.getMainSourceDirectory().set(project.getLayout().getProjectDirectory().dir("src/main/java"));
                     task.getOutputDirectory().set(project.getLayout().getBuildDirectory().dir("generated/testArchitecture/java"));
                 });
 

@@ -1,0 +1,37 @@
+= Single-Module Scope-Split Example
+:toc: left
+
+== Description
+
+This example shows two independent architecture-test scopes in the same `testArchitecture` suite.
+Generated plugin rules are restricted to the application package.
+A local `src/testArchitecture` test targets a different package for additional conventions.
+
+== Intent
+
+This example is intended to demonstrate scope separation.
+
+- Generated `HexagonalArchitectureTest` rules apply to `com.arc_e_tect.example.scopesplit.application` only.
+- Local `PlatformPolicyConventionsTest` applies to `com.arc_e_tect.example.scopesplit.platform` only.
+
+== Build And Run
+
+[source,bash]
+----
+./gradlew clean testArchitecture
+----
+
+== What To Expect
+
+The build should pass.
+Generated rules validate only application-layer packages and do not evaluate the platform package.
+The local platform test validates its own package scope independently.
+
+Open `build/reports/architecture-validator/html/index.html` to inspect both groups of rules in one report.
+
+== Key Files
+
+- `build.gradle`: sets `architectureValidator.basePackage = 'com.arc_e_tect.example.scopesplit.application'`.
+- `src/main/java/com/arc_e_tect/example/scopesplit/application/...`: application and adapter classes validated by generated tests.
+- `src/main/java/com/arc_e_tect/example/scopesplit/platform/...`: non-application package used for local rule demo.
+- `src/testArchitecture/java/com/arc_e_tect/example/scopesplit/validation/PlatformPolicyConventionsTest.java`: local rule with its own `@AnalyzeClasses` scope.

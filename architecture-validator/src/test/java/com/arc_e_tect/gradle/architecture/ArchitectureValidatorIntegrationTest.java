@@ -53,6 +53,19 @@ class ArchitectureValidatorIntegrationTest {
         assertThat(mergedXml).doesNotContain("failures=\"0\"");
     }
 
+    @Test
+    @DisplayName("should pass for empty hexagonal package structure")
+    void shouldPassForEmptyHexagonalPackageStructure() throws IOException {
+        Path projectDir = createProjectWithEmptyHexagonalPackageStructure("empty-hexagonal-packages");
+
+        BuildResult result = createRunner(projectDir)
+                .withArguments("testArchitecture", "--stacktrace")
+                .build();
+
+        assertThat(result.task(":testArchitecture").getOutcome()).isEqualTo(TaskOutcome.SUCCESS);
+        assertThat(result.getOutput()).doesNotContain("outbound_ports_reside_in_correct_package FAILED");
+    }
+
     private Path createProjectWithFailingArchitectureTest(String projectName, boolean ignoreFailures) throws IOException {
         Path projectDir = tempDir.resolve(projectName);
         Files.createDirectories(projectDir);
@@ -107,6 +120,51 @@ class ArchitectureValidatorIntegrationTest {
                     }
                 }
                 """);
+
+        return projectDir;
+    }
+
+    private Path createProjectWithEmptyHexagonalPackageStructure(String projectName) throws IOException {
+        Path projectDir = tempDir.resolve(projectName);
+        Files.createDirectories(projectDir);
+
+        write(projectDir.resolve("settings.gradle"), """
+                pluginManagement {
+                    repositories {
+                        gradlePluginPortal()
+                    }
+                }
+
+                rootProject.name = '%s'
+                """.formatted(projectName));
+
+        write(projectDir.resolve("build.gradle"), """
+                plugins {
+                    id 'java'
+                    id 'com.arc-e-tect.architecture-validator'
+                }
+
+                group = 'com.example.archtest'
+                version = '0.0.1'
+
+                repositories {
+                    mavenCentral()
+                }
+
+                architectureValidator {
+                    basePackage = 'com.example.archtest'
+                    useBuiltInHexagonalRulePack = true
+                    ignoreFailures = false
+                }
+                """);
+
+        Files.createDirectories(projectDir.resolve("src/main/java/com/example/archtest/application/port/in"));
+        Files.createDirectories(projectDir.resolve("src/main/java/com/example/archtest/application/port/out"));
+        Files.createDirectories(projectDir.resolve("src/main/java/com/example/archtest/application/domain"));
+        Files.createDirectories(projectDir.resolve("src/main/java/com/example/archtest/application/service"));
+        Files.createDirectories(projectDir.resolve("src/main/java/com/example/archtest/adapters/inbound"));
+        Files.createDirectories(projectDir.resolve("src/main/java/com/example/archtest/adapters/outbound"));
+        Files.createDirectories(projectDir.resolve("src/main/java/com/example/archtest/application/common"));
 
         return projectDir;
     }
