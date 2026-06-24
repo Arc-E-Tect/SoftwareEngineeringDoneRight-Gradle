@@ -198,7 +198,7 @@ subprojects {
 
 == Examples and Further Docs
 
-The repository contains six example projects under `examples/architecture-validator`.
+The repository contains seven example projects under `examples/architecture-validator`.
 They cover the vanilla, Spring, hybrid, multi-module, and external rule-pack scenarios required by the plugin specification.
 The canonical `hexagonal-violations` example complements them as the focused regression example.
 

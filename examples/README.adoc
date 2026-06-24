@@ -10,6 +10,8 @@ include::architecture-validator/single-module-vanilla/README.adoc[leveloffset=+1
 
 include::architecture-validator/single-module-hybrid/README.adoc[leveloffset=+1]
 
+include::architecture-validator/single-module-scope-split/README.adoc[leveloffset=+1]
+
 include::architecture-validator/library-based-rules/README.adoc[leveloffset=+1]
 
 include::architecture-validator/multi-module/README.adoc[leveloffset=+1]
