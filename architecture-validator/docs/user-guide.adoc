@@ -68,7 +68,7 @@ With this setting, the built-in validator is skipped while user tests from `src/
 The plugin provides six built-in architecture rules that enforce key Hexagonal Architecture (also known as Ports & Adapters) principles:
 
 === Rule: `domain_must_not_depend_on_adapters`
-Domain classes (identified by the `domainModel` package pattern) must not depend on adapter classes (identified by the `adapters` package pattern).
+Domain classes (identified by the `domainModel` package pattern) must not depend on inbound or outbound adapter classes.
 This rule ensures that the domain logic remains independent of external technology concerns like databases, web frameworks, or message brokers.
 
 === Rule: `domain_must_not_depend_on_application_services`
@@ -83,12 +83,12 @@ This centralizes the definition of use cases and ensures the application's entry
 Outbound port interfaces—identified by names ending with `Repository` or `OutputPort`—must reside in the configured `outPorts` package.
 This centralizes the definition of outbound dependencies (e.g., persistence, external APIs) and makes them easily identifiable.
 
-=== Rule: `adapters_must_not_access_domain_directly`
-Adapters must not depend directly on domain classes; they must access the domain only through inbound and outbound ports.
-This enforces the Ports & Adapters principle that all external technology interactions are decoupled from domain logic through well-defined interfaces.
+=== Rule: `inbound_adapters_must_not_depend_on_service_implementations_directly`
+Inbound adapters (identified by the `inboundAdapters` package patterns) must not depend directly on application or domain service implementation classes (identified by the `applicationServices` package patterns).
+This enforces the entry-path rule of Hexagonal Architecture: inbound adapters should invoke inbound port interfaces instead of binding directly to service implementations.
 
 === Rule: `application_services_must_not_depend_on_adapters`
-Application services must not depend on adapter classes.
+Application services must not depend on inbound or outbound adapter classes.
 This prevents leakage of infrastructure concerns into the application service layer and ensures that orchestration logic remains independent of specific technology choices.
 
 All six rules are configured with `allowEmptyShould(true)`, meaning they will pass without failure if no classes match the rule criteria (e.g., if the domain layer is empty). When violations occur, the HTML report clearly identifies the offending classes and the rule that triggered the violation.
