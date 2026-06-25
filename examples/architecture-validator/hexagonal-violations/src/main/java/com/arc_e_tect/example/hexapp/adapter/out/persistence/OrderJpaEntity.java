@@ -1,7 +1,8 @@
-package com.arc_e_tect.example.hexapp.adapter.persistence;
+package com.arc_e_tect.example.hexapp.adapter.out.persistence;
 
 /**
- * JPA entity for persisting orders. Lives correctly in the adapters layer.
+ * JPA entity for persisting orders.
+ * Lives correctly in the outbound adapters layer.
  *
  * <p>Referenced (incorrectly) by {@link com.arc_e_tect.example.hexapp.domain.Order} — see
  * VIOLATIONS.md §1.</p>

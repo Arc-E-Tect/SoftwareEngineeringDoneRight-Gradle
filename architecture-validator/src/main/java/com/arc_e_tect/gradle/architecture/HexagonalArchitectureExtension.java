@@ -12,6 +12,8 @@ public class HexagonalArchitectureExtension {
     private final ListProperty<String> outPorts;
     private final ListProperty<String> domainModel;
     private final ListProperty<String> adapters;
+    private final ListProperty<String> inboundAdapters;
+    private final ListProperty<String> outboundAdapters;
     private final ListProperty<String> applicationServices;
     private final ListProperty<String> commonPackages;
 
@@ -21,6 +23,8 @@ public class HexagonalArchitectureExtension {
         outPorts = objects.listProperty(String.class).convention(List.of("..application.port.out.."));
         domainModel = objects.listProperty(String.class).convention(List.of("..application.domain.."));
         adapters = objects.listProperty(String.class).convention(List.of("..adapter..", "..adapters.."));
+        inboundAdapters = objects.listProperty(String.class).convention(List.of("..adapter.in..", "..adapters.in.."));
+        outboundAdapters = objects.listProperty(String.class).convention(List.of("..adapter.out..", "..adapters.out.."));
         applicationServices = objects.listProperty(String.class)
                 .convention(List.of("..application.domain.service..", "..application.service.."));
         commonPackages = objects.listProperty(String.class).convention(List.of("..application.common.."));
@@ -40,6 +44,14 @@ public class HexagonalArchitectureExtension {
 
     public ListProperty<String> getAdapters() {
         return adapters;
+    }
+
+    public ListProperty<String> getInboundAdapters() {
+        return inboundAdapters;
+    }
+
+    public ListProperty<String> getOutboundAdapters() {
+        return outboundAdapters;
     }
 
     public ListProperty<String> getApplicationServices() {
