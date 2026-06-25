@@ -1,5 +1,7 @@
 package ${generatedPackage};
 
+import com.tngtech.archunit.base.DescribedPredicate;
+import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.junit.AnalyzeClasses;
 import com.tngtech.archunit.junit.ArchTest;
 import com.tngtech.archunit.lang.ArchRule;
@@ -9,6 +11,26 @@ import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 
 @AnalyzeClasses(packages = "${basePackage}")
 class HexagonalArchitectureTest {
+
+        private static final DescribedPredicate<JavaClass> INBOUND_PORT_INTERFACES =
+                        new DescribedPredicate<>("inbound port interfaces") {
+                                @Override
+                                public boolean test(JavaClass input) {
+                                        return input.isInterface()
+                                                        && (input.getSimpleName().endsWith("UseCase")
+                                                        || input.getSimpleName().endsWith("InputPort"));
+                                }
+                        };
+
+        private static final DescribedPredicate<JavaClass> OUTBOUND_PORT_INTERFACES =
+                        new DescribedPredicate<>("outbound port interfaces") {
+                                @Override
+                                public boolean test(JavaClass input) {
+                                        return input.isInterface()
+                                                        && (input.getSimpleName().endsWith("Repository")
+                                                        || input.getSimpleName().endsWith("OutputPort"));
+                                }
+                        };
 
     @ArchTest
     static final ArchRule domain_must_not_depend_on_adapters =
@@ -33,9 +55,7 @@ class HexagonalArchitectureTest {
     @ArchTest
     static final ArchRule inbound_ports_reside_in_correct_package =
             classes()
-                    .that().areInterfaces()
-                    .and().haveSimpleNameEndingWith("UseCase")
-                        .or().areInterfaces().and().haveSimpleNameEndingWith("InputPort")
+                    .that(INBOUND_PORT_INTERFACES)
                     .should().resideInAnyPackage(
                             ${inPorts})
                     .allowEmptyShould(true)
@@ -44,9 +64,7 @@ class HexagonalArchitectureTest {
     @ArchTest
     static final ArchRule outbound_ports_reside_in_correct_package =
             classes()
-                    .that().areInterfaces()
-                    .and().haveSimpleNameEndingWith("Repository")
-                        .or().areInterfaces().and().haveSimpleNameEndingWith("OutputPort")
+                    .that(OUTBOUND_PORT_INTERFACES)
                     .should().resideInAnyPackage(
                             ${outPorts})
                     .allowEmptyShould(true)
