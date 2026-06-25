@@ -7,6 +7,7 @@ on:
       - 'jacoco-exclusion-report/*.gradle'
       - 'jacoco-exclusion-report/gradle/**'
       - 'jacoco-exclusion-report/src/main/**'
+      - 'jacoco-exclusion-report/docs/**'
 
 jobs:
   Calculate-Version:

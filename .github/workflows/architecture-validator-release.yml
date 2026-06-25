@@ -11,6 +11,7 @@ on:
       - 'architecture-validator/CHANGELOG.md'
       - 'architecture-validator/gradle/**'
       - 'architecture-validator/src/main/**'
+      - 'architecture-validator/docs/**'
 
 jobs:
   Calculate-Version:
