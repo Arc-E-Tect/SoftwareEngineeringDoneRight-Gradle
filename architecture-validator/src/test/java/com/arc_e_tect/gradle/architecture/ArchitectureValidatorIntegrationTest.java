@@ -66,6 +66,19 @@ class ArchitectureValidatorIntegrationTest {
         assertThat(result.getOutput()).doesNotContain("outbound_ports_reside_in_correct_package FAILED");
     }
 
+    @Test
+    @DisplayName("should fail when port interfaces are outside configured port packages")
+    void shouldFailWhenPortInterfacesAreOutsideConfiguredPortPackages() throws IOException {
+        Path projectDir = createProjectWithMisplacedPortInterfaces("misplaced-port-interfaces");
+
+        BuildResult result = createRunner(projectDir)
+                .withArguments("testArchitecture", "--stacktrace")
+                .buildAndFail();
+
+        assertThat(result.getOutput()).contains("inbound_ports_reside_in_correct_package FAILED");
+        assertThat(result.getOutput()).contains("outbound_ports_reside_in_correct_package FAILED");
+    }
+
     private Path createProjectWithFailingArchitectureTest(String projectName, boolean ignoreFailures) throws IOException {
         Path projectDir = tempDir.resolve(projectName);
         Files.createDirectories(projectDir);
@@ -165,6 +178,59 @@ class ArchitectureValidatorIntegrationTest {
         Files.createDirectories(projectDir.resolve("src/main/java/com/example/archtest/adapters/inbound"));
         Files.createDirectories(projectDir.resolve("src/main/java/com/example/archtest/adapters/outbound"));
         Files.createDirectories(projectDir.resolve("src/main/java/com/example/archtest/application/common"));
+
+        return projectDir;
+    }
+
+    private Path createProjectWithMisplacedPortInterfaces(String projectName) throws IOException {
+        Path projectDir = tempDir.resolve(projectName);
+        Files.createDirectories(projectDir);
+
+        write(projectDir.resolve("settings.gradle"), """
+                pluginManagement {
+                    repositories {
+                        gradlePluginPortal()
+                    }
+                }
+
+                rootProject.name = '%s'
+                """.formatted(projectName));
+
+        write(projectDir.resolve("build.gradle"), """
+                plugins {
+                    id 'java'
+                    id 'com.arc-e-tect.architecture-validator'
+                }
+
+                group = 'com.example.archtest'
+                version = '0.0.1'
+
+                repositories {
+                    mavenCentral()
+                }
+
+                architectureValidator {
+                    basePackage = 'com.example.archtest'
+                    useBuiltInHexagonalRulePack = true
+                    ignoreFailures = false
+                }
+                """);
+
+        write(projectDir.resolve("src/main/java/com/example/archtest/application/CreateOrderUseCase.java"), """
+                package com.example.archtest.application;
+
+                public interface CreateOrderUseCase {
+                    void execute();
+                }
+                """);
+
+        write(projectDir.resolve("src/main/java/com/example/archtest/application/OrderRepository.java"), """
+                package com.example.archtest.application;
+
+                public interface OrderRepository {
+                    void save(String orderId);
+                }
+                """);
 
         return projectDir;
     }
