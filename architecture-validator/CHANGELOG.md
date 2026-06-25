@@ -1,3 +1,10 @@
+## [0.5.1](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/v0.5.0...v0.5.1) (2026-06-25)
+
+
+### 🐛 Bug Fixes
+
+* **architecture-validator:** restore port placement rule matching ([#56](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/56)) ([324829e](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/324829e18fd2b2b86495547d9ecfdfa3a8420955)), closes [#56](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/56)
+
 # [0.5.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/v0.4.8...v0.5.0) (2026-06-24)
 
 
