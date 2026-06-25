@@ -33,12 +33,21 @@ architectureValidator {
         inPorts = ['..application.port.in..']
         outPorts = ['..application.port.out..']
         domainModel = ['..application.domain..']
+        inboundAdapters = ['..adapter.in..', '..adapters.in..']
+        outboundAdapters = ['..adapter.out..', '..adapters.out..']
         adapters = ['..adapter..', '..adapters..']
         applicationServices = ['..application.service..']
         commonPackages = ['..application.common..']
     }
 }
 ----
+
+`inboundAdapters` and `outboundAdapters` define the preferred split package layout.
+`adapters` remains useful as an aggregate fallback when a project still keeps all adapters in a shared package.
+
+If `basePackage` is not set, generated tests resolve it from the `src/main/java` package layout first and then fall back to the project group.
+Generated tests never run with an empty root package.
+If the plugin cannot resolve a non-empty package root, generation fails fast and requests an explicit `architectureValidator.basePackage` value.
 
 == Reports
 
@@ -116,4 +125,9 @@ Keep shared conventions in the root build and override patterns only in the modu
 == Canonical Acceptance Example
 
 The focused regression example lives at `examples/architecture-validator/hexagonal-violations`.
-It should fail with exactly four intended rule names.
+It should fail with exactly four intended rule names:
+
+- `domain_must_not_depend_on_adapters`
+- `inbound_ports_reside_in_correct_package`
+- `inbound_adapters_must_not_depend_on_service_implementations_directly`
+- `application_services_must_not_depend_on_adapters`

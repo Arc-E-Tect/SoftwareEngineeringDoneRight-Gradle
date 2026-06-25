@@ -32,6 +32,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -41,16 +42,24 @@ public abstract class GenerateArchitectureTestsTask extends DefaultTask {
     private static final String TEMPLATE_PATH = "templates/HexagonalArchitectureTest.java.template";
     private static final String GENERATED_PACKAGE = "com.arc_e_tect.gradle.architecture.generated";
     private static final String EXTERNAL_SUITE_CLASS_NAME = "ExternalRulePackSuite";
+    private static final Pattern PACKAGE_SEGMENT = Pattern.compile("[A-Za-z_$][A-Za-z0-9_$]*");
 
     @Inject
     public GenerateArchitectureTestsTask() {
         setGroup("verification");
         setDescription("Generates the built-in hexagonal architecture tests.");
         getUseBuiltInHexagonalRulePack().convention(true);
+        getFallbackBasePackage().convention("");
+        getAdapters().convention(List.of("..adapter..", "..adapters.."));
+        getInboundAdapters().convention(List.of("..adapter.in..", "..adapters.in.."));
+        getOutboundAdapters().convention(List.of("..adapter.out..", "..adapters.out.."));
     }
 
     @Input
     public abstract Property<String> getBasePackage();
+
+    @Input
+    public abstract Property<String> getFallbackBasePackage();
 
     @Input
     public abstract ListProperty<String> getInPorts();
@@ -63,6 +72,12 @@ public abstract class GenerateArchitectureTestsTask extends DefaultTask {
 
     @Input
     public abstract ListProperty<String> getAdapters();
+
+    @Input
+    public abstract ListProperty<String> getInboundAdapters();
+
+    @Input
+    public abstract ListProperty<String> getOutboundAdapters();
 
     @Input
     public abstract ListProperty<String> getApplicationServices();
@@ -79,6 +94,9 @@ public abstract class GenerateArchitectureTestsTask extends DefaultTask {
     @Internal
     public abstract DirectoryProperty getUserTestsDirectory();
 
+    @Internal
+    public abstract DirectoryProperty getMainSourceDirectory();
+
     @Classpath
     public abstract ConfigurableFileCollection getRulePackClasspath();
 
@@ -93,13 +111,16 @@ public abstract class GenerateArchitectureTestsTask extends DefaultTask {
         try {
             if (getUseBuiltInHexagonalRulePack().getOrElse(true)) {
                 String template = loadTemplate();
+                String effectiveBasePackage = resolveBasePackage();
                 Map<String, String> replacements = Map.of(
                         "${generatedPackage}", GENERATED_PACKAGE,
-                        "${basePackage}", escapeJava(getBasePackage().getOrElse("")),
+                        "${basePackage}", escapeJava(effectiveBasePackage),
                         "${inPorts}", javaArrayLiteral(getInPorts().get()),
                         "${outPorts}", javaArrayLiteral(getOutPorts().get()),
                         "${domainModel}", javaArrayLiteral(getDomainModel().get()),
-                        "${adapters}", javaArrayLiteral(getAdapters().get()),
+                    "${allAdapters}", javaArrayLiteral(resolveAllAdapterPatterns()),
+                    "${inboundAdapters}", javaArrayLiteral(getInboundAdapters().get()),
+                    "${outboundAdapters}", javaArrayLiteral(getOutboundAdapters().get()),
                         "${applicationServices}", javaArrayLiteral(getApplicationServices().get()),
                         "${commonPackages}", javaArrayLiteral(getCommonPackages().get())
                 );
@@ -117,6 +138,14 @@ public abstract class GenerateArchitectureTestsTask extends DefaultTask {
         } catch (IOException exception) {
             throw new GradleException("Failed to generate architecture tests", exception);
         }
+    }
+
+    private List<String> resolveAllAdapterPatterns() {
+        LinkedHashSet<String> patterns = new LinkedHashSet<>();
+        patterns.addAll(getAdapters().get());
+        patterns.addAll(getInboundAdapters().get());
+        patterns.addAll(getOutboundAdapters().get());
+        return new ArrayList<>(patterns);
     }
 
     private void generateExternalRulePackSuite(Path outputRoot) throws IOException {
@@ -284,6 +313,83 @@ public abstract class GenerateArchitectureTestsTask extends DefaultTask {
         } catch (IOException exception) {
             throw new GradleException("Failed to load template: " + TEMPLATE_PATH, exception);
         }
+    }
+
+    private String resolveBasePackage() {
+        String configuredBasePackage = getBasePackage().getOrElse("").trim();
+        if (!configuredBasePackage.isEmpty()) {
+            return configuredBasePackage;
+        }
+
+        String inferredFromSourceLayout = inferBasePackageFromMainSourceLayout();
+        if (!inferredFromSourceLayout.isEmpty()) {
+            return inferredFromSourceLayout;
+        }
+
+        String fallbackBasePackage = getFallbackBasePackage().getOrElse("").trim();
+        if (!fallbackBasePackage.isEmpty() && !"unspecified".equals(fallbackBasePackage)) {
+            return fallbackBasePackage;
+        }
+
+        throw new GradleException(
+                "Unable to resolve architectureValidator.basePackage for generated tests. "
+                        + "Set architectureValidator.basePackage explicitly or create package directories under src/main/java.");
+    }
+
+    private String inferBasePackageFromMainSourceLayout() {
+        if (!getMainSourceDirectory().isPresent()) {
+            return "";
+        }
+        Path mainJavaRoot = getMainSourceDirectory().get().getAsFile().toPath();
+        if (!Files.isDirectory(mainJavaRoot)) {
+            return "";
+        }
+
+        List<List<String>> packagePaths = new ArrayList<>();
+        try (Stream<Path> files = Files.walk(mainJavaRoot)) {
+            files.filter(Files::isRegularFile)
+                    .forEach(file -> {
+                        Path relative = mainJavaRoot.relativize(file);
+                        Path parent = relative.getParent();
+                        if (parent == null) {
+                            return;
+                        }
+                        List<String> segments = new ArrayList<>();
+                        for (Path segment : parent) {
+                            String value = segment.toString();
+                            if (!PACKAGE_SEGMENT.matcher(value).matches()) {
+                                return;
+                            }
+                            segments.add(value);
+                        }
+                        if (!segments.isEmpty()) {
+                            packagePaths.add(segments);
+                        }
+                    });
+        } catch (IOException exception) {
+            throw new GradleException("Failed to infer base package from src/main/java", exception);
+        }
+
+        if (packagePaths.isEmpty()) {
+            return "";
+        }
+
+        List<String> prefix = new ArrayList<>(packagePaths.get(0));
+        for (int i = 1; i < packagePaths.size(); i++) {
+            List<String> candidate = packagePaths.get(i);
+            int commonLength = 0;
+            while (commonLength < prefix.size()
+                    && commonLength < candidate.size()
+                    && prefix.get(commonLength).equals(candidate.get(commonLength))) {
+                commonLength++;
+            }
+            prefix = new ArrayList<>(prefix.subList(0, commonLength));
+            if (prefix.isEmpty()) {
+                return "";
+            }
+        }
+
+        return String.join(".", prefix);
     }
 
     private static String javaArrayLiteral(List<String> values) {

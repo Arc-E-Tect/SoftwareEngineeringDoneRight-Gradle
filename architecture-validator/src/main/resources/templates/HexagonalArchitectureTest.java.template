@@ -1,5 +1,7 @@
 package ${generatedPackage};
 
+import com.tngtech.archunit.base.DescribedPredicate;
+import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.junit.AnalyzeClasses;
 import com.tngtech.archunit.junit.ArchTest;
 import com.tngtech.archunit.lang.ArchRule;
@@ -10,13 +12,33 @@ import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 @AnalyzeClasses(packages = "${basePackage}")
 class HexagonalArchitectureTest {
 
+        private static final DescribedPredicate<JavaClass> INBOUND_PORT_INTERFACES =
+                        new DescribedPredicate<>("inbound port interfaces") {
+                                @Override
+                                public boolean test(JavaClass input) {
+                                        return input.isInterface()
+                                                        && (input.getSimpleName().endsWith("UseCase")
+                                                        || input.getSimpleName().endsWith("InputPort"));
+                                }
+                        };
+
+        private static final DescribedPredicate<JavaClass> OUTBOUND_PORT_INTERFACES =
+                        new DescribedPredicate<>("outbound port interfaces") {
+                                @Override
+                                public boolean test(JavaClass input) {
+                                        return input.isInterface()
+                                                        && (input.getSimpleName().endsWith("Repository")
+                                                        || input.getSimpleName().endsWith("OutputPort"));
+                                }
+                        };
+
     @ArchTest
     static final ArchRule domain_must_not_depend_on_adapters =
             noClasses()
                     .that().resideInAnyPackage(
                             ${domainModel})
                     .should().dependOnClassesThat().resideInAnyPackage(
-                            ${adapters})
+                            ${allAdapters})
                     .allowEmptyShould(true)
                     .as("Domain classes must not depend on adapters");
 
@@ -33,8 +55,7 @@ class HexagonalArchitectureTest {
     @ArchTest
     static final ArchRule inbound_ports_reside_in_correct_package =
             classes()
-                    .that().haveSimpleNameEndingWith("UseCase")
-                        .or().haveSimpleNameEndingWith("InputPort")
+                    .that(INBOUND_PORT_INTERFACES)
                     .should().resideInAnyPackage(
                             ${inPorts})
                     .allowEmptyShould(true)
@@ -43,22 +64,21 @@ class HexagonalArchitectureTest {
     @ArchTest
     static final ArchRule outbound_ports_reside_in_correct_package =
             classes()
-                    .that().haveSimpleNameEndingWith("Repository")
-                        .or().haveSimpleNameEndingWith("OutputPort")
+                    .that(OUTBOUND_PORT_INTERFACES)
                     .should().resideInAnyPackage(
                             ${outPorts})
                     .allowEmptyShould(true)
                     .as("Outbound port interfaces must reside in the outbound ports package");
 
     @ArchTest
-    static final ArchRule adapters_must_not_access_domain_directly =
+    static final ArchRule inbound_adapters_must_not_depend_on_service_implementations_directly =
             noClasses()
                     .that().resideInAnyPackage(
-                            ${adapters})
+                            ${inboundAdapters})
                     .should().dependOnClassesThat().resideInAnyPackage(
-                            ${domainModel})
+                            ${applicationServices})
                     .allowEmptyShould(true)
-                    .as("Adapters must not access domain classes directly — only via ports");
+                    .as("Inbound adapters must not depend on application or domain service implementations directly — use inbound ports instead");
 
     @ArchTest
     static final ArchRule application_services_must_not_depend_on_adapters =
@@ -66,7 +86,7 @@ class HexagonalArchitectureTest {
                     .that().resideInAnyPackage(
                             ${applicationServices})
                     .should().dependOnClassesThat().resideInAnyPackage(
-                            ${adapters})
+                            ${allAdapters})
                     .allowEmptyShould(true)
                     .as("Application services must not depend on adapters");
 }

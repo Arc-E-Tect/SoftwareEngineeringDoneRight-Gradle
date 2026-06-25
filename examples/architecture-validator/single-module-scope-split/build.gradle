@@ -1,0 +1,22 @@
+plugins {
+    id 'java'
+    id 'com.arc-e-tect.architecture-validator'
+}
+
+group = 'com.arc-e-tect.example.scopesplit'
+version = '0.0.1'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+architectureValidator {
+    // Generated plugin rules run only on this package subtree.
+    basePackage = 'com.arc_e_tect.example.scopesplit.application'
+}

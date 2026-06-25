@@ -20,7 +20,7 @@ public class NamingConventionTest {
     @ArchTest
     static final ArchRule controllers_should_be_named_correctly =
         classes()
-            .that().resideInAPackage("..adapter.web..")
+            .that().resideInAPackage("..adapter.in.web..")
             .should().haveSimpleNameEndingWith("Controller")
             .allowEmptyShould(true)
             .as("Web adapter classes must end with 'Controller'");

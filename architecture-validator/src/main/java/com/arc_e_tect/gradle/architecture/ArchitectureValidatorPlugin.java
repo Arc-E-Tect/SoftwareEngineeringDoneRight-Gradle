@@ -44,15 +44,19 @@ public class ArchitectureValidatorPlugin implements Plugin<Project> {
                 GenerateArchitectureTestsTask.class,
                 task -> {
                     task.getBasePackage().set(extension.getBasePackage());
+                    task.getFallbackBasePackage().set(defaultBasePackage);
                     task.getInPorts().set(extension.getHexagonalArchitecture().getInPorts());
                     task.getOutPorts().set(extension.getHexagonalArchitecture().getOutPorts());
                     task.getDomainModel().set(extension.getHexagonalArchitecture().getDomainModel());
                     task.getAdapters().set(extension.getHexagonalArchitecture().getAdapters());
+                    task.getInboundAdapters().set(extension.getHexagonalArchitecture().getInboundAdapters());
+                    task.getOutboundAdapters().set(extension.getHexagonalArchitecture().getOutboundAdapters());
                     task.getApplicationServices().set(extension.getHexagonalArchitecture().getApplicationServices());
                     task.getCommonPackages().set(extension.getHexagonalArchitecture().getCommonPackages());
                     task.getFailOnDuplicateRules().set(extension.getFailOnDuplicateRules());
                     task.getUseBuiltInHexagonalRulePack().set(extension.getUseBuiltInHexagonalRulePack());
                     task.getUserTestsDirectory().set(extension.getTestDirectory());
+                    task.getMainSourceDirectory().set(project.getLayout().getProjectDirectory().dir("src/main/java"));
                     task.getOutputDirectory().set(project.getLayout().getBuildDirectory().dir("generated/testArchitecture/java"));
                 });
 
@@ -98,6 +102,8 @@ public class ArchitectureValidatorPlugin implements Plugin<Project> {
         testTask.systemProperty("architectureValidator.outPorts", String.join(",", extension.getHexagonalArchitecture().getOutPorts().get()));
         testTask.systemProperty("architectureValidator.domainModel", String.join(",", extension.getHexagonalArchitecture().getDomainModel().get()));
         testTask.systemProperty("architectureValidator.adapters", String.join(",", extension.getHexagonalArchitecture().getAdapters().get()));
+        testTask.systemProperty("architectureValidator.inboundAdapters", String.join(",", extension.getHexagonalArchitecture().getInboundAdapters().get()));
+        testTask.systemProperty("architectureValidator.outboundAdapters", String.join(",", extension.getHexagonalArchitecture().getOutboundAdapters().get()));
         testTask.systemProperty("architectureValidator.applicationServices", String.join(",", extension.getHexagonalArchitecture().getApplicationServices().get()));
         testTask.systemProperty("architectureValidator.commonPackages", String.join(",", extension.getHexagonalArchitecture().getCommonPackages().get()));
         testTask.getReports().getHtml().getOutputLocation().set(project.getLayout().getBuildDirectory().dir("reports/architecture-validator/html"));

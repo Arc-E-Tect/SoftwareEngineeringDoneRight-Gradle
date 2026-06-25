@@ -22,7 +22,7 @@ It also demonstrates that user-provided tests in `src/testArchitecture/java` run
 
 The build is expected to fail.
 The project does not enable `ignoreFailures`, so detected violations cause `testArchitecture` to fail.
-You should see failures related to application services depending on adapters, adapters bypassing ports, and naming or placement rules for architecture elements.
+You should see failures related to domain classes depending on adapters, application services depending on adapters, and naming or placement rules for architecture elements.
 
 == Reports
 
@@ -32,5 +32,4 @@ The XML report is generated under `build/reports/architecture-validator/xml/`.
 == Suggested Fix
 
 Move adapter interactions behind explicit outbound ports.
-Keep web adapters dependent on inbound ports instead of domain classes.
 Place `UseCase` interfaces under the configured inbound port package.

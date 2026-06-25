@@ -1,3 +1,22 @@
+## [0.5.1](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/v0.5.0...v0.5.1) (2026-06-25)
+
+
+### 🐛 Bug Fixes
+
+* **architecture-validator:** restore port placement rule matching ([#56](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/56)) ([324829e](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/324829e18fd2b2b86495547d9ecfdfa3a8420955)), closes [#56](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/56)
+
+# [0.5.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/v0.4.8...v0.5.0) (2026-06-24)
+
+
+### ✨ New and updated features
+
+* Scope generated architecture-validator rules to app code ([#54](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/54)) ([eb6ad15](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/eb6ad151f4dd766799c75707883f130e0e7b197c)), closes [#54](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/54)
+
+
+### 🐛 Bug Fixes
+
+* add missing documentation about the built-in Hexagonal Architecture validation rules to user guide ([#53](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/53)) ([2808edf](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/2808edf352b7bc8697f955fe03dd275547cba8fa)), closes [#53](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/53)
+
 ## [0.4.7](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/v0.4.6...v0.4.7) (2026-06-12)
 
 
