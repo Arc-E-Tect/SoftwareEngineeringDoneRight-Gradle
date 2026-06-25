@@ -1,3 +1,16 @@
+## [0.5.2](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/v0.5.1...v0.5.2) (2026-06-25)
+
+
+### 🐛 Bug Fixes
+
+* **doc:** align documentation with the implementation ([#58](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/58)) ([680b758](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/680b758deb60486edeba6424a1b1c08c5f1ad847)), closes [#58](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/58) [#58](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/58)
+* **architecture-validator:** split inbound and outbound adapter rules  ([#57](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/57)) ([133ad91](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/133ad912b807a834bd98a3e8c53e27245517aabe)), closes [#57](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/57)
+
+
+### 🔧 Misc
+
+* update Gradle properties for improved performance and project configuration ([#55](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/55)) ([c7e3bf9](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/c7e3bf9c603c428ca34c93a2dbb459aad0c50137)), closes [#55](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/55)
+
 ## [0.5.1](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/v0.5.0...v0.5.1) (2026-06-25)
 
 
