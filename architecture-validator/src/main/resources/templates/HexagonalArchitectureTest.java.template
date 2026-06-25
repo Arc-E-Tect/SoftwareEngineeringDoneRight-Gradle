@@ -38,7 +38,7 @@ class HexagonalArchitectureTest {
                     .that().resideInAnyPackage(
                             ${domainModel})
                     .should().dependOnClassesThat().resideInAnyPackage(
-                            ${adapters})
+                            ${allAdapters})
                     .allowEmptyShould(true)
                     .as("Domain classes must not depend on adapters");
 
@@ -71,14 +71,14 @@ class HexagonalArchitectureTest {
                     .as("Outbound port interfaces must reside in the outbound ports package");
 
     @ArchTest
-    static final ArchRule adapters_must_not_access_domain_directly =
+    static final ArchRule inbound_adapters_must_not_depend_on_service_implementations_directly =
             noClasses()
                     .that().resideInAnyPackage(
-                            ${adapters})
+                            ${inboundAdapters})
                     .should().dependOnClassesThat().resideInAnyPackage(
-                            ${domainModel})
+                            ${applicationServices})
                     .allowEmptyShould(true)
-                    .as("Adapters must not access domain classes directly — only via ports");
+                    .as("Inbound adapters must not depend on application or domain service implementations directly — use inbound ports instead");
 
     @ArchTest
     static final ArchRule application_services_must_not_depend_on_adapters =
@@ -86,7 +86,7 @@ class HexagonalArchitectureTest {
                     .that().resideInAnyPackage(
                             ${applicationServices})
                     .should().dependOnClassesThat().resideInAnyPackage(
-                            ${adapters})
+                            ${allAdapters})
                     .allowEmptyShould(true)
                     .as("Application services must not depend on adapters");
 }

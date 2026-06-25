@@ -79,6 +79,31 @@ class ArchitectureValidatorIntegrationTest {
         assertThat(result.getOutput()).contains("outbound_ports_reside_in_correct_package FAILED");
     }
 
+    @Test
+    @DisplayName("should allow adapters to implement outbound ports that use domain objects")
+    void shouldAllowAdaptersToImplementOutboundPortsThatUseDomainObjects() throws IOException {
+        Path projectDir = createProjectWithAdapterUsingDomainObjectsThroughPort("adapter-uses-domain-through-port");
+
+        BuildResult result = createRunner(projectDir)
+                .withArguments("testArchitecture", "--stacktrace")
+                .build();
+
+        assertThat(result.task(":testArchitecture").getOutcome()).isEqualTo(TaskOutcome.SUCCESS);
+        assertThat(result.getOutput()).doesNotContain("FAILED");
+    }
+
+    @Test
+    @DisplayName("should fail when inbound adapters depend on service implementations directly")
+    void shouldFailWhenInboundAdaptersDependOnServiceImplementationsDirectly() throws IOException {
+        Path projectDir = createProjectWithAdapterDependingOnServiceImplementation("adapter-depends-on-service");
+
+        BuildResult result = createRunner(projectDir)
+                .withArguments("testArchitecture", "--stacktrace")
+                .buildAndFail();
+
+        assertThat(result.getOutput()).contains("inbound_adapters_must_not_depend_on_service_implementations_directly FAILED");
+    }
+
     private Path createProjectWithFailingArchitectureTest(String projectName, boolean ignoreFailures) throws IOException {
         Path projectDir = tempDir.resolve(projectName);
         Files.createDirectories(projectDir);
@@ -168,6 +193,9 @@ class ArchitectureValidatorIntegrationTest {
                     basePackage = 'com.example.archtest'
                     useBuiltInHexagonalRulePack = true
                     ignoreFailures = false
+                    hexagonalArchitecture {
+                        outboundAdapters = ['..adapter.out..']
+                    }
                 }
                 """);
 
@@ -175,8 +203,8 @@ class ArchitectureValidatorIntegrationTest {
         Files.createDirectories(projectDir.resolve("src/main/java/com/example/archtest/application/port/out"));
         Files.createDirectories(projectDir.resolve("src/main/java/com/example/archtest/application/domain"));
         Files.createDirectories(projectDir.resolve("src/main/java/com/example/archtest/application/service"));
-        Files.createDirectories(projectDir.resolve("src/main/java/com/example/archtest/adapters/inbound"));
-        Files.createDirectories(projectDir.resolve("src/main/java/com/example/archtest/adapters/outbound"));
+        Files.createDirectories(projectDir.resolve("src/main/java/com/example/archtest/adapter/in"));
+        Files.createDirectories(projectDir.resolve("src/main/java/com/example/archtest/adapter/out"));
         Files.createDirectories(projectDir.resolve("src/main/java/com/example/archtest/application/common"));
 
         return projectDir;
@@ -229,6 +257,157 @@ class ArchitectureValidatorIntegrationTest {
 
                 public interface OrderRepository {
                     void save(String orderId);
+                }
+                """);
+
+        return projectDir;
+    }
+
+    private Path createProjectWithAdapterUsingDomainObjectsThroughPort(String projectName) throws IOException {
+        Path projectDir = tempDir.resolve(projectName);
+        Files.createDirectories(projectDir);
+
+        write(projectDir.resolve("settings.gradle"), """
+                pluginManagement {
+                    repositories {
+                        gradlePluginPortal()
+                    }
+                }
+
+                rootProject.name = '%s'
+                """.formatted(projectName));
+
+        write(projectDir.resolve("build.gradle"), """
+                plugins {
+                    id 'java'
+                    id 'com.arc-e-tect.architecture-validator'
+                }
+
+                group = 'com.example.archtest'
+                version = '0.0.1'
+
+                repositories {
+                    mavenCentral()
+                }
+
+                architectureValidator {
+                    basePackage = 'com.example.archtest'
+                    useBuiltInHexagonalRulePack = true
+                    ignoreFailures = false
+                }
+                """);
+
+        write(projectDir.resolve("src/main/java/com/example/archtest/application/domain/Order.java"), """
+                package com.example.archtest.application.domain;
+
+                public record Order(String id) {
+                }
+                """);
+
+        write(projectDir.resolve("src/main/java/com/example/archtest/application/port/out/OrderRepository.java"), """
+                package com.example.archtest.application.port.out;
+
+                import com.example.archtest.application.domain.Order;
+
+                public interface OrderRepository {
+                    void save(Order order);
+                }
+                """);
+
+        write(projectDir.resolve("src/main/java/com/example/archtest/application/service/OrderApplicationService.java"), """
+                package com.example.archtest.application.service;
+
+                import com.example.archtest.application.domain.Order;
+                import com.example.archtest.application.port.out.OrderRepository;
+
+                public class OrderApplicationService {
+                    private final OrderRepository orderRepository;
+
+                    public OrderApplicationService(OrderRepository orderRepository) {
+                        this.orderRepository = orderRepository;
+                    }
+
+                    public void createOrder(String id) {
+                        orderRepository.save(new Order(id));
+                    }
+                }
+                """);
+
+        write(projectDir.resolve("src/main/java/com/example/archtest/adapter/out/persistence/DatabaseAdapter.java"), """
+                package com.example.archtest.adapter.out.persistence;
+
+                import com.example.archtest.application.domain.Order;
+                import com.example.archtest.application.port.out.OrderRepository;
+
+                public class DatabaseAdapter implements OrderRepository {
+                    @Override
+                    public void save(Order order) {
+                        // adapter-specific persistence mapping
+                    }
+                }
+                """);
+
+        return projectDir;
+    }
+
+    private Path createProjectWithAdapterDependingOnServiceImplementation(String projectName) throws IOException {
+        Path projectDir = tempDir.resolve(projectName);
+        Files.createDirectories(projectDir);
+
+        write(projectDir.resolve("settings.gradle"), """
+                pluginManagement {
+                    repositories {
+                        gradlePluginPortal()
+                    }
+                }
+
+                rootProject.name = '%s'
+                """.formatted(projectName));
+
+        write(projectDir.resolve("build.gradle"), """
+                plugins {
+                    id 'java'
+                    id 'com.arc-e-tect.architecture-validator'
+                }
+
+                group = 'com.example.archtest'
+                version = '0.0.1'
+
+                repositories {
+                    mavenCentral()
+                }
+
+                architectureValidator {
+                    basePackage = 'com.example.archtest'
+                    useBuiltInHexagonalRulePack = true
+                    ignoreFailures = false
+                    hexagonalArchitecture {
+                        inboundAdapters = ['..adapter.in..']
+                    }
+                }
+                """);
+
+        write(projectDir.resolve("src/main/java/com/example/archtest/application/domain/service/OrderDomainService.java"), """
+                package com.example.archtest.application.domain.service;
+
+                public class OrderDomainService {
+                    public String loadOrder(String id) {
+                        return id;
+                    }
+                }
+                """);
+
+        write(projectDir.resolve("src/main/java/com/example/archtest/adapter/in/web/OrderController.java"), """
+                package com.example.archtest.adapter.in.web;
+
+                import com.example.archtest.application.domain.service.OrderDomainService;
+
+                public class OrderController {
+                    private final OrderDomainService orderDomainService = new OrderDomainService();
+
+                    public String getOrder(String id) {
+                        return orderDomainService.loadOrder(id);
+                    }
                 }
                 """);
 

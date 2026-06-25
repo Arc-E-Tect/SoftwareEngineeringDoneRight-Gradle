@@ -6,7 +6,8 @@ package com.arc_e_tect.example.hexapp.application;
 // implementations. By importing JpaOrderAdapter directly, the service is coupled to the
 // persistence technology — swapping to a different database would require changes here.
 // See VIOLATIONS.md §3 for full explanation.
-import com.arc_e_tect.example.hexapp.adapter.persistence.JpaOrderAdapter;
+import com.arc_e_tect.example.hexapp.adapter.out.persistence.JpaOrderAdapter;
+import com.arc_e_tect.example.hexapp.domain.Order;
 
 /**
  * Application service for order processing. This class intentionally violates the Hexagonal
@@ -19,5 +20,9 @@ public class OrderService {
 
     public OrderService(JpaOrderAdapter adapter) {
         this.adapter = adapter;
+    }
+
+    public Order getOrder(Long id) {
+        return new Order(id, "Widget");
     }
 }

@@ -80,12 +80,17 @@ architectureValidator {
         inPorts = ['..application.port.in..']
         outPorts = ['..application.port.out..']
         domainModel = ['..application.domain..']
+        inboundAdapters = ['..adapter.in..', '..adapters.in..']
+        outboundAdapters = ['..adapter.out..', '..adapters.out..']
         adapters = ['..adapter..', '..adapters..']
         applicationServices = ['..application.domain.service..', '..application.service..']
         commonPackages = ['..application.common..']
     }
 }
 ----
+
+`inboundAdapters` and `outboundAdapters` define the preferred split package layout.
+`adapters` remains available as an aggregate fallback for legacy projects that still keep adapters together.
 
 === Extension Properties
 
@@ -156,8 +161,11 @@ Running it should fail with exactly four intended violations:
 
 - `domain_must_not_depend_on_adapters`
 - `inbound_ports_reside_in_correct_package`
-- `adapters_must_not_access_domain_directly`
+- `inbound_adapters_must_not_depend_on_service_implementations_directly`
 - `application_services_must_not_depend_on_adapters`
+
+Adapters are allowed to implement outbound ports whose signatures use domain objects.
+The built-in rule set distinguishes inbound adapters from outbound adapters for this reason.
 
 [source,bash]
 ----
