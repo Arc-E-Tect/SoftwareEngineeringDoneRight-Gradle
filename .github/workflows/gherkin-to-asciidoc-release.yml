@@ -7,6 +7,7 @@ on:
       - 'gherkin-to-asciidoc/*.gradle'
       - 'gherkin-to-asciidoc/gradle/**'
       - 'gherkin-to-asciidoc/src/main/**'
+      - 'gherkin-to-asciidoc/docs/**'
 
 jobs:
   Calculate-Version:

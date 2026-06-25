@@ -93,17 +93,6 @@ This prevents leakage of infrastructure concerns into the application service la
 
 All six rules are configured with `allowEmptyShould(true)`, meaning they will pass without failure if no classes match the rule criteria (e.g., if the domain layer is empty). When violations occur, the HTML report clearly identifies the offending classes and the rule that triggered the violation.
 
-[sidebar]
-****
-The built-in port placement checks target interfaces only:
-
-- Inbound ports: names ending with `UseCase` or `InputPort`.
-- Outbound ports: names ending with `Repository` or `OutputPort`.
-
-Both rules use `allowEmptyShould(true)`.
-This means projects can start with an empty hexagonal package structure and still pass architecture validation until source types are added.
-****
-
 == Templating Tutorial
 
 If you want to extend the plugin with an additional built-in generated template, see `docs/templating-tutorial.md`.

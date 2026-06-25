@@ -47,6 +47,8 @@ build/
 *.iml
 *.iws
 out/
+!**/src/main/java/**/out/
+!**/src/main/java/**/out/**
 bin/
 
 # VS Code
