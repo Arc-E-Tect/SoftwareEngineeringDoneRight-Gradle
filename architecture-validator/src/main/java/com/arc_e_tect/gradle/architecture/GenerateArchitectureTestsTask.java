@@ -50,6 +50,9 @@ public abstract class GenerateArchitectureTestsTask extends DefaultTask {
         setDescription("Generates the built-in hexagonal architecture tests.");
         getUseBuiltInHexagonalRulePack().convention(true);
         getFallbackBasePackage().convention("");
+        getAdapters().convention(List.of("..adapter..", "..adapters.."));
+        getInboundAdapters().convention(List.of("..adapter.in..", "..adapters.in.."));
+        getOutboundAdapters().convention(List.of("..adapter.out..", "..adapters.out.."));
     }
 
     @Input
@@ -69,6 +72,12 @@ public abstract class GenerateArchitectureTestsTask extends DefaultTask {
 
     @Input
     public abstract ListProperty<String> getAdapters();
+
+    @Input
+    public abstract ListProperty<String> getInboundAdapters();
+
+    @Input
+    public abstract ListProperty<String> getOutboundAdapters();
 
     @Input
     public abstract ListProperty<String> getApplicationServices();
@@ -109,7 +118,9 @@ public abstract class GenerateArchitectureTestsTask extends DefaultTask {
                         "${inPorts}", javaArrayLiteral(getInPorts().get()),
                         "${outPorts}", javaArrayLiteral(getOutPorts().get()),
                         "${domainModel}", javaArrayLiteral(getDomainModel().get()),
-                        "${adapters}", javaArrayLiteral(getAdapters().get()),
+                    "${allAdapters}", javaArrayLiteral(resolveAllAdapterPatterns()),
+                    "${inboundAdapters}", javaArrayLiteral(getInboundAdapters().get()),
+                    "${outboundAdapters}", javaArrayLiteral(getOutboundAdapters().get()),
                         "${applicationServices}", javaArrayLiteral(getApplicationServices().get()),
                         "${commonPackages}", javaArrayLiteral(getCommonPackages().get())
                 );
@@ -127,6 +138,14 @@ public abstract class GenerateArchitectureTestsTask extends DefaultTask {
         } catch (IOException exception) {
             throw new GradleException("Failed to generate architecture tests", exception);
         }
+    }
+
+    private List<String> resolveAllAdapterPatterns() {
+        LinkedHashSet<String> patterns = new LinkedHashSet<>();
+        patterns.addAll(getAdapters().get());
+        patterns.addAll(getInboundAdapters().get());
+        patterns.addAll(getOutboundAdapters().get());
+        return new ArrayList<>(patterns);
     }
 
     private void generateExternalRulePackSuite(Path outputRoot) throws IOException {

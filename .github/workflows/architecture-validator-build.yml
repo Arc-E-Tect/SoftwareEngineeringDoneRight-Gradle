@@ -111,7 +111,7 @@ jobs:
           VIOLATIONS=0
           grep -q "domain_must_not_depend_on_adapters" "$RUNNER_TEMP/hexagonal-violations-output.txt" && VIOLATIONS=$((VIOLATIONS+1))
           grep -q "inbound_ports_reside_in_correct_package" "$RUNNER_TEMP/hexagonal-violations-output.txt" && VIOLATIONS=$((VIOLATIONS+1))
-          grep -q "adapters_must_not_access_domain_directly" "$RUNNER_TEMP/hexagonal-violations-output.txt" && VIOLATIONS=$((VIOLATIONS+1))
+          grep -q "inbound_adapters_must_not_depend_on_service_implementations_directly" "$RUNNER_TEMP/hexagonal-violations-output.txt" && VIOLATIONS=$((VIOLATIONS+1))
           grep -q "application_services_must_not_depend_on_adapters" "$RUNNER_TEMP/hexagonal-violations-output.txt" && VIOLATIONS=$((VIOLATIONS+1))
           echo "Detected violation count: $VIOLATIONS"
           if [ "$VIOLATIONS" -ne 4 ]; then
