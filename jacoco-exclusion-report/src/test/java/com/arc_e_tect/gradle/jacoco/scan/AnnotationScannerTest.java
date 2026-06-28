@@ -219,6 +219,30 @@ class AnnotationScannerTest {
         assertThat(elem.getJustification()).isEqualTo("FQ annotation match");
     }
 
+    @Test
+    @DisplayName("handles a custom annotation without a justification field")
+    void handlesCustomAnnotationWithoutJustificationField() throws Exception {
+        AnnotationScanner customScanner = new AnnotationScanner("GeneratedCodeExclusion");
+        List<ExcludedElement> elements = customScanner.scan(fixture("CustomAnnotationFixture.java"));
+
+        assertThat(elements).hasSize(3);
+        assertThat(byType(elements, ElementType.CLASS)).singleElement()
+                .satisfies(elem -> {
+                    assertThat(elem.getClassName()).isEqualTo("CustomAnnotationFixture");
+                    assertThat(elem.getJustification()).isEmpty();
+                });
+        assertThat(byType(elements, ElementType.CONSTRUCTOR)).singleElement()
+                .satisfies(elem -> {
+                    assertThat(elem.getMember()).isEqualTo("CustomAnnotationFixture(String)");
+                    assertThat(elem.getJustification()).isEmpty();
+                });
+        assertThat(byType(elements, ElementType.METHOD)).singleElement()
+                .satisfies(elem -> {
+                    assertThat(elem.getMember()).isEqualTo("excludedMethod()");
+                    assertThat(elem.getJustification()).isEmpty();
+                });
+    }
+
     // ── Parse failure guard ───────────────────────────────────────────────────
 
     @Test

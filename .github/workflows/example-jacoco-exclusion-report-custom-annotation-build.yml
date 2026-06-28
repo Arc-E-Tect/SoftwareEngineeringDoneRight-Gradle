@@ -1,11 +1,11 @@
-name: Example - JaCoCo Exclusion Report Build
+name: Example - JaCoCo Exclusion Report Custom Annotation Build
 on:
   push:
     paths:
-      - 'examples/jacoco-exclusion-report/standard/**/*.java'
-      - 'examples/jacoco-exclusion-report/standard/**/*.gradle'
-      - 'examples/jacoco-exclusion-report/standard/**/*.properties'
-      - 'examples/jacoco-exclusion-report/standard/**/libs.versions.toml'
+      - 'examples/jacoco-exclusion-report/custom-annotation/**/*.java'
+      - 'examples/jacoco-exclusion-report/custom-annotation/**/*.gradle'
+      - 'examples/jacoco-exclusion-report/custom-annotation/**/*.properties'
+      - 'examples/jacoco-exclusion-report/custom-annotation/**/libs.versions.toml'
       - '.github/workflows/example-jacoco-exclusion-report-build.yml'
 
 jobs:
@@ -31,6 +31,6 @@ jobs:
 
       - name: Build example
         run: |
-          cd examples/jacoco-exclusion-report/standard
+          cd examples/jacoco-exclusion-report/custom-annotation
           chmod +x ./gradlew
           ./gradlew build --no-daemon

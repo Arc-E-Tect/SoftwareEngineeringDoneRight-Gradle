@@ -86,14 +86,16 @@ from coverage verification thresholds without any additional configuration.
 *Using a custom annotation*
 
 You can define your own annotation instead of using `ExcludeFromJacocoGeneratedCodeCoverage`.
+If your custom annotation does not declare a `justification` field, the plugin still works.
+The HTML report leaves the justification column blank.
+The XML report omits the `justification` attribute entirely.
 To keep the JaCoCo exclusion working automatically, the annotation's _simple name_ must contain
-the substring `Generated` (this is the convention JaCoCo relies on). For example,
-`MyProjectGeneratedExclusion` would work; `MyProjectExclusion` would not.
- Tell the plugin which annotation to scan for via the `annotationName` configuration property
- (see <<jacoco-configuration>>).
-Using `ExcludeFromJacocoGeneratedCodeCoverage` from `sedr-library` is recommended because it
-carries a `justification` attribute that surfaces the reason for each exclusion directly in the
-generated reports.
+the substring `Generated` (this is the convention JaCoCo relies on).
+For example, `MyProjectGeneratedExclusion` would work and `MyProjectExclusion` would not.
+Tell the plugin which annotation to scan for via the `annotationName` configuration property
+(see <<jacoco-configuration>>).
+See the custom annotation example at link:../examples/jacoco-exclusion-report-custom-annotation/README.adoc[examples/jacoco-exclusion-report-custom-annotation/README.adoc] for a complete setup.
+Using `ExcludeFromJacocoGeneratedCodeCoverage` from `sedr-library` is still recommended because it carries a `justification` attribute that surfaces the reason for each exclusion directly in the generated reports.
 ====
 
 == Annotating source code

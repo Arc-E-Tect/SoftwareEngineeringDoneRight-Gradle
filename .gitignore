@@ -60,3 +60,4 @@ tmp/
 /architecture-validator/gradle-architecture-requirements.md
 /.idea/copilotDiffState.xml
 /SPRING_RULES_SEDR_COMPARISON.md
+/.idea/vcs.xml

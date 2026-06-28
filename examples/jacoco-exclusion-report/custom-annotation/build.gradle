@@ -1,0 +1,32 @@
+plugins {
+    id 'java'
+    id 'jacoco'
+    id 'com.arc-e-tect.jacoco-exclusion-report'
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+jacocoExclusionReport {
+    annotationName = 'GeneratedExclusion'
+}
+
+test {
+    useJUnitPlatform()
+    finalizedBy jacocoTestReport
+}
+
+jacocoTestReport {
+    dependsOn test
+    reports {
+        xml.required = true
+        html.required = true
+    }
+}
