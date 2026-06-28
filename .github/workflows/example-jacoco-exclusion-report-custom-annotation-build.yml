@@ -6,7 +6,7 @@ on:
       - 'examples/jacoco-exclusion-report/custom-annotation/**/*.gradle'
       - 'examples/jacoco-exclusion-report/custom-annotation/**/*.properties'
       - 'examples/jacoco-exclusion-report/custom-annotation/**/libs.versions.toml'
-      - '.github/workflows/example-jacoco-exclusion-report-build.yml'
+      - '.github/workflows/example-jacoco-exclusion-report-custom-annotation-build.yml'
 
 jobs:
   Build-Example:
