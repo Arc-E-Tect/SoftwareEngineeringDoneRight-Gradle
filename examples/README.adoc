@@ -23,3 +23,5 @@ include::architecture-validator/hexagonal-violations/README.adoc[leveloffset=+1]
 include::jacoco-exclusion-report/standard/README.adoc[leveloffset=+1]
 
 include::jacoco-exclusion-report/custom-annotation/README.adoc[leveloffset=+1]
+
+include::jacoco-exclusion-report/dsl/README.adoc[leveloffset=+1]

@@ -28,15 +28,30 @@ public class XmlReportWriter {
      * Writes a Surefire-compatible XML report to {@code jacoco-exclusions.xml}
      * inside {@code outputDir}.
      *
-     * @param elements       the excluded elements to report
-     * @param annotationName the annotation name embedded in the XML comment
-     * @param outputDir      target directory; created if it does not exist
-     * @throws IOException   if the output file cannot be written
+     * @param elements         the excluded elements to report
+     * @param reportDescriptor descriptor embedded in the XML comment header
+     * @param outputDir        target directory; created if it does not exist
+     * @throws IOException     if the output file cannot be written
      */
-    public void write(List<ExcludedElement> elements, String annotationName,
+    public void write(List<ExcludedElement> elements, String reportDescriptor,
                       File outputDir) throws IOException {
+        write(elements, reportDescriptor, outputDir, "jacoco-exclusions.xml");
+    }
+
+    /**
+     * Writes a Surefire-compatible XML report to {@code outputFileName}
+     * inside {@code outputDir}.
+     *
+    * @param elements         the excluded elements to report
+    * @param reportDescriptor descriptor embedded in the XML comment header
+    * @param outputDir        target directory; created if it does not exist
+    * @param outputFileName   target XML file name
+    * @throws IOException     if the output file cannot be written
+     */
+    public void write(List<ExcludedElement> elements, String reportDescriptor,
+                      File outputDir, String outputFileName) throws IOException {
         outputDir.mkdirs();
-        File xml = new File(outputDir, "jacoco-exclusions.xml");
+        File xml = new File(outputDir, outputFileName);
 
         // Group per package so we can emit one <testsuite> per package
         Map<String, List<ExcludedElement>> byPackage = elements.stream()
@@ -45,7 +60,7 @@ public class XmlReportWriter {
 
         try (PrintWriter w = new PrintWriter(xml, StandardCharsets.UTF_8)) {
             w.println("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
-            w.println("<!-- JaCoCo Exclusion Report – annotation: @" + annotationName + " -->");
+            w.println("<!-- JaCoCo Exclusion Report – " + reportDescriptor + " -->");
             w.println("<testsuites name=\"JacocoExclusions\" tests=\"" + elements.size()
                       + "\" failures=\"0\" errors=\"0\" skipped=\"0\">");
 

@@ -2,8 +2,11 @@ package com.arc_e_tect.gradle.jacoco;
 
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
+import org.gradle.api.Task;
 import org.gradle.api.plugins.JavaPluginExtension;
 import org.gradle.api.tasks.TaskProvider;
+import org.gradle.testing.jacoco.tasks.JacocoCoverageVerification;
+import org.gradle.testing.jacoco.tasks.JacocoReport;
 
 /**
  * Gradle plugin that registers the {@code jacocoExclusionReport} task and
@@ -24,7 +27,7 @@ import org.gradle.api.tasks.TaskProvider;
  * <ul>
  *   <li>The task is added as a dependency of {@code check}.</li>
  *   <li>If {@code jacocoTestCoverageVerification} is present the report runs
- *       before it, so coverage numbers and the exclusion audit are always
+ *       before it, so coverage numbers and both exclusion audits are always
  *       produced together.</li>
  * </ul>
  *
@@ -33,6 +36,7 @@ import org.gradle.api.tasks.TaskProvider;
  *   <li>Annotation: {@code ExcludeFromJacocoGeneratedCodeCoverage}</li>
  *   <li>Sources: {@code sourceSets.main.java.srcDirs} (when the Java plugin is applied)</li>
  *   <li>Output: {@code build/reports/jacoco-exclusions/}</li>
+ *   <li>Include configured JaCoCo DSL exclusions: {@code true}</li>
  * </ul>
  */
 public class JacocoExclusionReportPlugin implements Plugin<Project> {
@@ -51,13 +55,16 @@ public class JacocoExclusionReportPlugin implements Plugin<Project> {
 
         // Sensible defaults
         ext.getAnnotationName().convention(JacocoExclusionReportExtension.DEFAULT_ANNOTATION);
+        ext.getIncludeConfiguredExclusions().convention(true);
         ext.getReportDir().convention(
                 project.getLayout().getBuildDirectory().dir("reports/jacoco-exclusions"));
 
         // Register the task
         TaskProvider<JacocoExclusionReportTask> taskProvider =
                 project.getTasks().register(TASK_NAME, JacocoExclusionReportTask.class, task -> {
+                    task.dependsOn(project.getTasks().named("classes"));
                     task.getAnnotationName().set(ext.getAnnotationName());
+                    task.getIncludeConfiguredExclusions().set(ext.getIncludeConfiguredExclusions());
                     task.getReportDir().set(ext.getReportDir());
                     // sourceFiles lazily resolved so consumer can override ext.sourceDirs
                     task.getSourceFiles().setFrom(ext.getSourceDirs());
@@ -66,9 +73,9 @@ public class JacocoExclusionReportPlugin implements Plugin<Project> {
         // Wire source dirs from the Java plugin's main source set when available.
         project.getPlugins().withId("java", ignored ->
             project.afterEvaluate(p -> {
+                JavaPluginExtension java = p.getExtensions()
+                        .findByType(JavaPluginExtension.class);
                 if (ext.getSourceDirs().isEmpty()) {
-                    JavaPluginExtension java = p.getExtensions()
-                            .findByType(JavaPluginExtension.class);
                     if (java != null) {
                         // Use the SourceDirectorySet (a FileTree) so iterating
                         // the collection yields individual .java files, not
@@ -78,7 +85,22 @@ public class JacocoExclusionReportPlugin implements Plugin<Project> {
                     }
                 }
                 // sourceFiles on the task mirrors ext.sourceDirs
-                taskProvider.configure(t -> t.getSourceFiles().setFrom(ext.getSourceDirs()));
+                taskProvider.configure(t -> {
+                    t.getSourceFiles().setFrom(ext.getSourceDirs());
+                    if (java != null) {
+                        t.getMainClassFiles().setFrom(java.getSourceSets().getByName("main").getOutput().getClassesDirs());
+                    }
+
+                    Task reportTask = p.getTasks().findByName("jacocoTestReport");
+                    if (reportTask instanceof JacocoReport jacocoReport) {
+                        t.getJacocoIncludedClassFiles().from(jacocoReport.getClassDirectories());
+                    }
+
+                    Task verificationTask = p.getTasks().findByName("jacocoTestCoverageVerification");
+                    if (verificationTask instanceof JacocoCoverageVerification jacocoVerification) {
+                        t.getJacocoIncludedClassFiles().from(jacocoVerification.getClassDirectories());
+                    }
+                });
             })
         );
 

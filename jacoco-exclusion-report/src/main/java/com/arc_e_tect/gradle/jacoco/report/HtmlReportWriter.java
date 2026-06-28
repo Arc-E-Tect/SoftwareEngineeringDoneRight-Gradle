@@ -31,23 +31,38 @@ public class HtmlReportWriter {
      * Writes an HTML report to {@code index.html} inside {@code outputDir}.
      *
      * @param elements       the excluded elements to report
-     * @param annotationName the annotation name displayed in the report header
+     * @param labelValue     value displayed in the report subtitle
      * @param outputDir      target directory; created if it does not exist
      * @throws IOException   if the output file cannot be written
      */
-    public void write(List<ExcludedElement> elements, String annotationName,
-                      File outputDir) throws IOException {
-        outputDir.mkdirs();
-        File html = new File(outputDir, "index.html");
+    public void write(List<ExcludedElement> elements, String labelValue,
+              File outputDir) throws IOException {
+      write(elements, labelValue, "Annotation", outputDir, "index.html");
+    }
 
-        try (PrintWriter w = new PrintWriter(html, StandardCharsets.UTF_8)) {
-            w.println(buildPage(elements, annotationName));
-        }
+    /**
+     * Writes an HTML report to {@code outputFileName} inside {@code outputDir}.
+     *
+     * @param elements       the excluded elements to report
+     * @param valueLabel     value shown in the report subtitle (e.g. annotation name)
+     * @param labelName      subtitle label (e.g. "Annotation" or "Source")
+     * @param outputDir      target directory; created if it does not exist
+     * @param outputFileName target HTML file name
+     * @throws IOException   if the output file cannot be written
+     */
+    public void write(List<ExcludedElement> elements, String valueLabel, String labelName,
+              File outputDir, String outputFileName) throws IOException {
+      outputDir.mkdirs();
+      File html = new File(outputDir, outputFileName);
+
+      try (PrintWriter w = new PrintWriter(html, StandardCharsets.UTF_8)) {
+        w.println(buildPage(elements, valueLabel, labelName));
+      }
     }
 
     // ─────────────────────────────────────────────────────────────────────────
 
-    private String buildPage(List<ExcludedElement> elements, String annotationName) {
+    private String buildPage(List<ExcludedElement> elements, String valueLabel, String labelName) {
         String timestamp = LocalDateTime.now()
                 .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
 
@@ -78,8 +93,8 @@ public class HtmlReportWriter {
         // ── Header ──────────────────────────────────────────────────────────
         sb.append("<header>\n")
           .append("  <h1>JaCoCo Exclusion Report</h1>\n")
-          .append("  <p class=\"subtitle\">Annotation: <code>@").append(esc(annotationName))
-          .append("</code></p>\n")
+          .append("  <p class=\"subtitle\">").append(esc(labelName)).append(": <code>")
+          .append(esc(valueLabel)).append("</code></p>\n")
           .append("  <p class=\"timestamp\">Generated: ").append(timestamp).append("</p>\n")
           .append("</header>\n");
 
