@@ -1,7 +1,7 @@
 plugins {
     id 'java'
     id 'jacoco'
-    id 'com.arc-e-tect.jacoco-exclusion-report'
+    alias(libs.plugins.jacoco.exclusion.report)
 }
 
 java {
