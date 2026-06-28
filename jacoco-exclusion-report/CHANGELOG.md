@@ -1,3 +1,16 @@
+# [0.6.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/v0.5.3...v0.6.0) (2026-06-28)
+
+
+### ✨ New and updated features
+
+* **jacoco-exclusion-report:** add JaCoCo DSL exclusion reporting ([#62](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/62)) ([3279c79](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/3279c7964812d880bfd1dff6faa9ce2a2e64d585)), closes [#62](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/62)
+* add support for custom annotation without justification field  ([#60](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/60)) ([c222f46](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/c222f4622cb3091aa43689255909e5324397ed36)), closes [#60](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/60)
+
+
+### 🐛 Bug Fixes
+
+* **examples:** resolve custom-annotation plugin version in CI ([#61](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/61)) ([d06fab3](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/d06fab37ce14b6ed7541ef4395c45ce712773e73)), closes [#61](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/61)
+
 ## [0.5.3](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/v0.5.2...v0.5.3) (2026-06-28)
 
 
