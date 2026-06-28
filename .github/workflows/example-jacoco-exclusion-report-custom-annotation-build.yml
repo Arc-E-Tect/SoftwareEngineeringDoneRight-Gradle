@@ -2,12 +2,11 @@ name: Example - JaCoCo Exclusion Report Custom Annotation Build
 on:
   push:
     paths:
-      - '../../examples/jacoco-exclusion-report/jacoco-exclusion-report-custom-annotation/**/*.java'
-      - '../../examples/jacoco-exclusion-report/jacoco-exclusion-report-custom-annotation/**/*.gradle'
-      - '../../examples/jacoco-exclusion-report/jacoco-exclusion-report-custom-annotation/**/*.properties'
-      - '../../examples/jacoco-exclusion-report/jacoco-exclusion-report-custom-annotation/**/*.adoc'
-      - '../../examples/jacoco-exclusion-report/jacoco-exclusion-report-custom-annotation/**/libs.versions.toml'
-      - '.github/workflows/example-jacoco-exclusion-report-custom-annotation-build.yml'
+      - 'examples/jacoco-exclusion-report/custom-annotation/**/*.java'
+      - 'examples/jacoco-exclusion-report/custom-annotation/**/*.gradle'
+      - 'examples/jacoco-exclusion-report/custom-annotation/**/*.properties'
+      - 'examples/jacoco-exclusion-report/custom-annotation/**/libs.versions.toml'
+      - '.github/workflows/example-jacoco-exclusion-report-build.yml'
 
 jobs:
   Build-Example:
@@ -31,4 +30,7 @@ jobs:
         uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6.2.0
 
       - name: Build example
-        run: ./gradlew -p examples/jacoco-exclusion-report-custom-annotation build --no-daemon
+        run: |
+          cd examples/jacoco-exclusion-report/custom-annotation
+          chmod +x ./gradlew
+          ./gradlew build --no-daemon
