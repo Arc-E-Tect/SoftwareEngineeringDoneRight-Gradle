@@ -18,6 +18,8 @@ include::architecture-validator/multi-module/README.adoc[leveloffset=+1]
 
 include::architecture-validator/hexagonal-violations/README.adoc[leveloffset=+1]
 
-== JaCoCo Exclusion Report Example
+== JaCoCo Exclusion Report Examples
 
-include::jacoco-exclusion-report/README.adoc[leveloffset=+1]
+include::jacoco-exclusion-report/standard/README.adoc[leveloffset=+1]
+
+include::jacoco-exclusion-report/custom-annotation/README.adoc[leveloffset=+1]
