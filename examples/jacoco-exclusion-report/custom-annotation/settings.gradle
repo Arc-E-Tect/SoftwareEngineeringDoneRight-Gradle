@@ -1,0 +1,12 @@
+pluginManagement {
+    includeBuild('../../jacoco-exclusion-report')
+    repositories {
+        gradlePluginPortal()
+    }
+}
+
+plugins {
+    id 'org.gradle.toolchains.foojay-resolver-convention' version '1.0.0'
+}
+
+rootProject.name = 'jacoco-exclusion-report-custom-annotation-example'

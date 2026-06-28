@@ -1,0 +1,31 @@
+= JaCoCo Exclusion Report Custom Annotation Example
+:toc: left
+
+== Description
+
+This example shows how to use the JaCoCo Exclusion Report plugin with a user-defined annotation that does not declare a `justification` field.
+The plugin still generates a report that lists the excluded classes, constructors, and methods.
+
+== Intent
+
+Use this example when you want to keep the report workflow but replace the bundled `ExcludeFromJacocoGeneratedCodeCoverage` annotation with your own marker annotation.
+The annotation name still contains `Generated` so JaCoCo keeps treating the annotated elements as generated code.
+
+== Build And Run
+
+[source,bash]
+----
+./gradlew -p examples/jacoco-exclusion-report-custom-annotation clean jacocoExclusionReport
+----
+
+== What To Expect
+
+The build should pass.
+The report is written to `examples/jacoco-exclusion-report-custom-annotation/build/reports/jacoco-exclusions/`.
+`index.html` shows the excluded element names with an empty justification column.
+`jacoco-exclusions.xml` omits the `justification` attribute entirely.
+
+== Source Layout
+
+`src/main/java/com/arc_e_tect/example/customannotation/GeneratedExclusion.java` defines the custom marker annotation.
+`src/main/java/com/arc_e_tect/example/customannotation/GeneratedInvoiceSummary.java` shows a class, constructor, and method annotated with it.
