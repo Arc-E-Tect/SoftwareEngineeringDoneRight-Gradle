@@ -83,6 +83,22 @@ class ReportWritersTest {
         assertThat(html).contains("No exclusions found");
     }
 
+    @Test
+    @DisplayName("HTML writer should create custom DSL report file name")
+    void htmlWriterShouldCreateCustomDslReportFileName(@TempDir File tmpDir) throws Exception {
+        new HtmlReportWriter().write(
+                SAMPLE_ELEMENTS,
+                "JaCoCo classDirectories excludes",
+                "Source",
+                tmpDir,
+                "index-jacoco-dsl.html");
+
+        String html = Files.readString(new File(tmpDir, "index-jacoco-dsl.html").toPath());
+        assertThat(html)
+                .contains("Source:")
+                .contains("JaCoCo classDirectories excludes");
+    }
+
     // ── XmlReportWriter ───────────────────────────────────────────────────────
 
     @Test
@@ -258,5 +274,18 @@ class ReportWritersTest {
 
         String xml = Files.readString(new File(tmpDir, "jacoco-exclusions.xml").toPath());
         assertThat(xml).contains("(default)");
+    }
+
+    @Test
+    @DisplayName("XML writer should create custom DSL report file name")
+    void xmlWriterShouldCreateCustomDslReportFileName(@TempDir File tmpDir) throws Exception {
+        new XmlReportWriter().write(
+                SAMPLE_ELEMENTS,
+                "source: JaCoCo classDirectories excludes",
+                tmpDir,
+                "jacoco-dsl-exclusions.xml");
+
+        String xml = Files.readString(new File(tmpDir, "jacoco-dsl-exclusions.xml").toPath());
+        assertThat(xml).contains("source: JaCoCo classDirectories excludes");
     }
 }

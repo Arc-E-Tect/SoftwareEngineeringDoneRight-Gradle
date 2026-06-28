@@ -12,6 +12,7 @@ import org.gradle.api.provider.Property;
  *     annotationName = 'ExcludeFromJacocoGeneratedCodeCoverage'   // default
  *     sourceDirs.from(sourceSets.main.java.srcDirs)                // default
  *     reportDir  = layout.buildDirectory.dir('reports/jacoco-exclusions') // default
+ *     includeConfiguredExclusions = true                            // default
  * }
  * </pre>
  */
@@ -47,4 +48,12 @@ public abstract class JacocoExclusionReportExtension {
      * @return mutable directory property for the report output location
      */
     public abstract DirectoryProperty getReportDir();
+
+    /**
+     * Whether exclusions configured through JaCoCo task DSL should be reported
+     * in a separate report file in addition to annotation-based exclusions.
+     *
+     * @return mutable flag controlling JaCoCo DSL exclusion reporting
+     */
+    public abstract Property<Boolean> getIncludeConfiguredExclusions();
 }

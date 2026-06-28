@@ -98,6 +98,7 @@ All secrets must be used through variable names which can be mapped to environme
   - Required secrets and inputs must be defined in reusable workflows
 
 ## Dependencies and versions
+- For every Gradle project in this repository, always use a Gradle Version Catalog (`gradle/libs.versions.toml`) together with the `de.fayard.refreshVersions` plugin for dependency and plugin version management, unless the user explicitly instructs otherwise.
 - Use the Gradle Plugin Portal (`gradlePluginPortal()`) for Gradle plugins and Maven Central (`mavenCentral()`) for all other dependencies. Never add `mavenLocal()` to any repository block unless the user explicitly requests it.
 - All dependencies must come from `gradle/libs.versions.toml` using `version.ref`; no inline versions or direct coordinates in `build.gradle`.
 - WireMock, Testcontainers, and any new libs must be added to the catalog first, then referenced via `libs.<alias>`.
@@ -111,6 +112,7 @@ All secrets must be used through variable names which can be mapped to environme
 
 ## Project rules
 - Maintain configuration cache compatibility when altering Gradle logic.
+- For any change to plugin code (public or internal behavior), update the corresponding JavaDoc in the same change set so implementation and documentation stay aligned.
 - Keep README/test READMEs aligned with any change in commands, secrets, or images.
 - Every example project under `examples/` must have its own README.adoc that explains the purpose of the example, how to build and run it, and the expected outcome.
 - Every example README.adoc under `examples/` must be included from `examples/README.adoc` so the examples index stays complete.

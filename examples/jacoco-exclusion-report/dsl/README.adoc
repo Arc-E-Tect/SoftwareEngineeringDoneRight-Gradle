@@ -1,0 +1,31 @@
+= JaCoCo Exclusion Report DSL Exclusions Example
+:toc: left
+
+== Description
+
+This example applies the JaCoCo Exclusion Report plugin with JaCoCo DSL package exclusions configured through `classDirectories`.
+It demonstrates how configured JaCoCo excludes are exported to a dedicated report in addition to the annotation-based report.
+
+== Intent
+
+Use this example when your team excludes generated or framework-owned classes via JaCoCo task DSL instead of source annotations.
+The plugin records those configured exclusions into separate DSL report files for auditability.
+
+== Build And Run
+
+[source,bash]
+----
+./gradlew clean jacocoExclusionReport
+----
+
+== What To Expect
+
+The build should pass.
+The plugin writes reports under `build/reports/jacoco-exclusions/`.
+`index.html` and `jacoco-exclusions.xml` contain annotation-based exclusions.
+`index-jacoco-dsl.html` and `jacoco-dsl-exclusions.xml` contain exclusions inferred from JaCoCo DSL `classDirectories` filters.
+
+== Source Layout
+
+`src/main/java/com/arc_e_tect/example/dsl/CheckoutService.java` is included in coverage.
+`src/main/java/com/arc_e_tect/example/dsl/generated/GeneratedReceiptMapper.java` is excluded by DSL pattern `com/arc_e_tect/example/dsl/generated/**`.
