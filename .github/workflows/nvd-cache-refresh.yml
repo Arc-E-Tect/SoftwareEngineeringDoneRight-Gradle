@@ -47,40 +47,10 @@ jobs:
       - name: Update NVD database
         id: nvd-update
         run: |
-          PROJECT_DIRS=(
-            architecture-validator
-            jacoco-exclusion-report
-            gherkin-to-asciidoc
-          )
-
-          SELECTED_PROJECT=""
-          for project in "${PROJECT_DIRS[@]}"; do
-            if [ ! -x "$project/gradlew" ]; then
-              continue
-            fi
-
-            pushd "$project" > /dev/null
-            if ./gradlew -q tasks --all | grep -q '^dependencyCheckUpdate'; then
-              SELECTED_PROJECT="$project"
-              popd > /dev/null
-              break
-            fi
-            popd > /dev/null
-          done
-
-          if [ -z "$SELECTED_PROJECT" ]; then
-            echo "::warning title=Dependency-Check Tasks Missing::No dependencyCheckUpdate task was found in architecture-validator, jacoco-exclusion-report, or gherkin-to-asciidoc. Shared NVD cache refresh is skipped."
-            echo "nvd_update_skipped=true" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          echo "selected_project=$SELECTED_PROJECT" >> "$GITHUB_OUTPUT"
-
-          pushd "$SELECTED_PROJECT" > /dev/null
+          cd sedr_utils/nvd-cache-primer
           OUTFILE="$RUNNER_TEMP/nvd-update-output.txt"
           timeout 900 ./gradlew dependencyCheckUpdate --no-configuration-cache --no-parallel 2>&1 | tee "$OUTFILE"
           EXIT_CODE="${PIPESTATUS[0]}"
-          popd > /dev/null
 
           if [ "$EXIT_CODE" -eq 124 ]; then
             echo "::warning title=NVD Database Update Timeout::The NVD database update exceeded the 15-minute time limit and was aborted. The shared cache refresh will be retried in a later run."
@@ -98,7 +68,7 @@ jobs:
           NVD_APIKEY_SEDR: ${{ secrets.NVD_APIKEY_SEDR }}
 
       - name: Save NVD Database Cache
-        if: steps.nvd-update.outputs.nvd_update_skipped != 'true' && steps.nvd-update.outputs.nvd_update_timed_out != 'true' && steps.nvd-update.outputs.nvd_update_failed != 'true'
+        if: steps.nvd-update.outputs.nvd_update_timed_out != 'true' && steps.nvd-update.outputs.nvd_update_failed != 'true'
         uses: actions/cache/save@v5
         with:
           path: ~/.gradle/dependency-check-data
@@ -112,8 +82,7 @@ jobs:
             echo "- Scope: shared"
             echo "- Date key: ${{ steps.cache-date.outputs.date_key }}"
             echo "- Restore cache hit: ${{ steps.nvd-cache.outputs.cache-hit || 'false' }}"
-            echo "- Selected project: ${{ steps.nvd-update.outputs.selected_project || 'none' }}"
-            echo "- Update skipped: ${{ steps.nvd-update.outputs.nvd_update_skipped || 'false' }}"
+            echo "- Project: sedr_utils/nvd-cache-primer"
             echo "- Update timed out: ${{ steps.nvd-update.outputs.nvd_update_timed_out || 'false' }}"
             echo "- Update failed: ${{ steps.nvd-update.outputs.nvd_update_failed || 'false' }}"
           } >> "$GITHUB_STEP_SUMMARY"
