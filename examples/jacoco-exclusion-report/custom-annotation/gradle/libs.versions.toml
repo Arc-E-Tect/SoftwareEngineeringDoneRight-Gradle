@@ -6,4 +6,5 @@ jacoco-exclusion-report = { id = "com.arc-e-tect.jacoco-exclusion-report", versi
 
 [versions]
 
-jacoco-exclusion-report = "0.4.8"
+jacoco-exclusion-report = "0.6.0"
+
