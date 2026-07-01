@@ -37,7 +37,7 @@ jobs:
 
       - name: Restore NVD Database Cache
         id: nvd-cache
-        uses: actions/cache/restore@v5
+        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
         with:
           path: ~/.gradle/dependency-check-data
           key: ${{ runner.os }}-dependency-check-shared-${{ steps.cache-date.outputs.date_key }}
@@ -69,7 +69,7 @@ jobs:
 
       - name: Save NVD Database Cache
         if: steps.nvd-update.outputs.nvd_update_timed_out != 'true' && steps.nvd-update.outputs.nvd_update_failed != 'true'
-        uses: actions/cache/save@v5
+        uses: actions/cache/save@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
         with:
           path: ~/.gradle/dependency-check-data
           key: ${{ runner.os }}-dependency-check-shared-${{ steps.cache-date.outputs.date_key }}

@@ -89,6 +89,7 @@ All secrets must be used through variable names which can be mapped to environme
 
 ## GitHub Actions Workflows
 - After modifying any workflow file in `.github/workflows/`, always run `actionlint` to validate the workflow syntax and dependencies
+- All external GitHub Actions in workflow `uses:` entries must be pinned to a full commit SHA, not just a tag or major version, for supply-chain security. Keep the human-readable version comment beside the SHA when practical.
 - Install actionlint: `brew install actionlint` (macOS) or download from https://github.com/rhysd/actionlint
 - Run validation: `actionlint .github/workflows/*.yml`
 - Fix any errors reported by actionlint before committing
