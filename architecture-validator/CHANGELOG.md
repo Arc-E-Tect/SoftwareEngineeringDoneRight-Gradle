@@ -1,3 +1,14 @@
+## [0.6.1](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/v0.6.0...v0.6.1) (2026-07-05)
+
+
+### 🔧 Misc
+
+* dependency updates for Gradle plugin repository ([#67](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/67)) ([dd5f61e](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/dd5f61e764a5c2381f5cced040ce7386e9cd9d6f)), closes [#67](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/67)
+* dependency updates for Gradle plugin repository ([#69](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/69)) ([05083cc](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/05083ccf419ab581bd490519e844f139a179797f)), closes [#69](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/69)
+* **workflows:** pin GitHub Actions cache steps by sha ([#68](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/68)) ([57291a6](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/57291a6d3acff976e874961bfb2ca43f9f1d35c5)), closes [#68](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/68)
+* remove NVD cache update from the standard security scan and move it to a weekly process. ([#65](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/65)) ([02ce955](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/02ce95513616ff09d9caa6befbbb49df09520a9f)), closes [#65](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/65)
+* Remove unused workflows and streamline NVD cache updates ([#66](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/66)) ([a313c9e](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/a313c9ed2c49e34d7263741b3954f309577262f6)), closes [#66](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/66)
+
 ## [0.5.2](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/v0.5.1...v0.5.2) (2026-06-25)
 
 
