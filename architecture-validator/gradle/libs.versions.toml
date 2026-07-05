@@ -18,7 +18,7 @@ junit-jupiter-iff = "6.1.1"
 junit-platform-iff = "6.1.1"
 assertj-core-iff = "3.27.7"
 spring-context-iff = "6.2.8"
-sedr-library-iff = "0.4.4"
+sedr-library-iff = "0.4.5"
 
 [libraries]
 
