@@ -1,6 +1,6 @@
 package com.arc_e_tect.example.scopesplit.application.adapter.persistence;
 
-import com.arc_e_tect.example.scopesplit.application.port.out.OrderOutputPort;
+import com.arc_e_tect.example.scopesplit.application.port.outbound.OrderOutputPort;
 
 public class DatabaseAdapter implements OrderOutputPort {
 

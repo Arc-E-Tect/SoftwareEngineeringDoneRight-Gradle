@@ -19,4 +19,5 @@ repositories {
 architectureValidator {
     basePackage = 'com.arc_e_tect.example.hybrid'
     ignoreFailures = true
+    setJunitVersion(libs.versions.architecture.validator.junit.iff.get())
 }

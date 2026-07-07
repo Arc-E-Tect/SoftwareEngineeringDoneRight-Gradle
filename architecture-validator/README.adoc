@@ -77,11 +77,11 @@ architectureValidator {
     useBuiltInHexagonalRulePack = true
 
     hexagonalArchitecture {
-        inPorts = ['..application.port.in..']
-        outPorts = ['..application.port.out..']
+        inPorts = ['..application.port.inbound..']
+        outPorts = ['..application.port.outbound..']
         domainModel = ['..application.domain..']
-        inboundAdapters = ['..adapter.in..', '..adapters.in..']
-        outboundAdapters = ['..adapter.out..', '..adapters.out..']
+        inboundAdapters = ['..adapter.inbound..', '..adapters.inbound..']
+        outboundAdapters = ['..adapter.outbound..', '..adapters.outbound..']
         adapters = ['..adapter..', '..adapters..']
         applicationServices = ['..application.domain.service..', '..application.service..']
         commonPackages = ['..application.common..']
@@ -91,6 +91,7 @@ architectureValidator {
 
 `inboundAdapters` and `outboundAdapters` define the preferred split package layout.
 `adapters` remains available as an aggregate fallback for legacy projects that still keep adapters together.
+The default package patterns use `inbound` and `outbound` names to avoid collisions with repository conventions that ignore top-level `out` directories.
 
 === Extension Properties
 
@@ -197,8 +198,8 @@ subprojects {
     architectureValidator {
         basePackage = 'com.example.multi'
         hexagonalArchitecture {
-            inPorts = ['..application.port.in..']
-            outPorts = ['..application.port.out..']
+            inPorts = ['..application.port.inbound..']
+            outPorts = ['..application.port.outbound..']
         }
     }
 }

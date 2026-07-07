@@ -36,8 +36,8 @@ class GenerateArchitectureTestsTaskTest {
                 .create("generateArchitectureTests", GenerateArchitectureTestsTask.class);
 
         task.getBasePackage().set("com.example.architecture");
-        task.getInPorts().set(List.of("..application.port.in.."));
-        task.getOutPorts().set(List.of("..application.port.out.."));
+        task.getInPorts().set(List.of("..application.port.inbound.."));
+        task.getOutPorts().set(List.of("..application.port.outbound.."));
         task.getDomainModel().set(List.of("..application.domain.."));
         task.getAdapters().set(List.of("..adapter..", "..adapters.."));
         task.getApplicationServices().set(List.of("..application.service.."));
@@ -72,8 +72,8 @@ class GenerateArchitectureTestsTaskTest {
                 Files.writeString(tempDir.resolve("src/main/java/com/example/inventory/adapter/out/persistence/.gitkeep"), "");
 
                 task.getBasePackage().set("");
-                task.getInPorts().set(List.of("..application.port.in.."));
-                task.getOutPorts().set(List.of("..application.port.out.."));
+                task.getInPorts().set(List.of("..application.port.inbound.."));
+                task.getOutPorts().set(List.of("..application.port.outbound.."));
                 task.getDomainModel().set(List.of("..application.domain.."));
                 task.getAdapters().set(List.of("..adapter..", "..adapters.."));
                 task.getApplicationServices().set(List.of("..application.service.."));
@@ -97,8 +97,8 @@ class GenerateArchitectureTestsTaskTest {
                 GenerateArchitectureTestsTask task = newTask("generateArchitectureTestsNoBasePackage");
 
                 task.getBasePackage().set("");
-                task.getInPorts().set(List.of("..application.port.in.."));
-                task.getOutPorts().set(List.of("..application.port.out.."));
+                task.getInPorts().set(List.of("..application.port.inbound.."));
+                task.getOutPorts().set(List.of("..application.port.outbound.."));
                 task.getDomainModel().set(List.of("..application.domain.."));
                 task.getAdapters().set(List.of("..adapter..", "..adapters.."));
                 task.getApplicationServices().set(List.of("..application.service.."));
@@ -127,8 +127,8 @@ class GenerateArchitectureTestsTaskTest {
         Files.write(fakeRulePackRoot.resolve("com/example/rules/LayeredRulesTest.class"), new byte[] {0});
 
         task.getBasePackage().set("com.example.architecture");
-        task.getInPorts().set(List.of("..application.port.in.."));
-        task.getOutPorts().set(List.of("..application.port.out.."));
+        task.getInPorts().set(List.of("..application.port.inbound.."));
+        task.getOutPorts().set(List.of("..application.port.outbound.."));
         task.getDomainModel().set(List.of("..application.domain.."));
         task.getAdapters().set(List.of("..adapter.."));
         task.getApplicationServices().set(List.of("..application.service.."));
@@ -158,8 +158,8 @@ class GenerateArchitectureTestsTaskTest {
                                 .create("generateArchitectureTestsWithoutBuiltIn", GenerateArchitectureTestsTask.class);
 
                 task.getBasePackage().set("com.example.architecture");
-                task.getInPorts().set(List.of("..application.port.in.."));
-                task.getOutPorts().set(List.of("..application.port.out.."));
+                task.getInPorts().set(List.of("..application.port.inbound.."));
+                task.getOutPorts().set(List.of("..application.port.outbound.."));
                 task.getDomainModel().set(List.of("..application.domain.."));
                 task.getAdapters().set(List.of("..adapter.."));
                 task.getApplicationServices().set(List.of("..application.service.."));
@@ -189,8 +189,8 @@ class GenerateArchitectureTestsTaskTest {
                 Files.write(fakeRulePackRoot.resolve("com/example/rules/LayeredRulesTest.class"), new byte[] {0});
 
                 task.getBasePackage().set("com.example.architecture");
-                task.getInPorts().set(List.of("..application.port.in.."));
-                task.getOutPorts().set(List.of("..application.port.out.."));
+                task.getInPorts().set(List.of("..application.port.inbound.."));
+                task.getOutPorts().set(List.of("..application.port.outbound.."));
                 task.getDomainModel().set(List.of("..application.domain.."));
                 task.getAdapters().set(List.of("..adapter.."));
                 task.getApplicationServices().set(List.of("..application.service.."));
@@ -449,8 +449,8 @@ class GenerateArchitectureTestsTaskTest {
 
         private void configureDefaults(GenerateArchitectureTestsTask task, Path outputRoot) {
                 task.getBasePackage().set("com.example.architecture");
-                task.getInPorts().set(List.of("..application.port.in.."));
-                task.getOutPorts().set(List.of("..application.port.out.."));
+                task.getInPorts().set(List.of("..application.port.inbound.."));
+                task.getOutPorts().set(List.of("..application.port.outbound.."));
                 task.getDomainModel().set(List.of("..application.domain.."));
                 task.getAdapters().set(List.of("..adapter.."));
                 task.getApplicationServices().set(List.of("..application.service.."));

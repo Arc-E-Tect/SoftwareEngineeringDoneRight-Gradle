@@ -1,4 +1,4 @@
-package com.arc_e_tect.example.hexapp.adapter.out.persistence;
+package com.arc_e_tect.example.hexapp.adapter.outbound.persistence;
 
 /**
  * JPA entity for persisting orders.

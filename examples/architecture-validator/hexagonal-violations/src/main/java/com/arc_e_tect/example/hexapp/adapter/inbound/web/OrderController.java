@@ -1,4 +1,4 @@
-package com.arc_e_tect.example.hexapp.adapter.in.web;
+package com.arc_e_tect.example.hexapp.adapter.inbound.web;
 
 // DELIBERATE VIOLATION §2 — Inbound adapter depends on a service implementation directly.
 // Rule triggered: "Inbound adapters must not depend on application or domain service

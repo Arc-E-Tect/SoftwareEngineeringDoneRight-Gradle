@@ -194,17 +194,17 @@ class ArchitectureValidatorIntegrationTest {
                     useBuiltInHexagonalRulePack = true
                     ignoreFailures = false
                     hexagonalArchitecture {
-                        outboundAdapters = ['..adapter.out..']
+                        outboundAdapters = ['..adapter.outbound..']
                     }
                 }
                 """);
 
-        Files.createDirectories(projectDir.resolve("src/main/java/com/example/archtest/application/port/in"));
-        Files.createDirectories(projectDir.resolve("src/main/java/com/example/archtest/application/port/out"));
+        Files.createDirectories(projectDir.resolve("src/main/java/com/example/archtest/application/port/inbound"));
+        Files.createDirectories(projectDir.resolve("src/main/java/com/example/archtest/application/port/outbound"));
         Files.createDirectories(projectDir.resolve("src/main/java/com/example/archtest/application/domain"));
         Files.createDirectories(projectDir.resolve("src/main/java/com/example/archtest/application/service"));
-        Files.createDirectories(projectDir.resolve("src/main/java/com/example/archtest/adapter/in"));
-        Files.createDirectories(projectDir.resolve("src/main/java/com/example/archtest/adapter/out"));
+        Files.createDirectories(projectDir.resolve("src/main/java/com/example/archtest/adapter/inbound"));
+        Files.createDirectories(projectDir.resolve("src/main/java/com/example/archtest/adapter/outbound"));
         Files.createDirectories(projectDir.resolve("src/main/java/com/example/archtest/application/common"));
 
         return projectDir;
@@ -304,8 +304,8 @@ class ArchitectureValidatorIntegrationTest {
                 }
                 """);
 
-        write(projectDir.resolve("src/main/java/com/example/archtest/application/port/out/OrderRepository.java"), """
-                package com.example.archtest.application.port.out;
+        write(projectDir.resolve("src/main/java/com/example/archtest/application/port/outbound/OrderRepository.java"), """
+            package com.example.archtest.application.port.outbound;
 
                 import com.example.archtest.application.domain.Order;
 
@@ -318,7 +318,7 @@ class ArchitectureValidatorIntegrationTest {
                 package com.example.archtest.application.service;
 
                 import com.example.archtest.application.domain.Order;
-                import com.example.archtest.application.port.out.OrderRepository;
+                import com.example.archtest.application.port.outbound.OrderRepository;
 
                 public class OrderApplicationService {
                     private final OrderRepository orderRepository;
@@ -333,11 +333,11 @@ class ArchitectureValidatorIntegrationTest {
                 }
                 """);
 
-        write(projectDir.resolve("src/main/java/com/example/archtest/adapter/out/persistence/DatabaseAdapter.java"), """
-                package com.example.archtest.adapter.out.persistence;
+        write(projectDir.resolve("src/main/java/com/example/archtest/adapter/outbound/persistence/DatabaseAdapter.java"), """
+                package com.example.archtest.adapter.outbound.persistence;
 
                 import com.example.archtest.application.domain.Order;
-                import com.example.archtest.application.port.out.OrderRepository;
+                import com.example.archtest.application.port.outbound.OrderRepository;
 
                 public class DatabaseAdapter implements OrderRepository {
                     @Override
@@ -382,7 +382,7 @@ class ArchitectureValidatorIntegrationTest {
                     useBuiltInHexagonalRulePack = true
                     ignoreFailures = false
                     hexagonalArchitecture {
-                        inboundAdapters = ['..adapter.in..']
+                        inboundAdapters = ['..adapter.inbound..']
                     }
                 }
                 """);
@@ -397,8 +397,8 @@ class ArchitectureValidatorIntegrationTest {
                 }
                 """);
 
-        write(projectDir.resolve("src/main/java/com/example/archtest/adapter/in/web/OrderController.java"), """
-                package com.example.archtest.adapter.in.web;
+        write(projectDir.resolve("src/main/java/com/example/archtest/adapter/inbound/web/OrderController.java"), """
+                package com.example.archtest.adapter.inbound.web;
 
                 import com.example.archtest.application.domain.service.OrderDomainService;
 

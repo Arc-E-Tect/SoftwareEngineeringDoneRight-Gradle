@@ -19,12 +19,12 @@ public class HexagonalArchitectureExtension {
 
     @Inject
     public HexagonalArchitectureExtension(ObjectFactory objects) {
-        inPorts = objects.listProperty(String.class).convention(List.of("..application.port.in.."));
-        outPorts = objects.listProperty(String.class).convention(List.of("..application.port.out.."));
+        inPorts = objects.listProperty(String.class).convention(List.of("..application.port.inbound.."));
+        outPorts = objects.listProperty(String.class).convention(List.of("..application.port.outbound.."));
         domainModel = objects.listProperty(String.class).convention(List.of("..application.domain.."));
         adapters = objects.listProperty(String.class).convention(List.of("..adapter..", "..adapters.."));
-        inboundAdapters = objects.listProperty(String.class).convention(List.of("..adapter.in..", "..adapters.in.."));
-        outboundAdapters = objects.listProperty(String.class).convention(List.of("..adapter.out..", "..adapters.out.."));
+        inboundAdapters = objects.listProperty(String.class).convention(List.of("..adapter.inbound..", "..adapters.inbound.."));
+        outboundAdapters = objects.listProperty(String.class).convention(List.of("..adapter.outbound..", "..adapters.outbound.."));
         applicationServices = objects.listProperty(String.class)
                 .convention(List.of("..application.domain.service..", "..application.service.."));
         commonPackages = objects.listProperty(String.class).convention(List.of("..application.common.."));

@@ -6,7 +6,7 @@ package com.arc_e_tect.example.hexapp.domain;
 // to persistence infrastructure. Changing the database technology would require changing
 // domain code — a direct violation of the Dependency Inversion Principle.
 // See VIOLATIONS.md §1 for full explanation.
-import com.arc_e_tect.example.hexapp.adapter.out.persistence.OrderJpaEntity;
+import com.arc_e_tect.example.hexapp.adapter.outbound.persistence.OrderJpaEntity;
 
 /**
  * Domain model for an order. This class intentionally violates the Hexagonal Architecture

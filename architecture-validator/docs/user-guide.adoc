@@ -28,13 +28,14 @@ architectureValidator {
     failOnViolation = true
     maxAllowedViolations = 0
     ignoreFailures = false
+    junitVersion = '6.1.0'
 
     hexagonalArchitecture {
-        inPorts = ['..application.port.in..']
-        outPorts = ['..application.port.out..']
+        inPorts = ['..application.port.inbound..']
+        outPorts = ['..application.port.outbound..']
         domainModel = ['..application.domain..']
-        inboundAdapters = ['..adapter.in..', '..adapters.in..']
-        outboundAdapters = ['..adapter.out..', '..adapters.out..']
+        inboundAdapters = ['..adapter.inbound..', '..adapters.inbound..']
+        outboundAdapters = ['..adapter.outbound..', '..adapters.outbound..']
         adapters = ['..adapter..', '..adapters..']
         applicationServices = ['..application.service..']
         commonPackages = ['..application.common..']
@@ -42,8 +43,33 @@ architectureValidator {
 }
 ----
 
+`junitVersion` controls the JUnit Jupiter and JUnit Platform Suite versions used by the `testArchitecture` suite.
+Use the same major line across all JUnit modules in the project.
+Set `junitVersion` to a 5.x version when your dependency management stack pins JUnit 5.
+Set `junitVersion` to a 6.x version when your stack is already on JUnit 6.
+When `junitVersion` is set to 5.x, the plugin automatically maps JUnit Platform Suite dependencies to 1.x (for example, `5.10.2` maps to `1.10.2`).
+When `junitVersion` is set to 6.x, JUnit Platform Suite dependencies use the same 6.x line.
+
+== Version Catalog Example
+
+Use a version catalog to keep the Architecture Validator JUnit line aligned with the rest of the build.
+
+[source,toml]
+----
+[versions]
+architecture-validator-junit-iff = "5.10.2"
+----
+
+[source,groovy]
+----
+architectureValidator {
+    junitVersion = libs.versions.architecture.validator.junit.iff.get()
+}
+----
+
 `inboundAdapters` and `outboundAdapters` define the preferred split package layout.
 `adapters` remains useful as an aggregate fallback when a project still keeps all adapters in a shared package.
+The default package patterns use `inbound` and `outbound` instead of `in` and `out` to avoid collisions with repository conventions that ignore top-level `out` directories.
 
 If `basePackage` is not set, generated tests resolve it from the `src/main/java` package layout first and then fall back to the project group.
 Generated tests never run with an empty root package.
@@ -54,6 +80,8 @@ If the plugin cannot resolve a non-empty package root, generation fails fast and
 Run `./gradlew testArchitecture`.
 The suite emits HTML and XML reports under `build/reports/architecture-validator/`.
 The HTML report is the fastest way to inspect which rule failed and which classes triggered the failure.
+Console output keeps the violation message but suppresses Java stack traces by default to keep failures readable.
+Use `--stacktrace` if you need full stack traces for deep debugging.
 
 == Generated Tests
 
