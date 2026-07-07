@@ -1,3 +1,10 @@
+# [0.7.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/v0.6.1...v0.7.0) (2026-07-07)
+
+
+### ✨ New and updated features
+
+* Standardize naming and add configurable JUnit version support ([#70](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/70)) ([4b8cda5](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/4b8cda53e8e9248787c7a7de19ed8f81f6ac6cd6)), closes [#70](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/70)
+
 ## [0.6.1](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/v0.6.0...v0.6.1) (2026-07-05)
 
 
