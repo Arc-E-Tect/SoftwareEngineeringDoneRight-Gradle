@@ -1,7 +1,7 @@
 package com.arc_e_tect.example.scopesplit.application.service;
 
 import com.arc_e_tect.example.scopesplit.application.domain.model.Order;
-import com.arc_e_tect.example.scopesplit.application.port.out.OrderOutputPort;
+import com.arc_e_tect.example.scopesplit.application.port.outbound.OrderOutputPort;
 
 public class OrderApplicationService {
 

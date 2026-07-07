@@ -28,6 +28,6 @@ The XML report is written under `build/reports/architecture-validator/xml/`.
 
 == Suggested Fix
 
-Introduce an outbound port in `application.port.out`.
+Introduce an outbound port in `application.port.outbound`.
 Depend on that interface from the application service.
 Move the database-specific implementation behind the port in the adapter package.

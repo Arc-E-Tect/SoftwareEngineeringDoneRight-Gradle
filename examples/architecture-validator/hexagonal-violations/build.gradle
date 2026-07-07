@@ -24,8 +24,8 @@ architectureValidator {
         outPorts = ['..port.out..']
         domainModel = ['..domain..']
         adapters = ['..adapter..']
-        inboundAdapters = ['..adapter.in..']
-        outboundAdapters = ['..adapter.out..']
+        inboundAdapters = ['..adapter.inbound..']
+        outboundAdapters = ['..adapter.outbound..']
         applicationServices = ['..application..']
     }
 }
