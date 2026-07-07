@@ -11,6 +11,7 @@ import org.gradle.api.tasks.testing.Test;
 import org.gradle.api.tasks.testing.TestDescriptor;
 import org.gradle.api.tasks.testing.TestListener;
 import org.gradle.api.tasks.testing.TestResult;
+import org.gradle.api.tasks.testing.logging.TestExceptionFormat;
 import org.gradle.testing.base.TestingExtension;
 
 import com.arc_e_tect.sedr.utils.jacoco.marker.ExcludeFromJacocoGeneratedCodeCoverage;
@@ -62,14 +63,27 @@ public class ArchitectureValidatorPlugin implements Plugin<Project> {
 
         TestingExtension testing = project.getExtensions().getByType(TestingExtension.class);
         var suiteProvider = testing.getSuites().register(TEST_ARCHITECTURE_TASK_NAME, JvmTestSuite.class, suite -> {
-            suite.useJUnitJupiter();
             suite.getSources().getJava().srcDir(extension.getTestDirectory());
             suite.getSources().getJava().srcDir(generateTask.flatMap(GenerateArchitectureTestsTask::getOutputDirectory));
         });
 
-        project.getDependencies().add(TEST_ARCHITECTURE_TASK_NAME + "Implementation", "com.tngtech.archunit:archunit-junit5:1.4.1");
-        project.getDependencies().add(TEST_ARCHITECTURE_TASK_NAME + "Implementation", "org.junit.platform:junit-platform-suite-api:6.1.0");
-        project.getDependencies().add(TEST_ARCHITECTURE_TASK_NAME + "RuntimeOnly", "org.junit.platform:junit-platform-suite-engine:6.1.0");
+        project.afterEvaluate(ignored -> {
+            String resolvedJunitVersion = extension.getJunitVersion().get();
+            String resolvedPlatformVersion = resolvePlatformVersion(resolvedJunitVersion);
+
+            suiteProvider.configure(suite -> suite.useJUnitJupiter(resolvedJunitVersion));
+
+            project.getDependencies().add(
+                TEST_ARCHITECTURE_TASK_NAME + "Implementation",
+                project.getDependencies().enforcedPlatform("org.junit:junit-bom:" + resolvedJunitVersion));
+            project.getDependencies().add(TEST_ARCHITECTURE_TASK_NAME + "Implementation", "com.tngtech.archunit:archunit-junit5:1.4.1");
+            project.getDependencies().add(
+                TEST_ARCHITECTURE_TASK_NAME + "Implementation",
+                "org.junit.platform:junit-platform-suite-api:" + resolvedPlatformVersion);
+            project.getDependencies().add(
+                TEST_ARCHITECTURE_TASK_NAME + "RuntimeOnly",
+                "org.junit.platform:junit-platform-suite-engine:" + resolvedPlatformVersion);
+        });
 
         JavaPluginExtension javaExtension = project.getExtensions().getByType(JavaPluginExtension.class);
         SourceSet mainSourceSet = javaExtension.getSourceSets().getByName(SourceSet.MAIN_SOURCE_SET_NAME);
@@ -88,6 +102,13 @@ public class ArchitectureValidatorPlugin implements Plugin<Project> {
         project.getTasks().named("check").configure(task -> task.dependsOn(TEST_ARCHITECTURE_TASK_NAME));
     }
 
+    private static String resolvePlatformVersion(String junitVersion) {
+        if (junitVersion.startsWith("5.")) {
+            return "1." + junitVersion.substring(2);
+        }
+        return junitVersion;
+    }
+
     private void configureArchitectureTestTask(
             Project project,
             ArchitectureValidatorExtension extension,
@@ -97,6 +118,8 @@ public class ArchitectureValidatorPlugin implements Plugin<Project> {
 
         testTask.useJUnitPlatform();
         testTask.setIgnoreFailures(true);
+        testTask.getTestLogging().setShowStackTraces(false);
+        testTask.getTestLogging().setExceptionFormat(TestExceptionFormat.SHORT);
         testTask.systemProperty("architectureValidator.basePackage", extension.getBasePackage().getOrElse(""));
         testTask.systemProperty("architectureValidator.inPorts", String.join(",", extension.getHexagonalArchitecture().getInPorts().get()));
         testTask.systemProperty("architectureValidator.outPorts", String.join(",", extension.getHexagonalArchitecture().getOutPorts().get()));

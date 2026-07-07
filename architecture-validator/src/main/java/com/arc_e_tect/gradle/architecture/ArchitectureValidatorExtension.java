@@ -19,6 +19,7 @@ public class ArchitectureValidatorExtension {
     private final Property<Boolean> ignoreFailures;
     private final Property<Boolean> failOnDuplicateRules;
     private final Property<Boolean> useBuiltInHexagonalRulePack;
+    private final Property<String> junitVersion;
     private final HexagonalArchitectureExtension hexagonalArchitecture;
 
     @Inject
@@ -30,6 +31,7 @@ public class ArchitectureValidatorExtension {
         ignoreFailures = objects.property(Boolean.class).convention(false);
         failOnDuplicateRules = objects.property(Boolean.class).convention(false);
         useBuiltInHexagonalRulePack = objects.property(Boolean.class).convention(true);
+        junitVersion = objects.property(String.class).convention("6.1.0");
         hexagonalArchitecture = objects.newInstance(HexagonalArchitectureExtension.class);
     }
 
@@ -59,6 +61,14 @@ public class ArchitectureValidatorExtension {
 
     public Property<Boolean> getUseBuiltInHexagonalRulePack() {
         return useBuiltInHexagonalRulePack;
+    }
+
+    public Property<String> getJunitVersion() {
+        return junitVersion;
+    }
+
+    public void setJunitVersion(String junitVersion) {
+        this.junitVersion.set(junitVersion);
     }
 
     public HexagonalArchitectureExtension getHexagonalArchitecture() {
