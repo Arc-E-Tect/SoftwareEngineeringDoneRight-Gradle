@@ -51,8 +51,8 @@ public abstract class GenerateArchitectureTestsTask extends DefaultTask {
         getUseBuiltInHexagonalRulePack().convention(true);
         getFallbackBasePackage().convention("");
         getAdapters().convention(List.of("..adapter..", "..adapters.."));
-        getInboundAdapters().convention(List.of("..adapter.in..", "..adapters.in.."));
-        getOutboundAdapters().convention(List.of("..adapter.out..", "..adapters.out.."));
+        getInboundAdapters().convention(List.of("..adapter.inbound..", "..adapters.inbound.."));
+        getOutboundAdapters().convention(List.of("..adapter.outbound..", "..adapters.outbound.."));
     }
 
     @Input

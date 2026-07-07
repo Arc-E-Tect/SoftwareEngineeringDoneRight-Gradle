@@ -31,11 +31,11 @@ architectureValidator {
     junitVersion = '6.1.0'
 
     hexagonalArchitecture {
-        inPorts = ['..application.port.in..']
-        outPorts = ['..application.port.out..']
+        inPorts = ['..application.port.inbound..']
+        outPorts = ['..application.port.outbound..']
         domainModel = ['..application.domain..']
-        inboundAdapters = ['..adapter.in..', '..adapters.in..']
-        outboundAdapters = ['..adapter.out..', '..adapters.out..']
+        inboundAdapters = ['..adapter.inbound..', '..adapters.inbound..']
+        outboundAdapters = ['..adapter.outbound..', '..adapters.outbound..']
         adapters = ['..adapter..', '..adapters..']
         applicationServices = ['..application.service..']
         commonPackages = ['..application.common..']
@@ -69,6 +69,7 @@ architectureValidator {
 
 `inboundAdapters` and `outboundAdapters` define the preferred split package layout.
 `adapters` remains useful as an aggregate fallback when a project still keeps all adapters in a shared package.
+The default package patterns use `inbound` and `outbound` instead of `in` and `out` to avoid collisions with repository conventions that ignore top-level `out` directories.
 
 If `basePackage` is not set, generated tests resolve it from the `src/main/java` package layout first and then fall back to the project group.
 Generated tests never run with an empty root package.
