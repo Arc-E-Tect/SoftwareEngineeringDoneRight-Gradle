@@ -3,18 +3,48 @@
 
 == Description
 
-This example applies the JaCoCo Exclusion Report plugin to a simple Java model class.
+This example applies the JaCoCo Exclusion Report plugin to a simple Java model class, `ShoppingCart`.
 The sample class includes methods annotated with `@ExcludeFromJacocoGeneratedCodeCoverage`, both with and without a justification.
+The plugin is applied with its defaults — no `jacocoExclusionReport { }` configuration block is needed for this example.
 
 == Intent
 
 This example is intended to show how exclusion metadata is extracted into an HTML and XML audit report.
 It also highlights why adding a justification to exclusions improves reviewability.
 
+== The Annotated Class
+
+[source,java]
+----
+import com.arc_e_tect.sedr.utils.jacoco.marker.ExcludeFromJacocoGeneratedCodeCoverage;
+
+public class ShoppingCart {
+
+    // Excluded WITHOUT a justification — the pattern to avoid.
+    @ExcludeFromJacocoGeneratedCodeCoverage
+    @Override
+    public String toString() { ... }
+
+    // Excluded WITH a justification — the recommended approach.
+    @ExcludeFromJacocoGeneratedCodeCoverage(
+            justification = "IDE-generated equals – testing would only cover trivial boilerplate")
+    @Override
+    public boolean equals(Object o) { ... }
+
+    @ExcludeFromJacocoGeneratedCodeCoverage(
+            justification = "IDE-generated hashCode – testing would only cover trivial boilerplate")
+    @Override
+    public int hashCode() { ... }
+}
+----
+
+Full source: `src/main/java/com/arc_e_tect/example/shop/ShoppingCart.java`.
+
 == Build And Run
 
 [source,bash]
 ----
+cd examples/jacoco-exclusion-report/standard
 ./gradlew clean jacocoExclusionReport
 ----
 
@@ -22,7 +52,21 @@ It also highlights why adding a justification to exclusions improves reviewabili
 
 The build is expected to pass.
 The plugin scans Java sources and generates exclusion reports under `build/reports/jacoco-exclusions/`.
-You should see `index.html` for human-readable output and `exclusions.xml` for machine-readable output.
+You should see `index.html` for human-readable output and `jacoco-exclusions.xml` for machine-readable output.
+
+All three annotated methods are reported. `toString()` shows an empty justification; `equals()` and
+`hashCode()` carry the justification text verbatim:
+
+[source,xml]
+----
+<testsuite name="com.arc_e_tect.example.shop" tests="3" failures="0" errors="0" skipped="0" ...>
+  <testcase classname="com.arc_e_tect.example.shop.ShoppingCart" name="[method] toString() – line 43" time="0"/>
+  <testcase classname="com.arc_e_tect.example.shop.ShoppingCart" name="[method] equals(Object) – line 55" time="0"
+             justification="IDE-generated equals – testing would only cover trivial boilerplate"/>
+  <testcase classname="com.arc_e_tect.example.shop.ShoppingCart" name="[method] hashCode() – line 65" time="0"
+             justification="IDE-generated hashCode – testing would only cover trivial boilerplate"/>
+</testsuite>
+----
 
 == Optional Full Build Flow
 
@@ -31,4 +75,5 @@ You should see `index.html` for human-readable output and `exclusions.xml` for m
 ./gradlew clean test jacocoTestReport
 ----
 
-When run this way, the exclusion report is still produced as part of the coverage reporting flow.
+When run this way, the exclusion report is still produced as part of the coverage reporting flow, because
+`jacocoExclusionReport` is wired into the `check` lifecycle task ahead of `jacocoTestCoverageVerification`.

@@ -15,6 +15,7 @@ It demonstrates how external and generated rules can report the same architectur
 
 [source,bash]
 ----
+cd examples/architecture-validator/library-based-rules
 ./gradlew clean testArchitecture
 ----
 
@@ -22,6 +23,56 @@ It demonstrates how external and generated rules can report the same architectur
 
 The plugin discovers rule-pack test classes from a dependency build.
 It generates `ExternalRulePackSuite` and runs the external rules together with the built-in vanilla rules.
+
+The rule pack is an ordinary JUnit/ArchUnit test class — nothing here is Architecture Validator API,
+just a class whose name ends in `Test` on the `testArchitectureImplementation` classpath:
+
+[source,java]
+----
+public class LayeredRulesTest {
+
+    private final JavaClasses classes = new ClassFileImporter()
+            .withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS)
+            .importPackages(System.getProperty("architectureValidator.basePackage", ""));
+
+    @Test
+    void applicationLayerShouldNotDependOnAdapters() {
+        noClasses()
+                .that().resideInAPackage("..application..")
+                .should().dependOnClassesThat().resideInAPackage("..adapter..")
+                .because("External rule packs should be able to enforce organization-wide layering rules")
+                .check(classes);
+    }
+}
+----
+
+Reading `architectureValidator.basePackage` as a system property (rather than hard-coding a
+package) is what lets the same rule-pack JAR be reused, unmodified, across projects with different
+package roots — the plugin sets that system property automatically for every `testArchitecture`
+run.
+
+`layer-validator` is a separate, real Gradle project under this example (`layer-validator/`), built
+and consumed as if it were published, but resolved locally via a composite build with dependency
+substitution instead of an actual Maven repository — so the example needs no publishing step to
+demonstrate a real external dependency:
+
+[source,groovy]
+----
+// settings.gradle
+includeBuild('layer-validator') {
+    dependencySubstitution {
+        substitute module('com.org.ea:layer-validator') using project(':')
+    }
+}
+----
+
+[source,groovy]
+----
+// build.gradle
+dependencies {
+    testArchitectureImplementation 'com.org.ea:layer-validator:1.0.0'
+}
+----
 
 == What To Expect
 

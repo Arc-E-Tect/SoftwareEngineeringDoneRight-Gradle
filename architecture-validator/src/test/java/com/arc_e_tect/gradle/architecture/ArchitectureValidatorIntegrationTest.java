@@ -93,6 +93,25 @@ class ArchitectureValidatorIntegrationTest {
     }
 
     @Test
+    @DisplayName("should forward generic and hexagonal rule pack properties to the architecture test JVM")
+    void shouldForwardGenericAndHexagonalRulePackPropertiesToArchitectureTestJvm() throws IOException {
+        Path projectDir = createProjectWithRulePackPropertyForwarding("rule-pack-property-forwarding");
+
+        BuildResult result = createRunner(projectDir)
+                .withArguments("testArchitecture", "--stacktrace")
+                .build();
+
+        assertThat(result.task(":testArchitecture").getOutcome()).isEqualTo(TaskOutcome.SUCCESS);
+        assertThat(result.getOutput()).contains("FAILED");
+
+        Path xmlReportDir = projectDir.resolve("build/reports/architecture-validator/xml");
+        assertThat(xmlReportDir).isDirectory();
+        String mergedXml = readAllXml(xmlReportDir);
+        assertThat(mergedXml).contains("rulesDisabled=SomeClass.someMethod");
+        assertThat(mergedXml).contains("namingConventionsEnabled=true");
+    }
+
+    @Test
     @DisplayName("should fail when inbound adapters depend on service implementations directly")
     void shouldFailWhenInboundAdaptersDependOnServiceImplementationsDirectly() throws IOException {
         Path projectDir = createProjectWithAdapterDependingOnServiceImplementation("adapter-depends-on-service");
@@ -206,6 +225,79 @@ class ArchitectureValidatorIntegrationTest {
         Files.createDirectories(projectDir.resolve("src/main/java/com/example/archtest/adapter/inbound"));
         Files.createDirectories(projectDir.resolve("src/main/java/com/example/archtest/adapter/outbound"));
         Files.createDirectories(projectDir.resolve("src/main/java/com/example/archtest/application/common"));
+
+        return projectDir;
+    }
+
+    private Path createProjectWithRulePackPropertyForwarding(String projectName) throws IOException {
+        Path projectDir = tempDir.resolve(projectName);
+        Files.createDirectories(projectDir);
+
+        write(projectDir.resolve("settings.gradle"), """
+                pluginManagement {
+                    repositories {
+                        gradlePluginPortal()
+                    }
+                }
+
+                rootProject.name = '%s'
+                """.formatted(projectName));
+
+        write(projectDir.resolve("build.gradle"), """
+                plugins {
+                    id 'java'
+                    id 'com.arc-e-tect.architecture-validator'
+                }
+
+                group = 'com.example.archtest'
+                version = '0.0.1'
+
+                repositories {
+                    mavenCentral()
+                }
+
+                architectureValidator {
+                    basePackage = 'com.example.archtest'
+                    ignoreFailures = true
+                    failOnViolation = false
+                    rulesDisabled = ['SomeClass.someMethod']
+                    hexagonalArchitecture {
+                        namingConventionsEnabled = true
+                    }
+                }
+                """);
+
+        write(projectDir.resolve("src/main/java/com/example/archtest/Dummy.java"), """
+                package com.example.archtest;
+
+                public class Dummy {
+                }
+                """);
+
+        write(projectDir.resolve("src/testArchitecture/java/com/example/archtest/PropertyForwardingArchitectureTest.java"), """
+                package com.example.archtest;
+
+                import org.junit.jupiter.api.Test;
+
+                import static org.junit.jupiter.api.Assertions.fail;
+
+                class PropertyForwardingArchitectureTest {
+                    @Test
+                    void shouldExposeConfiguredProperties() {
+                        String rulesDisabled = System.getProperty("architectureValidator.rules.disabled");
+                        String namingConventionsEnabled = System.getProperty("architectureValidator.namingConventions.enabled");
+
+                        if (!"SomeClass.someMethod".equals(rulesDisabled)
+                                || !"true".equals(namingConventionsEnabled)) {
+                            fail("rulesDisabled=" + rulesDisabled
+                                    + "; namingConventionsEnabled=" + namingConventionsEnabled);
+                        }
+
+                        fail("rulesDisabled=" + rulesDisabled
+                                + "; namingConventionsEnabled=" + namingConventionsEnabled);
+                    }
+                }
+                """);
 
         return projectDir;
     }

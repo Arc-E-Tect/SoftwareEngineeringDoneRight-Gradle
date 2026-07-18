@@ -14,6 +14,8 @@ include::architecture-validator/single-module-scope-split/README.adoc[leveloffse
 
 include::architecture-validator/library-based-rules/README.adoc[leveloffset=+1]
 
+include::architecture-validator/single-module-spring/README.adoc[leveloffset=+1]
+
 include::architecture-validator/multi-module/README.adoc[leveloffset=+1]
 
 include::architecture-validator/hexagonal-violations/README.adoc[leveloffset=+1]

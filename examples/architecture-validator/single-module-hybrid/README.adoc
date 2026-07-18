@@ -15,14 +15,51 @@ It also demonstrates how one architectural issue is surfaced by multiple rule st
 
 [source,bash]
 ----
+cd examples/architecture-validator/single-module-hybrid
 ./gradlew clean testArchitecture
 ----
 
 == Included Rule Styles
 
 The plugin generates `HexagonalArchitectureTest` under the build directory.
-`CustomAnnotationTest` shows the annotation-driven ArchUnit style.
-`CustomImperativeTest` shows the imperative `check(classes)` style.
+`CustomAnnotationTest` shows the annotation-driven ArchUnit style, using `@AnalyzeClasses`/`@ArchTest`:
+
+[source,java]
+----
+@AnalyzeClasses(packages = "com.arc_e_tect.example.hybrid")
+class CustomAnnotationTest {
+
+    @ArchTest
+    static final ArchRule APPLICATION_SHOULD_NOT_DEPEND_ON_ADAPTERS = noClasses()
+            .that().resideInAPackage("..application..")
+            .should().dependOnClassesThat().resideInAPackage("..adapter..")
+            .because("Annotation-style ArchUnit tests can run alongside generated rules");
+}
+----
+
+`CustomImperativeTest` shows the same rule written in the imperative `check(classes)` style instead:
+
+[source,java]
+----
+class CustomImperativeTest {
+
+    private final JavaClasses classes = new ClassFileImporter()
+            .withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS)
+            .importPackages("com.arc_e_tect.example.hybrid");
+
+    @Test
+    void applicationLayerShouldNotDependOnAdaptersWhenUsingImperativeStyle() {
+        noClasses()
+                .that().resideInAPackage("..application..")
+                .should().dependOnClassesThat().resideInAPackage("..adapter..")
+                .because("Imperative ArchUnit tests can coexist with generated and annotation-based tests")
+                .check(classes);
+    }
+}
+----
+
+Both live under `src/testArchitecture/java`, alongside the plugin-generated
+`HexagonalArchitectureTest` — no wiring is needed beyond putting the file in that directory.
 
 == What To Expect
 
@@ -30,6 +67,25 @@ The plugin generates `HexagonalArchitectureTest` under the build directory.
 The project is configured with `ignoreFailures = true`, so the build completes while the report still lists the violations found by the configured rules.
 
 Open `build/reports/architecture-validator/html/index.html` to review the report.
+Because both custom rules and the generated `HexagonalArchitectureTest` all flag the same
+`OrderApplicationService` → `DatabaseAdapter` dependency, the report shows the same architectural
+problem reported three times, once per rule style — this is the "one issue, multiple rule styles"
+behavior the example exists to demonstrate.
+
+== Pinning The JUnit Line
+
+[source,groovy]
+----
+architectureValidator {
+    basePackage = 'com.arc_e_tect.example.hybrid'
+    ignoreFailures = true
+    setJunitVersion(libs.versions.architecture.validator.junit.iff.get())
+}
+----
+
+This example pins JUnit `6.1.0` (see `gradle/libs.versions.toml`) to show the plugin working
+against the JUnit 6 line; `single-module-vanilla` pins `5.10.2` instead. `junitVersion` controls
+the JUnit Jupiter and JUnit Platform Suite versions used by the generated `testArchitecture` suite.
 
 == Suggested Fix
 

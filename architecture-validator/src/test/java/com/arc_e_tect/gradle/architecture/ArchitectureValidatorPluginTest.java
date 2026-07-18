@@ -40,6 +40,8 @@ class ArchitectureValidatorPluginTest {
         assertThat(extension.getIgnoreFailures().get()).isFalse();
         assertThat(extension.getFailOnDuplicateRules().get()).isFalse();
         assertThat(extension.getUseBuiltInHexagonalRulePack().get()).isTrue();
+        assertThat(extension.getRulesDisabled().get()).isEmpty();
+        assertThat(extension.getHexagonalArchitecture().getNamingConventionsEnabled().get()).isFalse();
     }
 
     @Test

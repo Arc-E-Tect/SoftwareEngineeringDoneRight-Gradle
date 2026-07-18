@@ -94,7 +94,7 @@ the substring `Generated` (this is the convention JaCoCo relies on).
 For example, `MyProjectGeneratedExclusion` would work and `MyProjectExclusion` would not.
 Tell the plugin which annotation to scan for via the `annotationName` configuration property
 (see <<jacoco-configuration>>).
-See the custom annotation example at link:../examples/jacoco-exclusion-report-custom-annotation/README.adoc[examples/jacoco-exclusion-report-custom-annotation/README.adoc] for a complete setup.
+See the custom annotation example at link:../examples/jacoco-exclusion-report/custom-annotation/README.adoc[examples/jacoco-exclusion-report/custom-annotation/README.adoc] for a complete setup.
 Using `ExcludeFromJacocoGeneratedCodeCoverage` from `sedr-library` is still recommended because it carries a `justification` attribute that surfaces the reason for each exclusion directly in the generated reports.
 ====
 
