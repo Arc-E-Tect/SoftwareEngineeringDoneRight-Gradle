@@ -14,10 +14,6 @@ java {
 
 repositories {
     mavenCentral()
-    // TODO: remove once architecture-validator-hexagonal-spring-rules 1.0.0 is published to Maven
-    // Central with rulesDisabled/namingConventionsEnabled support; until then this example resolves
-    // the companion rule pack from a local publishToMavenLocal build of SoftwareEngineeringDoneRight-Library.
-    mavenLocal()
 }
 
 dependencies {
