@@ -148,6 +148,10 @@ dependencies {
 }
 ----
 
+See `examples/architecture-validator/single-module-spring` for a runnable example that exercises
+both properties against the companion rule pack and shows the resulting skipped/failed rules in
+the report.
+
 == Library-Based Rule Packs
 
 Any JAR added to `testArchitectureImplementation` can contribute rule-pack tests.

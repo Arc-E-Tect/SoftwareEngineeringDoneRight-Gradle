@@ -1,0 +1,44 @@
+plugins {
+    id 'java'
+    id 'com.arc-e-tect.architecture-validator'
+}
+
+group = 'com.arc-e-tect.example.springrules'
+version = '0.0.1'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+repositories {
+    mavenCentral()
+    // TODO: remove once architecture-validator-hexagonal-spring-rules 1.0.0 is published to Maven
+    // Central with rulesDisabled/namingConventionsEnabled support; until then this example resolves
+    // the companion rule pack from a local publishToMavenLocal build of SoftwareEngineeringDoneRight-Library.
+    mavenLocal()
+}
+
+dependencies {
+    implementation libs.spring.context.iff
+    implementation libs.spring.web.iff
+    testArchitectureImplementation libs.architecture.validator.hexagonal.spring.rules.iff
+}
+
+architectureValidator {
+    basePackage = 'com.arc_e_tect.example.springrules'
+    ignoreFailures = true
+    rulesDisabled = ['DomainIsolationTest.applicationServicesShouldNotCarrySpringStereotypes']
+
+    hexagonalArchitecture {
+        inPorts = ['..application.port.inbound..']
+        outPorts = ['..application.port.outbound..']
+        domainModel = ['..domain..']
+        adapters = ['..adapter..']
+        inboundAdapters = ['..adapter.inbound..']
+        outboundAdapters = ['..adapter.outbound..']
+        applicationServices = ['..application.service..']
+        namingConventionsEnabled = true
+    }
+}

@@ -1,0 +1,100 @@
+= Single-Module Spring Example
+:toc: left
+
+== Description
+
+This example applies the Architecture Validator plugin together with the companion
+`architecture-validator-hexagonal-spring-rules` rule pack to a small Spring application.
+It demonstrates the `rulesDisabled` and `hexagonalArchitecture.namingConventionsEnabled` DSL
+properties, which the plugin forwards to any rule pack that chooses to honor them.
+
+== Intent
+
+This example is intended to prove, end-to-end, that the two newest `architectureValidator`
+extension properties actually reach an external rule pack and change its behavior:
+
+- `rulesDisabled` suppresses one specific rule identifier instead of an entire rule class.
+- `hexagonalArchitecture.namingConventionsEnabled` turns on a set of naming rules that are
+  opt-in by default.
+
+`CreateOrderService` is deliberately annotated `@Service`, which the companion rule pack's
+`DomainIsolationTest.applicationServicesShouldNotCarrySpringStereotypes` rule would normally
+reject. `rulesDisabled` names that exact rule so the build treats it as intentionally skipped
+instead of failing.
+
+`OrderApi` is deliberately named without a `Controller` suffix. The companion rule pack's
+naming rules are opt-in and only run when `namingConventionsEnabled = true`; with that flag
+set, `NamingConventionTest.adaptersShouldHaveConsistentSuffix` catches the missing suffix.
+
+== The DSL Being Demonstrated
+
+[source,groovy]
+----
+architectureValidator {
+    basePackage = 'com.arc_e_tect.example.springrules'
+    ignoreFailures = true
+    rulesDisabled = ['DomainIsolationTest.applicationServicesShouldNotCarrySpringStereotypes']
+
+    hexagonalArchitecture {
+        // ...inPorts/outPorts/domainModel/adapters as usual...
+        namingConventionsEnabled = true
+    }
+}
+
+dependencies {
+    testArchitectureImplementation libs.architecture.validator.hexagonal.spring.rules.iff
+}
+----
+
+== Build And Run
+
+[source,bash]
+----
+cd examples/architecture-validator/single-module-spring
+./gradlew clean testArchitecture
+----
+
+== What To Expect
+
+The build completes successfully because `ignoreFailures = true`, but the report shows exactly
+one skipped rule and one real failure:
+
+- `DomainIsolationTest.applicationServicesShouldNotCarrySpringStereotypes` is reported as
+  *skipped*, with the reason `Assumption failed: Rule disabled via architectureValidator.rules.disabled`.
+  Without `rulesDisabled`, this rule would fail because `CreateOrderService` carries `@Service`.
+- `NamingConventionTest.adaptersShouldHaveConsistentSuffix` *fails* because `OrderApi` is a
+  `@RestController` that does not end with `Controller`. This rule only runs at all because
+  `namingConventionsEnabled = true`; with the default (`false`), the whole `NamingConventionTest`
+  class is skipped instead.
+
+Every other generated and companion rule (built-in `HexagonalArchitectureTest`,
+`SpringHexagonalArchitectureTest`, `PortContractTest`, `DependencyDirectionTest`,
+`DependencyInjectionStyleTest`, `TypeLeakageTest`, `CycleFreedomTest`) passes, so the two
+outcomes above are isolated to the properties this example is demonstrating.
+
+Open `build/reports/architecture-validator/html/index.html` to inspect the full report.
+
+== Key Files
+
+- `build.gradle`: sets `rulesDisabled` and `hexagonalArchitecture.namingConventionsEnabled`.
+- `application/service/CreateOrderService.java`: the `@Service` class whose Spring-stereotype
+  rule is disabled. It implements `CreateOrderUseCase` directly, the standard Hexagonal
+  wiring; this only works cleanly because `SpringHexagonalArchitectureTest.servicesShouldNotAccessRepositoriesDirectly`
+  in the companion rule pack checks for adapter/repository access specifically rather than
+  allow-listing every legitimate dependency.
+- `adapter/inbound/web/OrderApi.java`: the `@RestController` whose naming-convention rule only
+  fires when naming conventions are enabled.
+
+== A Note On The Companion Rule Pack Version
+
+This example resolves `architecture-validator-hexagonal-spring-rules` from `mavenLocal()`,
+published locally from the `SoftwareEngineeringDoneRight-Library` repository, because
+`rulesDisabled` and `namingConventionsEnabled` support has not shipped to Maven Central yet.
+Once a released version of the companion rule pack supports both properties, this example
+should switch to that Maven Central coordinate and drop the `mavenLocal()` repository.
+
+== Suggested Fix
+
+Remove the `@Service` annotation from `CreateOrderService` (or wire it without a Spring
+stereotype) instead of relying on `rulesDisabled` long-term, and rename `OrderApi` to
+`OrderController` so both rules pass without any per-rule suppression.

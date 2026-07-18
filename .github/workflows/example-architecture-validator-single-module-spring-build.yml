@@ -1,0 +1,41 @@
+name: Example - Architecture Validator - Single Module Spring Build
+# NOTE: this example currently resolves architecture-validator-hexagonal-spring-rules from
+# mavenLocal(), published locally from SoftwareEngineeringDoneRight-Library. This workflow will
+# fail until that companion rule pack ships a Maven Central release with rulesDisabled and
+# hexagonalArchitecture.namingConventionsEnabled support and the example's build.gradle is
+# updated to depend on that released coordinate instead of mavenLocal().
+on:
+  push:
+    paths:
+      - 'examples/architecture-validator/single-module-spring/**/*.java'
+      - 'examples/architecture-validator/single-module-spring/**/*.gradle'
+      - 'examples/architecture-validator/single-module-spring/**/*.properties'
+      - 'examples/architecture-validator/single-module-spring/**/libs.versions.toml'
+      - '.github/workflows/example-architecture-validator-single-module-spring-build.yml'
+
+jobs:
+  Build-Example:
+    name: Build Example
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Setup Java
+        uses: actions/setup-java@ad2b38190b15e4d6bdf0c97fb4fca8412226d287 # v5.3.0
+        with:
+          distribution: 'temurin'
+          java-version: 21
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6.2.0
+
+      - name: Build example
+        run: |
+          cd examples/architecture-validator/single-module-spring
+          chmod +x ./gradlew
+          ./gradlew build --no-daemon
