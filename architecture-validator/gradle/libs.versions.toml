@@ -12,13 +12,13 @@ jacoco-exclusion-report-iff = { id = "com.arc-e-tect.jacoco-exclusion-report", v
 plugin-publish-iff = "2.1.1"
 owasp-dependency-check-iff = "12.2.2"
 jreleaser-iff = "1.24.0"
-jacoco-exclusion-report-iff = "0.6.0"
+jacoco-exclusion-report-iff = "0.7.1"
 archunit-junit5-iff = "1.4.2"
 junit-jupiter-iff = "6.1.2"
 junit-platform-iff = "6.1.2"
 assertj-core-iff = "3.27.7"
 spring-context-iff = "6.2.8"
-sedr-library-iff = "0.4.5"
+sedr-library-iff = "0.4.7"
 
 [libraries]
 
