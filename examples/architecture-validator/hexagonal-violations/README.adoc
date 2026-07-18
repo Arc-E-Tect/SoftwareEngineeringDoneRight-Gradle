@@ -11,18 +11,34 @@ The sample contains violations across adapter, application, and port placement b
 This example is intended to show what a failing architecture validation run looks like.
 It also demonstrates that user-provided tests in `src/testArchitecture/java` run alongside generated architecture tests.
 
+This is the plugin's canonical acceptance example, referenced from the main
+link:../../../architecture-validator/README.adoc[architecture-validator README] — running it is
+the quickest way to confirm a local build of the plugin still enforces its built-in rules.
+
 == Build And Run
 
 [source,bash]
 ----
+cd examples/architecture-validator/hexagonal-violations
 ./gradlew clean testArchitecture
 ----
 
 == What To Expect
 
-The build is expected to fail.
-The project does not enable `ignoreFailures`, so detected violations cause `testArchitecture` to fail.
-You should see failures related to domain classes depending on adapters, application services depending on adapters, and naming or placement rules for architecture elements.
+The build is expected to fail with exactly four failing rules from the generated `HexagonalArchitectureTest`:
+
+[source]
+----
+HexagonalArchitectureTest > domain_must_not_depend_on_adapters FAILED
+HexagonalArchitectureTest > inbound_ports_reside_in_correct_package FAILED
+HexagonalArchitectureTest > inbound_adapters_must_not_depend_on_service_implementations_directly FAILED
+HexagonalArchitectureTest > application_services_must_not_depend_on_adapters FAILED
+----
+
+The project does not enable `ignoreFailures`, so these detected violations cause `testArchitecture`
+— and therefore `./gradlew build` — to fail. Adapters are still allowed to implement outbound ports
+whose signatures use domain objects; the built-in rule set distinguishes inbound adapters from
+outbound adapters specifically so that legitimate case doesn't get flagged.
 
 == Reports
 

@@ -5,16 +5,57 @@
 
 This example applies the JaCoCo Exclusion Report plugin with JaCoCo DSL package exclusions configured through `classDirectories`.
 It demonstrates how configured JaCoCo excludes are exported to a dedicated report in addition to the annotation-based report.
+Unlike the `standard` and `custom-annotation` examples, no source in this project uses
+`@ExcludeFromJacocoGeneratedCodeCoverage` — the exclusion here comes entirely from JaCoCo task DSL, not annotations.
 
 == Intent
 
 Use this example when your team excludes generated or framework-owned classes via JaCoCo task DSL instead of source annotations.
 The plugin records those configured exclusions into separate DSL report files for auditability.
 
+== The DSL Wiring
+
+[source,groovy]
+----
+def jacocoExcludedPatterns = [
+        'com/arc_e_tect/example/dsl/generated/**'
+]
+
+jacocoExclusionReport {
+    includeConfiguredExclusions = true
+}
+
+jacocoTestReport {
+    afterEvaluate {
+        classDirectories.setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it, exclude: jacocoExcludedPatterns)
+        }))
+    }
+}
+
+jacocoTestCoverageVerification {
+    afterEvaluate {
+        classDirectories.setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it, exclude: jacocoExcludedPatterns)
+        }))
+    }
+}
+----
+
+`includeConfiguredExclusions = true` (the default) tells the plugin to also inspect the `classDirectories`
+filters applied to `jacocoTestReport`/`jacocoTestCoverageVerification` and report any package excluded that
+way, alongside whatever the annotation scan finds. The `afterEvaluate` block itself is plain JaCoCo
+configuration — excluding `classDirectories` patterns from coverage is a JaCoCo feature, not something this
+plugin adds; the plugin only reports on exclusions that are already configured.
+
+`CheckoutService` (not excluded) and `GeneratedReceiptMapper` (excluded by the pattern above) — full source
+under `src/main/java/com/arc_e_tect/example/dsl/`.
+
 == Build And Run
 
 [source,bash]
 ----
+cd examples/jacoco-exclusion-report/dsl
 ./gradlew clean jacocoExclusionReport
 ----
 
@@ -22,8 +63,30 @@ The plugin records those configured exclusions into separate DSL report files fo
 
 The build should pass.
 The plugin writes reports under `build/reports/jacoco-exclusions/`.
-`index.html` and `jacoco-exclusions.xml` contain annotation-based exclusions.
-`index-jacoco-dsl.html` and `jacoco-dsl-exclusions.xml` contain exclusions inferred from JaCoCo DSL `classDirectories` filters.
+
+`index.html` and `jacoco-exclusions.xml` are still generated but report *zero* exclusions, since this
+example has no `@ExcludeFromJacocoGeneratedCodeCoverage` usage:
+
+[source,xml]
+----
+<!-- JaCoCo Exclusion Report – annotation: @ExcludeFromJacocoGeneratedCodeCoverage -->
+<testsuites name="JacocoExclusions" tests="0" failures="0" errors="0" skipped="0">
+  <testsuite name="(no exclusions)" tests="0"/>
+</testsuites>
+----
+
+`index-jacoco-dsl.html` and `jacoco-dsl-exclusions.xml` contain the one exclusion inferred from the JaCoCo
+DSL `classDirectories` filter, with a fixed justification supplied by the plugin itself:
+
+[source,xml]
+----
+<!-- JaCoCo Exclusion Report – source: JaCoCo classDirectories excludes -->
+<testsuite name="com.arc_e_tect.example.dsl.generated" tests="1" failures="0" errors="0" skipped="0" ...>
+  <testcase classname="com.arc_e_tect.example.dsl.generated.GeneratedReceiptMapper"
+            name="[class] GeneratedReceiptMapper – line 0" time="0"
+            justification="Configured via JaCoCo classDirectories excludes"/>
+</testsuite>
+----
 
 == Source Layout
 

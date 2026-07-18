@@ -11,19 +11,63 @@ The plugin still generates a report that lists the excluded classes, constructor
 Use this example when you want to keep the report workflow but replace the bundled `ExcludeFromJacocoGeneratedCodeCoverage` annotation with your own marker annotation.
 The annotation name still contains `Generated` so JaCoCo keeps treating the annotated elements as generated code.
 
+== The Custom Annotation
+
+[source,java]
+----
+package com.arc_e_tect.example.customannotation;
+
+@Retention(RetentionPolicy.SOURCE)
+@Target({ElementType.TYPE, ElementType.CONSTRUCTOR, ElementType.METHOD})
+public @interface GeneratedExclusion {
+}
+----
+
+The simple name `GeneratedExclusion` contains `Generated`, which is the substring JaCoCo itself looks
+for to automatically skip annotated elements from coverage — no `justification` field is required.
+`RetentionPolicy.SOURCE` is enough here because this plugin scans source files directly; it does not
+need the annotation present on the compiled classpath at runtime the way `sedr-library`'s bundled
+annotation does.
+
+== Pointing The Plugin At The Custom Annotation
+
+[source,groovy]
+----
+jacocoExclusionReport {
+    annotationName = 'GeneratedExclusion'
+}
+----
+
+Full source: `src/main/java/com/arc_e_tect/example/customannotation/GeneratedExclusion.java` and
+`GeneratedInvoiceSummary.java` (a class, constructor, and method all annotated with it).
+
 == Build And Run
 
 [source,bash]
 ----
-./gradlew -p examples/jacoco-exclusion-report-custom-annotation clean jacocoExclusionReport
+cd examples/jacoco-exclusion-report/custom-annotation
+./gradlew clean jacocoExclusionReport
 ----
 
 == What To Expect
 
 The build should pass.
-The report is written to `examples/jacoco-exclusion-report-custom-annotation/build/reports/jacoco-exclusions/`.
+The report is written to `build/reports/jacoco-exclusions/`.
 `index.html` shows the excluded element names with an empty justification column.
-`jacoco-exclusions.xml` omits the `justification` attribute entirely.
+`jacoco-exclusions.xml` omits the `justification` attribute entirely, unlike the standard example's report:
+
+[source,xml]
+----
+<!-- JaCoCo Exclusion Report – annotation: @GeneratedExclusion -->
+<testsuite name="com.arc_e_tect.example.customannotation" tests="3" failures="0" errors="0" skipped="0" ...>
+  <testcase classname="com.arc_e_tect.example.customannotation.GeneratedInvoiceSummary"
+            name="[class] GeneratedInvoiceSummary – line 5" time="0"/>
+  <testcase classname="com.arc_e_tect.example.customannotation.GeneratedInvoiceSummary"
+            name="[constructor] GeneratedInvoiceSummary(String, List&lt;String&gt;) – line 11" time="0"/>
+  <testcase classname="com.arc_e_tect.example.customannotation.GeneratedInvoiceSummary"
+            name="[method] render() – line 17" time="0"/>
+</testsuite>
+----
 
 == Source Layout
 

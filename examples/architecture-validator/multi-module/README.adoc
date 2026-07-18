@@ -15,6 +15,7 @@ It demonstrates both per-module validation and centralized report collection.
 
 [source,bash]
 ----
+cd examples/architecture-validator/multi-module
 ./gradlew clean testArchitecture
 ./gradlew aggregateArchitectureReports
 ----
@@ -25,10 +26,52 @@ The `app` module depends directly on `DatabaseAdapter` from the `adapters` modul
 That crosses the Hexagonal boundary and is reported by `:app:testArchitecture`.
 The subprojects are configured with `ignoreFailures = true`, so the build can complete while still surfacing violations in the reports.
 
+== Applying The Plugin Per Module
+
+The root `build.gradle` applies the plugin once, inside `subprojects { }`, and lets each module
+derive its own `basePackage` from `project.name` — each subproject only needs its own package
+patterns:
+
+[source,groovy]
+----
+subprojects {
+    apply plugin: 'java'
+    apply plugin: 'com.arc-e-tect.architecture-validator'
+
+    architectureValidator {
+        basePackage = "com.arc_e_tect.example.multi.${project.name}"
+        ignoreFailures = true
+        hexagonalArchitecture {
+            domainModel = ['..domain..', '..model..']
+            adapters = ['..adapters..', '..adapter..', '..persistence..']
+            applicationServices = ['..service..']
+            inPorts = ['..port.in..']
+            outPorts = ['..port.out..']
+        }
+    }
+}
+----
+
 == Reports
 
 Each module writes its own reports under its local `build/reports/architecture-validator/` directory.
-The root `aggregateArchitectureReports` task copies all module reports into `build/reports/architecture-validator/aggregate/`.
+The root `aggregateArchitectureReports` task copies all module reports into `build/reports/architecture-validator/aggregate/`:
+
+[source,groovy]
+----
+tasks.register('aggregateArchitectureReports', Copy) {
+    dependsOn(subprojects.collect { it.tasks.named('testArchitecture') })
+    into(layout.buildDirectory.dir('reports/architecture-validator/aggregate'))
+    subprojects.each { subproject ->
+        from(subproject.layout.buildDirectory.dir('reports/architecture-validator')) {
+            into(subproject.name)
+        }
+    }
+}
+----
+
+This is a plain Gradle `Copy` task, not plugin functionality — the pattern is reusable in any
+multi-module build that wants one place to look at every subproject's report.
 
 == Suggested Fix
 

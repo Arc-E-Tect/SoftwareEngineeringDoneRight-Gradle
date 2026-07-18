@@ -15,6 +15,7 @@ It also shows how to inspect the generated HTML and XML architecture reports.
 
 [source,bash]
 ----
+cd examples/architecture-validator/single-module-vanilla
 ./gradlew clean testArchitecture
 ----
 
@@ -25,6 +26,23 @@ The project is configured with `ignoreFailures = true`, so the task completes su
 
 Open `build/reports/architecture-validator/html/index.html` after running the suite.
 The XML report is written under `build/reports/architecture-validator/xml/`.
+
+== Pinning The JUnit Line
+
+[source,groovy]
+----
+architectureValidator {
+    basePackage = 'com.arc_e_tect.example.vanilla'
+    ignoreFailures = true
+    setJunitVersion(libs.versions.architecture.validator.junit.iff.get())
+}
+----
+
+`junitVersion` (set here via `setJunitVersion(...)` from the version catalog) controls the JUnit
+Jupiter and JUnit Platform Suite versions used by the generated `testArchitecture` suite, so they
+can be kept aligned with whichever JUnit line the rest of the build already depends on. This
+example pins JUnit `5.10.2` (see `gradle/libs.versions.toml`); the `single-module-hybrid` example
+pins `6.1.0` instead — the plugin supports either major line.
 
 == Suggested Fix
 

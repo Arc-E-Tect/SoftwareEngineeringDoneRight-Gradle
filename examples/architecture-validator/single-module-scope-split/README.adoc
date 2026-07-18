@@ -18,6 +18,7 @@ This example is intended to demonstrate scope separation.
 
 [source,bash]
 ----
+cd examples/architecture-validator/single-module-scope-split
 ./gradlew clean testArchitecture
 ----
 
@@ -32,6 +33,25 @@ Open `build/reports/architecture-validator/html/index.html` to inspect both grou
 == Key Files
 
 - `build.gradle`: sets `architectureValidator.basePackage = 'com.arc_e_tect.example.scopesplit.application'`.
+  This is the setting that actually creates the scope split: the plugin's generated tests only ever
+  see classes under this configured base package, regardless of what else exists in the module.
 - `src/main/java/com/arc_e_tect/example/scopesplit/application/...`: application and adapter classes validated by generated tests.
 - `src/main/java/com/arc_e_tect/example/scopesplit/platform/...`: non-application package used for local rule demo.
-- `src/testArchitecture/java/com/arc_e_tect/example/scopesplit/validation/PlatformPolicyConventionsTest.java`: local rule with its own `@AnalyzeClasses` scope.
+- `src/testArchitecture/java/com/arc_e_tect/example/scopesplit/validation/PlatformPolicyConventionsTest.java`: local rule with its own `@AnalyzeClasses` scope, independent of `basePackage`:
++
+[source,java]
+----
+@AnalyzeClasses(packages = "com.arc_e_tect.example.scopesplit.platform")
+class PlatformPolicyConventionsTest {
+
+    @ArchTest
+    static final ArchRule PLATFORM_TYPES_SHOULD_END_WITH_POLICY = classes()
+            .that().resideInAPackage("..platform..")
+            .should().haveSimpleNameEndingWith("Policy")
+            .because("Local testArchitecture tests can target package scopes different from generated plugin tests");
+}
+----
++
+Because a hand-written `testArchitecture` test declares its own `@AnalyzeClasses` scope, it is
+completely independent of `architectureValidator.basePackage` — this is what lets it validate the
+`platform` package even though the plugin's generated rules are scoped to `application` only.
