@@ -73,6 +73,7 @@ architectureValidator {
     failOnViolation = true
     maxAllowedViolations = 0
     ignoreFailures = false
+    rulesDisabled = ['DomainIsolationTest.applicationServicesShouldNotCarrySpringStereotypes']
     failOnDuplicateRules = false
     useBuiltInHexagonalRulePack = true
 
@@ -85,6 +86,7 @@ architectureValidator {
         adapters = ['..adapter..', '..adapters..']
         applicationServices = ['..application.domain.service..', '..application.service..']
         commonPackages = ['..application.common..']
+        namingConventionsEnabled = true
     }
 }
 ----
@@ -103,6 +105,7 @@ The default package patterns use `inbound` and `outbound` names to avoid collisi
 | `failOnViolation` | `true` | Enables the post-test violation threshold check.
 | `maxAllowedViolations` | `0` | Maximum number of failing architecture rule tests before the build fails.
 | `ignoreFailures` | `false` | Keeps the build green even when architecture tests fail.
+| `rulesDisabled` | `[]` | Comma-joined rule identifiers that built-in or external rule packs may choose to skip at runtime.
 | `failOnDuplicateRules` | `false` | Turns duplicate rule detection across local and external rule packs into a build failure instead of a warning.
 | `useBuiltInHexagonalRulePack` | `true` | Enables generation and execution of the built-in `HexagonalArchitectureTest`.
 |===
@@ -133,6 +136,13 @@ No plugin toggle is required.
 
 [source,groovy]
 ----
+architectureValidator {
+    rulesDisabled = ['DomainIsolationTest.applicationServicesShouldNotCarrySpringStereotypes']
+    hexagonalArchitecture {
+        namingConventionsEnabled = true
+    }
+}
+
 dependencies {
     testArchitectureImplementation 'com.arc-e-tect.architecture-validator:architecture-validator-hexagonal-spring-rules:<version>'
 }

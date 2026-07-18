@@ -129,6 +129,8 @@ public class ArchitectureValidatorPlugin implements Plugin<Project> {
         testTask.systemProperty("architectureValidator.outboundAdapters", String.join(",", extension.getHexagonalArchitecture().getOutboundAdapters().get()));
         testTask.systemProperty("architectureValidator.applicationServices", String.join(",", extension.getHexagonalArchitecture().getApplicationServices().get()));
         testTask.systemProperty("architectureValidator.commonPackages", String.join(",", extension.getHexagonalArchitecture().getCommonPackages().get()));
+        testTask.systemProperty("architectureValidator.rules.disabled", String.join(",", extension.getRulesDisabled().get()));
+        testTask.systemProperty("architectureValidator.namingConventions.enabled", String.valueOf(extension.getHexagonalArchitecture().getNamingConventionsEnabled().get()));
         testTask.getReports().getHtml().getOutputLocation().set(project.getLayout().getBuildDirectory().dir("reports/architecture-validator/html"));
         testTask.getReports().getJunitXml().getOutputLocation().set(project.getLayout().getBuildDirectory().dir("reports/architecture-validator/xml"));
 

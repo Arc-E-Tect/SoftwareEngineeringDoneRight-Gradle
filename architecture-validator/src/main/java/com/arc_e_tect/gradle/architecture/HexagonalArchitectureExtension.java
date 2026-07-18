@@ -2,6 +2,7 @@ package com.arc_e_tect.gradle.architecture;
 
 import org.gradle.api.model.ObjectFactory;
 import org.gradle.api.provider.ListProperty;
+import org.gradle.api.provider.Property;
 
 import javax.inject.Inject;
 import java.util.List;
@@ -16,6 +17,7 @@ public class HexagonalArchitectureExtension {
     private final ListProperty<String> outboundAdapters;
     private final ListProperty<String> applicationServices;
     private final ListProperty<String> commonPackages;
+    private final Property<Boolean> namingConventionsEnabled;
 
     @Inject
     public HexagonalArchitectureExtension(ObjectFactory objects) {
@@ -28,6 +30,7 @@ public class HexagonalArchitectureExtension {
         applicationServices = objects.listProperty(String.class)
                 .convention(List.of("..application.domain.service..", "..application.service.."));
         commonPackages = objects.listProperty(String.class).convention(List.of("..application.common.."));
+        namingConventionsEnabled = objects.property(Boolean.class).convention(false);
     }
 
     public ListProperty<String> getInPorts() {
@@ -60,5 +63,9 @@ public class HexagonalArchitectureExtension {
 
     public ListProperty<String> getCommonPackages() {
         return commonPackages;
+    }
+
+    public Property<Boolean> getNamingConventionsEnabled() {
+        return namingConventionsEnabled;
     }
 }

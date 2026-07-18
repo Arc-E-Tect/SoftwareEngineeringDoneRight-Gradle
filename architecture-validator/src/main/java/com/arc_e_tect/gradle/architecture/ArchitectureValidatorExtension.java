@@ -4,9 +4,11 @@ import org.gradle.api.Action;
 import org.gradle.api.file.DirectoryProperty;
 import org.gradle.api.file.ProjectLayout;
 import org.gradle.api.model.ObjectFactory;
+import org.gradle.api.provider.ListProperty;
 import org.gradle.api.provider.Property;
 
 import javax.inject.Inject;
+import java.util.List;
 
 public class ArchitectureValidatorExtension {
 
@@ -20,6 +22,7 @@ public class ArchitectureValidatorExtension {
     private final Property<Boolean> failOnDuplicateRules;
     private final Property<Boolean> useBuiltInHexagonalRulePack;
     private final Property<String> junitVersion;
+    private final ListProperty<String> rulesDisabled;
     private final HexagonalArchitectureExtension hexagonalArchitecture;
 
     @Inject
@@ -32,6 +35,7 @@ public class ArchitectureValidatorExtension {
         failOnDuplicateRules = objects.property(Boolean.class).convention(false);
         useBuiltInHexagonalRulePack = objects.property(Boolean.class).convention(true);
         junitVersion = objects.property(String.class).convention("6.1.0");
+        rulesDisabled = objects.listProperty(String.class).convention(List.of());
         hexagonalArchitecture = objects.newInstance(HexagonalArchitectureExtension.class);
     }
 
@@ -69,6 +73,10 @@ public class ArchitectureValidatorExtension {
 
     public void setJunitVersion(String junitVersion) {
         this.junitVersion.set(junitVersion);
+    }
+
+    public ListProperty<String> getRulesDisabled() {
+        return rulesDisabled;
     }
 
     public HexagonalArchitectureExtension getHexagonalArchitecture() {
