@@ -33,3 +33,5 @@ include::jacoco-exclusion-report/dsl/README.adoc[leveloffset=+1]
 include::gherkin-to-asciidoc/plain/README.adoc[leveloffset=+1]
 
 include::gherkin-to-asciidoc/progress-tracking/README.adoc[leveloffset=+1]
+
+include::gherkin-to-asciidoc/snippet-templates/README.adoc[leveloffset=+1]
