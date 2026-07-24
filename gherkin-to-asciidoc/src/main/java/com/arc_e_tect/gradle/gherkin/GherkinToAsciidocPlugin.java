@@ -14,7 +14,7 @@ import org.gradle.api.Project;
  * }
  *
  * gherkinToAsciidoc {
- *     sourceDir = layout.projectDirectory.dir('src/test/resources/features')
+ *     sourceDirs.from(layout.projectDirectory.dir('src/test/resources/features'))
  * }
  * </pre>
  *
@@ -48,13 +48,13 @@ public class GherkinToAsciidocPlugin implements Plugin<Project> {
         ext.getOutputFileName().convention(GherkinToAsciidocExtension.DEFAULT_OUTPUT_FILE_NAME);
 
         project.getTasks().register(TASK_NAME, GenerateFeatureDocsTask.class, task -> {
-            task.getSourceDir().set(ext.getSourceDir());
+            task.getSourceDirs().from(ext.getSourceDirs());
             task.getSourceFile().set(ext.getSourceFile());
             task.getIncludeSubDirs().set(ext.getIncludeSubDirs());
             task.getOutputDir().set(ext.getOutputDir());
             task.getOutputFileName().set(ext.getOutputFileName());
             task.getTrackProgress().set(ext.getTrackProgress());
-            task.getGlueCodeDir().set(ext.getGlueCodeDir());
+            task.getGlueCodeDirs().from(ext.getGlueCodeDirs());
             task.getProjectDirectory().set(project.getLayout().getProjectDirectory());
         });
     }

@@ -3,18 +3,23 @@
 
 == Description
 
-This example applies the Gherkin to AsciiDoc plugin with `trackProgress = true` against the same
-`authentication.feature` file used in the xref:../plain/README.adoc[plain example], plus a Cucumber-JVM glue
-code class, `LoginSteps`, that deliberately implements only some of the steps.
+This example applies the Gherkin to AsciiDoc plugin with `trackProgress = true` against two unrelated feature
+areas — `auth` and `billing` — each with its own feature file directory and its own Cucumber-JVM glue code
+directory, to demonstrate that `sourceDirs` and `glueCodeDirs` each accept more than one directory. The `auth`
+glue code (`LoginSteps`) deliberately implements only some of its steps; the `billing` glue code
+(`InvoiceSteps`) fully implements its scenario.
 
 == Intent
 
 This example shows how the plugin classifies every scenario as `listed`, `defined`, or `implemented` by
-cross-referencing scenario steps against `@Given`/`@When`/`@Then` step definitions in `glueCodeDir`, and how
-the generated document summarises that breakdown as a table of counts and percentages.
+cross-referencing scenario steps against `@Given`/`@When`/`@Then` step definitions found across every directory
+in `glueCodeDirs`, how the generated document summarises that breakdown as a table of counts and percentages,
+and how `sourceDirs`/`glueCodeDirs` aggregate feature files and glue code from multiple directories rather than
+requiring everything in one place.
 
-== The Feature File
+== The Feature Files
 
+.`src/test/resources/features-auth/authentication.feature`
 [source,gherkin]
 ----
 Feature: User authentication
@@ -38,10 +43,20 @@ Feature: User authentication
       | bob      | wrong    | failure |
 ----
 
-Full source: `src/test/resources/features/authentication.feature`.
+.`src/test/resources/features-billing/invoice.feature`
+[source,gherkin]
+----
+Feature: Invoice payment
+
+  Scenario: User pays an invoice
+    Given an outstanding invoice
+    When the user pays the invoice
+    Then the invoice is marked as paid
+----
 
 == The Glue Code
 
+.`src/test/java/com/arc_e_tect/example/auth/steps/LoginSteps.java`
 [source,java]
 ----
 public class LoginSteps {
@@ -57,24 +72,47 @@ public class LoginSteps {
 }
 ----
 
-Full source: `src/test/java/com/arc_e_tect/example/auth/steps/LoginSteps.java`.
-
 Note that no step definition matches `the user submits "<username>" and "<password>"` or
 `the result is "<outcome>"`, so the `Scenario Outline` ends up `defined` rather than `implemented` — every
 step needs matching glue code for a scenario to count as `implemented`.
+
+.`src/test/java/com/arc_e_tect/example/billing/steps/InvoiceSteps.java`
+[source,java]
+----
+public class InvoiceSteps {
+
+    @Given("an outstanding invoice")
+    public void anOutstandingInvoice() { ... }
+
+    @When("the user pays the invoice")
+    public void theUserPaysTheInvoice() { ... }
+
+    @Then("the invoice is marked as paid")
+    public void theInvoiceIsMarkedAsPaid() { ... }
+}
+----
+
+Every step here has a matching step definition, so `User pays an invoice` is classified as `implemented` —
+even though it lives in a completely separate feature/glue directory pair from the `auth` scenarios.
 
 == Configuration
 
 [source,groovy]
 ----
 gherkinToAsciidoc {
-    sourceDir     = file('src/test/resources/features')
-    glueCodeDir   = file('src/test/java/com/arc_e_tect/example/auth/steps')
+    sourceDirs.from(
+            'src/test/resources/features-auth',
+            'src/test/resources/features-billing')
+    glueCodeDirs.from(
+            'src/test/java/com/arc_e_tect/example/auth/steps',
+            'src/test/java/com/arc_e_tect/example/billing/steps')
     trackProgress = true
 }
 ----
 
-`includeSubDirs` doesn't need to be set explicitly: enabling `trackProgress` implies it.
+`includeSubDirs` doesn't need to be set explicitly: enabling `trackProgress` implies it. `sourceDirs` and
+`glueCodeDirs` don't need to line up one-to-one — every feature file found across all of `sourceDirs` is
+checked against the combined set of step definitions found across all of `glueCodeDirs`.
 
 == Build And Run
 
@@ -92,6 +130,25 @@ The build is expected to pass. The plugin writes `build/generated-docs/features.
 ----
 = Feature Scenarios
 
+This document lists every `Scenario` and `Scenario Outline` found under the configured feature file
+directories, classified by how far each one is toward being automated.
+
+Every scenario is classified as exactly one of:
+
+[cols="1,3",options="header"]
+|===
+| Status | Meaning
+
+| Listed
+| Scenarios with a title only. No `Given`/`When`/`Then` steps have been written for them yet.
+
+| Defined
+| Scenarios with steps written, but at least one step has no matching glue code yet.
+
+| Implemented
+| Scenarios whose every step has matching glue code.
+|===
+
 == Progress Summary
 
 [cols="1,1,1",options="header"]
@@ -100,27 +157,34 @@ The build is expected to pass. The plugin writes `build/generated-docs/features.
 
 | Listed
 | 1
-| 33.3%
+| 25.0%
 
 | Defined
 | 1
-| 33.3%
+| 25.0%
 
 | Implemented
-| 1
-| 33.4%
+| 2
+| 50.0%
 
 |===
 
 == Listed
 
+Scenarios with a title only. No `Given`/`When`/`Then` steps have been written for them yet.
+
 * Scenario: User requests a password reset
 
 == Defined
+
+Scenarios with steps written, but at least one step has no matching glue code yet.
 
 * Scenario Outline: User logs in with different credential sets
 
 == Implemented
 
+Scenarios whose every step has matching glue code.
+
 * Scenario: User logs in successfully
+* Scenario: User pays an invoice
 ----

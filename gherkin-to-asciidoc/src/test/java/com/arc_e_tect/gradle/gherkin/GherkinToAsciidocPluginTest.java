@@ -40,6 +40,15 @@ class GherkinToAsciidocPluginTest {
     }
 
     @Test
+    @DisplayName("extension default: sourceDirs is empty")
+    void extensionDefaultSourceDirsIsEmpty() {
+        Project project = projectWithPlugin();
+        GherkinToAsciidocExtension ext = extension(project);
+
+        assertThat(ext.getSourceDirs().isEmpty()).isTrue();
+    }
+
+    @Test
     @DisplayName("extension default: trackProgress is false")
     void extensionDefaultTrackProgressIsFalse() {
         Project project = projectWithPlugin();
@@ -90,7 +99,7 @@ class GherkinToAsciidocPluginTest {
         File outputDir = new File(tempDir.toFile(), "output");
 
         GenerateFeatureDocsTask task = task(project);
-        task.getSourceDir().set(featuresDir);
+        task.getSourceDirs().from(featuresDir);
         task.getOutputDir().set(outputDir);
         task.getProjectDirectory().set(project.getLayout().getProjectDirectory());
         task.generate();
@@ -99,6 +108,33 @@ class GherkinToAsciidocPluginTest {
         assertThat(outputFile).exists();
         List<String> lines = Files.readAllLines(outputFile.toPath(), StandardCharsets.UTF_8);
         assertThat(lines).contains("* Scenario: New user signs up");
+    }
+
+    @Test
+    @DisplayName("generates features.adoc from multiple source directories")
+    void generatesAsciidocFromMultipleSourceDirectories() throws IOException {
+        Project project = projectWithPlugin();
+        File firstDir = new File(tempDir.toFile(), "features-a");
+        File secondDir = new File(tempDir.toFile(), "features-b");
+        firstDir.mkdirs();
+        secondDir.mkdirs();
+        writeFeatureFile(firstDir, "signup.feature",
+                "Feature: Sign Up\n\n  Scenario: New user signs up\n    Given the sign-up page\n");
+        writeFeatureFile(secondDir, "login.feature",
+                "Feature: Login\n\n  Scenario: User logs in\n    Given the login page\n");
+
+        File outputDir = new File(tempDir.toFile(), "output");
+
+        GenerateFeatureDocsTask task = task(project);
+        task.getSourceDirs().from(firstDir, secondDir);
+        task.getOutputDir().set(outputDir);
+        task.getProjectDirectory().set(project.getLayout().getProjectDirectory());
+        task.generate();
+
+        String content = Files.readString(new File(outputDir, "features.adoc").toPath());
+        assertThat(content)
+                .contains("* Scenario: New user signs up")
+                .contains("* Scenario: User logs in");
     }
 
     @Test
@@ -137,7 +173,7 @@ class GherkinToAsciidocPluginTest {
         File outputDir = new File(tempDir.toFile(), "output");
 
         GenerateFeatureDocsTask task = task(project);
-        task.getSourceDir().set(rootDir);
+        task.getSourceDirs().from(rootDir);
         task.getIncludeSubDirs().set(true);
         task.getOutputDir().set(outputDir);
         task.getProjectDirectory().set(project.getLayout().getProjectDirectory());
@@ -150,22 +186,22 @@ class GherkinToAsciidocPluginTest {
     }
 
     @Test
-    @DisplayName("throws GradleException when both sourceDir and sourceFile are configured")
-    void throwsWhenBothSourceDirAndSourceFileAreSet() throws IOException {
+    @DisplayName("throws GradleException when both sourceDirs and sourceFile are configured")
+    void throwsWhenBothSourceDirsAndSourceFileAreSet() throws IOException {
         Project project = projectWithPlugin();
         File dir = tempDir.toFile();
         File file = tempDir.resolve("single.feature").toFile();
         Files.writeString(file.toPath(), "Feature: F\n  Scenario: S\n    Given g\n");
 
         GenerateFeatureDocsTask task = task(project);
-        task.getSourceDir().set(dir);
+        task.getSourceDirs().from(dir);
         task.getSourceFile().set(file);
         task.getOutputDir().set(new File(tempDir.toFile(), "output"));
         task.getProjectDirectory().set(project.getLayout().getProjectDirectory());
 
         assertThatThrownBy(task::generate)
                 .isInstanceOf(org.gradle.api.GradleException.class)
-                .hasMessageContaining("sourceDir and sourceFile are mutually exclusive");
+                .hasMessageContaining("sourceDirs and sourceFile are mutually exclusive");
     }
 
     @Test
@@ -187,8 +223,8 @@ class GherkinToAsciidocPluginTest {
     }
 
     @Test
-    @DisplayName("throws GradleException when trackProgress is enabled without sourceDir")
-    void throwsWhenTrackProgressEnabledWithoutSourceDir() throws IOException {
+    @DisplayName("throws GradleException when trackProgress is enabled without sourceDirs")
+    void throwsWhenTrackProgressEnabledWithoutSourceDirs() throws IOException {
         Project project = projectWithPlugin();
         File file = tempDir.resolve("single.feature").toFile();
         Files.writeString(file.toPath(), "Feature: F\n  Scenario: S\n    Given g\n");
@@ -198,32 +234,32 @@ class GherkinToAsciidocPluginTest {
         GenerateFeatureDocsTask task = task(project);
         task.getSourceFile().set(file);
         task.getTrackProgress().set(true);
-        task.getGlueCodeDir().set(glueCodeDir);
+        task.getGlueCodeDirs().from(glueCodeDir);
         task.getOutputDir().set(new File(tempDir.toFile(), "output"));
         task.getProjectDirectory().set(project.getLayout().getProjectDirectory());
 
         assertThatThrownBy(task::generate)
                 .isInstanceOf(org.gradle.api.GradleException.class)
-                .hasMessageContaining("trackProgress can only be enabled when sourceDir is configured");
+                .hasMessageContaining("trackProgress can only be enabled when sourceDirs is configured");
     }
 
     @Test
-    @DisplayName("throws GradleException when trackProgress is enabled without glueCodeDir")
-    void throwsWhenTrackProgressEnabledWithoutGlueCodeDir() throws IOException {
+    @DisplayName("throws GradleException when trackProgress is enabled without glueCodeDirs")
+    void throwsWhenTrackProgressEnabledWithoutGlueCodeDirs() throws IOException {
         Project project = projectWithPlugin();
         File featuresDir = new File(tempDir.toFile(), "features");
         featuresDir.mkdirs();
         writeFeatureFile(featuresDir, "sample.feature", "Feature: F\n  Scenario: S\n    Given g\n");
 
         GenerateFeatureDocsTask task = task(project);
-        task.getSourceDir().set(featuresDir);
+        task.getSourceDirs().from(featuresDir);
         task.getTrackProgress().set(true);
         task.getOutputDir().set(new File(tempDir.toFile(), "output"));
         task.getProjectDirectory().set(project.getLayout().getProjectDirectory());
 
         assertThatThrownBy(task::generate)
                 .isInstanceOf(org.gradle.api.GradleException.class)
-                .hasMessageContaining("trackProgress requires glueCodeDir to be configured");
+                .hasMessageContaining("trackProgress requires glueCodeDirs to be configured");
     }
 
     @Test
@@ -239,10 +275,10 @@ class GherkinToAsciidocPluginTest {
         glueCodeDir.mkdirs();
 
         GenerateFeatureDocsTask task = task(project);
-        task.getSourceDir().set(rootDir);
+        task.getSourceDirs().from(rootDir);
         task.getIncludeSubDirs().set(false);
         task.getTrackProgress().set(true);
-        task.getGlueCodeDir().set(glueCodeDir);
+        task.getGlueCodeDirs().from(glueCodeDir);
         File outputDir = new File(tempDir.toFile(), "output");
         task.getOutputDir().set(outputDir);
         task.getProjectDirectory().set(project.getLayout().getProjectDirectory());
@@ -284,9 +320,9 @@ class GherkinToAsciidocPluginTest {
         File outputDir = new File(tempDir.toFile(), "output");
 
         GenerateFeatureDocsTask task = task(project);
-        task.getSourceDir().set(featuresDir);
+        task.getSourceDirs().from(featuresDir);
         task.getTrackProgress().set(true);
-        task.getGlueCodeDir().set(glueCodeDir);
+        task.getGlueCodeDirs().from(glueCodeDir);
         task.getOutputDir().set(outputDir);
         task.getProjectDirectory().set(project.getLayout().getProjectDirectory());
         task.generate();
@@ -303,6 +339,54 @@ class GherkinToAsciidocPluginTest {
     }
 
     @Test
+    @DisplayName("aggregates feature files and glue code from multiple directories each")
+    void aggregatesFeaturesAndGlueCodeFromMultipleDirectories() throws IOException {
+        Project project = projectWithPlugin();
+        File authFeatures = new File(tempDir.toFile(), "features-auth");
+        File billingFeatures = new File(tempDir.toFile(), "features-billing");
+        authFeatures.mkdirs();
+        billingFeatures.mkdirs();
+        writeFeatureFile(authFeatures, "login.feature",
+                "Feature: Login\n\n  Scenario: User logs in\n    Given the login page is open\n");
+        writeFeatureFile(billingFeatures, "invoice.feature",
+                "Feature: Invoice\n\n  Scenario: User pays an invoice\n    Given an outstanding invoice\n");
+
+        File authSteps = new File(tempDir.toFile(), "steps-auth");
+        File billingSteps = new File(tempDir.toFile(), "steps-billing");
+        authSteps.mkdirs();
+        billingSteps.mkdirs();
+        Files.writeString(new File(authSteps, "LoginSteps.java").toPath(), """
+                public class LoginSteps {
+                    @Given("the login page is open")
+                    public void loginPageOpen() {}
+                }
+                """);
+        Files.writeString(new File(billingSteps, "InvoiceSteps.java").toPath(), """
+                public class InvoiceSteps {
+                    @Given("an outstanding invoice")
+                    public void outstandingInvoice() {}
+                }
+                """);
+
+        File outputDir = new File(tempDir.toFile(), "output");
+
+        GenerateFeatureDocsTask task = task(project);
+        task.getSourceDirs().from(authFeatures, billingFeatures);
+        task.getTrackProgress().set(true);
+        task.getGlueCodeDirs().from(authSteps, billingSteps);
+        task.getOutputDir().set(outputDir);
+        task.getProjectDirectory().set(project.getLayout().getProjectDirectory());
+        task.generate();
+
+        String content = Files.readString(new File(outputDir, "features.adoc").toPath());
+        assertThat(content)
+                .contains("== Implemented", "* Scenario: User logs in", "* Scenario: User pays an invoice")
+                .contains("== Defined" + System.lineSeparator() + System.lineSeparator()
+                        + "Scenarios with steps written, but at least one step has no matching glue code yet."
+                        + System.lineSeparator() + System.lineSeparator() + "_None._");
+    }
+
+    @Test
     @DisplayName("output file starts with = Feature Scenarios header")
     void outputFileContainsHeader() throws IOException {
         Project project = projectWithPlugin();
@@ -314,7 +398,7 @@ class GherkinToAsciidocPluginTest {
         File outputDir = new File(tempDir.toFile(), "output");
 
         GenerateFeatureDocsTask task = task(project);
-        task.getSourceDir().set(featuresDir);
+        task.getSourceDirs().from(featuresDir);
         task.getOutputDir().set(outputDir);
         task.getProjectDirectory().set(project.getLayout().getProjectDirectory());
         task.generate();

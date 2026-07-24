@@ -22,6 +22,13 @@ import java.util.Map;
  */
 public class ProgressReportWriter {
 
+    private static final String LISTED_BLURB =
+            "Scenarios with a title only. No `Given`/`When`/`Then` steps have been written for them yet.";
+    private static final String DEFINED_BLURB =
+            "Scenarios with steps written, but at least one step has no matching glue code yet.";
+    private static final String IMPLEMENTED_BLURB =
+            "Scenarios whose every step has matching glue code.";
+
     private final ScenarioClassifier classifier = new ScenarioClassifier();
 
     /** Creates a new {@code ProgressReportWriter}. */
@@ -32,7 +39,7 @@ public class ProgressReportWriter {
      *
      * @param outputFile the AsciiDoc file to write
      * @param scenarios  the scenarios to report on
-     * @param glueCode   step definition patterns found in the configured glue code directory
+     * @param glueCode   step definition patterns found in the configured glue code directories
      */
     public void write(File outputFile, List<ScenarioInfo> scenarios, List<Expression> glueCode) {
         Map<ScenarioStatus, List<String>> titlesByStatus = new EnumMap<>(ScenarioStatus.class);
@@ -47,23 +54,48 @@ public class ProgressReportWriter {
         try (PrintWriter writer = new PrintWriter(outputFile, StandardCharsets.UTF_8)) {
             writer.println("= Feature Scenarios");
             writer.println();
+            writer.println("This document lists every `Scenario` and `Scenario Outline` found under the "
+                    + "configured feature file directories, classified by how far each one is toward being "
+                    + "automated.");
+            writer.println();
 
             if (scenarios.isEmpty()) {
                 writer.println("No scenarios found.");
                 return;
             }
 
+            writeStatusLegend(writer);
+
             writer.println("== Progress Summary");
             writer.println();
             writeSummaryTable(writer, titlesByStatus, scenarios.size());
             writer.println();
 
-            writeSection(writer, "Listed", titlesByStatus.get(ScenarioStatus.LISTED));
-            writeSection(writer, "Defined", titlesByStatus.get(ScenarioStatus.DEFINED));
-            writeSection(writer, "Implemented", titlesByStatus.get(ScenarioStatus.IMPLEMENTED));
+            writeSection(writer, "Listed", LISTED_BLURB, titlesByStatus.get(ScenarioStatus.LISTED));
+            writeSection(writer, "Defined", DEFINED_BLURB, titlesByStatus.get(ScenarioStatus.DEFINED));
+            writeSection(writer, "Implemented", IMPLEMENTED_BLURB, titlesByStatus.get(ScenarioStatus.IMPLEMENTED));
         } catch (IOException e) {
             throw new GradleException("gherkinToAsciidoc: failed to write AsciiDoc file: " + outputFile, e);
         }
+    }
+
+    private void writeStatusLegend(PrintWriter writer) {
+        writer.println("Every scenario is classified as exactly one of:");
+        writer.println();
+        writer.println("[cols=\"1,3\",options=\"header\"]");
+        writer.println("|===");
+        writer.println("| Status | Meaning");
+        writer.println();
+        writer.println("| Listed");
+        writer.println("| " + LISTED_BLURB);
+        writer.println();
+        writer.println("| Defined");
+        writer.println("| " + DEFINED_BLURB);
+        writer.println();
+        writer.println("| Implemented");
+        writer.println("| " + IMPLEMENTED_BLURB);
+        writer.println("|===");
+        writer.println();
     }
 
     private void writeSummaryTable(PrintWriter writer, Map<ScenarioStatus, List<String>> titlesByStatus, int total) {
@@ -103,8 +135,10 @@ public class ProgressReportWriter {
                 .divide(BigDecimal.valueOf(total), 1, RoundingMode.HALF_UP);
     }
 
-    private void writeSection(PrintWriter writer, String heading, List<String> titles) {
+    private void writeSection(PrintWriter writer, String heading, String blurb, List<String> titles) {
         writer.println("== " + heading);
+        writer.println();
+        writer.println(blurb);
         writer.println();
         if (titles.isEmpty()) {
             writer.println("_None._");

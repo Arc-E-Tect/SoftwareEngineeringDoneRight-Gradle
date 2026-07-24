@@ -20,13 +20,21 @@ dependencies {
 }
 
 test {
-    // LoginSteps is glue code for gherkinToAsciidoc's glueCodeDir scanning, not a
-    // JUnit test suite - there's nothing for the test task to discover and run.
+    // LoginSteps/InvoiceSteps are glue code for gherkinToAsciidoc's glueCodeDirs
+    // scanning, not a JUnit test suite - there's nothing for the test task to
+    // discover and run.
     failOnNoDiscoveredTests = false
 }
 
 gherkinToAsciidoc {
-    sourceDir      = file('src/test/resources/features')
-    glueCodeDir    = file('src/test/java/com/arc_e_tect/example/auth/steps')
-    trackProgress  = true
+    // Two unrelated feature areas, each with its own feature file directory and
+    // glue code directory, to demonstrate that sourceDirs/glueCodeDirs aggregate
+    // across as many directories as configured.
+    sourceDirs.from(
+            'src/test/resources/features-auth',
+            'src/test/resources/features-billing')
+    glueCodeDirs.from(
+            'src/test/java/com/arc_e_tect/example/auth/steps',
+            'src/test/java/com/arc_e_tect/example/billing/steps')
+    trackProgress = true
 }

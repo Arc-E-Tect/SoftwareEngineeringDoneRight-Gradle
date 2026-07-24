@@ -1,5 +1,6 @@
 package com.arc_e_tect.gradle.gherkin;
 
+import org.gradle.api.file.ConfigurableFileCollection;
 import org.gradle.api.file.DirectoryProperty;
 import org.gradle.api.file.RegularFileProperty;
 import org.gradle.api.provider.Property;
@@ -9,12 +10,12 @@ import org.gradle.api.provider.Property;
  *
  * <pre>
  * gherkinToAsciidoc {
- *     sourceDir      = layout.projectDirectory.dir('src/test/resources/features')  // default
+ *     sourceDirs.from('src/test/resources/features')                                // default
  *     includeSubDirs = false                                                        // default
  *     outputDir      = layout.buildDirectory.dir('generated-docs')                 // default
  *     outputFileName = 'features.adoc'                                             // default
  *     trackProgress  = false                                                        // default
- *     // glueCodeDir = layout.projectDirectory.dir('src/test/java/.../steps')       // required when trackProgress = true
+ *     // glueCodeDirs.from('src/test/java/.../steps')                              // required when trackProgress = true
  * }
  * </pre>
  */
@@ -33,25 +34,26 @@ public abstract class GherkinToAsciidocExtension {
     public static final String DEFAULT_OUTPUT_FILE_NAME = "features.adoc";
 
     /**
-     * Source directory that contains the {@code .feature} files to process.
+     * Source directories that contain the {@code .feature} files to process. One or more
+     * directories may be configured, e.g. via {@code sourceDirs.from(file('a'), file('b'))}.
      * Mutually exclusive with {@link #getSourceFile()}.
      *
-     * @return mutable directory property for the feature file source directory
+     * @return mutable file collection of feature file source directories
      */
-    public abstract DirectoryProperty getSourceDir();
+    public abstract ConfigurableFileCollection getSourceDirs();
 
     /**
      * A single {@code .feature} file to process.
-     * Mutually exclusive with {@link #getSourceDir()}.
+     * Mutually exclusive with {@link #getSourceDirs()}.
      *
      * @return mutable file property for a single feature file
      */
     public abstract RegularFileProperty getSourceFile();
 
     /**
-     * Whether to recursively scan sub-directories when {@link #getSourceDir()} is used.
-     * Defaults to {@code false}. Forced to {@code true} whenever {@link #getTrackProgress()}
-     * is {@code true}.
+     * Whether to recursively scan sub-directories of every configured directory in
+     * {@link #getSourceDirs()}. Defaults to {@code false}. Forced to {@code true} whenever
+     * {@link #getTrackProgress()} is {@code true}.
      *
      * @return mutable boolean property controlling recursive directory scanning
      */
@@ -78,7 +80,7 @@ public abstract class GherkinToAsciidocExtension {
      * {@code implemented} and include a progress summary in the generated AsciiDoc.
      * Defaults to {@code false}.
      *
-     * <p>Can only be enabled when {@link #getSourceDir()} and {@link #getGlueCodeDir()}
+     * <p>Can only be enabled when {@link #getSourceDirs()} and {@link #getGlueCodeDirs()}
      * are both configured; enabling it also implies {@link #getIncludeSubDirs()}.</p>
      *
      * @return mutable boolean property controlling progress tracking
@@ -86,11 +88,12 @@ public abstract class GherkinToAsciidocExtension {
     public abstract Property<Boolean> getTrackProgress();
 
     /**
-     * Directory containing the Cucumber-JVM glue code (step definitions) used to
-     * determine whether a scenario's steps are implemented. Required when
+     * Directories containing the Cucumber-JVM glue code (step definitions) used to
+     * determine whether a scenario's steps are implemented. One or more directories may be
+     * configured, e.g. via {@code glueCodeDirs.from(file('a'), file('b'))}. Required when
      * {@link #getTrackProgress()} is {@code true}; ignored otherwise.
      *
-     * @return mutable directory property for the glue code directory
+     * @return mutable file collection of glue code directories
      */
-    public abstract DirectoryProperty getGlueCodeDir();
+    public abstract ConfigurableFileCollection getGlueCodeDirs();
 }

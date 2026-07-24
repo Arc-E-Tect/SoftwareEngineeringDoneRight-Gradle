@@ -27,6 +27,24 @@ class ProgressReportWriterTest {
             new ExpressionFactory(new ParameterTypeRegistry(Locale.ENGLISH));
 
     @Test
+    @DisplayName("includes an intro paragraph and a status legend explaining what each status means")
+    void includesIntroAndStatusLegend(@TempDir Path tempDir) throws IOException {
+        ScenarioInfo listed = new ScenarioInfo("Scenario: Only a title", List.of());
+
+        File outputFile = tempDir.resolve("features.adoc").toFile();
+        writer.write(outputFile, List.of(listed), List.of());
+
+        String content = Files.readString(outputFile.toPath(), StandardCharsets.UTF_8);
+        assertThat(content)
+                .contains("This document lists every `Scenario` and `Scenario Outline`")
+                .contains("Every scenario is classified as exactly one of:")
+                .contains("| Status | Meaning")
+                .contains("No `Given`/`When`/`Then` steps have been written for them yet.")
+                .contains("at least one step has no matching glue code yet.")
+                .contains("Scenarios whose every step has matching glue code.");
+    }
+
+    @Test
     @DisplayName("reports scenarios under Listed, Defined and Implemented headings")
     void reportsScenariosUnderEachHeading(@TempDir Path tempDir) throws IOException {
         ScenarioInfo listed = new ScenarioInfo("Scenario: Only a title", List.of());
@@ -89,7 +107,7 @@ class ProgressReportWriterTest {
         writer.write(outputFile, List.of(implemented), glueCode);
 
         String content = Files.readString(outputFile.toPath(), StandardCharsets.UTF_8);
-        assertThat(content).contains("== Listed" + System.lineSeparator() + System.lineSeparator() + "_None._");
+        assertThat(content).contains("== Listed", "_None._");
     }
 
     @Test
