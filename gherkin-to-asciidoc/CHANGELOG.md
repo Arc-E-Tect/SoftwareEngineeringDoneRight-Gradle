@@ -1,3 +1,10 @@
+# [1.1.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/v1.0.0...v1.1.0) (2026-07-24)
+
+
+### ✨ New and updated features
+
+* **gherkin-to-asciidoc:** group scenarios by feature in the generated report ([#78](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/78)) ([ea9d37d](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/ea9d37d481484c0e5a0eba732cb01a7c410dd62c)), closes [#78](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/78)
+
 # [1.0.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/v0.8.0...v1.0.0) (2026-07-24)
 
 
