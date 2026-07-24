@@ -1,3 +1,64 @@
+# [1.0.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/v0.8.0...v1.0.0) (2026-07-24)
+
+
+### ✨ New and updated features
+
+* **gherking-to-asciidoc:** update AsciiDoc generation with multi-directory support and explanations ([#77](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/77)) ([34502cd](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/34502cdf45e15c04435802d462cb9dbdba0ef501)), closes [#77](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/77)
+
+
+### 🐛 Bug Fixes
+
+* **gherkin-to-asciidoc:** stop CI test task failure in progress-tracking example ([#75](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/75)) ([c1bff23](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/c1bff2352a384b2f898f79e2ac20adfca10dc7e1)), closes [#75](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/75)
+
+
+### 👷 CI/CD
+
+* narrow plugin build workflow triggers to their own dependencies ([#76](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/76)) ([de157e9](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/de157e9a29305607eb8d730a3563f5233bba9ae7)), closes [#76](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/76) [#74](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/74)
+
+
+### BREAKING CHANGE
+
+* **gherking-to-asciidoc:** the sourceDir and glueCodeDir DSL properties have been
+removed in favour of sourceDirs and glueCodeDirs. Existing
+configuration such as `sourceDir = file('...')` must be changed to
+`sourceDirs.from(file('...'))` (and likewise for glueCodeDir ->
+glueCodeDirs).
+
+* docs(gherkin-to-asciidoc): demonstrate multi-directory support in examples
+
+Splits the progress-tracking example into two unrelated feature areas,
+auth and billing, each with its own feature file directory and its own
+glue code directory, wired up via sourceDirs.from(...) and
+glueCodeDirs.from(...). Adds a fully-implemented InvoiceSteps/
+invoice.feature pair for billing so the generated report shows a
+scenario from a completely separate directory pair correctly counted
+as implemented, proving the aggregation actually spans directories
+rather than just documenting that it should.
+
+Bumps both examples' pinned plugin version to 1.0.0 (the next version
+given the breaking DSL rename in the previous commit). Verified against
+a local publishToMavenLocal build before pinning, same as with the
+trackProgress feature: won't build against the Gradle Plugin Portal
+until 1.0.0 is actually released.
+
+* feat(gherkin-to-asciidoc): explain report contents and status meanings in the output itself
+
+The generated AsciiDoc previously jumped straight from the title into
+bullet lists (or the progress table), with no explanation of what the
+document contains - readers had to already know the plugin's
+conventions, or go read the README, to understand it.
+
+Plain mode now opens with a one-line description of what the document
+lists. Progress-tracking mode additionally explains, in the document
+itself, what listed/defined/implemented mean via a status legend table
+right after the intro, and repeats the relevant one-line explanation
+under each of the Listed/Defined/Implemented headings so a reader who
+jumps straight to one section still gets the context without having to
+scroll back up.
+
+Verified end-to-end against both example projects via a temporary
+publishToMavenLocal build, same as previous feature verifications.
+
 # [0.8.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/v0.7.2...v0.8.0) (2026-07-24)
 
 
