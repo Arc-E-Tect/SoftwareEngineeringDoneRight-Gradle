@@ -19,6 +19,12 @@ dependencies {
     testImplementation libs.cucumber.java
 }
 
+test {
+    // LoginSteps is glue code for gherkinToAsciidoc's glueCodeDir scanning, not a
+    // JUnit test suite - there's nothing for the test task to discover and run.
+    failOnNoDiscoveredTests = false
+}
+
 gherkinToAsciidoc {
     sourceDir      = file('src/test/resources/features')
     glueCodeDir    = file('src/test/java/com/arc_e_tect/example/auth/steps')
