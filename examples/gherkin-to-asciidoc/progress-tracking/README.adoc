@@ -173,11 +173,15 @@ Every scenario is classified as exactly one of:
 
 Scenarios with a title only. No `Given`/`When`/`Then` steps have been written for them yet.
 
+=== User authentication
+
 * Scenario: User requests a password reset
 
 == Defined
 
 Scenarios with steps written, but at least one step has no matching glue code yet.
+
+=== User authentication
 
 * Scenario Outline: User logs in with different credential sets
 
@@ -185,6 +189,14 @@ Scenarios with steps written, but at least one step has no matching glue code ye
 
 Scenarios whose every step has matching glue code.
 
+=== User authentication
+
 * Scenario: User logs in successfully
+
+=== Invoice payment
+
 * Scenario: User pays an invoice
 ----
+
+Note how `Implemented` is further broken down by feature — `trackProgress` always implies `groupByFeature`, so
+scenarios from `auth` and `billing` are grouped separately even within the same status.
