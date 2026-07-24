@@ -62,16 +62,19 @@ All properties have sensible defaults and do not need to be set for a typical pr
 [source,groovy]
 ----
 gherkinToAsciidoc {
-    // Directory containing .feature files to scan (scanned non-recursively by default).
-    // Default: 'src/test/resources/features' relative to the project directory.
+    // One or more directories containing .feature files to scan (scanned non-recursively
+    // by default). Default: 'src/test/resources/features' relative to the project directory,
+    // used only when sourceDirs is left empty and sourceFile is not set.
     // Mutually exclusive with sourceFile.
-    sourceDir = file('src/test/resources/features')
+    sourceDirs.from('src/test/resources/features')
+    // Add more directories by calling .from(...) again, or in the same call:
+    // sourceDirs.from('src/test/resources/features', 'src/test/resources/more-features')
 
-    // Single .feature file to parse instead of a directory.
-    // Mutually exclusive with sourceDir and includeSubDirs.
+    // Single .feature file to parse instead of sourceDirs.
+    // Mutually exclusive with sourceDirs and includeSubDirs.
     // sourceFile = file('src/test/resources/features/login.feature')
 
-    // When true, recursively scan all sub-directories under sourceDir.
+    // When true, recursively scan all sub-directories of every directory in sourceDirs.
     // Cannot be used when sourceFile is set.
     // Default: false
     includeSubDirs = false
@@ -87,14 +90,14 @@ gherkinToAsciidoc {
     // When true, classifies every scenario as "listed", "defined", or "implemented"
     // and adds a progress summary to the generated AsciiDoc file (see "Tracking
     // Implementation Progress" below).
-    // Requires sourceDir and glueCodeDir to be set; implies includeSubDirs = true.
+    // Requires sourceDirs and glueCodeDirs to be set; implies includeSubDirs = true.
     // Default: false
     trackProgress = false
 
-    // Directory containing the Cucumber-JVM glue code (step definitions), scanned
-    // recursively for @Given/@When/@Then step definition patterns.
+    // One or more directories containing the Cucumber-JVM glue code (step definitions),
+    // each scanned recursively for @Given/@When/@Then step definition patterns.
     // Required when trackProgress is true; ignored otherwise.
-    // glueCodeDir = file('src/test/java/com/example/steps')
+    // glueCodeDirs.from('src/test/java/com/example/steps')
 }
 ----
 
@@ -102,12 +105,12 @@ gherkinToAsciidoc {
 [source,kotlin]
 ----
 gherkinToAsciidoc {
-    sourceDir.set(file("src/test/resources/features"))
+    sourceDirs.from("src/test/resources/features")
     includeSubDirs.set(false)
     outputDir.set(layout.buildDirectory.dir("generated-docs"))
     outputFileName.set("features.adoc")
     trackProgress.set(false)
-    // glueCodeDir.set(file("src/test/java/com/example/steps"))
+    // glueCodeDirs.from("src/test/java/com/example/steps")
 }
 ----
 
@@ -115,29 +118,29 @@ gherkinToAsciidoc {
 
 [cols="1,1,1,3",options="header"]
 |===
-| Property        | Type      | Default                              | Description
-| `sourceDir`     | Directory | `src/test/resources/features`        | Directory containing `.feature` files to scan.
+| Property        | Type            | Default                              | Description
+| `sourceDirs`    | File collection | `src/test/resources/features`        | One or more directories containing `.feature` files to scan.
 Mutually exclusive with `sourceFile`.
-| `sourceFile`    | File      | —                                    | Single `.feature` file to parse.
-Mutually exclusive with `sourceDir` and `includeSubDirs`.
-| `includeSubDirs`| Boolean   | `false`                              | When `true`, recursively scans all sub-directories under `sourceDir`.
+| `sourceFile`    | File            | —                                    | Single `.feature` file to parse.
+Mutually exclusive with `sourceDirs` and `includeSubDirs`.
+| `includeSubDirs`| Boolean         | `false`                              | When `true`, recursively scans all sub-directories of every directory in `sourceDirs`.
 Cannot be combined with `sourceFile`.
-| `outputDir`     | Directory | `$buildDir/generated-docs`           | Directory where the generated AsciiDoc file is written.
-| `outputFileName`| String    | `features.adoc`                      | Name of the generated AsciiDoc file.
-| `trackProgress` | Boolean   | `false`                              | When `true`, classifies every scenario as `listed`, `defined`, or `implemented` and adds a progress summary to the generated document.
-Requires `sourceDir` and `glueCodeDir`; implies `includeSubDirs = true`.
-| `glueCodeDir`   | Directory | —                                    | Directory containing the Cucumber-JVM glue code, scanned recursively for step definitions.
+| `outputDir`     | Directory       | `$buildDir/generated-docs`           | Directory where the generated AsciiDoc file is written.
+| `outputFileName`| String          | `features.adoc`                      | Name of the generated AsciiDoc file.
+| `trackProgress` | Boolean         | `false`                              | When `true`, classifies every scenario as `listed`, `defined`, or `implemented` and adds a progress summary to the generated document.
+Requires `sourceDirs` and `glueCodeDirs`; implies `includeSubDirs = true`.
+| `glueCodeDirs`  | File collection | —                                    | One or more directories containing the Cucumber-JVM glue code, each scanned recursively for step definitions.
 Required when `trackProgress` is `true`.
 |===
 
 [IMPORTANT]
 ====
-`sourceDir` and `sourceFile` are mutually exclusive.
+`sourceDirs` and `sourceFile` are mutually exclusive.
 Setting both will cause the `generateFeatureDocs` task to fail with a descriptive error.
 
 `includeSubDirs` cannot be combined with `sourceFile`.
 
-`trackProgress` can only be enabled when `sourceDir` is configured, and requires `glueCodeDir` to be set.
+`trackProgress` can only be enabled when `sourceDirs` is configured, and requires `glueCodeDirs` to be set.
 Enabling it implies `includeSubDirs = true`, regardless of that property's own configured value.
 ====
 
@@ -188,7 +191,7 @@ The plugin generates:
 
 == Tracking Implementation Progress
 
-Setting `trackProgress = true` (with `sourceDir` and `glueCodeDir` configured) switches the generated document
+Setting `trackProgress = true` (with `sourceDirs` and `glueCodeDirs` configured) switches the generated document
 from a flat list of scenario titles to a breakdown of every scenario's implementation status, plus a summary
 table.
 
@@ -198,16 +201,29 @@ Each scenario is classified as exactly one of:
 |===
 | Status        | Meaning
 | `listed`      | The scenario has a title only; it has no `Given`/`When`/`Then` steps yet.
-| `defined`     | The scenario has steps, but at least one step has no matching glue code in `glueCodeDir`.
-| `implemented` | The scenario has steps, and every step has matching glue code in `glueCodeDir`.
+| `defined`     | The scenario has steps, but at least one step has no matching glue code in `glueCodeDirs`.
+| `implemented` | The scenario has steps, and every step has matching glue code in `glueCodeDirs`.
 |===
 
-Glue code is matched by scanning `glueCodeDir` recursively for `@Given`/`@When`/`@Then` step definitions and
-comparing each scenario step's text against every step definition pattern found, using the same
-https://github.com/cucumber/cucumber-expressions[Cucumber Expressions] (or regular expression) matching
-Cucumber-JVM itself uses at runtime. The step's keyword (`Given`/`When`/`Then`/`And`/`But`) is not taken into
-account, matching Cucumber-JVM's own behaviour of matching step text against all registered definitions
-regardless of keyword.
+Glue code is matched by scanning every directory in `glueCodeDirs` recursively for `@Given`/`@When`/`@Then`
+step definitions and comparing each scenario step's text against every step definition pattern found across
+all of them, using the same https://github.com/cucumber/cucumber-expressions[Cucumber Expressions] (or regular
+expression) matching Cucumber-JVM itself uses at runtime. The step's keyword (`Given`/`When`/`Then`/`And`/`But`)
+is not taken into account, matching Cucumber-JVM's own behaviour of matching step text against all registered
+definitions regardless of keyword.
+
+`sourceDirs` and `glueCodeDirs` don't need to line up one-to-one — every feature file found across all of
+`sourceDirs` is checked against the combined set of step definitions found across all of `glueCodeDirs`. This is
+useful when feature files or glue code are split across multiple source sets or modules, e.g.:
+
+[source,groovy]
+----
+gherkinToAsciidoc {
+    sourceDirs.from('src/test/resources/features/auth', 'src/test/resources/features/billing')
+    glueCodeDirs.from('src/test/java/com/example/auth/steps', 'src/test/java/com/example/billing/steps')
+    trackProgress = true
+}
+----
 
 Given the following feature file:
 
@@ -234,7 +250,7 @@ Feature: User authentication
       | bob      | wrong    | failure |
 ----
 
-and the following glue code in `glueCodeDir`:
+and the following glue code in `glueCodeDirs`:
 
 [source,java]
 ----
