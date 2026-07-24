@@ -1,0 +1,126 @@
+= Gherkin to AsciiDoc — Progress Tracking Example
+:toc: left
+
+== Description
+
+This example applies the Gherkin to AsciiDoc plugin with `trackProgress = true` against the same
+`authentication.feature` file used in the xref:../plain/README.adoc[plain example], plus a Cucumber-JVM glue
+code class, `LoginSteps`, that deliberately implements only some of the steps.
+
+== Intent
+
+This example shows how the plugin classifies every scenario as `listed`, `defined`, or `implemented` by
+cross-referencing scenario steps against `@Given`/`@When`/`@Then` step definitions in `glueCodeDir`, and how
+the generated document summarises that breakdown as a table of counts and percentages.
+
+== The Feature File
+
+[source,gherkin]
+----
+Feature: User authentication
+
+  Scenario: User requests a password reset
+    # Not yet fleshed out - title only, no steps yet.
+
+  Scenario: User logs in successfully
+    Given the login page is open
+    When the user submits valid credentials
+    Then the dashboard is displayed
+
+  Scenario Outline: User logs in with different credential sets
+    Given the login page is open
+    When the user submits "<username>" and "<password>"
+    Then the result is "<outcome>"
+
+    Examples:
+      | username | password | outcome |
+      | alice    | secret   | success |
+      | bob      | wrong    | failure |
+----
+
+Full source: `src/test/resources/features/authentication.feature`.
+
+== The Glue Code
+
+[source,java]
+----
+public class LoginSteps {
+
+    @Given("the login page is open")
+    public void theLoginPageIsOpen() { ... }
+
+    @When("the user submits valid credentials")
+    public void theUserSubmitsValidCredentials() { ... }
+
+    @Then("the dashboard is displayed")
+    public void theDashboardIsDisplayed() { ... }
+}
+----
+
+Full source: `src/test/java/com/arc_e_tect/example/auth/steps/LoginSteps.java`.
+
+Note that no step definition matches `the user submits "<username>" and "<password>"` or
+`the result is "<outcome>"`, so the `Scenario Outline` ends up `defined` rather than `implemented` — every
+step needs matching glue code for a scenario to count as `implemented`.
+
+== Configuration
+
+[source,groovy]
+----
+gherkinToAsciidoc {
+    sourceDir     = file('src/test/resources/features')
+    glueCodeDir   = file('src/test/java/com/arc_e_tect/example/auth/steps')
+    trackProgress = true
+}
+----
+
+`includeSubDirs` doesn't need to be set explicitly: enabling `trackProgress` implies it.
+
+== Build And Run
+
+[source,bash]
+----
+cd examples/gherkin-to-asciidoc/progress-tracking
+./gradlew generateFeatureDocs
+----
+
+== What To Expect
+
+The build is expected to pass. The plugin writes `build/generated-docs/features.adoc`:
+
+[source,asciidoc]
+----
+= Feature Scenarios
+
+== Progress Summary
+
+[cols="1,1,1",options="header"]
+|===
+| Status | Count | Percentage
+
+| Listed
+| 1
+| 33.3%
+
+| Defined
+| 1
+| 33.3%
+
+| Implemented
+| 1
+| 33.4%
+
+|===
+
+== Listed
+
+* Scenario: User requests a password reset
+
+== Defined
+
+* Scenario Outline: User logs in with different credential sets
+
+== Implemented
+
+* Scenario: User logs in successfully
+----

@@ -1,0 +1,56 @@
+= Gherkin to AsciiDoc — Plain Example
+:toc: left
+
+== Description
+
+This example applies the Gherkin to AsciiDoc plugin to a small `authentication.feature` file using only the
+plugin's defaults — no `gherkinToAsciidoc { }` configuration block is needed.
+
+== Intent
+
+This example shows the plugin's baseline behaviour: scanning `.feature` files and listing every `Scenario`
+and `Scenario Outline` title it finds, with no implementation-progress tracking.
+
+== The Feature File
+
+[source,gherkin]
+----
+Feature: User authentication
+
+  Scenario: User logs in successfully
+    Given the login page is open
+    When the user submits valid credentials
+    Then the dashboard is displayed
+
+  Scenario Outline: User logs in with different credential sets
+    Given the login page is open
+    When the user submits "<username>" and "<password>"
+    Then the result is "<outcome>"
+
+    Examples:
+      | username | password | outcome |
+      | alice    | secret   | success |
+      | bob      | wrong    | failure |
+----
+
+Full source: `src/test/resources/features/authentication.feature`.
+
+== Build And Run
+
+[source,bash]
+----
+cd examples/gherkin-to-asciidoc/plain
+./gradlew generateFeatureDocs
+----
+
+== What To Expect
+
+The build is expected to pass. The plugin writes `build/generated-docs/features.adoc`:
+
+[source,asciidoc]
+----
+= Feature Scenarios
+
+* Scenario: User logs in successfully
+* Scenario Outline: User logs in with different credential sets
+----
