@@ -1,3 +1,10 @@
+# [0.8.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/v0.7.2...v0.8.0) (2026-07-24)
+
+
+### ✨ New and updated features
+
+* **gherkin-to-asciidoc:** Add scenario progress tracking and examples to gherkin-to-asciidoc ([#74](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/74)) ([0a9c220](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/0a9c2203009ab0c3041d1f387084569facec69ee)), closes [#74](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/74)
+
 ## [0.4.8](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/v0.4.7...v0.4.8) (2026-06-21)
 
 
