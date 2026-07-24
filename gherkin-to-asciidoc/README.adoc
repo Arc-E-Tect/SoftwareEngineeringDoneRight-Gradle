@@ -80,8 +80,8 @@ gherkinToAsciidoc {
     includeSubDirs = false
 
     // Directory where the generated AsciiDoc file will be written.
-    // Default: "$buildDir/generated-docs"
-    outputDir = file("$buildDir/generated-docs")
+    // Default: build/generated-docs
+    outputDir = layout.buildDirectory.dir('generated-docs')
 
     // Name of the generated AsciiDoc file.
     // Default: 'features.adoc'
@@ -106,8 +106,8 @@ gherkinToAsciidoc {
 
     // Directory that the listed.adoc/defined.adoc/implemented.adoc report snippets are written
     // to when trackProgress is true (see "Report Snippets and Custom Templates" below).
-    // Default: "$buildDir/generated-docs/features/snippets"
-    // snippetDir = file("$buildDir/generated-docs/features/snippets")
+    // Default: build/generated-docs/features/snippets
+    // snippetDir = layout.buildDirectory.dir('generated-docs/features/snippets')
 
     // Optional Mustache template used to render the report so it references the snippets via
     // include:: directives instead of embedding their content verbatim. Only consulted when
@@ -144,7 +144,7 @@ Mutually exclusive with `sourceFile`.
 Mutually exclusive with `sourceDirs` and `includeSubDirs`.
 | `includeSubDirs`| Boolean         | `false`                              | When `true`, recursively scans all sub-directories of every directory in `sourceDirs`.
 Cannot be combined with `sourceFile`.
-| `outputDir`     | Directory       | `$buildDir/generated-docs`           | Directory where the generated AsciiDoc file is written.
+| `outputDir`     | Directory       | `build/generated-docs`               | Directory where the generated AsciiDoc file is written.
 | `outputFileName`| String          | `features.adoc`                      | Name of the generated AsciiDoc file.
 | `trackProgress` | Boolean         | `false`                              | When `true`, classifies every scenario as `listed`, `defined`, or `implemented` and adds a progress summary to the generated document.
 Requires `sourceDirs` and `glueCodeDirs`; implies `includeSubDirs = true`.
@@ -152,7 +152,7 @@ Requires `sourceDirs` and `glueCodeDirs`; implies `includeSubDirs = true`.
 Required when `trackProgress` is `true`.
 | `groupByFeature`| Boolean         | `false`                              | When `true`, groups scenarios under their enclosing `Feature` instead of a flat list.
 Forced to `true` whenever `trackProgress` is `true`.
-| `snippetDir`    | Directory       | `$buildDir/generated-docs/features/snippets` | Directory that the `listed.adoc`/`defined.adoc`/`implemented.adoc` report snippets are written to.
+| `snippetDir`    | Directory       | `build/generated-docs/features/snippets` | Directory that the `listed.adoc`/`defined.adoc`/`implemented.adoc` report snippets are written to.
 Only used when `trackProgress` is `true`.
 | `template`      | File            | —                                    | Optional Mustache template used to render the report so it references the snippets via `include::` directives instead of embedding their content verbatim.
 Only consulted when `trackProgress` is `true`.
@@ -437,7 +437,7 @@ Setting `template` to a https://github.com/spullara/mustache.java[Mustache] file
 itself from embedding scenario titles verbatim to referencing the snippets via `include::` directives.
 The plugin renders `template` with the following context:
 
-[cols="1,3",options="header"]
+[cols="1,3a",options="header"]
 |===
 | Variable | Description
 
@@ -451,13 +451,17 @@ The plugin renders `template` with the following context:
 | List of `\{status, count, percentage}` - the three rows of the progress summary table.
 
 | `sections`
-| List of `\{status, blurb, features, snippet}`, one per status, in Listed/Defined/Implemented order.
+| List of `\{status, blurb, features, snippet}`, one per status, in Listed/Defined/Implemented order. Each entry has:
 
-`features` is a list of `\{title, snippet}` when `groupByFeature` is `true` and the status has at
-least one scenario; empty otherwise, in which case `snippet` holds the flat fallback path instead.
+* `status` - the same display label as in `legend`, e.g. `Implemented`.
+* `blurb` - the same one-sentence explanation as `legend`'s `meaning` for this status, repeated here so a
+  template can print it under the status heading without a separate lookup.
+* `features` - a list of `\{title, snippet}` when `groupByFeature` is `true` and the status has at least one
+  scenario; empty otherwise, in which case `snippet` (below) holds the flat fallback path instead.
+* `snippet` - the flat fallback snippet path, only meaningful when `features` is empty.
 
-Every `snippet` path is already relative to the output file's directory, so a plain
-+include::{{{snippet}}}[]+ resolves correctly.
+Every `snippet` path (here and inside `features`) is already relative to the output file's directory, so a
+plain +include::{{{snippet}}}[]+ resolves correctly.
 |===
 
 [IMPORTANT]
