@@ -185,6 +185,8 @@ The plugin generates:
 ----
 = Feature Scenarios
 
+This document lists every `Scenario` and `Scenario Outline` found under the configured feature file directories.
+
 * Scenario: User logs in successfully
 * Scenario Outline: User logs in with different credential sets
 ----
@@ -273,6 +275,25 @@ the plugin generates:
 ----
 = Feature Scenarios
 
+This document lists every `Scenario` and `Scenario Outline` found under the configured feature file
+directories, classified by how far each one is toward being automated.
+
+Every scenario is classified as exactly one of:
+
+[cols="1,3",options="header"]
+|===
+| Status | Meaning
+
+| Listed
+| Scenarios with a title only. No `Given`/`When`/`Then` steps have been written for them yet.
+
+| Defined
+| Scenarios with steps written, but at least one step has no matching glue code yet.
+
+| Implemented
+| Scenarios whose every step has matching glue code.
+|===
+
 == Progress Summary
 
 [cols="1,1,1",options="header"]
@@ -294,13 +315,19 @@ the plugin generates:
 
 == Listed
 
+Scenarios with a title only. No `Given`/`When`/`Then` steps have been written for them yet.
+
 * Scenario: User requests a password reset
 
 == Defined
 
+Scenarios with steps written, but at least one step has no matching glue code yet.
+
 * Scenario Outline: User logs in with different credential sets
 
 == Implemented
+
+Scenarios whose every step has matching glue code.
 
 * Scenario: User logs in successfully
 ----

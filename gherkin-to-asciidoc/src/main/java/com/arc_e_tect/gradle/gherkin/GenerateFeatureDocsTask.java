@@ -241,6 +241,13 @@ public abstract class GenerateFeatureDocsTask extends DefaultTask {
         try (PrintWriter writer = new PrintWriter(outputFile, StandardCharsets.UTF_8)) {
             writer.println("= Feature Scenarios");
             writer.println();
+            writer.println("This document lists every `Scenario` and `Scenario Outline` found under the "
+                    + "configured feature file directories.");
+            writer.println();
+            if (titles.isEmpty()) {
+                writer.println("No scenarios found.");
+                return;
+            }
             for (String title : titles) {
                 writer.println("* " + title);
             }

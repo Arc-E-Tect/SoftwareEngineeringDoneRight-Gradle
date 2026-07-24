@@ -381,7 +381,9 @@ class GherkinToAsciidocPluginTest {
         String content = Files.readString(new File(outputDir, "features.adoc").toPath());
         assertThat(content)
                 .contains("== Implemented", "* Scenario: User logs in", "* Scenario: User pays an invoice")
-                .doesNotContain("== Defined" + System.lineSeparator() + System.lineSeparator() + "*");
+                .contains("== Defined" + System.lineSeparator() + System.lineSeparator()
+                        + "Scenarios with steps written, but at least one step has no matching glue code yet."
+                        + System.lineSeparator() + System.lineSeparator() + "_None._");
     }
 
     @Test
