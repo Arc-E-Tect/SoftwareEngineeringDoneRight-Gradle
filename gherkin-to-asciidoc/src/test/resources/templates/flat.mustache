@@ -1,0 +1,39 @@
+= Feature Scenarios
+
+{{{intro}}}
+
+Every scenario is classified as exactly one of:
+
+[cols="1,3",options="header"]
+|===
+| Status | Meaning
+
+{{#legend}}
+| {{{status}}}
+| {{{meaning}}}
+
+{{/legend}}
+|===
+
+== Progress Summary
+
+[cols="1,1,1",options="header"]
+|===
+| Status | Count | Percentage
+
+{{#summary}}
+| {{{status}}}
+| {{count}}
+| {{percentage}}%
+
+{{/summary}}
+|===
+
+{{#sections}}
+== {{{status}}}
+
+{{{blurb}}}
+
+include::{{{snippet}}}[]
+
+{{/sections}}

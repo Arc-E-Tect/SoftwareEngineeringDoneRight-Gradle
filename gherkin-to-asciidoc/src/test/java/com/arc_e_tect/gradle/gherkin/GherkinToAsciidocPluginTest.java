@@ -89,6 +89,25 @@ class GherkinToAsciidocPluginTest {
     }
 
     @Test
+    @DisplayName("extension default: snippetDir is build/generated-docs/features/snippets")
+    void extensionDefaultSnippetDirIsGeneratedDocsFeaturesSnippets() {
+        Project project = projectWithPlugin();
+        GherkinToAsciidocExtension ext = extension(project);
+
+        assertThat(ext.getSnippetDir().get().getAsFile().getPath())
+                .endsWith(String.join(File.separator, "build", "generated-docs", "features", "snippets"));
+    }
+
+    @Test
+    @DisplayName("extension default: template is not set")
+    void extensionDefaultTemplateIsNotSet() {
+        Project project = projectWithPlugin();
+        GherkinToAsciidocExtension ext = extension(project);
+
+        assertThat(ext.getTemplate().isPresent()).isFalse();
+    }
+
+    @Test
     @DisplayName("extension default: outputFileName is features.adoc")
     void extensionDefaultOutputFileNameIsFeaturesAdoc() {
         Project project = projectWithPlugin();
@@ -434,6 +453,92 @@ class GherkinToAsciidocPluginTest {
                 .contains("== Defined" + System.lineSeparator() + System.lineSeparator()
                         + "Scenarios with steps written, but at least one step has no matching glue code yet."
                         + System.lineSeparator() + System.lineSeparator() + "_None._");
+    }
+
+    @Test
+    @DisplayName("writes listed/defined/implemented snippet files when trackProgress is enabled")
+    void writesSnippetFilesWhenTrackProgressEnabled() throws IOException {
+        Project project = projectWithPlugin();
+        File featuresDir = new File(tempDir.toFile(), "features");
+        featuresDir.mkdirs();
+        writeFeatureFile(featuresDir, "sample.feature", """
+                Feature: Sample
+
+                  Scenario: Only a title
+
+                  Scenario: Fully wired up
+                    Given an implemented step
+                """);
+
+        File glueCodeDir = new File(tempDir.toFile(), "steps");
+        glueCodeDir.mkdirs();
+        Files.writeString(new File(glueCodeDir, "Steps.java").toPath(), """
+                public class Steps {
+                    @Given("an implemented step")
+                    public void implemented() {}
+                }
+                """);
+
+        File outputDir = new File(tempDir.toFile(), "output");
+        File snippetDir = new File(tempDir.toFile(), "snippets");
+
+        GenerateFeatureDocsTask task = task(project);
+        task.getSourceDirs().from(featuresDir);
+        task.getTrackProgress().set(true);
+        task.getGlueCodeDirs().from(glueCodeDir);
+        task.getGroupByFeature().set(true);
+        task.getSnippetDir().set(snippetDir);
+        task.getOutputDir().set(outputDir);
+        task.getProjectDirectory().set(project.getLayout().getProjectDirectory());
+        task.generate();
+
+        File featureDir = new File(snippetDir, "sample");
+        File listedFile = new File(featureDir, "listed.adoc");
+        File implementedFile = new File(featureDir, "implemented.adoc");
+        assertThat(listedFile).exists();
+        assertThat(implementedFile).exists();
+        assertThat(Files.readString(listedFile.toPath())).contains("* Scenario: Only a title");
+        assertThat(Files.readString(implementedFile.toPath())).contains("* Scenario: Fully wired up");
+    }
+
+    @Test
+    @DisplayName("renders the report from a template referencing the generated snippets")
+    void generatesReportFromTemplateEndToEnd() throws IOException {
+        Project project = projectWithPlugin();
+        File featuresDir = new File(tempDir.toFile(), "features");
+        featuresDir.mkdirs();
+        writeFeatureFile(featuresDir, "sample.feature",
+                "Feature: Sample\n\n  Scenario: Fully wired up\n    Given an implemented step\n");
+
+        File glueCodeDir = new File(tempDir.toFile(), "steps");
+        glueCodeDir.mkdirs();
+        Files.writeString(new File(glueCodeDir, "Steps.java").toPath(), """
+                public class Steps {
+                    @Given("an implemented step")
+                    public void implemented() {}
+                }
+                """);
+
+        File templateFile = new File(tempDir.toFile(), "report.mustache");
+        Files.writeString(templateFile.toPath(),
+                "= Custom Report\n{{#sections}}{{{status}}}\n{{/sections}}");
+
+        File outputDir = new File(tempDir.toFile(), "output");
+
+        GenerateFeatureDocsTask task = task(project);
+        task.getSourceDirs().from(featuresDir);
+        task.getTrackProgress().set(true);
+        task.getGlueCodeDirs().from(glueCodeDir);
+        task.getGroupByFeature().set(true);
+        task.getSnippetDir().set(new File(tempDir.toFile(), "snippets"));
+        task.getTemplate().set(templateFile);
+        task.getOutputDir().set(outputDir);
+        task.getProjectDirectory().set(project.getLayout().getProjectDirectory());
+        task.generate();
+
+        String content = Files.readString(new File(outputDir, "features.adoc").toPath());
+        assertThat(content).startsWith("= Custom Report");
+        assertThat(content).doesNotContain("Progress Summary");
     }
 
     @Test

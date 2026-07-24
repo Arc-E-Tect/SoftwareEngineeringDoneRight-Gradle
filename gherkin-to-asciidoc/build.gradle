@@ -38,6 +38,7 @@ dependencyCheck {
 dependencies {
     implementation libs.gherkin
     implementation libs.cucumber.expressions
+    implementation libs.mustache
 
     testImplementation libs.junit.jupiter
     testImplementation libs.assertj.core

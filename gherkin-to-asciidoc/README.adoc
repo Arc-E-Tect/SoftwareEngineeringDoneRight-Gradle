@@ -103,6 +103,17 @@ gherkinToAsciidoc {
     // (see "Grouping by Feature" below). Forced to true whenever trackProgress is true.
     // Default: false
     groupByFeature = false
+
+    // Directory that the listed.adoc/defined.adoc/implemented.adoc report snippets are written
+    // to when trackProgress is true (see "Report Snippets and Custom Templates" below).
+    // Default: "$buildDir/generated-docs/features/snippets"
+    // snippetDir = file("$buildDir/generated-docs/features/snippets")
+
+    // Optional Mustache template used to render the report so it references the snippets via
+    // include:: directives instead of embedding their content verbatim. Only consulted when
+    // trackProgress is true. When not set, the report looks exactly like it does without this
+    // property - the snippets are still written either way.
+    // template = file('templates/report.mustache')
 }
 ----
 
@@ -117,6 +128,8 @@ gherkinToAsciidoc {
     trackProgress.set(false)
     // glueCodeDirs.from("src/test/java/com/example/steps")
     groupByFeature.set(false)
+    // snippetDir.set(layout.buildDirectory.dir("generated-docs/features/snippets"))
+    // template.set(file("templates/report.mustache"))
 }
 ----
 
@@ -139,6 +152,10 @@ Requires `sourceDirs` and `glueCodeDirs`; implies `includeSubDirs = true`.
 Required when `trackProgress` is `true`.
 | `groupByFeature`| Boolean         | `false`                              | When `true`, groups scenarios under their enclosing `Feature` instead of a flat list.
 Forced to `true` whenever `trackProgress` is `true`.
+| `snippetDir`    | Directory       | `$buildDir/generated-docs/features/snippets` | Directory that the `listed.adoc`/`defined.adoc`/`implemented.adoc` report snippets are written to.
+Only used when `trackProgress` is `true`.
+| `template`      | File            | —                                    | Optional Mustache template used to render the report so it references the snippets via `include::` directives instead of embedding their content verbatim.
+Only consulted when `trackProgress` is `true`.
 |===
 
 [IMPORTANT]
@@ -151,6 +168,8 @@ Setting both will cause the `generateFeatureDocs` task to fail with a descriptiv
 `trackProgress` can only be enabled when `sourceDirs` is configured, and requires `glueCodeDirs` to be set.
 Enabling it implies `includeSubDirs = true` and `groupByFeature = true`, regardless of those properties' own
 configured values.
+
+`snippetDir` and `template` are only consulted when `trackProgress` is `true`; both are ignored otherwise.
 ====
 
 == Running the Task
@@ -395,6 +414,165 @@ above, so that one step does have matching glue code. Its other two steps don't 
 `LoginSteps`, though, so the scenario as a whole is classified as `defined`, not `implemented` — every step
 needs matching glue code for a scenario to count as `implemented`.
 ====
+
+== Report Snippets and Custom Templates
+
+Whenever `trackProgress` is `true`, the plugin writes three snippet files to `snippetDir` -
+`listed.adoc`, `defined.adoc`, and `implemented.adoc` - containing exactly the scenario bullets
+that status's section would otherwise embed. These are written unconditionally, regardless of
+whether `template` is configured.
+
+When `groupByFeature` is also `true` (the default whenever `trackProgress` is `true`), a status
+with at least one scenario writes one snippet file *per feature* instead of a single flat file, at
+`<snippetDir>/<camelCaseFeatureTitle>/<status>.adoc` - e.g. `Feature: User authentication` becomes
+the directory `userAuthentication`. A status with no scenarios at all still writes a single flat
+`<snippetDir>/<status>.adoc` containing `_None._`, since there's no feature to group under.
+
+By itself, this doesn't change the generated report: without a `template`, scenario titles are still
+embedded directly, exactly as described above - the snippet files are simply written alongside it.
+
+=== Rendering the Report From a Template
+
+Setting `template` to a https://github.com/spullara/mustache.java[Mustache] file switches the report
+itself from embedding scenario titles verbatim to referencing the snippets via `include::` directives.
+The plugin renders `template` with the following context:
+
+[cols="1,3",options="header"]
+|===
+| Variable | Description
+
+| `intro`
+| The one-sentence description of what the document contains.
+
+| `legend`
+| List of `\{status, meaning}` - the three rows of the status legend table.
+
+| `summary`
+| List of `\{status, count, percentage}` - the three rows of the progress summary table.
+
+| `sections`
+| List of `\{status, blurb, features, snippet}`, one per status, in Listed/Defined/Implemented order.
+
+`features` is a list of `\{title, snippet}` when `groupByFeature` is `true` and the status has at
+least one scenario; empty otherwise, in which case `snippet` holds the flat fallback path instead.
+
+Every `snippet` path is already relative to the output file's directory, so a plain
++include::{{{snippet}}}[]+ resolves correctly.
+|===
+
+[IMPORTANT]
+====
+Use triple-mustache (+{{{value}}}+) or +{{&value}}+ for every substitution. Plain +{{value}}+
+HTML-escapes its output (`<`, `>`, `&`, `'`, `"`), which would corrupt AsciiDoc syntax and any
+scenario or feature title containing those characters.
+====
+
+=== Reference Templates
+
+The following two templates reproduce - once an AsciiDoc processor resolves their `include::`
+directives - *exactly* the same document as not configuring a `template` at all (verified by the
+plugin's own test suite). Use them as a starting point for a custom template.
+
+.`templates/flat.mustache` - for `groupByFeature = false`
+[source,mustache]
+----
+= Feature Scenarios
+
+{{{intro}}}
+
+Every scenario is classified as exactly one of:
+
+[cols="1,3",options="header"]
+|===
+| Status | Meaning
+
+{{#legend}}
+| {{{status}}}
+| {{{meaning}}}
+
+{{/legend}}
+|===
+
+== Progress Summary
+
+[cols="1,1,1",options="header"]
+|===
+| Status | Count | Percentage
+
+{{#summary}}
+| {{{status}}}
+| {{count}}
+| {{percentage}}%
+
+{{/summary}}
+|===
+
+{{#sections}}
+== {{{status}}}
+
+{{{blurb}}}
+
+include::{{{snippet}}}[]
+
+{{/sections}}
+----
+
+.`templates/grouped.mustache` - for `groupByFeature = true`
+[source,mustache]
+----
+= Feature Scenarios
+
+{{{intro}}}
+
+Every scenario is classified as exactly one of:
+
+[cols="1,3",options="header"]
+|===
+| Status | Meaning
+
+{{#legend}}
+| {{{status}}}
+| {{{meaning}}}
+
+{{/legend}}
+|===
+
+== Progress Summary
+
+[cols="1,1,1",options="header"]
+|===
+| Status | Count | Percentage
+
+{{#summary}}
+| {{{status}}}
+| {{count}}
+| {{percentage}}%
+
+{{/summary}}
+|===
+
+{{#sections}}
+== {{{status}}}
+
+{{{blurb}}}
+
+{{#features}}
+=== {{{title}}}
+
+include::{{{snippet}}}[]
+
+{{/features}}
+{{^features}}
+include::{{{snippet}}}[]
+
+{{/features}}
+{{/sections}}
+----
+
+See the
+link:../examples/gherkin-to-asciidoc/snippet-templates/README.adoc[snippet-templates example]
+for these two templates in use, alongside their non-templated equivalents, generated from the same
+feature/glue content.
 
 == License
 

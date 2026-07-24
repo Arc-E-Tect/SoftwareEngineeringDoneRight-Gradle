@@ -11,6 +11,7 @@ owasp-dependency-check = "12.2.2"
 
 gherkin = "41.0.0"
 cucumber-expressions = "18.0.1"
+mustache = "0.9.14"
 junit-jupiter = "6.1.2"
 junit-platform = "6.1.2"
 assertj         = "3.27.7"
@@ -20,6 +21,7 @@ plugin-publish  = "2.1.1"
 
 gherkin                     = { module = "io.cucumber:gherkin",                              version.ref = "gherkin" }
 cucumber-expressions        = { module = "io.cucumber:cucumber-expressions",                 version.ref = "cucumber-expressions" }
+mustache                    = { module = "com.github.spullara.mustache.java:compiler",        version.ref = "mustache" }
 
 junit-jupiter               = { module = "org.junit.jupiter:junit-jupiter",                  version.ref = "junit-jupiter" }
 junit-platform-launcher     = { module = "org.junit.platform:junit-platform-launcher",       version.ref = "junit-platform" }
