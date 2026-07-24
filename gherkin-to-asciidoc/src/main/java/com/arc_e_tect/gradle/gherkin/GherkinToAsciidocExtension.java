@@ -17,6 +17,8 @@ import org.gradle.api.provider.Property;
  *     trackProgress  = false                                                        // default
  *     // glueCodeDirs.from('src/test/java/.../steps')                              // required when trackProgress = true
  *     groupByFeature = false                                                        // default; forced to true whenever trackProgress = true
+ *     // snippetDir  = layout.buildDirectory.dir('generated-docs/features/snippets') // default
+ *     // template    = file('templates/report.mustache')                            // optional
  * }
  * </pre>
  */
@@ -33,6 +35,9 @@ public abstract class GherkinToAsciidocExtension {
 
     /** Default name of the generated AsciiDoc output file. */
     public static final String DEFAULT_OUTPUT_FILE_NAME = "features.adoc";
+
+    /** Default relative path of the directory report snippets are written to. */
+    public static final String DEFAULT_SNIPPET_DIR = "generated-docs/features/snippets";
 
     /**
      * Source directories that contain the {@code .feature} files to process. One or more
@@ -107,4 +112,29 @@ public abstract class GherkinToAsciidocExtension {
      * @return mutable boolean property controlling grouping by feature
      */
     public abstract Property<Boolean> getGroupByFeature();
+
+    /**
+     * Directory that the {@code listed.adoc}/{@code defined.adoc}/{@code implemented.adoc} report
+     * snippets are written to when {@link #getTrackProgress()} is {@code true}. Defaults to
+     * {@code build/generated-docs/features/snippets}.
+     *
+     * <p>When {@link #getGroupByFeature()} is {@code true}, snippets for a status with at least one
+     * scenario are written per feature, under {@code <snippetDir>/<camelCaseFeatureTitle>/<status>.adoc}.</p>
+     *
+     * @return mutable directory property for the snippet output directory
+     */
+    public abstract DirectoryProperty getSnippetDir();
+
+    /**
+     * Optional Mustache template used to render the generated AsciiDoc file so that it references
+     * the report snippets via {@code include::} directives, instead of embedding their content
+     * verbatim. Only consulted when {@link #getTrackProgress()} is {@code true}; ignored otherwise.
+     *
+     * <p>When not set, the generated report looks exactly as it does without this property:
+     * scenario titles are embedded directly, with no {@code include::} directives. The snippet
+     * files are still written either way.</p>
+     *
+     * @return mutable file property for the Mustache template file
+     */
+    public abstract RegularFileProperty getTemplate();
 }

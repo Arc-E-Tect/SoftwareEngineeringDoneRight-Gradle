@@ -1,0 +1,84 @@
+import com.arc_e_tect.gradle.gherkin.GenerateFeatureDocsTask
+
+plugins {
+    id 'java'
+    alias(libs.plugins.gherkin.to.asciidoc)
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    testImplementation libs.cucumber.java
+}
+
+test {
+    failOnNoDiscoveredTests = false
+}
+
+// This example bypasses the gherkinToAsciidoc { } extension entirely and instead registers four
+// GenerateFeatureDocsTask instances directly, one per combination of groupByFeature and template,
+// all against the same auth + billing feature/glue content, so the four reports are easy to compare.
+//
+// A real project only needs ONE of these - typically configured via the extension, not like this.
+
+def commonConfig = { GenerateFeatureDocsTask task ->
+    task.sourceDirs.from(
+            'src/test/resources/features-auth',
+            'src/test/resources/features-billing')
+    task.glueCodeDirs.from(
+            'src/test/java/com/arc_e_tect/example/auth/steps',
+            'src/test/java/com/arc_e_tect/example/billing/steps')
+    task.trackProgress.set(true)
+    // trackProgress implies recursive scanning regardless of this value, but the property still
+    // needs a value assigned since this example bypasses the extension's conventions.
+    task.includeSubDirs.set(true)
+    task.outputFileName.set('features.adoc')
+    task.projectDirectory.set(layout.projectDirectory)
+}
+
+tasks.register('generateGroupedNoTemplate', GenerateFeatureDocsTask) {
+    commonConfig(it)
+    groupByFeature.set(true)
+    outputDir.set(layout.buildDirectory.dir('generated-docs/grouped-no-template'))
+    snippetDir.set(layout.buildDirectory.dir('generated-docs/grouped-no-template/features/snippets'))
+}
+
+tasks.register('generateGroupedWithTemplate', GenerateFeatureDocsTask) {
+    commonConfig(it)
+    groupByFeature.set(true)
+    outputDir.set(layout.buildDirectory.dir('generated-docs/grouped-with-template'))
+    snippetDir.set(layout.buildDirectory.dir('generated-docs/grouped-with-template/features/snippets'))
+    template.set(file('templates/grouped.mustache'))
+}
+
+tasks.register('generateFlatNoTemplate', GenerateFeatureDocsTask) {
+    commonConfig(it)
+    groupByFeature.set(false)
+    outputDir.set(layout.buildDirectory.dir('generated-docs/flat-no-template'))
+    snippetDir.set(layout.buildDirectory.dir('generated-docs/flat-no-template/features/snippets'))
+}
+
+tasks.register('generateFlatWithTemplate', GenerateFeatureDocsTask) {
+    commonConfig(it)
+    groupByFeature.set(false)
+    outputDir.set(layout.buildDirectory.dir('generated-docs/flat-with-template'))
+    snippetDir.set(layout.buildDirectory.dir('generated-docs/flat-with-template/features/snippets'))
+    template.set(file('templates/flat.mustache'))
+}
+
+tasks.register('generateAllReports') {
+    group = 'documentation'
+    description = 'Generates all four grouped/flat x template/no-template example reports.'
+    dependsOn tasks.named('generateGroupedNoTemplate'),
+            tasks.named('generateGroupedWithTemplate'),
+            tasks.named('generateFlatNoTemplate'),
+            tasks.named('generateFlatWithTemplate')
+}

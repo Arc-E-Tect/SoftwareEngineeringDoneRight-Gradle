@@ -4,6 +4,7 @@ import com.arc_e_tect.gradle.gherkin.glue.GlueCodeScanner;
 import com.arc_e_tect.gradle.gherkin.parser.FeatureParser;
 import com.arc_e_tect.gradle.gherkin.parser.ScenarioGrouping;
 import com.arc_e_tect.gradle.gherkin.parser.ScenarioInfo;
+import com.arc_e_tect.gradle.gherkin.progress.ProgressReportOptions;
 import com.arc_e_tect.gradle.gherkin.progress.ProgressReportWriter;
 import io.cucumber.cucumberexpressions.Expression;
 import org.gradle.api.DefaultTask;
@@ -116,13 +117,35 @@ public abstract class GenerateFeatureDocsTask extends DefaultTask {
     public abstract ConfigurableFileCollection getGlueCodeDirs();
 
     /**
-     * Whether to group scenarios by their enclosing {@code Feature} instead of a flat list.
-     * Ignored (always treated as {@code true}) when {@link #getTrackProgress()} is {@code true}.
+     * Whether to group scenarios by their enclosing {@code Feature} instead of a flat list. When
+     * {@link #getTrackProgress()} is {@code true}, grouping additionally splits report snippets by
+     * feature (see {@link #getSnippetDir()}).
      *
      * @return mutable boolean property controlling grouping by feature
      */
     @Input
     public abstract Property<Boolean> getGroupByFeature();
+
+    /**
+     * Directory that report snippets ({@code listed.adoc}/{@code defined.adoc}/{@code implemented.adoc})
+     * are written to when {@link #getTrackProgress()} is {@code true}.
+     *
+     * @return mutable directory property for the snippet output directory
+     */
+    @OutputDirectory
+    public abstract DirectoryProperty getSnippetDir();
+
+    /**
+     * Optional Mustache template used to render the report so that it references the snippets via
+     * {@code include::} directives instead of embedding their content verbatim. Only consulted
+     * when {@link #getTrackProgress()} is {@code true}; ignored otherwise.
+     *
+     * @return mutable file property for the Mustache template file
+     */
+    @Optional
+    @InputFile
+    @PathSensitive(PathSensitivity.RELATIVE)
+    public abstract RegularFileProperty getTemplate();
 
     /**
      * Root directory of the project, used to resolve the default source directory
@@ -196,7 +219,10 @@ public abstract class GenerateFeatureDocsTask extends DefaultTask {
 
         if (trackProgress) {
             List<Expression> glueCode = scanGlueCode();
-            new ProgressReportWriter().write(outputFile, scenarios, glueCode);
+            File template = getTemplate().isPresent() ? getTemplate().getAsFile().get() : null;
+            ProgressReportOptions options = new ProgressReportOptions(
+                    getGroupByFeature().get(), getSnippetDir().getAsFile().get(), template);
+            new ProgressReportWriter().write(outputFile, scenarios, glueCode, options);
         } else {
             writeAsciidoc(outputFile, scenarios, getGroupByFeature().get());
         }

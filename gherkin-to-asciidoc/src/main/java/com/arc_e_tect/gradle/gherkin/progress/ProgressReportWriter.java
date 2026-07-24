@@ -2,6 +2,8 @@ package com.arc_e_tect.gradle.gherkin.progress;
 
 import com.arc_e_tect.gradle.gherkin.parser.ScenarioGrouping;
 import com.arc_e_tect.gradle.gherkin.parser.ScenarioInfo;
+import com.arc_e_tect.gradle.gherkin.snippet.SnippetWriter;
+import com.arc_e_tect.gradle.gherkin.snippet.StatusSnippets;
 import io.cucumber.cucumberexpressions.Expression;
 import org.gradle.api.GradleException;
 
@@ -18,96 +20,72 @@ import java.util.Map;
 
 /**
  * Writes an AsciiDoc progress report that breaks scenarios down by
- * {@link ScenarioStatus} and summarises the breakdown as a table of counts
- * and percentages. Within each status, scenarios are grouped by their
- * enclosing {@code Feature}.
+ * {@link ScenarioStatus} and summarises the breakdown as a table of counts and percentages.
+ *
+ * <p>Every call also writes the {@code listed.adoc}/{@code defined.adoc}/{@code implemented.adoc}
+ * snippet files (see {@link SnippetWriter}), regardless of whether a template is configured. When
+ * {@link ProgressReportOptions#template()} is set, the report itself is rendered from that Mustache
+ * template via {@link ReportTemplateRenderer} - referencing the snippets via {@code include::}
+ * directives - instead of embedding scenario titles verbatim.</p>
  */
 public class ProgressReportWriter {
 
-    private static final String LISTED_BLURB =
-            "Scenarios with a title only. No `Given`/`When`/`Then` steps have been written for them yet.";
-    private static final String DEFINED_BLURB =
-            "Scenarios with steps written, but at least one step has no matching glue code yet.";
-    private static final String IMPLEMENTED_BLURB =
-            "Scenarios whose every step has matching glue code.";
-
     private final ScenarioClassifier classifier = new ScenarioClassifier();
+    private final SnippetWriter snippetWriter = new SnippetWriter();
+    private final ReportTemplateRenderer templateRenderer = new ReportTemplateRenderer();
 
     /** Creates a new {@code ProgressReportWriter}. */
     public ProgressReportWriter() {}
 
     /**
-     * Classifies every scenario and writes the progress report to {@code outputFile}.
+     * Classifies every scenario, writes the snippet files, and writes the progress report to
+     * {@code outputFile}.
      *
      * @param outputFile the AsciiDoc file to write
      * @param scenarios  the scenarios to report on
      * @param glueCode   step definition patterns found in the configured glue code directories
+     * @param options    grouping, snippet, and template configuration
      */
-    public void write(File outputFile, List<ScenarioInfo> scenarios, List<Expression> glueCode) {
-        Map<ScenarioStatus, List<ScenarioInfo>> scenariosByStatus = new EnumMap<>(ScenarioStatus.class);
+    public void write(File outputFile, List<ScenarioInfo> scenarios, List<Expression> glueCode,
+            ProgressReportOptions options) {
+        if (scenarios.isEmpty()) {
+            writeEmptyReport(outputFile);
+            return;
+        }
+
+        List<StatusSummary> summaries = buildSummaries(classify(scenarios, glueCode), scenarios.size());
+
+        Map<ScenarioStatus, StatusSnippets> snippets = new EnumMap<>(ScenarioStatus.class);
+        for (StatusSummary summary : summaries) {
+            snippets.put(summary.status(), snippetWriter.writeStatus(
+                    options.snippetDir(), summary.status(), summary.scenarios(), options.groupByFeature()));
+        }
+
+        if (options.template() != null) {
+            templateRenderer.render(outputFile, options.template(), summaries, snippets);
+        } else {
+            writeDefaultReport(outputFile, summaries, options.groupByFeature());
+        }
+    }
+
+    private Map<ScenarioStatus, List<ScenarioInfo>> classify(List<ScenarioInfo> scenarios, List<Expression> glueCode) {
+        Map<ScenarioStatus, List<ScenarioInfo>> byStatus = new EnumMap<>(ScenarioStatus.class);
         for (ScenarioStatus status : ScenarioStatus.values()) {
-            scenariosByStatus.put(status, new ArrayList<>());
+            byStatus.put(status, new ArrayList<>());
         }
         for (ScenarioInfo scenario : scenarios) {
-            ScenarioStatus status = classifier.classify(scenario, glueCode);
-            scenariosByStatus.get(status).add(scenario);
+            byStatus.get(classifier.classify(scenario, glueCode)).add(scenario);
         }
-
-        try (PrintWriter writer = new PrintWriter(outputFile, StandardCharsets.UTF_8)) {
-            writer.println("= Feature Scenarios");
-            writer.println();
-            writer.println("This document lists every `Scenario` and `Scenario Outline` found under the "
-                    + "configured feature file directories, classified by how far each one is toward being "
-                    + "automated.");
-            writer.println();
-
-            if (scenarios.isEmpty()) {
-                writer.println("No scenarios found.");
-                return;
-            }
-
-            writeStatusLegend(writer);
-
-            writer.println("== Progress Summary");
-            writer.println();
-            writeSummaryTable(writer, scenariosByStatus, scenarios.size());
-            writer.println();
-
-            writeSection(writer, "Listed", LISTED_BLURB, scenariosByStatus.get(ScenarioStatus.LISTED));
-            writeSection(writer, "Defined", DEFINED_BLURB, scenariosByStatus.get(ScenarioStatus.DEFINED));
-            writeSection(writer, "Implemented", IMPLEMENTED_BLURB, scenariosByStatus.get(ScenarioStatus.IMPLEMENTED));
-        } catch (IOException e) {
-            throw new GradleException("gherkinToAsciidoc: failed to write AsciiDoc file: " + outputFile, e);
-        }
+        return byStatus;
     }
 
-    private void writeStatusLegend(PrintWriter writer) {
-        writer.println("Every scenario is classified as exactly one of:");
-        writer.println();
-        writer.println("[cols=\"1,3\",options=\"header\"]");
-        writer.println("|===");
-        writer.println("| Status | Meaning");
-        writer.println();
-        writer.println("| Listed");
-        writer.println("| " + LISTED_BLURB);
-        writer.println();
-        writer.println("| Defined");
-        writer.println("| " + DEFINED_BLURB);
-        writer.println();
-        writer.println("| Implemented");
-        writer.println("| " + IMPLEMENTED_BLURB);
-        writer.println("|===");
-        writer.println();
-    }
+    private List<StatusSummary> buildSummaries(Map<ScenarioStatus, List<ScenarioInfo>> byStatus, int total) {
+        List<ScenarioInfo> listed = byStatus.get(ScenarioStatus.LISTED);
+        List<ScenarioInfo> defined = byStatus.get(ScenarioStatus.DEFINED);
+        List<ScenarioInfo> implemented = byStatus.get(ScenarioStatus.IMPLEMENTED);
 
-    private void writeSummaryTable(
-            PrintWriter writer, Map<ScenarioStatus, List<ScenarioInfo>> scenariosByStatus, int total) {
-        int listed = scenariosByStatus.get(ScenarioStatus.LISTED).size();
-        int defined = scenariosByStatus.get(ScenarioStatus.DEFINED).size();
-        int implemented = scenariosByStatus.get(ScenarioStatus.IMPLEMENTED).size();
-
-        BigDecimal listedPct = percentage(listed, total);
-        BigDecimal definedPct = percentage(defined, total);
+        BigDecimal listedPct = percentage(listed.size(), total);
+        BigDecimal definedPct = percentage(defined.size(), total);
         // The implemented percentage is derived from the other two so that the three
         // percentages always add up to exactly 100%, even after rounding.
         BigDecimal implementedPct = BigDecimal.valueOf(100)
@@ -115,21 +93,13 @@ public class ProgressReportWriter {
                 .subtract(definedPct)
                 .setScale(1, RoundingMode.HALF_UP);
 
-        writer.println("[cols=\"1,1,1\",options=\"header\"]");
-        writer.println("|===");
-        writer.println("| Status | Count | Percentage");
-        writer.println();
-        writeRow(writer, "Listed", listed, listedPct);
-        writeRow(writer, "Defined", defined, definedPct);
-        writeRow(writer, "Implemented", implemented, implementedPct);
-        writer.println("|===");
-    }
-
-    private void writeRow(PrintWriter writer, String label, int count, BigDecimal percentage) {
-        writer.println("| " + label);
-        writer.println("| " + count);
-        writer.println("| " + percentage.toPlainString() + "%");
-        writer.println();
+        return List.of(
+                new StatusSummary(ScenarioStatus.LISTED, "Listed", ReportText.LISTED_BLURB,
+                        listed, listed.size(), listedPct.toPlainString()),
+                new StatusSummary(ScenarioStatus.DEFINED, "Defined", ReportText.DEFINED_BLURB,
+                        defined, defined.size(), definedPct.toPlainString()),
+                new StatusSummary(ScenarioStatus.IMPLEMENTED, "Implemented", ReportText.IMPLEMENTED_BLURB,
+                        implemented, implemented.size(), implementedPct.toPlainString()));
     }
 
     private BigDecimal percentage(int count, int total) {
@@ -138,20 +108,92 @@ public class ProgressReportWriter {
                 .divide(BigDecimal.valueOf(total), 1, RoundingMode.HALF_UP);
     }
 
-    private void writeSection(PrintWriter writer, String heading, String blurb, List<ScenarioInfo> scenarios) {
-        writer.println("== " + heading);
+    private void writeEmptyReport(File outputFile) {
+        try (PrintWriter writer = new PrintWriter(outputFile, StandardCharsets.UTF_8)) {
+            writer.println("= Feature Scenarios");
+            writer.println();
+            writer.println(ReportText.INTRO);
+            writer.println();
+            writer.println("No scenarios found.");
+        } catch (IOException e) {
+            throw new GradleException("gherkinToAsciidoc: failed to write AsciiDoc file: " + outputFile, e);
+        }
+    }
+
+    private void writeDefaultReport(File outputFile, List<StatusSummary> summaries, boolean groupByFeature) {
+        try (PrintWriter writer = new PrintWriter(outputFile, StandardCharsets.UTF_8)) {
+            writer.println("= Feature Scenarios");
+            writer.println();
+            writer.println(ReportText.INTRO);
+            writer.println();
+
+            writeStatusLegend(writer, summaries);
+
+            writer.println("== Progress Summary");
+            writer.println();
+            writeSummaryTable(writer, summaries);
+            writer.println();
+
+            for (StatusSummary summary : summaries) {
+                writeSection(writer, summary, groupByFeature);
+            }
+        } catch (IOException e) {
+            throw new GradleException("gherkinToAsciidoc: failed to write AsciiDoc file: " + outputFile, e);
+        }
+    }
+
+    private void writeStatusLegend(PrintWriter writer, List<StatusSummary> summaries) {
+        writer.println("Every scenario is classified as exactly one of:");
         writer.println();
-        writer.println(blurb);
+        writer.println("[cols=\"1,3\",options=\"header\"]");
+        writer.println("|===");
+        writer.println("| Status | Meaning");
         writer.println();
+        for (StatusSummary summary : summaries) {
+            writer.println("| " + summary.label());
+            writer.println("| " + summary.blurb());
+            writer.println();
+        }
+        writer.println("|===");
+        writer.println();
+    }
+
+    private void writeSummaryTable(PrintWriter writer, List<StatusSummary> summaries) {
+        writer.println("[cols=\"1,1,1\",options=\"header\"]");
+        writer.println("|===");
+        writer.println("| Status | Count | Percentage");
+        writer.println();
+        for (StatusSummary summary : summaries) {
+            writer.println("| " + summary.label());
+            writer.println("| " + summary.count());
+            writer.println("| " + summary.percentage() + "%");
+            writer.println();
+        }
+        writer.println("|===");
+    }
+
+    private void writeSection(PrintWriter writer, StatusSummary summary, boolean groupByFeature) {
+        writer.println("== " + summary.label());
+        writer.println();
+        writer.println(summary.blurb());
+        writer.println();
+        List<ScenarioInfo> scenarios = summary.scenarios();
         if (scenarios.isEmpty()) {
             writer.println("_None._");
             writer.println();
             return;
         }
-        for (Map.Entry<String, List<ScenarioInfo>> entry : ScenarioGrouping.byFeatureTitle(scenarios).entrySet()) {
-            writer.println("=== " + entry.getKey());
-            writer.println();
-            for (ScenarioInfo scenario : entry.getValue()) {
+        if (groupByFeature) {
+            for (Map.Entry<String, List<ScenarioInfo>> entry : ScenarioGrouping.byFeatureTitle(scenarios).entrySet()) {
+                writer.println("=== " + entry.getKey());
+                writer.println();
+                for (ScenarioInfo scenario : entry.getValue()) {
+                    writer.println("* " + scenario.title());
+                }
+                writer.println();
+            }
+        } else {
+            for (ScenarioInfo scenario : scenarios) {
                 writer.println("* " + scenario.title());
             }
             writer.println();
