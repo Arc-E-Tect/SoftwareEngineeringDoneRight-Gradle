@@ -22,7 +22,7 @@ class ScenarioClassifierTest {
     @Test
     @DisplayName("classifies a scenario with no steps as LISTED")
     void classifiesScenarioWithNoStepsAsListed() {
-        ScenarioInfo scenario = new ScenarioInfo("Scenario: Bare title", List.of());
+        ScenarioInfo scenario = new ScenarioInfo("Feature", "Scenario: Bare title", List.of());
 
         ScenarioStatus status = classifier.classify(scenario, List.of());
 
@@ -33,6 +33,7 @@ class ScenarioClassifierTest {
     @DisplayName("classifies a scenario with steps but no matching glue code as DEFINED")
     void classifiesScenarioWithUnmatchedStepsAsDefined() {
         ScenarioInfo scenario = new ScenarioInfo(
+                "Feature",
                 "Scenario: Not implemented yet",
                 List.of("the login page is open"));
 
@@ -45,6 +46,7 @@ class ScenarioClassifierTest {
     @DisplayName("classifies a scenario as DEFINED when only some steps have glue code")
     void classifiesScenarioAsDefinedWhenPartiallyImplemented() {
         ScenarioInfo scenario = new ScenarioInfo(
+                "Feature",
                 "Scenario: Partially implemented",
                 List.of("the login page is open", "the user submits credentials"));
         List<Expression> glueCode = List.of(expression("the login page is open"));
@@ -58,6 +60,7 @@ class ScenarioClassifierTest {
     @DisplayName("classifies a scenario as IMPLEMENTED when every step has matching glue code")
     void classifiesScenarioAsImplementedWhenAllStepsMatch() {
         ScenarioInfo scenario = new ScenarioInfo(
+                "Feature",
                 "Scenario: Fully implemented",
                 List.of("the login page is open", "the user submits \"alice\" and \"secret\""));
         List<Expression> glueCode = List.of(
@@ -73,6 +76,7 @@ class ScenarioClassifierTest {
     @DisplayName("classifies a scenario as DEFINED when a step's text doesn't fit any glue code parameter type")
     void classifiesScenarioAsDefinedWhenStepDoesNotFitParameterType() {
         ScenarioInfo scenario = new ScenarioInfo(
+                "Feature",
                 "Scenario: Typed mismatch",
                 List.of("I have many cukes"));
         List<Expression> glueCode = List.of(expression("I have {int} cukes"));
