@@ -13,6 +13,8 @@ import org.gradle.api.provider.Property;
  *     includeSubDirs = false                                                        // default
  *     outputDir      = layout.buildDirectory.dir('generated-docs')                 // default
  *     outputFileName = 'features.adoc'                                             // default
+ *     trackProgress  = false                                                        // default
+ *     // glueCodeDir = layout.projectDirectory.dir('src/test/java/.../steps')       // required when trackProgress = true
  * }
  * </pre>
  */
@@ -48,7 +50,8 @@ public abstract class GherkinToAsciidocExtension {
 
     /**
      * Whether to recursively scan sub-directories when {@link #getSourceDir()} is used.
-     * Defaults to {@code false}.
+     * Defaults to {@code false}. Forced to {@code true} whenever {@link #getTrackProgress()}
+     * is {@code true}.
      *
      * @return mutable boolean property controlling recursive directory scanning
      */
@@ -69,4 +72,25 @@ public abstract class GherkinToAsciidocExtension {
      * @return mutable string property for the output file name
      */
     public abstract Property<String> getOutputFileName();
+
+    /**
+     * Whether to classify every scenario as {@code listed}, {@code defined}, or
+     * {@code implemented} and include a progress summary in the generated AsciiDoc.
+     * Defaults to {@code false}.
+     *
+     * <p>Can only be enabled when {@link #getSourceDir()} and {@link #getGlueCodeDir()}
+     * are both configured; enabling it also implies {@link #getIncludeSubDirs()}.</p>
+     *
+     * @return mutable boolean property controlling progress tracking
+     */
+    public abstract Property<Boolean> getTrackProgress();
+
+    /**
+     * Directory containing the Cucumber-JVM glue code (step definitions) used to
+     * determine whether a scenario's steps are implemented. Required when
+     * {@link #getTrackProgress()} is {@code true}; ignored otherwise.
+     *
+     * @return mutable directory property for the glue code directory
+     */
+    public abstract DirectoryProperty getGlueCodeDir();
 }

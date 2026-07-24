@@ -1,0 +1,6 @@
+plugins {
+    alias(libs.plugins.gherkin.to.asciidoc)
+}
+
+// No gherkinToAsciidoc { } block needed: the defaults already match this example's
+// layout (src/test/resources/features, non-recursive, build/generated-docs/features.adoc).

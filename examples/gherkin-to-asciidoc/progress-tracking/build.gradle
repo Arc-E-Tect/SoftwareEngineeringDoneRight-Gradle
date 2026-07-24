@@ -1,0 +1,26 @@
+plugins {
+    id 'java'
+    alias(libs.plugins.gherkin.to.asciidoc)
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // Provides the @Given/@When/@Then annotations used by the glue code in
+    // src/test/java/.../steps, so it compiles like real Cucumber-JVM step definitions.
+    testImplementation libs.cucumber.java
+}
+
+gherkinToAsciidoc {
+    sourceDir      = file('src/test/resources/features')
+    glueCodeDir    = file('src/test/java/com/arc_e_tect/example/auth/steps')
+    trackProgress  = true
+}

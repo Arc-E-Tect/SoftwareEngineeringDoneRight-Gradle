@@ -83,6 +83,18 @@ gherkinToAsciidoc {
     // Name of the generated AsciiDoc file.
     // Default: 'features.adoc'
     outputFileName = 'features.adoc'
+
+    // When true, classifies every scenario as "listed", "defined", or "implemented"
+    // and adds a progress summary to the generated AsciiDoc file (see "Tracking
+    // Implementation Progress" below).
+    // Requires sourceDir and glueCodeDir to be set; implies includeSubDirs = true.
+    // Default: false
+    trackProgress = false
+
+    // Directory containing the Cucumber-JVM glue code (step definitions), scanned
+    // recursively for @Given/@When/@Then step definition patterns.
+    // Required when trackProgress is true; ignored otherwise.
+    // glueCodeDir = file('src/test/java/com/example/steps')
 }
 ----
 
@@ -94,6 +106,8 @@ gherkinToAsciidoc {
     includeSubDirs.set(false)
     outputDir.set(layout.buildDirectory.dir("generated-docs"))
     outputFileName.set("features.adoc")
+    trackProgress.set(false)
+    // glueCodeDir.set(file("src/test/java/com/example/steps"))
 }
 ----
 
@@ -110,6 +124,10 @@ Mutually exclusive with `sourceDir` and `includeSubDirs`.
 Cannot be combined with `sourceFile`.
 | `outputDir`     | Directory | `$buildDir/generated-docs`           | Directory where the generated AsciiDoc file is written.
 | `outputFileName`| String    | `features.adoc`                      | Name of the generated AsciiDoc file.
+| `trackProgress` | Boolean   | `false`                              | When `true`, classifies every scenario as `listed`, `defined`, or `implemented` and adds a progress summary to the generated document.
+Requires `sourceDir` and `glueCodeDir`; implies `includeSubDirs = true`.
+| `glueCodeDir`   | Directory | —                                    | Directory containing the Cucumber-JVM glue code, scanned recursively for step definitions.
+Required when `trackProgress` is `true`.
 |===
 
 [IMPORTANT]
@@ -118,6 +136,9 @@ Cannot be combined with `sourceFile`.
 Setting both will cause the `generateFeatureDocs` task to fail with a descriptive error.
 
 `includeSubDirs` cannot be combined with `sourceFile`.
+
+`trackProgress` can only be enabled when `sourceDir` is configured, and requires `glueCodeDir` to be set.
+Enabling it implies `includeSubDirs = true`, regardless of that property's own configured value.
 ====
 
 == Running the Task
@@ -164,6 +185,119 @@ The plugin generates:
 * Scenario: User logs in successfully
 * Scenario Outline: User logs in with different credential sets
 ----
+
+== Tracking Implementation Progress
+
+Setting `trackProgress = true` (with `sourceDir` and `glueCodeDir` configured) switches the generated document
+from a flat list of scenario titles to a breakdown of every scenario's implementation status, plus a summary
+table.
+
+Each scenario is classified as exactly one of:
+
+[cols="1,3",options="header"]
+|===
+| Status        | Meaning
+| `listed`      | The scenario has a title only; it has no `Given`/`When`/`Then` steps yet.
+| `defined`     | The scenario has steps, but at least one step has no matching glue code in `glueCodeDir`.
+| `implemented` | The scenario has steps, and every step has matching glue code in `glueCodeDir`.
+|===
+
+Glue code is matched by scanning `glueCodeDir` recursively for `@Given`/`@When`/`@Then` step definitions and
+comparing each scenario step's text against every step definition pattern found, using the same
+https://github.com/cucumber/cucumber-expressions[Cucumber Expressions] (or regular expression) matching
+Cucumber-JVM itself uses at runtime. The step's keyword (`Given`/`When`/`Then`/`And`/`But`) is not taken into
+account, matching Cucumber-JVM's own behaviour of matching step text against all registered definitions
+regardless of keyword.
+
+Given the following feature file:
+
+[source,gherkin]
+----
+Feature: User authentication
+
+  Scenario: User requests a password reset
+    #  not yet fleshed out
+
+  Scenario: User logs in successfully
+    Given the login page is open
+    When the user submits valid credentials
+    Then the dashboard is displayed
+
+  Scenario Outline: User logs in with different credential sets
+    Given the login page is open
+    When the user submits "<username>" and "<password>"
+    Then the result is "<outcome>"
+
+    Examples:
+      | username | password | outcome |
+      | alice    | secret   | success |
+      | bob      | wrong    | failure |
+----
+
+and the following glue code in `glueCodeDir`:
+
+[source,java]
+----
+public class LoginSteps {
+
+    @Given("the login page is open")
+    public void theLoginPageIsOpen() { }
+
+    @When("the user submits valid credentials")
+    public void theUserSubmitsValidCredentials() { }
+
+    @Then("the dashboard is displayed")
+    public void theDashboardIsDisplayed() { }
+}
+----
+
+the plugin generates:
+
+[source,asciidoc]
+----
+= Feature Scenarios
+
+== Progress Summary
+
+[cols="1,1,1",options="header"]
+|===
+| Status | Count | Percentage
+
+| Listed
+| 1
+| 33.3%
+
+| Defined
+| 1
+| 33.3%
+
+| Implemented
+| 1
+| 33.4%
+|===
+
+== Listed
+
+* Scenario: User requests a password reset
+
+== Defined
+
+* Scenario Outline: User logs in with different credential sets
+
+== Implemented
+
+* Scenario: User logs in successfully
+----
+
+[NOTE]
+====
+The percentages are always rounded so that the three figures add up to exactly 100%.
+
+The `Scenario Outline` shares its first step (`the login page is open`) with the fully implemented scenario
+above, so that one step does have matching glue code. Its other two steps don't match anything in
+`LoginSteps`, though, so the scenario as a whole is classified as `defined`, not `implemented` — every step
+needs matching glue code for a scenario to count as `implemented`.
+====
 
 == License
 

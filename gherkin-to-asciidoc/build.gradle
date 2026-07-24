@@ -37,6 +37,7 @@ dependencyCheck {
 
 dependencies {
     implementation libs.gherkin
+    implementation libs.cucumber.expressions
 
     testImplementation libs.junit.jupiter
     testImplementation libs.assertj.core
@@ -51,7 +52,7 @@ gradlePlugin {
             id                  = 'com.arc-e-tect.gherkin-to-asciidoc'
             implementationClass = 'com.arc_e_tect.gradle.gherkin.GherkinToAsciidocPlugin'
             displayName         = 'Gherkin to AsciiDoc'
-            description         = 'Scans .feature files for Scenario and Scenario Outline titles and generates an AsciiDoc file listing all scenarios.'
+            description         = 'Scans .feature files for Scenario and Scenario Outline titles and generates an AsciiDoc file listing all scenarios, optionally tracking implementation progress against glue code.'
             tags                = ['gherkin', 'asciidoc', 'bdd', 'documentation', 'feature']
             compatibility {
                 features {

@@ -25,13 +25,36 @@ class FeatureParserTest {
     void parsesScenarioAndScenarioOutlineTitles() throws Exception {
         File featureFile = fixtureFile("fixtures/login.feature");
 
-        List<String> titles = parser.parse(featureFile);
+        List<ScenarioInfo> scenarios = parser.parse(featureFile);
 
-        assertThat(titles)
-                .hasSize(2)
+        assertThat(scenarios)
+                .extracting(ScenarioInfo::title)
                 .containsExactly(
                         "Scenario: User logs in successfully",
                         "Scenario Outline: User logs in with different credentials");
+    }
+
+    @Test
+    @DisplayName("extracts the Given-When-Then steps for each scenario")
+    void extractsStepsForEachScenario() throws Exception {
+        File featureFile = fixtureFile("fixtures/login.feature");
+
+        List<ScenarioInfo> scenarios = parser.parse(featureFile);
+
+        assertThat(scenarios.get(0).steps()).isNotEmpty();
+    }
+
+    @Test
+    @DisplayName("returns a scenario with no steps when the scenario has none")
+    void returnsEmptyStepsForStepLessScenario(@org.junit.jupiter.api.io.TempDir java.nio.file.Path tempDir) throws Exception {
+        File featureFile = tempDir.resolve("stepless.feature").toFile();
+        java.nio.file.Files.writeString(featureFile.toPath(),
+                "Feature: Stepless\n\n  Scenario: Not yet fleshed out\n");
+
+        List<ScenarioInfo> scenarios = parser.parse(featureFile);
+
+        assertThat(scenarios).hasSize(1);
+        assertThat(scenarios.get(0).steps()).isEmpty();
     }
 
     @Test
@@ -39,9 +62,9 @@ class FeatureParserTest {
     void returnsEmptyListForFeatureWithNoScenarios() throws Exception {
         File featureFile = fixtureFile("fixtures/empty.feature");
 
-        List<String> titles = parser.parse(featureFile);
+        List<ScenarioInfo> scenarios = parser.parse(featureFile);
 
-        assertThat(titles).isEmpty();
+        assertThat(scenarios).isEmpty();
     }
 
     @Test
@@ -49,10 +72,10 @@ class FeatureParserTest {
     void parsesScenariosInsideRule() throws Exception {
         File featureFile = fixtureFile("fixtures/rules.feature");
 
-        List<String> titles = parser.parse(featureFile);
+        List<ScenarioInfo> scenarios = parser.parse(featureFile);
 
-        assertThat(titles)
-                .hasSize(2)
+        assertThat(scenarios)
+                .extracting(ScenarioInfo::title)
                 .containsExactly(
                         "Scenario: Premium user views protected page",
                         "Scenario Outline: Premium user accesses different content types");
@@ -63,9 +86,9 @@ class FeatureParserTest {
     void returnsEmptyListForNonExistentFile() {
         File featureFile = new File("/does/not/exist.feature");
 
-        List<String> titles = parser.parse(featureFile);
+        List<ScenarioInfo> scenarios = parser.parse(featureFile);
 
-        assertThat(titles).isEmpty();
+        assertThat(scenarios).isEmpty();
     }
 
     @Test
@@ -74,9 +97,9 @@ class FeatureParserTest {
         File malformed = tempDir.resolve("broken.feature").toFile();
         java.nio.file.Files.writeString(malformed.toPath(), "this is not valid gherkin @@@ !!!");
 
-        List<String> titles = parser.parse(malformed);
+        List<ScenarioInfo> scenarios = parser.parse(malformed);
 
-        assertThat(titles).isEmpty();
+        assertThat(scenarios).isEmpty();
     }
 
     @Test
@@ -84,9 +107,9 @@ class FeatureParserTest {
     void returnsUnmodifiableList() throws Exception {
         File featureFile = fixtureFile("fixtures/login.feature");
 
-        List<String> titles = parser.parse(featureFile);
+        List<ScenarioInfo> scenarios = parser.parse(featureFile);
 
-        assertThat(titles).isUnmodifiable();
+        assertThat(scenarios).isUnmodifiable();
     }
 
     private File fixtureFile(String resourcePath) throws Exception {

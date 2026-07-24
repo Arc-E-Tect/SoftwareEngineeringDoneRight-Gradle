@@ -40,6 +40,26 @@ class GherkinToAsciidocPluginTest {
     }
 
     @Test
+    @DisplayName("extension default: trackProgress is false")
+    void extensionDefaultTrackProgressIsFalse() {
+        Project project = projectWithPlugin();
+        GherkinToAsciidocExtension ext = extension(project);
+
+        assertThat(ext.getTrackProgress().get()).isFalse();
+    }
+
+    @Test
+    @DisplayName("extension: includeSubDirs defaults to true when trackProgress is enabled")
+    void includeSubDirsDefaultsToTrueWhenTrackProgressEnabled() {
+        Project project = projectWithPlugin();
+        GherkinToAsciidocExtension ext = extension(project);
+
+        ext.getTrackProgress().set(true);
+
+        assertThat(ext.getIncludeSubDirs().get()).isTrue();
+    }
+
+    @Test
     @DisplayName("extension default: outputFileName is features.adoc")
     void extensionDefaultOutputFileNameIsFeaturesAdoc() {
         Project project = projectWithPlugin();
@@ -164,6 +184,122 @@ class GherkinToAsciidocPluginTest {
         assertThatThrownBy(task::generate)
                 .isInstanceOf(org.gradle.api.GradleException.class)
                 .hasMessageContaining("includeSubDirs cannot be used when sourceFile is configured");
+    }
+
+    @Test
+    @DisplayName("throws GradleException when trackProgress is enabled without sourceDir")
+    void throwsWhenTrackProgressEnabledWithoutSourceDir() throws IOException {
+        Project project = projectWithPlugin();
+        File file = tempDir.resolve("single.feature").toFile();
+        Files.writeString(file.toPath(), "Feature: F\n  Scenario: S\n    Given g\n");
+        File glueCodeDir = new File(tempDir.toFile(), "steps");
+        glueCodeDir.mkdirs();
+
+        GenerateFeatureDocsTask task = task(project);
+        task.getSourceFile().set(file);
+        task.getTrackProgress().set(true);
+        task.getGlueCodeDir().set(glueCodeDir);
+        task.getOutputDir().set(new File(tempDir.toFile(), "output"));
+        task.getProjectDirectory().set(project.getLayout().getProjectDirectory());
+
+        assertThatThrownBy(task::generate)
+                .isInstanceOf(org.gradle.api.GradleException.class)
+                .hasMessageContaining("trackProgress can only be enabled when sourceDir is configured");
+    }
+
+    @Test
+    @DisplayName("throws GradleException when trackProgress is enabled without glueCodeDir")
+    void throwsWhenTrackProgressEnabledWithoutGlueCodeDir() throws IOException {
+        Project project = projectWithPlugin();
+        File featuresDir = new File(tempDir.toFile(), "features");
+        featuresDir.mkdirs();
+        writeFeatureFile(featuresDir, "sample.feature", "Feature: F\n  Scenario: S\n    Given g\n");
+
+        GenerateFeatureDocsTask task = task(project);
+        task.getSourceDir().set(featuresDir);
+        task.getTrackProgress().set(true);
+        task.getOutputDir().set(new File(tempDir.toFile(), "output"));
+        task.getProjectDirectory().set(project.getLayout().getProjectDirectory());
+
+        assertThatThrownBy(task::generate)
+                .isInstanceOf(org.gradle.api.GradleException.class)
+                .hasMessageContaining("trackProgress requires glueCodeDir to be configured");
+    }
+
+    @Test
+    @DisplayName("trackProgress implies recursive scanning even if includeSubDirs is explicitly false")
+    void trackProgressImpliesRecursiveScanningEvenWhenIncludeSubDirsExplicitlyFalse() throws IOException {
+        Project project = projectWithPlugin();
+        File rootDir = new File(tempDir.toFile(), "features");
+        File subDir = new File(rootDir, "sub");
+        subDir.mkdirs();
+        writeFeatureFile(rootDir, "root.feature", "Feature: Root\n\n  Scenario: Root scenario\n    Given root\n");
+        writeFeatureFile(subDir, "sub.feature", "Feature: Sub\n\n  Scenario: Sub scenario\n    Given sub\n");
+        File glueCodeDir = new File(tempDir.toFile(), "steps");
+        glueCodeDir.mkdirs();
+
+        GenerateFeatureDocsTask task = task(project);
+        task.getSourceDir().set(rootDir);
+        task.getIncludeSubDirs().set(false);
+        task.getTrackProgress().set(true);
+        task.getGlueCodeDir().set(glueCodeDir);
+        File outputDir = new File(tempDir.toFile(), "output");
+        task.getOutputDir().set(outputDir);
+        task.getProjectDirectory().set(project.getLayout().getProjectDirectory());
+        task.generate();
+
+        String content = Files.readString(new File(outputDir, "features.adoc").toPath());
+        assertThat(content)
+                .contains("Root scenario")
+                .contains("Sub scenario");
+    }
+
+    @Test
+    @DisplayName("generates a progress report classifying scenarios as listed, defined, and implemented")
+    void generatesProgressReport() throws IOException {
+        Project project = projectWithPlugin();
+        File featuresDir = new File(tempDir.toFile(), "features");
+        featuresDir.mkdirs();
+        writeFeatureFile(featuresDir, "sample.feature", """
+                Feature: Sample
+
+                  Scenario: Only a title
+
+                  Scenario: Has steps but no glue
+                    Given an unimplemented step
+
+                  Scenario: Fully wired up
+                    Given an implemented step
+                """);
+
+        File glueCodeDir = new File(tempDir.toFile(), "steps");
+        glueCodeDir.mkdirs();
+        Files.writeString(new File(glueCodeDir, "Steps.java").toPath(), """
+                public class Steps {
+                    @Given("an implemented step")
+                    public void implemented() {}
+                }
+                """);
+
+        File outputDir = new File(tempDir.toFile(), "output");
+
+        GenerateFeatureDocsTask task = task(project);
+        task.getSourceDir().set(featuresDir);
+        task.getTrackProgress().set(true);
+        task.getGlueCodeDir().set(glueCodeDir);
+        task.getOutputDir().set(outputDir);
+        task.getProjectDirectory().set(project.getLayout().getProjectDirectory());
+        task.generate();
+
+        String content = Files.readString(new File(outputDir, "features.adoc").toPath());
+        assertThat(content)
+                .contains("Progress Summary")
+                .contains("| Listed", "| 1", "| 33.3%")
+                .contains("| Defined", "| 1")
+                .contains("| Implemented", "| 1")
+                .contains("== Listed", "* Scenario: Only a title")
+                .contains("== Defined", "* Scenario: Has steps but no glue")
+                .contains("== Implemented", "* Scenario: Fully wired up");
     }
 
     @Test

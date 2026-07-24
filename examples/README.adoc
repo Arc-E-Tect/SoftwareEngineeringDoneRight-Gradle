@@ -27,3 +27,9 @@ include::jacoco-exclusion-report/standard/README.adoc[leveloffset=+1]
 include::jacoco-exclusion-report/custom-annotation/README.adoc[leveloffset=+1]
 
 include::jacoco-exclusion-report/dsl/README.adoc[leveloffset=+1]
+
+== Gherkin to AsciiDoc Examples
+
+include::gherkin-to-asciidoc/plain/README.adoc[leveloffset=+1]
+
+include::gherkin-to-asciidoc/progress-tracking/README.adoc[leveloffset=+1]
