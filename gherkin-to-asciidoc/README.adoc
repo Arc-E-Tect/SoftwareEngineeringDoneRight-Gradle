@@ -98,6 +98,11 @@ gherkinToAsciidoc {
     // each scanned recursively for @Given/@When/@Then step definition patterns.
     // Required when trackProgress is true; ignored otherwise.
     // glueCodeDirs.from('src/test/java/com/example/steps')
+
+    // When true, groups scenarios under their enclosing Feature instead of a flat list
+    // (see "Grouping by Feature" below). Forced to true whenever trackProgress is true.
+    // Default: false
+    groupByFeature = false
 }
 ----
 
@@ -111,6 +116,7 @@ gherkinToAsciidoc {
     outputFileName.set("features.adoc")
     trackProgress.set(false)
     // glueCodeDirs.from("src/test/java/com/example/steps")
+    groupByFeature.set(false)
 }
 ----
 
@@ -131,6 +137,8 @@ Cannot be combined with `sourceFile`.
 Requires `sourceDirs` and `glueCodeDirs`; implies `includeSubDirs = true`.
 | `glueCodeDirs`  | File collection | —                                    | One or more directories containing the Cucumber-JVM glue code, each scanned recursively for step definitions.
 Required when `trackProgress` is `true`.
+| `groupByFeature`| Boolean         | `false`                              | When `true`, groups scenarios under their enclosing `Feature` instead of a flat list.
+Forced to `true` whenever `trackProgress` is `true`.
 |===
 
 [IMPORTANT]
@@ -141,7 +149,8 @@ Setting both will cause the `generateFeatureDocs` task to fail with a descriptiv
 `includeSubDirs` cannot be combined with `sourceFile`.
 
 `trackProgress` can only be enabled when `sourceDirs` is configured, and requires `glueCodeDirs` to be set.
-Enabling it implies `includeSubDirs = true`, regardless of that property's own configured value.
+Enabling it implies `includeSubDirs = true` and `groupByFeature = true`, regardless of those properties' own
+configured values.
 ====
 
 == Running the Task
@@ -191,6 +200,42 @@ This document lists every `Scenario` and `Scenario Outline` found under the conf
 * Scenario Outline: User logs in with different credential sets
 ----
 
+== Grouping by Feature
+
+By default, scenarios are listed as one flat list regardless of which `.feature` file they came from. Setting
+`groupByFeature = true` groups them under their enclosing `Feature` instead — useful once `sourceDirs` spans
+more than one feature area. Given two feature files:
+
+[source,gherkin]
+----
+Feature: User authentication
+
+  Scenario: User logs in successfully
+    Given the login page is open
+
+Feature: Invoice payment
+
+  Scenario: User pays an invoice
+    Given an outstanding invoice
+----
+
+with `groupByFeature = true`, the plugin generates:
+
+[source,asciidoc]
+----
+= Feature Scenarios
+
+This document lists every `Scenario` and `Scenario Outline` found under the configured feature file directories.
+
+== User authentication
+
+* Scenario: User logs in successfully
+
+== Invoice payment
+
+* Scenario: User pays an invoice
+----
+
 == Tracking Implementation Progress
 
 Setting `trackProgress = true` (with `sourceDirs` and `glueCodeDirs` configured) switches the generated document
@@ -213,6 +258,9 @@ all of them, using the same https://github.com/cucumber/cucumber-expressions[Cuc
 expression) matching Cucumber-JVM itself uses at runtime. The step's keyword (`Given`/`When`/`Then`/`And`/`But`)
 is not taken into account, matching Cucumber-JVM's own behaviour of matching step text against all registered
 definitions regardless of keyword.
+
+Enabling `trackProgress` also forces `groupByFeature = true` (see "Grouping by Feature" above): within each of
+the Listed/Defined/Implemented sections, scenarios are further grouped under their enclosing `Feature`.
 
 `sourceDirs` and `glueCodeDirs` don't need to line up one-to-one — every feature file found across all of
 `sourceDirs` is checked against the combined set of step definitions found across all of `glueCodeDirs`. This is
@@ -317,17 +365,23 @@ Every scenario is classified as exactly one of:
 
 Scenarios with a title only. No `Given`/`When`/`Then` steps have been written for them yet.
 
+=== User authentication
+
 * Scenario: User requests a password reset
 
 == Defined
 
 Scenarios with steps written, but at least one step has no matching glue code yet.
 
+=== User authentication
+
 * Scenario Outline: User logs in with different credential sets
 
 == Implemented
 
 Scenarios whose every step has matching glue code.
+
+=== User authentication
 
 * Scenario: User logs in successfully
 ----

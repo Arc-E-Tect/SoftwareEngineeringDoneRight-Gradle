@@ -29,7 +29,7 @@ class ProgressReportWriterTest {
     @Test
     @DisplayName("includes an intro paragraph and a status legend explaining what each status means")
     void includesIntroAndStatusLegend(@TempDir Path tempDir) throws IOException {
-        ScenarioInfo listed = new ScenarioInfo("Scenario: Only a title", List.of());
+        ScenarioInfo listed = new ScenarioInfo("Authentication", "Scenario: Only a title", List.of());
 
         File outputFile = tempDir.resolve("features.adoc").toFile();
         writer.write(outputFile, List.of(listed), List.of());
@@ -47,11 +47,11 @@ class ProgressReportWriterTest {
     @Test
     @DisplayName("reports scenarios under Listed, Defined and Implemented headings")
     void reportsScenariosUnderEachHeading(@TempDir Path tempDir) throws IOException {
-        ScenarioInfo listed = new ScenarioInfo("Scenario: Only a title", List.of());
+        ScenarioInfo listed = new ScenarioInfo("Authentication", "Scenario: Only a title", List.of());
         ScenarioInfo defined = new ScenarioInfo(
-                "Scenario: Has steps, no glue", List.of("an unimplemented step"));
+                "Authentication", "Scenario: Has steps, no glue", List.of("an unimplemented step"));
         ScenarioInfo implemented = new ScenarioInfo(
-                "Scenario: Fully wired up", List.of("an implemented step"));
+                "Authentication", "Scenario: Fully wired up", List.of("an implemented step"));
         List<Expression> glueCode = List.of(expression("an implemented step"));
 
         File outputFile = tempDir.resolve("features.adoc").toFile();
@@ -64,15 +64,58 @@ class ProgressReportWriterTest {
     }
 
     @Test
+    @DisplayName("groups scenarios under their feature within each status section")
+    void groupsScenariosByFeatureWithinEachStatus(@TempDir Path tempDir) throws IOException {
+        ScenarioInfo authImplemented = new ScenarioInfo(
+                "Authentication", "Scenario: User logs in", List.of("has glue"));
+        ScenarioInfo billingImplemented = new ScenarioInfo(
+                "Billing", "Scenario: User pays an invoice", List.of("has glue"));
+        List<Expression> glueCode = List.of(expression("has glue"));
+
+        File outputFile = tempDir.resolve("features.adoc").toFile();
+        writer.write(outputFile, List.of(authImplemented, billingImplemented), glueCode);
+
+        String content = Files.readString(outputFile.toPath(), StandardCharsets.UTF_8);
+        assertThat(content)
+                .contains("== Implemented")
+                .contains("=== Authentication")
+                .contains("=== Billing");
+
+        // The Authentication feature heading appears before its scenario, which appears
+        // before the Billing feature heading.
+        int authHeadingIndex = content.indexOf("=== Authentication");
+        int authScenarioIndex = content.indexOf("* Scenario: User logs in");
+        int billingHeadingIndex = content.indexOf("=== Billing");
+        int billingScenarioIndex = content.indexOf("* Scenario: User pays an invoice");
+        assertThat(authHeadingIndex).isLessThan(authScenarioIndex);
+        assertThat(authScenarioIndex).isLessThan(billingHeadingIndex);
+        assertThat(billingHeadingIndex).isLessThan(billingScenarioIndex);
+    }
+
+    @Test
+    @DisplayName("groups multiple scenarios from the same feature under one feature heading")
+    void groupsMultipleScenariosFromSameFeatureTogether(@TempDir Path tempDir) throws IOException {
+        ScenarioInfo first = new ScenarioInfo("Authentication", "Scenario: First", List.of());
+        ScenarioInfo second = new ScenarioInfo("Authentication", "Scenario: Second", List.of());
+
+        File outputFile = tempDir.resolve("features.adoc").toFile();
+        writer.write(outputFile, List.of(first, second), List.of());
+
+        String content = Files.readString(outputFile.toPath(), StandardCharsets.UTF_8);
+        assertThat(content.split("=== Authentication", -1)).hasSize(2);
+        assertThat(content).contains("* Scenario: First", "* Scenario: Second");
+    }
+
+    @Test
     @DisplayName("summary table counts and percentages add up to 100%")
     void summaryTableCountsAndPercentagesAddUpTo100Percent(@TempDir Path tempDir) throws IOException {
         List<ScenarioInfo> scenarios = List.of(
-                new ScenarioInfo("Scenario: L1", List.of()),
-                new ScenarioInfo("Scenario: L2", List.of()),
-                new ScenarioInfo("Scenario: D1", List.of("no glue for this")),
-                new ScenarioInfo("Scenario: I1", List.of("has glue")),
-                new ScenarioInfo("Scenario: I2", List.of("has glue")),
-                new ScenarioInfo("Scenario: I3", List.of("has glue")));
+                new ScenarioInfo("Feature", "Scenario: L1", List.of()),
+                new ScenarioInfo("Feature", "Scenario: L2", List.of()),
+                new ScenarioInfo("Feature", "Scenario: D1", List.of("no glue for this")),
+                new ScenarioInfo("Feature", "Scenario: I1", List.of("has glue")),
+                new ScenarioInfo("Feature", "Scenario: I2", List.of("has glue")),
+                new ScenarioInfo("Feature", "Scenario: I3", List.of("has glue")));
         List<Expression> glueCode = List.of(expression("has glue"));
 
         File outputFile = tempDir.resolve("features.adoc").toFile();
@@ -97,10 +140,10 @@ class ProgressReportWriterTest {
     }
 
     @Test
-    @DisplayName("prints a None placeholder for a heading with no scenarios")
+    @DisplayName("prints a None placeholder for a heading with no scenarios, without a feature heading")
     void printsNonePlaceholderForEmptyHeading(@TempDir Path tempDir) throws IOException {
         ScenarioInfo implemented = new ScenarioInfo(
-                "Scenario: Fully wired up", List.of("an implemented step"));
+                "Authentication", "Scenario: Fully wired up", List.of("an implemented step"));
         List<Expression> glueCode = List.of(expression("an implemented step"));
 
         File outputFile = tempDir.resolve("features.adoc").toFile();
@@ -108,6 +151,9 @@ class ProgressReportWriterTest {
 
         String content = Files.readString(outputFile.toPath(), StandardCharsets.UTF_8);
         assertThat(content).contains("== Listed", "_None._");
+        // No feature sub-heading is printed for a status with no scenarios.
+        String listedSection = content.substring(content.indexOf("== Listed"), content.indexOf("== Defined"));
+        assertThat(listedSection).doesNotContain("===");
     }
 
     @Test

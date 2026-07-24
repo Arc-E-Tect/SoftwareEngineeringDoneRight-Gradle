@@ -69,6 +69,26 @@ class GherkinToAsciidocPluginTest {
     }
 
     @Test
+    @DisplayName("extension default: groupByFeature is false")
+    void extensionDefaultGroupByFeatureIsFalse() {
+        Project project = projectWithPlugin();
+        GherkinToAsciidocExtension ext = extension(project);
+
+        assertThat(ext.getGroupByFeature().get()).isFalse();
+    }
+
+    @Test
+    @DisplayName("extension: groupByFeature defaults to true when trackProgress is enabled")
+    void groupByFeatureDefaultsToTrueWhenTrackProgressEnabled() {
+        Project project = projectWithPlugin();
+        GherkinToAsciidocExtension ext = extension(project);
+
+        ext.getTrackProgress().set(true);
+
+        assertThat(ext.getGroupByFeature().get()).isTrue();
+    }
+
+    @Test
     @DisplayName("extension default: outputFileName is features.adoc")
     void extensionDefaultOutputFileNameIsFeaturesAdoc() {
         Project project = projectWithPlugin();
@@ -134,7 +154,37 @@ class GherkinToAsciidocPluginTest {
         String content = Files.readString(new File(outputDir, "features.adoc").toPath());
         assertThat(content)
                 .contains("* Scenario: New user signs up")
-                .contains("* Scenario: User logs in");
+                .contains("* Scenario: User logs in")
+                .doesNotContain("== Sign Up")
+                .doesNotContain("== Login");
+    }
+
+    @Test
+    @DisplayName("groups scenarios by feature when groupByFeature is enabled")
+    void generatesGroupedAsciidocWhenGroupByFeatureEnabled() throws IOException {
+        Project project = projectWithPlugin();
+        File firstDir = new File(tempDir.toFile(), "features-a");
+        File secondDir = new File(tempDir.toFile(), "features-b");
+        firstDir.mkdirs();
+        secondDir.mkdirs();
+        writeFeatureFile(firstDir, "signup.feature",
+                "Feature: Sign Up\n\n  Scenario: New user signs up\n    Given the sign-up page\n");
+        writeFeatureFile(secondDir, "login.feature",
+                "Feature: Login\n\n  Scenario: User logs in\n    Given the login page\n");
+
+        File outputDir = new File(tempDir.toFile(), "output");
+
+        GenerateFeatureDocsTask task = task(project);
+        task.getSourceDirs().from(firstDir, secondDir);
+        task.getGroupByFeature().set(true);
+        task.getOutputDir().set(outputDir);
+        task.getProjectDirectory().set(project.getLayout().getProjectDirectory());
+        task.generate();
+
+        String content = Files.readString(new File(outputDir, "features.adoc").toPath());
+        assertThat(content)
+                .contains("== Sign Up", "* Scenario: New user signs up")
+                .contains("== Login", "* Scenario: User logs in");
     }
 
     @Test

@@ -61,7 +61,7 @@ public class FeatureParser {
                     .findFirst()
                     .flatMap(Envelope::getGherkinDocument)
                     .flatMap(GherkinDocument::getFeature)
-                    .ifPresent(feature -> extractScenarios(feature, scenarios));
+                    .ifPresent(feature -> extractScenarios(feature, feature.getName(), scenarios));
         } catch (IOException e) {
             LOGGER.warn("Could not read feature file '{}': {}", featureFile, e.getMessage());
         } catch (Exception e) {
@@ -70,24 +70,24 @@ public class FeatureParser {
         return Collections.unmodifiableList(scenarios);
     }
 
-    private void extractScenarios(Feature feature, List<ScenarioInfo> scenarios) {
+    private void extractScenarios(Feature feature, String featureTitle, List<ScenarioInfo> scenarios) {
         for (FeatureChild child : feature.getChildren()) {
-            child.getScenario().ifPresent(s -> scenarios.add(toScenarioInfo(s)));
-            child.getRule().ifPresent(rule -> extractFromRule(rule, scenarios));
+            child.getScenario().ifPresent(s -> scenarios.add(toScenarioInfo(featureTitle, s)));
+            child.getRule().ifPresent(rule -> extractFromRule(rule, featureTitle, scenarios));
         }
     }
 
-    private void extractFromRule(Rule rule, List<ScenarioInfo> scenarios) {
+    private void extractFromRule(Rule rule, String featureTitle, List<ScenarioInfo> scenarios) {
         for (RuleChild ruleChild : rule.getChildren()) {
-            ruleChild.getScenario().ifPresent(s -> scenarios.add(toScenarioInfo(s)));
+            ruleChild.getScenario().ifPresent(s -> scenarios.add(toScenarioInfo(featureTitle, s)));
         }
     }
 
-    private ScenarioInfo toScenarioInfo(Scenario scenario) {
+    private ScenarioInfo toScenarioInfo(String featureTitle, Scenario scenario) {
         List<String> steps = scenario.getSteps().stream()
                 .map(Step::getText)
                 .collect(Collectors.toList());
-        return new ScenarioInfo(formatTitle(scenario), steps);
+        return new ScenarioInfo(featureTitle, formatTitle(scenario), steps);
     }
 
     private String formatTitle(Scenario scenario) {

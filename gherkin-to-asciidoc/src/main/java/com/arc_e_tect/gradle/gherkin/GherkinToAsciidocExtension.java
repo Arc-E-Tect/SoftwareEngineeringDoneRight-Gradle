@@ -16,6 +16,7 @@ import org.gradle.api.provider.Property;
  *     outputFileName = 'features.adoc'                                             // default
  *     trackProgress  = false                                                        // default
  *     // glueCodeDirs.from('src/test/java/.../steps')                              // required when trackProgress = true
+ *     groupByFeature = false                                                        // default; forced to true whenever trackProgress = true
  * }
  * </pre>
  */
@@ -96,4 +97,14 @@ public abstract class GherkinToAsciidocExtension {
      * @return mutable file collection of glue code directories
      */
     public abstract ConfigurableFileCollection getGlueCodeDirs();
+
+    /**
+     * Whether to group scenarios by their enclosing {@code Feature} in the generated AsciiDoc,
+     * instead of a flat list. Defaults to {@code false}. Forced to {@code true} whenever
+     * {@link #getTrackProgress()} is {@code true}, in which case scenarios are grouped by
+     * feature within each of the listed/defined/implemented sections.
+     *
+     * @return mutable boolean property controlling grouping by feature
+     */
+    public abstract Property<Boolean> getGroupByFeature();
 }

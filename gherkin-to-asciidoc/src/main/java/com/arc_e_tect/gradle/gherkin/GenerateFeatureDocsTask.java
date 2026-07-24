@@ -2,6 +2,7 @@ package com.arc_e_tect.gradle.gherkin;
 
 import com.arc_e_tect.gradle.gherkin.glue.GlueCodeScanner;
 import com.arc_e_tect.gradle.gherkin.parser.FeatureParser;
+import com.arc_e_tect.gradle.gherkin.parser.ScenarioGrouping;
 import com.arc_e_tect.gradle.gherkin.parser.ScenarioInfo;
 import com.arc_e_tect.gradle.gherkin.progress.ProgressReportWriter;
 import io.cucumber.cucumberexpressions.Expression;
@@ -29,7 +30,7 @@ import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Map;
 
 /**
  * Gradle task that scans {@code .feature} files and writes all scenario titles
@@ -115,6 +116,15 @@ public abstract class GenerateFeatureDocsTask extends DefaultTask {
     public abstract ConfigurableFileCollection getGlueCodeDirs();
 
     /**
+     * Whether to group scenarios by their enclosing {@code Feature} instead of a flat list.
+     * Ignored (always treated as {@code true}) when {@link #getTrackProgress()} is {@code true}.
+     *
+     * @return mutable boolean property controlling grouping by feature
+     */
+    @Input
+    public abstract Property<Boolean> getGroupByFeature();
+
+    /**
      * Root directory of the project, used to resolve the default source directory
      * when neither {@link #getSourceDirs()} nor {@link #getSourceFile()} is set.
      *
@@ -188,8 +198,7 @@ public abstract class GenerateFeatureDocsTask extends DefaultTask {
             List<Expression> glueCode = scanGlueCode();
             new ProgressReportWriter().write(outputFile, scenarios, glueCode);
         } else {
-            List<String> titles = scenarios.stream().map(ScenarioInfo::title).collect(Collectors.toList());
-            writeAsciidoc(outputFile, titles);
+            writeAsciidoc(outputFile, scenarios, getGroupByFeature().get());
         }
 
         getLogger().lifecycle("Generated {} scenario title(s) to {}", scenarios.size(), outputFile);
@@ -237,19 +246,31 @@ public abstract class GenerateFeatureDocsTask extends DefaultTask {
         }
     }
 
-    private void writeAsciidoc(File outputFile, List<String> titles) {
+    private void writeAsciidoc(File outputFile, List<ScenarioInfo> scenarios, boolean groupByFeature) {
         try (PrintWriter writer = new PrintWriter(outputFile, StandardCharsets.UTF_8)) {
             writer.println("= Feature Scenarios");
             writer.println();
             writer.println("This document lists every `Scenario` and `Scenario Outline` found under the "
                     + "configured feature file directories.");
             writer.println();
-            if (titles.isEmpty()) {
+            if (scenarios.isEmpty()) {
                 writer.println("No scenarios found.");
                 return;
             }
-            for (String title : titles) {
-                writer.println("* " + title);
+            if (groupByFeature) {
+                for (Map.Entry<String, List<ScenarioInfo>> entry
+                        : ScenarioGrouping.byFeatureTitle(scenarios).entrySet()) {
+                    writer.println("== " + entry.getKey());
+                    writer.println();
+                    for (ScenarioInfo scenario : entry.getValue()) {
+                        writer.println("* " + scenario.title());
+                    }
+                    writer.println();
+                }
+            } else {
+                for (ScenarioInfo scenario : scenarios) {
+                    writer.println("* " + scenario.title());
+                }
             }
         } catch (IOException e) {
             throw new GradleException("gherkinToAsciidoc: failed to write AsciiDoc file: " + outputFile, e);

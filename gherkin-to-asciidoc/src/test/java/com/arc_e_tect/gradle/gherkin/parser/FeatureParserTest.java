@@ -35,6 +35,30 @@ class FeatureParserTest {
     }
 
     @Test
+    @DisplayName("populates the enclosing Feature's title on every scenario")
+    void populatesFeatureTitleOnEveryScenario() throws Exception {
+        File featureFile = fixtureFile("fixtures/login.feature");
+
+        List<ScenarioInfo> scenarios = parser.parse(featureFile);
+
+        assertThat(scenarios)
+                .extracting(ScenarioInfo::featureTitle)
+                .containsOnly("User Authentication");
+    }
+
+    @Test
+    @DisplayName("populates the enclosing Feature's title for scenarios nested inside a Rule")
+    void populatesFeatureTitleForScenariosInsideRule() throws Exception {
+        File featureFile = fixtureFile("fixtures/rules.feature");
+
+        List<ScenarioInfo> scenarios = parser.parse(featureFile);
+
+        assertThat(scenarios)
+                .extracting(ScenarioInfo::featureTitle)
+                .containsOnly("Rule-Based Scenarios");
+    }
+
+    @Test
     @DisplayName("extracts the Given-When-Then steps for each scenario")
     void extractsStepsForEachScenario() throws Exception {
         File featureFile = fixtureFile("fixtures/login.feature");
