@@ -1,3 +1,10 @@
+# [1.2.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/v1.1.0...v1.2.0) (2026-07-24)
+
+
+### ✨ New and updated features
+
+* **gherkin-to-asciidoc:** write report snippets and support custom Mustache templates ([#79](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/79)) ([af9218b](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/af9218b776feb3716cfd1754c1493c308bd80ef3)), closes [#79](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/79)
+
 # [1.1.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/v1.0.0...v1.1.0) (2026-07-24)
 
 
