@@ -8,6 +8,7 @@ import io.cucumber.messages.types.GherkinDocument;
 import io.cucumber.messages.types.Rule;
 import io.cucumber.messages.types.RuleChild;
 import io.cucumber.messages.types.Scenario;
+import io.cucumber.messages.types.Step;
 import org.gradle.api.logging.Logger;
 import org.gradle.api.logging.Logging;
 
@@ -16,13 +17,13 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
- * Parses a single Gherkin {@code .feature} file and extracts all scenario titles.
+ * Parses a single Gherkin {@code .feature} file and extracts all scenarios.
  *
- * <p>Titles are returned in document order as {@code "keyword: name"} strings
- * (e.g. {@code "Scenario: User logs in"}).  Scenarios nested inside {@code Rule}
+ * <p>Scenarios are returned in document order.  Scenarios nested inside {@code Rule}
  * blocks are also included.</p>
  *
  * <p>If the file cannot be read or parsed, the error is logged as a warning and
@@ -46,40 +47,47 @@ public class FeatureParser {
     }
 
     /**
-     * Parses the given {@code .feature} file and returns all scenario titles.
+     * Parses the given {@code .feature} file and returns all scenarios.
      *
      * @param featureFile the Gherkin feature file to parse; must not be {@code null}
-     * @return unmodifiable list of scenario titles in document order; empty if the file
+     * @return unmodifiable list of scenarios in document order; empty if the file
      *         cannot be read, is empty, or contains no scenarios
      */
-    public List<String> parse(File featureFile) {
-        List<String> titles = new ArrayList<>();
+    public List<ScenarioInfo> parse(File featureFile) {
+        List<ScenarioInfo> scenarios = new ArrayList<>();
         try (Stream<Envelope> envelopes = parser.parse(featureFile.toPath())) {
             envelopes
                     .filter(e -> e.getGherkinDocument().isPresent())
                     .findFirst()
                     .flatMap(Envelope::getGherkinDocument)
                     .flatMap(GherkinDocument::getFeature)
-                    .ifPresent(feature -> extractScenarios(feature, titles));
+                    .ifPresent(feature -> extractScenarios(feature, scenarios));
         } catch (IOException e) {
             LOGGER.warn("Could not read feature file '{}': {}", featureFile, e.getMessage());
         } catch (Exception e) {
             LOGGER.warn("Could not parse feature file '{}': {}", featureFile, e.getMessage());
         }
-        return Collections.unmodifiableList(titles);
+        return Collections.unmodifiableList(scenarios);
     }
 
-    private void extractScenarios(Feature feature, List<String> titles) {
+    private void extractScenarios(Feature feature, List<ScenarioInfo> scenarios) {
         for (FeatureChild child : feature.getChildren()) {
-            child.getScenario().ifPresent(s -> titles.add(formatTitle(s)));
-            child.getRule().ifPresent(rule -> extractFromRule(rule, titles));
+            child.getScenario().ifPresent(s -> scenarios.add(toScenarioInfo(s)));
+            child.getRule().ifPresent(rule -> extractFromRule(rule, scenarios));
         }
     }
 
-    private void extractFromRule(Rule rule, List<String> titles) {
+    private void extractFromRule(Rule rule, List<ScenarioInfo> scenarios) {
         for (RuleChild ruleChild : rule.getChildren()) {
-            ruleChild.getScenario().ifPresent(s -> titles.add(formatTitle(s)));
+            ruleChild.getScenario().ifPresent(s -> scenarios.add(toScenarioInfo(s)));
         }
+    }
+
+    private ScenarioInfo toScenarioInfo(Scenario scenario) {
+        List<String> steps = scenario.getSteps().stream()
+                .map(Step::getText)
+                .collect(Collectors.toList());
+        return new ScenarioInfo(formatTitle(scenario), steps);
     }
 
     private String formatTitle(Scenario scenario) {

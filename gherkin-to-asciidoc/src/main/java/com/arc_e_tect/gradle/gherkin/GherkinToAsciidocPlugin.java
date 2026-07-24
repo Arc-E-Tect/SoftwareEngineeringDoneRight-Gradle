@@ -39,7 +39,10 @@ public class GherkinToAsciidocPlugin implements Plugin<Project> {
         GherkinToAsciidocExtension ext = project.getExtensions()
                 .create(GherkinToAsciidocExtension.NAME, GherkinToAsciidocExtension.class);
 
-        ext.getIncludeSubDirs().convention(false);
+        ext.getTrackProgress().convention(false);
+        // Enabling trackProgress implies recursive scanning, unless includeSubDirs
+        // has been set explicitly.
+        ext.getIncludeSubDirs().convention(ext.getTrackProgress());
         ext.getOutputDir().convention(
                 project.getLayout().getBuildDirectory().dir("generated-docs"));
         ext.getOutputFileName().convention(GherkinToAsciidocExtension.DEFAULT_OUTPUT_FILE_NAME);
@@ -50,6 +53,8 @@ public class GherkinToAsciidocPlugin implements Plugin<Project> {
             task.getIncludeSubDirs().set(ext.getIncludeSubDirs());
             task.getOutputDir().set(ext.getOutputDir());
             task.getOutputFileName().set(ext.getOutputFileName());
+            task.getTrackProgress().set(ext.getTrackProgress());
+            task.getGlueCodeDir().set(ext.getGlueCodeDir());
             task.getProjectDirectory().set(project.getLayout().getProjectDirectory());
         });
     }

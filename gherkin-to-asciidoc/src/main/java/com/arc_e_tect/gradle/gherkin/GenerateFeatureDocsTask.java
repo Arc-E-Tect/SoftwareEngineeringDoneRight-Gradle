@@ -1,6 +1,10 @@
 package com.arc_e_tect.gradle.gherkin;
 
+import com.arc_e_tect.gradle.gherkin.glue.GlueCodeScanner;
 import com.arc_e_tect.gradle.gherkin.parser.FeatureParser;
+import com.arc_e_tect.gradle.gherkin.parser.ScenarioInfo;
+import com.arc_e_tect.gradle.gherkin.progress.ProgressReportWriter;
+import io.cucumber.cucumberexpressions.Expression;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.GradleException;
 import org.gradle.api.file.DirectoryProperty;
@@ -24,6 +28,7 @@ import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Gradle task that scans {@code .feature} files and writes all scenario titles
@@ -36,6 +41,10 @@ import java.util.List;
  * configured, but not both.  When neither is set the task falls back to the
  * default source directory ({@value GherkinToAsciidocExtension#DEFAULT_SOURCE_DIR})
  * relative to the project directory.</p>
+ *
+ * <p>When {@link #getTrackProgress()} is enabled, every scenario is classified as
+ * {@code listed}, {@code defined}, or {@code implemented} by cross-referencing its
+ * steps against the step definitions found in {@link #getGlueCodeDir()}.</p>
  */
 @DisableCachingByDefault(because = "Generated documentation depends on source file content and is cheap to regenerate")
 public abstract class GenerateFeatureDocsTask extends DefaultTask {
@@ -87,6 +96,26 @@ public abstract class GenerateFeatureDocsTask extends DefaultTask {
     public abstract Property<String> getOutputFileName();
 
     /**
+     * Whether to classify scenarios as {@code listed}, {@code defined}, or
+     * {@code implemented} and include a progress summary in the generated AsciiDoc.
+     *
+     * @return mutable boolean property controlling progress tracking
+     */
+    @Input
+    public abstract Property<Boolean> getTrackProgress();
+
+    /**
+     * Optional directory containing the Cucumber-JVM glue code (step definitions).
+     * Required when {@link #getTrackProgress()} is {@code true}.
+     *
+     * @return mutable directory property for the glue code directory
+     */
+    @Optional
+    @InputDirectory
+    @PathSensitive(PathSensitivity.RELATIVE)
+    public abstract DirectoryProperty getGlueCodeDir();
+
+    /**
      * Root directory of the project, used to resolve the default source directory
      * when neither {@link #getSourceDir()} nor {@link #getSourceFile()} is set.
      *
@@ -106,7 +135,7 @@ public abstract class GenerateFeatureDocsTask extends DefaultTask {
     }
 
     /**
-     * Task action: collects {@code .feature} files, parses scenario titles,
+     * Task action: collects {@code .feature} files, parses scenarios,
      * and writes them to the configured AsciiDoc output file.
      */
     @TaskAction
@@ -126,12 +155,27 @@ public abstract class GenerateFeatureDocsTask extends DefaultTask {
                     "It can only be used with sourceDir.");
         }
 
-        List<File> featureFiles = collectFeatureFiles(sourceDirSet, sourceFileSet);
+        boolean trackProgress = getTrackProgress().get();
+        if (trackProgress) {
+            if (!sourceDirSet) {
+                throw new GradleException(
+                        "gherkinToAsciidoc: trackProgress can only be enabled when sourceDir is configured.");
+            }
+            if (!getGlueCodeDir().isPresent()) {
+                throw new GradleException(
+                        "gherkinToAsciidoc: trackProgress requires glueCodeDir to be configured.");
+            }
+        }
 
-        List<String> titles = new ArrayList<>();
+        // trackProgress implies recursive scanning, regardless of includeSubDirs's own value.
+        boolean recursive = trackProgress || getIncludeSubDirs().get();
+
+        List<File> featureFiles = collectFeatureFiles(sourceDirSet, sourceFileSet, recursive);
+
+        List<ScenarioInfo> scenarios = new ArrayList<>();
         FeatureParser featureParser = new FeatureParser();
         for (File featureFile : featureFiles) {
-            titles.addAll(featureParser.parse(featureFile));
+            scenarios.addAll(featureParser.parse(featureFile));
         }
 
         File outDir = getOutputDir().getAsFile().get();
@@ -140,11 +184,19 @@ public abstract class GenerateFeatureDocsTask extends DefaultTask {
         }
 
         File outputFile = new File(outDir, getOutputFileName().get());
-        writeAsciidoc(outputFile, titles);
-        getLogger().lifecycle("Generated {} scenario title(s) to {}", titles.size(), outputFile);
+
+        if (trackProgress) {
+            List<Expression> glueCode = new GlueCodeScanner().scan(getGlueCodeDir().getAsFile().get());
+            new ProgressReportWriter().write(outputFile, scenarios, glueCode);
+        } else {
+            List<String> titles = scenarios.stream().map(ScenarioInfo::title).collect(Collectors.toList());
+            writeAsciidoc(outputFile, titles);
+        }
+
+        getLogger().lifecycle("Generated {} scenario title(s) to {}", scenarios.size(), outputFile);
     }
 
-    private List<File> collectFeatureFiles(boolean sourceDirSet, boolean sourceFileSet) {
+    private List<File> collectFeatureFiles(boolean sourceDirSet, boolean sourceFileSet, boolean recursive) {
         List<File> files = new ArrayList<>();
         if (sourceFileSet) {
             files.add(getSourceFile().getAsFile().get());
@@ -152,7 +204,7 @@ public abstract class GenerateFeatureDocsTask extends DefaultTask {
             File dir = sourceDirSet
                     ? getSourceDir().getAsFile().get()
                     : new File(getProjectDirectory().getAsFile().get(), GherkinToAsciidocExtension.DEFAULT_SOURCE_DIR);
-            collectFromDir(dir, files, getIncludeSubDirs().get());
+            collectFromDir(dir, files, recursive);
         }
         return files;
     }
