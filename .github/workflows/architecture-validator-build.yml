@@ -5,8 +5,9 @@ on:
       - main
     paths:
       - 'architecture-validator/**'
-      - '.github/workflows/**'
-      - '.github/actions/**'
+      - '.github/workflows/architecture-validator-build.yml'
+      - '.github/workflows/semantic-version-calculate.yml'
+      - '.github/workflows/determine-release-type.yml'
 
 jobs:
   Calculate-Version:

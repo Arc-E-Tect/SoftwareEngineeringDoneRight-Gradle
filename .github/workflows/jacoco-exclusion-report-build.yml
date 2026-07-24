@@ -5,8 +5,9 @@ on:
       - main
     paths:
       - 'jacoco-exclusion-report/**'
-      - '.github/workflows/**'
-      - '.github/actions/**'
+      - '.github/workflows/jacoco-exclusion-report-build.yml'
+      - '.github/workflows/semantic-version-calculate.yml'
+      - '.github/workflows/determine-release-type.yml'
 
 jobs:
   Calculate-Version:

@@ -5,8 +5,9 @@ on:
       - main
     paths:
       - 'gherkin-to-asciidoc/**'
-      - '.github/workflows/**'
-      - '.github/actions/**'
+      - '.github/workflows/gherkin-to-asciidoc-build.yml'
+      - '.github/workflows/semantic-version-calculate.yml'
+      - '.github/workflows/determine-release-type.yml'
 
 jobs:
   Calculate-Version:
