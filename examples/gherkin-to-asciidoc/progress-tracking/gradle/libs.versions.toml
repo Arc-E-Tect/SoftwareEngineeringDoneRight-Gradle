@@ -6,9 +6,10 @@ gherkin-to-asciidoc = { id = "com.arc-e-tect.gherkin-to-asciidoc", version.ref =
 
 [versions]
 
-gherkin-to-asciidoc = "1.1.0"
-cucumber-java        = "7.22.1"
+gherkin-to-asciidoc = "1.2.0"
+cucumber-java = "7.34.6"
 
 [libraries]
 
 cucumber-java = { module = "io.cucumber:cucumber-java", version.ref = "cucumber-java" }
+
