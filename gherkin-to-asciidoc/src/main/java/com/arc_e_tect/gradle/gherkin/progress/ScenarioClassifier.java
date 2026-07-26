@@ -34,6 +34,6 @@ public class ScenarioClassifier {
     }
 
     private boolean hasMatchingGlueCode(String stepText, List<Expression> glueCode) {
-        return glueCode.stream().anyMatch(expression -> expression.match(stepText) != null);
+        return glueCode.stream().anyMatch(expression -> expression.match(stepText).isPresent());
     }
 }

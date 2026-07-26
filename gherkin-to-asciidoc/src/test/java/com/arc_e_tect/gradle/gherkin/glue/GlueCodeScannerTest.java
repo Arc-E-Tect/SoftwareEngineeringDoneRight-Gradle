@@ -38,9 +38,9 @@ class GlueCodeScannerTest {
         List<Expression> expressions = scanner.scan(tempDir.toFile());
 
         assertThat(expressions).hasSize(3);
-        assertThat(expressions.get(0).match("the login page is open")).isNotNull();
-        assertThat(expressions.get(1).match("the user submits \"alice\" and \"secret\"")).isNotNull();
-        assertThat(expressions.get(2).match("the dashboard is displayed")).isNotNull();
+        assertThat(expressions.get(0).match("the login page is open")).isPresent();
+        assertThat(expressions.get(1).match("the user submits \"alice\" and \"secret\"")).isPresent();
+        assertThat(expressions.get(2).match("the dashboard is displayed")).isPresent();
     }
 
     @Test
@@ -56,7 +56,7 @@ class GlueCodeScannerTest {
         List<Expression> expressions = scanner.scan(tempDir.toFile());
 
         assertThat(expressions).hasSize(1);
-        assertThat(expressions.get(0).match("I have 42 cukes")).isNotNull();
+        assertThat(expressions.get(0).match("I have 42 cukes")).isPresent();
     }
 
     @Test
@@ -74,7 +74,7 @@ class GlueCodeScannerTest {
         List<Expression> expressions = scanner.scan(tempDir.toFile());
 
         assertThat(expressions).hasSize(1);
-        assertThat(expressions.get(0).match("a nested step")).isNotNull();
+        assertThat(expressions.get(0).match("a nested step")).isPresent();
     }
 
     @Test
