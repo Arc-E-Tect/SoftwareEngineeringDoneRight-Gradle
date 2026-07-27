@@ -9,8 +9,8 @@ owasp-dependency-check      = { id = "org.owasp.dependencycheck",     version.re
 
 owasp-dependency-check = "12.2.2"
 
-gherkin = "41.0.0"
-cucumber-expressions = "18.0.1"
+gherkin = "42.0.0"
+cucumber-expressions = "20.0.0"
 mustache = "0.9.14"
 junit-jupiter = "6.1.2"
 junit-platform = "6.1.2"
