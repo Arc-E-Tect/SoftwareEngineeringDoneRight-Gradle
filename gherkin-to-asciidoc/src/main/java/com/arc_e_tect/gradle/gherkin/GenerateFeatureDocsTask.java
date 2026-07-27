@@ -148,6 +148,15 @@ public abstract class GenerateFeatureDocsTask extends DefaultTask {
     public abstract RegularFileProperty getTemplate();
 
     /**
+     * Version of the system under test that the reported Gherkin scenarios exercise, printed in the
+     * generated document as e.g. {@code System Under Test version: v1.0.0}.
+     *
+     * @return mutable string property for the system-under-test version
+     */
+    @Input
+    public abstract Property<String> getSystemUnderTestVersion();
+
+    /**
      * Root directory of the project, used to resolve the default source directory
      * when neither {@link #getSourceDirs()} nor {@link #getSourceFile()} is set.
      *
@@ -216,15 +225,16 @@ public abstract class GenerateFeatureDocsTask extends DefaultTask {
         }
 
         File outputFile = new File(outDir, getOutputFileName().get());
+        String systemUnderTestVersion = getSystemUnderTestVersion().get();
 
         if (trackProgress) {
             List<Expression> glueCode = scanGlueCode();
             File template = getTemplate().isPresent() ? getTemplate().getAsFile().get() : null;
             ProgressReportOptions options = new ProgressReportOptions(
-                    getGroupByFeature().get(), getSnippetDir().getAsFile().get(), template);
+                    getGroupByFeature().get(), getSnippetDir().getAsFile().get(), template, systemUnderTestVersion);
             new ProgressReportWriter().write(outputFile, scenarios, glueCode, options);
         } else {
-            writeAsciidoc(outputFile, scenarios, getGroupByFeature().get());
+            writeAsciidoc(outputFile, scenarios, getGroupByFeature().get(), systemUnderTestVersion);
         }
 
         getLogger().lifecycle("Generated {} scenario title(s) to {}", scenarios.size(), outputFile);
@@ -272,9 +282,12 @@ public abstract class GenerateFeatureDocsTask extends DefaultTask {
         }
     }
 
-    private void writeAsciidoc(File outputFile, List<ScenarioInfo> scenarios, boolean groupByFeature) {
+    private void writeAsciidoc(
+            File outputFile, List<ScenarioInfo> scenarios, boolean groupByFeature, String systemUnderTestVersion) {
         try (PrintWriter writer = new PrintWriter(outputFile, StandardCharsets.UTF_8)) {
             writer.println("= Feature Scenarios");
+            writer.println();
+            writer.println("System Under Test version: " + systemUnderTestVersion);
             writer.println();
             writer.println("This document lists every `Scenario` and `Scenario Outline` found under the "
                     + "configured feature file directories.");

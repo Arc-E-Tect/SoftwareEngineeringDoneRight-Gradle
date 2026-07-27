@@ -36,6 +36,7 @@ class ProgressReportWriterTest {
 
         String content = Files.readString(outputFile.toPath(), StandardCharsets.UTF_8);
         assertThat(content)
+                .contains("System Under Test version: 1.0.0")
                 .contains("This document lists every `Scenario` and `Scenario Outline`")
                 .contains("Every scenario is classified as exactly one of:")
                 .contains("| Status | Meaning")
@@ -152,6 +153,7 @@ class ProgressReportWriterTest {
         writer.write(outputFile, List.of(), List.of(), grouped(tempDir));
 
         String content = Files.readString(outputFile.toPath(), StandardCharsets.UTF_8);
+        assertThat(content).contains("System Under Test version: 1.0.0");
         assertThat(content).contains("No scenarios found.");
         assertThat(content).doesNotContain("Progress Summary");
     }
@@ -182,7 +184,7 @@ class ProgressReportWriterTest {
 
         File outputFile = tempDir.resolve("features.adoc").toFile();
         writer.write(outputFile, List.of(implemented), glueCode,
-                new ProgressReportOptions(true, snippetDir, null));
+                new ProgressReportOptions(true, snippetDir, null, "1.0.0"));
 
         File listedFile = new File(snippetDir, "listed.adoc");
         File definedFile = new File(snippetDir, "defined.adoc");
@@ -207,7 +209,7 @@ class ProgressReportWriterTest {
 
         File outputFile = tempDir.resolve("features.adoc").toFile();
         writer.write(outputFile, List.of(implemented), glueCode,
-                new ProgressReportOptions(false, tempDir.resolve("snippets").toFile(), templateFile));
+                new ProgressReportOptions(false, tempDir.resolve("snippets").toFile(), templateFile, "1.0.0"));
 
         String content = Files.readString(outputFile.toPath(), StandardCharsets.UTF_8);
         assertThat(content).contains("TEMPLATE OUTPUT");
@@ -229,10 +231,10 @@ class ProgressReportWriterTest {
     }
 
     private ProgressReportOptions grouped(Path tempDir) {
-        return new ProgressReportOptions(true, tempDir.resolve("snippets").toFile(), null);
+        return new ProgressReportOptions(true, tempDir.resolve("snippets").toFile(), null, "1.0.0");
     }
 
     private ProgressReportOptions flat(Path tempDir) {
-        return new ProgressReportOptions(false, tempDir.resolve("snippets").toFile(), null);
+        return new ProgressReportOptions(false, tempDir.resolve("snippets").toFile(), null, "1.0.0");
     }
 }

@@ -51,6 +51,8 @@ The build is expected to pass. The plugin writes `build/generated-docs/features.
 ----
 = Feature Scenarios
 
+System Under Test version: 0.0.1
+
 This document lists every `Scenario` and `Scenario Outline` found under the configured feature file directories.
 
 * Scenario: User logs in successfully

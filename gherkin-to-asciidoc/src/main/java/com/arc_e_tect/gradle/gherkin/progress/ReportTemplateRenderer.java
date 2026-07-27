@@ -35,15 +35,17 @@ public class ReportTemplateRenderer {
      *
      * @param outputFile the AsciiDoc file to write
      * @param template   the Mustache template file to render
+     * @param systemUnderTestVersion version of the system under test that the reported scenarios exercise
      * @param summaries  the classified scenarios and summary figures for each status, in display order
      * @param snippets   the snippet file(s) written for each status
      */
     public void render(
             File outputFile,
             File template,
+            String systemUnderTestVersion,
             List<StatusSummary> summaries,
             Map<ScenarioStatus, StatusSnippets> snippets) {
-        Map<String, Object> context = buildContext(summaries, snippets, outputFile.getParentFile());
+        Map<String, Object> context = buildContext(systemUnderTestVersion, summaries, snippets, outputFile.getParentFile());
 
         try (Reader templateReader = new FileReader(template, StandardCharsets.UTF_8);
              PrintWriter writer = new PrintWriter(outputFile, StandardCharsets.UTF_8)) {
@@ -59,8 +61,10 @@ public class ReportTemplateRenderer {
     }
 
     private Map<String, Object> buildContext(
-            List<StatusSummary> summaries, Map<ScenarioStatus, StatusSnippets> snippets, File outputDir) {
+            String systemUnderTestVersion, List<StatusSummary> summaries,
+            Map<ScenarioStatus, StatusSnippets> snippets, File outputDir) {
         Map<String, Object> context = new LinkedHashMap<>();
+        context.put("systemUnderTestVersion", systemUnderTestVersion);
         context.put("intro", ReportText.INTRO);
         context.put("legend", summaries.stream()
                 .map(s -> Map.of("status", s.label(), "meaning", s.blurb()))

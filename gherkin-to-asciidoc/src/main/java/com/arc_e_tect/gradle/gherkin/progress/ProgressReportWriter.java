@@ -49,7 +49,7 @@ public class ProgressReportWriter {
     public void write(File outputFile, List<ScenarioInfo> scenarios, List<Expression> glueCode,
             ProgressReportOptions options) {
         if (scenarios.isEmpty()) {
-            writeEmptyReport(outputFile);
+            writeEmptyReport(outputFile, options.systemUnderTestVersion());
             return;
         }
 
@@ -62,9 +62,10 @@ public class ProgressReportWriter {
         }
 
         if (options.template() != null) {
-            templateRenderer.render(outputFile, options.template(), summaries, snippets);
+            templateRenderer.render(
+                    outputFile, options.template(), options.systemUnderTestVersion(), summaries, snippets);
         } else {
-            writeDefaultReport(outputFile, summaries, options.groupByFeature());
+            writeDefaultReport(outputFile, summaries, options.groupByFeature(), options.systemUnderTestVersion());
         }
     }
 
@@ -108,9 +109,11 @@ public class ProgressReportWriter {
                 .divide(BigDecimal.valueOf(total), 1, RoundingMode.HALF_UP);
     }
 
-    private void writeEmptyReport(File outputFile) {
+    private void writeEmptyReport(File outputFile, String systemUnderTestVersion) {
         try (PrintWriter writer = new PrintWriter(outputFile, StandardCharsets.UTF_8)) {
             writer.println("= Feature Scenarios");
+            writer.println();
+            writer.println("System Under Test version: " + systemUnderTestVersion);
             writer.println();
             writer.println(ReportText.INTRO);
             writer.println();
@@ -120,9 +123,12 @@ public class ProgressReportWriter {
         }
     }
 
-    private void writeDefaultReport(File outputFile, List<StatusSummary> summaries, boolean groupByFeature) {
+    private void writeDefaultReport(
+            File outputFile, List<StatusSummary> summaries, boolean groupByFeature, String systemUnderTestVersion) {
         try (PrintWriter writer = new PrintWriter(outputFile, StandardCharsets.UTF_8)) {
             writer.println("= Feature Scenarios");
+            writer.println();
+            writer.println("System Under Test version: " + systemUnderTestVersion);
             writer.println();
             writer.println(ReportText.INTRO);
             writer.println();
