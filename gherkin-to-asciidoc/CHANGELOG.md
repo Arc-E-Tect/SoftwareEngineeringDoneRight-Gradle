@@ -1,3 +1,10 @@
+# [1.3.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/v1.2.1...v1.3.0) (2026-07-27)
+
+
+### ✨ New and updated features
+
+* **gherkin-to-asciidoc:** report the system-under-test version ([#81](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/81)) ([87d6fdd](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/87d6fdd69337dd4a6fce12644e9262bacee388ac)), closes [#81](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/81)
+
 ## [1.2.1](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/v1.2.0...v1.2.1) (2026-07-27)
 
 
