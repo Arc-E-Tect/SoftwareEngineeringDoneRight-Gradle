@@ -12,6 +12,9 @@ import java.io.File;
  * @param template       a Mustache template file used to render the report so that it includes
  *                       the generated snippets rather than embedding their content verbatim;
  *                       {@code null} to use the built-in default report layout
+ * @param systemUnderTestVersion version of the system under test that the reported scenarios exercise,
+ *                       printed near the top of the report
  */
-public record ProgressReportOptions(boolean groupByFeature, File snippetDir, File template) {
+public record ProgressReportOptions(
+        boolean groupByFeature, File snippetDir, File template, String systemUnderTestVersion) {
 }

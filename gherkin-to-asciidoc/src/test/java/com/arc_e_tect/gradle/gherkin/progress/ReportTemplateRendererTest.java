@@ -47,7 +47,7 @@ class ReportTemplateRendererTest {
                 + "{{^features}}include::{{{snippet}}}[]\n{{/features}}"
                 + "{{#features}}=== {{{title}}}\ninclude::{{{snippet}}}[]\n{{/features}}\n{{/sections}}");
 
-        renderer.render(outputFile, template, summaries, snippets);
+        renderer.render(outputFile, template, "1.0.0", summaries, snippets);
 
         String content = Files.readString(outputFile.toPath(), StandardCharsets.UTF_8);
         assertThat(content)
@@ -84,7 +84,7 @@ class ReportTemplateRendererTest {
                 + "{{^features}}include::{{{snippet}}}[]\n{{/features}}"
                 + "{{#features}}=== {{{title}}}\ninclude::{{{snippet}}}[]\n{{/features}}\n{{/sections}}");
 
-        renderer.render(outputFile, template, summaries, snippets);
+        renderer.render(outputFile, template, "1.0.0", summaries, snippets);
 
         String content = Files.readString(outputFile.toPath(), StandardCharsets.UTF_8);
         assertThat(content)
@@ -106,13 +106,31 @@ class ReportTemplateRendererTest {
         File template = writeTemplate(tempDir,
                 "{{#summary}}{{{status}}}={{count}} ({{percentage}}%)\n{{/summary}}");
 
-        renderer.render(outputFile, template, summaries, snippets);
+        renderer.render(outputFile, template, "1.0.0", summaries, snippets);
 
         String content = Files.readString(outputFile.toPath(), StandardCharsets.UTF_8);
         assertThat(content)
                 .contains("Listed=2 (40.0%)")
                 .contains("Defined=1 (20.0%)")
                 .contains("Implemented=2 (40.0%)");
+    }
+
+    @Test
+    @DisplayName("exposes the system-under-test version in the context")
+    void exposesSystemUnderTestVersionInContext(@TempDir Path tempDir) throws IOException {
+        File outputFile = tempDir.resolve("features.adoc").toFile();
+        Map<ScenarioStatus, StatusSnippets> snippets = emptySnippets(tempDir);
+        List<StatusSummary> summaries = List.of(
+                new StatusSummary(ScenarioStatus.LISTED, "Listed", "b", List.of(), 0, "0.0"),
+                new StatusSummary(ScenarioStatus.DEFINED, "Defined", "b", List.of(), 0, "0.0"),
+                new StatusSummary(ScenarioStatus.IMPLEMENTED, "Implemented", "b", List.of(), 0, "0.0"));
+
+        File template = writeTemplate(tempDir, "System Under Test version: {{{systemUnderTestVersion}}}");
+
+        renderer.render(outputFile, template, "v2.3.1", summaries, snippets);
+
+        String content = Files.readString(outputFile.toPath(), StandardCharsets.UTF_8);
+        assertThat(content).contains("System Under Test version: v2.3.1");
     }
 
     @Test
@@ -132,7 +150,7 @@ class ReportTemplateRendererTest {
 
         File template = writeTemplate(tempDir, "{{#legend}}{{{status}}}\n{{/legend}}");
 
-        renderer.render(outputFile, template, summaries, snippets);
+        renderer.render(outputFile, template, "1.0.0", summaries, snippets);
 
         String content = Files.readString(outputFile.toPath(), StandardCharsets.UTF_8);
         assertThat(content).contains("R&D <Listed>");
@@ -148,7 +166,7 @@ class ReportTemplateRendererTest {
                 new StatusSummary(ScenarioStatus.DEFINED, "Defined", "b", List.of(), 0, "0.0"),
                 new StatusSummary(ScenarioStatus.IMPLEMENTED, "Implemented", "b", List.of(), 0, "0.0"));
 
-        assertThatThrownBy(() -> renderer.render(outputFile, missingTemplate, summaries, emptySnippets(tempDir)))
+        assertThatThrownBy(() -> renderer.render(outputFile, missingTemplate, "1.0.0", summaries, emptySnippets(tempDir)))
                 .isInstanceOf(org.gradle.api.GradleException.class);
     }
 

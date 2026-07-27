@@ -19,6 +19,7 @@ import org.gradle.api.provider.Property;
  *     groupByFeature = false                                                        // default; forced to true whenever trackProgress = true
  *     // snippetDir  = layout.buildDirectory.dir('generated-docs/features/snippets') // default
  *     // template    = file('templates/report.mustache')                            // optional
+ *     // systemUnderTestVersion = 'v1.0.0'          // optional; default: project.version
  * }
  * </pre>
  */
@@ -137,4 +138,14 @@ public abstract class GherkinToAsciidocExtension {
      * @return mutable file property for the Mustache template file
      */
     public abstract RegularFileProperty getTemplate();
+
+    /**
+     * Version of the system under test that the reported Gherkin scenarios exercise, printed in the
+     * generated document as e.g. {@code System Under Test version: v1.0.0}. Defaults to the project's
+     * own {@code version} (as set in the build file or a properties file); set this property to override
+     * that default, e.g. when the scenarios target a different artifact than the one being built.
+     *
+     * @return mutable string property for the system-under-test version
+     */
+    public abstract Property<String> getSystemUnderTestVersion();
 }

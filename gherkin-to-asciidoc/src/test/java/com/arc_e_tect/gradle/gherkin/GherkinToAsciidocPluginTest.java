@@ -108,6 +108,28 @@ class GherkinToAsciidocPluginTest {
     }
 
     @Test
+    @DisplayName("extension default: systemUnderTestVersion is the project's version")
+    void extensionDefaultSystemUnderTestVersionIsProjectVersion() {
+        Project project = projectWithPlugin();
+        project.setVersion("2.5.0");
+        GherkinToAsciidocExtension ext = extension(project);
+
+        assertThat(ext.getSystemUnderTestVersion().get()).isEqualTo("2.5.0");
+    }
+
+    @Test
+    @DisplayName("extension: systemUnderTestVersion can be overridden")
+    void extensionSystemUnderTestVersionCanBeOverridden() {
+        Project project = projectWithPlugin();
+        project.setVersion("2.5.0");
+        GherkinToAsciidocExtension ext = extension(project);
+
+        ext.getSystemUnderTestVersion().set("v1.0.0");
+
+        assertThat(ext.getSystemUnderTestVersion().get()).isEqualTo("v1.0.0");
+    }
+
+    @Test
     @DisplayName("extension default: outputFileName is features.adoc")
     void extensionDefaultOutputFileNameIsFeaturesAdoc() {
         Project project = projectWithPlugin();
@@ -539,6 +561,53 @@ class GherkinToAsciidocPluginTest {
         String content = Files.readString(new File(outputDir, "features.adoc").toPath());
         assertThat(content).startsWith("= Custom Report");
         assertThat(content).doesNotContain("Progress Summary");
+    }
+
+    @Test
+    @DisplayName("includes the project's version as the System Under Test version by default")
+    void includesProjectVersionAsSystemUnderTestVersionByDefault() throws IOException {
+        Project project = projectWithPlugin();
+        project.setVersion("3.1.4");
+        File featuresDir = new File(tempDir.toFile(), "features");
+        featuresDir.mkdirs();
+        writeFeatureFile(featuresDir, "sample.feature",
+                "Feature: Sample\n\n  Scenario: A scenario\n    Given something\n");
+
+        File outputDir = new File(tempDir.toFile(), "output");
+
+        GenerateFeatureDocsTask task = task(project);
+        task.getSourceDirs().from(featuresDir);
+        task.getOutputDir().set(outputDir);
+        task.getProjectDirectory().set(project.getLayout().getProjectDirectory());
+        task.generate();
+
+        String content = Files.readString(new File(outputDir, "features.adoc").toPath());
+        assertThat(content).contains("System Under Test version: 3.1.4");
+    }
+
+    @Test
+    @DisplayName("systemUnderTestVersion overrides the project's own version in the generated document")
+    void systemUnderTestVersionOverridesProjectVersion() throws IOException {
+        Project project = projectWithPlugin();
+        project.setVersion("3.1.4");
+        File featuresDir = new File(tempDir.toFile(), "features");
+        featuresDir.mkdirs();
+        writeFeatureFile(featuresDir, "sample.feature",
+                "Feature: Sample\n\n  Scenario: A scenario\n    Given something\n");
+
+        File outputDir = new File(tempDir.toFile(), "output");
+
+        GenerateFeatureDocsTask task = task(project);
+        task.getSourceDirs().from(featuresDir);
+        task.getSystemUnderTestVersion().set("v1.0.0");
+        task.getOutputDir().set(outputDir);
+        task.getProjectDirectory().set(project.getLayout().getProjectDirectory());
+        task.generate();
+
+        String content = Files.readString(new File(outputDir, "features.adoc").toPath());
+        assertThat(content)
+                .contains("System Under Test version: v1.0.0")
+                .doesNotContain("3.1.4");
     }
 
     @Test

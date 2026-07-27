@@ -68,14 +68,14 @@ class DefaultEquivalentTemplatesTest {
         File defaultOutput = tempDir.resolve("default.adoc").toFile();
         File defaultSnippets = tempDir.resolve("default-snippets").toFile();
         writer.write(defaultOutput, scenarios, glueCode,
-                new ProgressReportOptions(groupByFeature, defaultSnippets, null));
+                new ProgressReportOptions(groupByFeature, defaultSnippets, null, "1.0.0"));
         String defaultContent = Files.readString(defaultOutput.toPath(), StandardCharsets.UTF_8);
 
         File templatedOutput = tempDir.resolve("templated.adoc").toFile();
         File templatedSnippets = tempDir.resolve("templated-snippets").toFile();
         File template = fixtureFile(templateResource);
         writer.write(templatedOutput, scenarios, glueCode,
-                new ProgressReportOptions(groupByFeature, templatedSnippets, template));
+                new ProgressReportOptions(groupByFeature, templatedSnippets, template, "1.0.0"));
         String templatedContent = Files.readString(templatedOutput.toPath(), StandardCharsets.UTF_8);
 
         // The legend and summary table are embedded verbatim by both, so they must be byte-identical.

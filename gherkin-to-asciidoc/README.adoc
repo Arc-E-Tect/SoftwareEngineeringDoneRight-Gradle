@@ -114,6 +114,11 @@ gherkinToAsciidoc {
     // trackProgress is true. When not set, the report looks exactly like it does without this
     // property - the snippets are still written either way.
     // template = file('templates/report.mustache')
+
+    // Version of the system under test that the reported scenarios exercise, printed near the
+    // top of the generated document (see "System Under Test Version" below).
+    // Default: the project's own `version`
+    // systemUnderTestVersion = 'v1.0.0'
 }
 ----
 
@@ -130,6 +135,7 @@ gherkinToAsciidoc {
     groupByFeature.set(false)
     // snippetDir.set(layout.buildDirectory.dir("generated-docs/features/snippets"))
     // template.set(file("templates/report.mustache"))
+    // systemUnderTestVersion.set("v1.0.0")
 }
 ----
 
@@ -156,6 +162,7 @@ Forced to `true` whenever `trackProgress` is `true`.
 Only used when `trackProgress` is `true`.
 | `template`      | File            | —                                    | Optional Mustache template used to render the report so it references the snippets via `include::` directives instead of embedding their content verbatim.
 Only consulted when `trackProgress` is `true`.
+| `systemUnderTestVersion` | String | the project's `version`             | Version of the system under test that the reported scenarios exercise, printed near the top of the generated document (see "System Under Test Version" below).
 |===
 
 [IMPORTANT]
@@ -182,6 +189,29 @@ The plugin registers a single task named `generateFeatureDocs` in the `documenta
 ----
 
 The task scans the configured source location, collects every `Scenario` and `Scenario Outline` title, and writes the result to `<outputDir>/<outputFileName>`.
+
+== System Under Test Version
+
+Every generated document - whether a plain scenario listing or a full progress report - includes a line
+just below the title identifying the version of the system under test that the reported scenarios exercise:
+
+[source,asciidoc]
+----
+System Under Test version: 1.0.0
+----
+
+By default, this is the project's own `version`, exactly as set in `build.gradle`/`build.gradle.kts` or a
+`gradle.properties` file. Set `systemUnderTestVersion` to override it - useful when the scenarios in
+`sourceDirs` exercise a different, independently versioned artifact than the one Gradle is building:
+
+[source,groovy]
+----
+gherkinToAsciidoc {
+    systemUnderTestVersion = 'v1.0.0'
+}
+----
+
+The examples below assume the project's `version` is set to `1.0.0`.
 
 == Sample Output
 
@@ -213,6 +243,8 @@ The plugin generates:
 ----
 = Feature Scenarios
 
+System Under Test version: 1.0.0
+
 This document lists every `Scenario` and `Scenario Outline` found under the configured feature file directories.
 
 * Scenario: User logs in successfully
@@ -243,6 +275,8 @@ with `groupByFeature = true`, the plugin generates:
 [source,asciidoc]
 ----
 = Feature Scenarios
+
+System Under Test version: 1.0.0
 
 This document lists every `Scenario` and `Scenario Outline` found under the configured feature file directories.
 
@@ -341,6 +375,8 @@ the plugin generates:
 [source,asciidoc]
 ----
 = Feature Scenarios
+
+System Under Test version: 1.0.0
 
 This document lists every `Scenario` and `Scenario Outline` found under the configured feature file
 directories, classified by how far each one is toward being automated.
@@ -441,6 +477,9 @@ The plugin renders `template` with the following context:
 |===
 | Variable | Description
 
+| `systemUnderTestVersion`
+| The configured `systemUnderTestVersion` (or the project's own `version` when not overridden).
+
 | `intro`
 | The one-sentence description of what the document contains.
 
@@ -481,6 +520,8 @@ plugin's own test suite). Use them as a starting point for a custom template.
 [source,mustache]
 ----
 = Feature Scenarios
+
+System Under Test version: {{{systemUnderTestVersion}}}
 
 {{{intro}}}
 
@@ -525,6 +566,8 @@ include::{{{snippet}}}[]
 [source,mustache]
 ----
 = Feature Scenarios
+
+System Under Test version: {{{systemUnderTestVersion}}}
 
 {{{intro}}}
 

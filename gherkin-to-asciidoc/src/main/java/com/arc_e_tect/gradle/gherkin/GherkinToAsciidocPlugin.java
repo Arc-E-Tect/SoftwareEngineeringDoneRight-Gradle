@@ -49,6 +49,8 @@ public class GherkinToAsciidocPlugin implements Plugin<Project> {
         ext.getOutputFileName().convention(GherkinToAsciidocExtension.DEFAULT_OUTPUT_FILE_NAME);
         ext.getSnippetDir().convention(
                 project.getLayout().getBuildDirectory().dir(GherkinToAsciidocExtension.DEFAULT_SNIPPET_DIR));
+        ext.getSystemUnderTestVersion().convention(
+                project.provider(() -> String.valueOf(project.getVersion())));
 
         project.getTasks().register(TASK_NAME, GenerateFeatureDocsTask.class, task -> {
             task.getSourceDirs().from(ext.getSourceDirs());
@@ -61,6 +63,7 @@ public class GherkinToAsciidocPlugin implements Plugin<Project> {
             task.getGroupByFeature().set(ext.getGroupByFeature());
             task.getSnippetDir().set(ext.getSnippetDir());
             task.getTemplate().set(ext.getTemplate());
+            task.getSystemUnderTestVersion().set(ext.getSystemUnderTestVersion());
             task.getProjectDirectory().set(project.getLayout().getProjectDirectory());
         });
     }
