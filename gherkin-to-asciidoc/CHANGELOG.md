@@ -1,3 +1,10 @@
+## [1.2.1](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/v1.2.0...v1.2.1) (2026-07-27)
+
+
+### 🔧 Misc
+
+* Fix dependency compatibility and update package versions ([#80](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/80)) ([6123b6b](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/6123b6ba19399ea669404a9ae15dbc42a69d9fbc)), closes [#80](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/80)
+
 # [1.2.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/v1.1.0...v1.2.0) (2026-07-24)
 
 
