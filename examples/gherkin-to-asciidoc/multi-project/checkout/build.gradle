@@ -1,0 +1,10 @@
+// The plugin is already applied to this project by the root project's `subprojects { }` block.
+// This sub-project overrides two of the root project's defaults for itself; every other property
+// (e.g. includeSubDirs, groupByFeature, trackProgress) still falls back to the root project's own
+// configuration or defaults.
+gherkinToAsciidoc {
+    // The checkout service is versioned independently from the rest of the system, so its report
+    // should say so instead of inheriting the root project's systemUnderTestVersion = 'v1.0.0'.
+    systemUnderTestVersion = 'v2.3.1'
+    outputFileName = 'checkout-features.adoc'
+}

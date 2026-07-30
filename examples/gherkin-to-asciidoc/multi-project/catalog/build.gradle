@@ -1,0 +1,4 @@
+// The plugin is already applied to this project by the root project's `subprojects { }` block.
+// No gherkinToAsciidoc { } block needed here: this sub-project uses every setting exactly as
+// configured (or defaulted) by the root project, including systemUnderTestVersion = 'v1.0.0' and
+// sourceDirs = 'src/test/resources/gherkin' - re-resolved against this project's own directory.

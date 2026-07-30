@@ -1,0 +1,150 @@
+= Gherkin to AsciiDoc — Multi-Project Example
+:toc: left
+
+== Description
+
+This example applies the Gherkin to AsciiDoc plugin to a Gradle multi-project build made up of a root
+project and two sub-projects, `catalog` and `checkout`, each modelling an independent service with its own
+`.feature` file. Every project gets its own `generateFeatureDocs` task and its own generated report.
+
+== Intent
+
+This example shows:
+
+* How to apply the plugin once, to every project in the build, via `allprojects`/`subprojects` in the root
+  project's `build.gradle`.
+* That configuring `gherkinToAsciidoc { }` on the root project sets defaults every other project inherits.
+* That a sub-project's own `gherkinToAsciidoc { }` block overrides those inherited defaults, property by
+  property - it only needs to configure what it wants to differ from the root project's configuration.
+* That `sourceDirs` follows "convention over configuration": declared once at the root, it's re-resolved
+  against each sub-project's *own* directory instead of pointing every sub-project at the root project's
+  directory.
+* That every project's report is written to its own `build` directory, so the three reports never collide.
+
+== Project Layout
+
+[source]
+----
+multi-project/
+├── build.gradle       (root: applies the plugin everywhere, configures shared defaults)
+├── catalog/
+│   ├── build.gradle   (no overrides: uses the root project's configuration as-is)
+│   └── src/test/resources/gherkin/catalog.feature
+└── checkout/
+    ├── build.gradle   (overrides systemUnderTestVersion and outputFileName)
+    └── src/test/resources/gherkin/checkout.feature
+----
+
+Note the feature files live under `src/test/resources/gherkin`, not the plugin's own default
+(`src/test/resources/features`) - this example deliberately uses a non-default layout to demonstrate that
+declaring it once, at the root, is enough for both sub-projects to pick it up.
+
+== Configuration
+
+.Root `build.gradle`
+[source,groovy]
+----
+plugins {
+    alias(libs.plugins.gherkin.to.asciidoc)
+}
+
+gherkinToAsciidoc {
+    systemUnderTestVersion = 'v1.0.0'
+
+    // Neither sub-project configures sourceDirs itself, so each one resolves this same relative
+    // path against its own directory: catalog/src/test/resources/gherkin and
+    // checkout/src/test/resources/gherkin.
+    sourceDirs.from('src/test/resources/gherkin')
+}
+
+subprojects {
+    apply plugin: 'com.arc-e-tect.gherkin-to-asciidoc'
+}
+----
+
+.`catalog/build.gradle`
+[source,groovy]
+----
+// No gherkinToAsciidoc { } block: inherits everything from the root project.
+----
+
+.`checkout/build.gradle`
+[source,groovy]
+----
+gherkinToAsciidoc {
+    systemUnderTestVersion = 'v2.3.1'
+    outputFileName = 'checkout-features.adoc'
+}
+----
+
+== Build And Run
+
+[source,bash]
+----
+cd examples/gherkin-to-asciidoc/multi-project
+./gradlew generateFeatureDocs
+----
+
+Running `generateFeatureDocs` from the root project without a project path runs it in *every* project that
+has it - root, `catalog`, and `checkout` - in one command.
+
+== What To Expect
+
+The build is expected to pass, writing three independent reports.
+
+=== Root — `build/generated-docs/features.adoc`
+
+The root project has no `.feature` files of its own; it exists to hold the shared configuration. Its report
+is still generated, but empty:
+
+[source,asciidoc]
+----
+= Feature Scenarios
+
+System Under Test version: v1.0.0
+
+This document lists every `Scenario` and `Scenario Outline` found under the configured feature file directories.
+
+No scenarios found.
+----
+
+=== Catalog — `catalog/build/generated-docs/features.adoc`
+
+`catalog` sets no `gherkinToAsciidoc { }` properties of its own, so it inherits `systemUnderTestVersion` and
+`sourceDirs` from the root project - the latter re-resolved to `catalog/src/test/resources/gherkin`:
+
+[source,asciidoc]
+----
+= Feature Scenarios
+
+System Under Test version: v1.0.0
+
+This document lists every `Scenario` and `Scenario Outline` found under the configured feature file directories.
+
+* Scenario: Shopper browses the catalog
+----
+
+=== Checkout — `checkout/build/generated-docs/checkout-features.adoc`
+
+`checkout` overrides both `systemUnderTestVersion` and `outputFileName`, so its report has a different
+version line and a different file name to the other two - but it still inherits `sourceDirs` from the root
+project, re-resolved to `checkout/src/test/resources/gherkin`, since it doesn't configure that itself:
+
+[source,asciidoc]
+----
+= Feature Scenarios
+
+System Under Test version: v2.3.1
+
+This document lists every `Scenario` and `Scenario Outline` found under the configured feature file directories.
+
+* Scenario: Shopper completes checkout
+----
+
+[NOTE]
+====
+`outputDir` and `snippetDir` are never inherited from the root project, even though every other property is
+- see the xref:../../../gherkin-to-asciidoc/README.adoc#multi-project-builds[plugin README]'s "Multi-Project
+Builds" section for why. That's why all three reports above land under their own project's `build` directory
+without any project needing to configure `outputDir` itself.
+====

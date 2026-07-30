@@ -190,6 +190,93 @@ The plugin registers a single task named `generateFeatureDocs` in the `documenta
 
 The task scans the configured source location, collects every `Scenario` and `Scenario Outline` title, and writes the result to `<outputDir>/<outputFileName>`.
 
+[[multi-project-builds]]
+== Multi-Project Builds
+
+The plugin can be applied to every project in a Gradle multi-project build, not just a single one. Apply it
+in the root project's `build.gradle` using `allprojects` (or `subprojects` plus the root project itself) so
+that every project - root and sub-projects alike - gets its own `generateFeatureDocs` task and its own
+generated report:
+
+.Groovy DSL (`build.gradle`, root project)
+[source,groovy]
+----
+allprojects {
+    apply plugin: 'com.arc-e-tect.gherkin-to-asciidoc'
+}
+
+gherkinToAsciidoc {
+    // Applies to every project below that doesn't override a given property itself.
+    trackProgress = true
+    outputFileName = 'features.adoc'
+}
+----
+
+Configuring `gherkinToAsciidoc { }` on the root project sets *defaults* that every other project inherits;
+configuring the same block in a sub-project's own `build.gradle` overrides those defaults for that
+sub-project only, property by property - a sub-project only needs to configure the properties it wants to
+differ from the root project's.
+
+[cols="1,3",options="header"]
+|===
+| Property                 | Multi-project behaviour
+
+| `trackProgress`
+| Inherited from the root project by default; a sub-project can enable/disable it independently. A
+sub-project that inherits or sets `trackProgress = true` still needs its own `glueCodeDirs` configured.
+| `includeSubDirs`
+| Inherited from the root project by default (subject to the usual `trackProgress` implication).
+| `groupByFeature`
+| Inherited from the root project by default (subject to the usual `trackProgress` implication).
+| `outputFileName`
+| Inherited from the root project by default.
+| `template`
+| Inherited from the root project by default.
+| `systemUnderTestVersion`
+| Inherited from the root project's own `systemUnderTestVersion` (or the root project's `version`, if
+neither is set) by default - useful when every project documents scenarios for the same overall system.
+| `sourceDirs` / `sourceFile` / `glueCodeDirs`
+| Inherited from the root project when a sub-project configures neither `sourceDirs` nor `sourceFile`
+itself - but re-resolved against the sub-project's own directory rather than copied verbatim (see below).
+| `outputDir` / `snippetDir`
+| *Never* inherited from the root project - each project always defaults to a location under its own
+`build` directory, even when the root project sets a custom `outputDir`/`snippetDir`, so that every
+project's report is written to its own build output instead of colliding with another project's. Set
+either explicitly on a specific project to relocate that project's report.
+|===
+
+=== Inheriting `sourceDirs`/`sourceFile`/`glueCodeDirs` - Convention Over Configuration
+
+Unlike the other properties, `sourceDirs`, `sourceFile`, and `glueCodeDirs` are directories/files, so
+inheriting the root project's *literal* value would point every sub-project at the root project's own
+directories - not what you want when every sub-project follows the same standard layout. Instead, when a
+sub-project configures none of `sourceDirs`/`sourceFile` itself:
+
+* Any root-configured `sourceDirs`/`sourceFile`/`glueCodeDirs` entry that lives *inside the root project's own
+  directory* is re-resolved against the sub-project's own directory instead. This means a standard layout
+  only needs to be declared once, at the root:
++
+[source,groovy]
+----
+// Root build.gradle - every sub-project keeps its features and glue code in the same relative place.
+gherkinToAsciidoc {
+    sourceDirs.from('src/test/resources/features')
+    glueCodeDirs.from('src/test/java/steps')
+}
+----
++
+A sub-project at `service-a/` then resolves these to `service-a/src/test/resources/features` and
+`service-a/src/test/java/steps`, without repeating the block itself.
+* A root-configured entry that lives *outside* the root project's own directory (e.g. a directory shared by
+  every module, elsewhere on disk) is used as-is, unchanged, by every sub-project that inherits it - it isn't
+  something a per-project relative layout convention could sensibly apply to.
+* A sub-project that configures its own `sourceDirs` or `sourceFile` ignores the root project's configuration
+  for source location entirely, exactly like the other properties above.
+
+See the
+link:../examples/gherkin-to-asciidoc/multi-project/README.adoc[multi-project example]
+for a root project and two sub-projects, one of which overrides several of the root project's defaults.
+
 == System Under Test Version
 
 Every generated document - whether a plain scenario listing or a full progress report - includes a line
