@@ -1,3 +1,20 @@
+# [1.4.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/v1.3.0...v1.4.0) (2026-07-30)
+
+
+### ✨ New and updated features
+
+* **gherkin-to-asciidoc:** support Gradle multi-project builds ([#84](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/84)) ([2ba342c](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/2ba342c088c818f5ee615e7b353ae9f2c5fa6b74)), closes [#84](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/84)
+
+
+### 🐛 Bug Fixes
+
+* **CI:** stop the NVD cache refresh from timing out on every cold sync ([#83](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/83)) ([43b3710](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/43b37102fa064f3abd036782bad0f9bbef12c80b)), closes [#83](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/83)
+
+
+### 🔧 Misc
+
+* Change NVD cache refresh schedule to weekly ([#82](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/82)) ([834a2d5](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/834a2d5dfde09292efd754d32a5b58b35fd88e5d)), closes [#82](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/82)
+
 # [1.3.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/v1.2.1...v1.3.0) (2026-07-27)
 
 
