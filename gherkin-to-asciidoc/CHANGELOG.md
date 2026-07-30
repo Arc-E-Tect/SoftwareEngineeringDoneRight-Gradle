@@ -1,3 +1,10 @@
+# [1.5.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/v1.4.0...v1.5.0) (2026-07-30)
+
+
+### ✨ New and updated features
+
+* **gherkin-to-asciidoc:** add a table of contents to generated reports ([#85](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/85)) ([ff1f465](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/ff1f465bf9b8cd42d3d5928fa966450091c72316)), closes [#85](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/85)
+
 # [1.4.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/v1.3.0...v1.4.0) (2026-07-30)
 
 
