@@ -17,6 +17,9 @@ class GherkinToAsciidocMultiProjectPluginTest {
     @TempDir
     Path tempDir;
 
+    @TempDir
+    Path outsideProjectsDir;
+
     @Test
     @DisplayName("registers a separate generateFeatureDocs task per project")
     void registersTaskPerProject() {
@@ -193,7 +196,9 @@ class GherkinToAsciidocMultiProjectPluginTest {
     @DisplayName("a root sourceDirs entry outside the root project's own directory is shared as-is, unchanged")
     void rootSourceDirOutsideRootProjectDirectoryIsSharedAsIs() {
         Project root = rootProject();
-        File sharedDir = new File(tempDir.toFile(), "shared-features-outside-any-project");
+        // outsideProjectsDir is a separate @TempDir, guaranteed not to be nested inside root's own
+        // project directory (tempDir) - unlike a subdirectory of tempDir would be.
+        File sharedDir = new File(outsideProjectsDir.toFile(), "shared-features-outside-any-project");
         extension(root).getSourceDirs().from(sharedDir);
         Project sub = subProject(root, "sub");
 
