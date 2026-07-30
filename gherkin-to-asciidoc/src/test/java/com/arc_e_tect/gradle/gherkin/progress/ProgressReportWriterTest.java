@@ -159,6 +159,23 @@ class ProgressReportWriterTest {
     }
 
     @Test
+    @DisplayName("declares a table of contents right after the title, with or without scenarios")
+    void declaresTableOfContents(@TempDir Path tempDir) throws IOException {
+        File emptyOutputFile = tempDir.resolve("empty.adoc").toFile();
+        writer.write(emptyOutputFile, List.of(), List.of(), grouped(tempDir));
+        List<String> emptyLines = Files.readAllLines(emptyOutputFile.toPath(), StandardCharsets.UTF_8);
+        assertThat(emptyLines).containsSubsequence("= Feature Scenarios", ":toc:", ":toclevels: 2", "");
+
+        ScenarioInfo implemented = new ScenarioInfo(
+                "Authentication", "Scenario: Fully wired up", List.of("an implemented step"));
+        List<Expression> glueCode = List.of(expression("an implemented step"));
+        File outputFile = tempDir.resolve("features.adoc").toFile();
+        writer.write(outputFile, List.of(implemented), glueCode, grouped(tempDir));
+        List<String> lines = Files.readAllLines(outputFile.toPath(), StandardCharsets.UTF_8);
+        assertThat(lines).containsSubsequence("= Feature Scenarios", ":toc:", ":toclevels: 2", "");
+    }
+
+    @Test
     @DisplayName("prints a None placeholder for a heading with no scenarios, without a feature heading")
     void printsNonePlaceholderForEmptyHeading(@TempDir Path tempDir) throws IOException {
         ScenarioInfo implemented = new ScenarioInfo(

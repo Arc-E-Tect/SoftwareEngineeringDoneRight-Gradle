@@ -286,6 +286,8 @@ public abstract class GenerateFeatureDocsTask extends DefaultTask {
             File outputFile, List<ScenarioInfo> scenarios, boolean groupByFeature, String systemUnderTestVersion) {
         try (PrintWriter writer = new PrintWriter(outputFile, StandardCharsets.UTF_8)) {
             writer.println("= Feature Scenarios");
+            writer.println(":toc:");
+            writer.println(":toclevels: 2");
             writer.println();
             writer.println("System Under Test version: " + systemUnderTestVersion);
             writer.println();

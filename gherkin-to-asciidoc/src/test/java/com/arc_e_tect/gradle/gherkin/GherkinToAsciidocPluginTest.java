@@ -631,6 +631,28 @@ class GherkinToAsciidocPluginTest {
         assertThat(content).startsWith("= Feature Scenarios");
     }
 
+    @Test
+    @DisplayName("output file declares a table of contents right after the title")
+    void outputFileDeclaresTableOfContents() throws IOException {
+        Project project = projectWithPlugin();
+        File featuresDir = new File(tempDir.toFile(), "features");
+        featuresDir.mkdirs();
+        writeFeatureFile(featuresDir, "sample.feature",
+                "Feature: Sample\n\n  Scenario: A scenario\n    Given something\n");
+
+        File outputDir = new File(tempDir.toFile(), "output");
+
+        GenerateFeatureDocsTask task = task(project);
+        task.getSourceDirs().from(featuresDir);
+        task.getOutputDir().set(outputDir);
+        task.getProjectDirectory().set(project.getLayout().getProjectDirectory());
+        task.generate();
+
+        List<String> lines = Files.readAllLines(new File(outputDir, "features.adoc").toPath());
+        assertThat(lines).containsSubsequence(
+                "= Feature Scenarios", ":toc:", ":toclevels: 2", "");
+    }
+
     // --- helpers ---
 
     private Project projectWithPlugin() {
