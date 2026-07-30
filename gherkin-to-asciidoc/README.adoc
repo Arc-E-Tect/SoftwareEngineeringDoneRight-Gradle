@@ -15,6 +15,12 @@ A Gradle plugin that scans `.feature` files for `Scenario` and `Scenario Outline
 
 The generated document gives teams a living, human-readable index of every behaviour specification defined in Gherkin, ready to be included directly into AsciiDoc-based project documentation.
 
+Every generated document declares `:toc:`, so any AsciiDoc renderer (Asciidoctor, GitHub/GitLab previews, IDE
+plugins, ...) shows a navigable table of contents alongside it - one entry per category (e.g. `Listed`,
+`Defined`, `Implemented`, or each top-level `== <Feature>` heading when `groupByFeature` is enabled) and, when
+`trackProgress` is also enabled, one nested entry per `=== <Feature>` sub-heading within each category. A flat,
+ungrouped report has no headings below the title, so its table of contents is correspondingly empty.
+
 == Plugin ID
 
 [source]
@@ -329,6 +335,8 @@ The plugin generates:
 [source,asciidoc]
 ----
 = Feature Scenarios
+:toc:
+:toclevels: 2
 
 System Under Test version: 1.0.0
 
@@ -362,6 +370,8 @@ with `groupByFeature = true`, the plugin generates:
 [source,asciidoc]
 ----
 = Feature Scenarios
+:toc:
+:toclevels: 2
 
 System Under Test version: 1.0.0
 
@@ -462,6 +472,8 @@ the plugin generates:
 [source,asciidoc]
 ----
 = Feature Scenarios
+:toc:
+:toclevels: 2
 
 System Under Test version: 1.0.0
 
@@ -607,6 +619,8 @@ plugin's own test suite). Use them as a starting point for a custom template.
 [source,mustache]
 ----
 = Feature Scenarios
+:toc:
+:toclevels: 2
 
 System Under Test version: {{{systemUnderTestVersion}}}
 
@@ -653,6 +667,8 @@ include::{{{snippet}}}[]
 [source,mustache]
 ----
 = Feature Scenarios
+:toc:
+:toclevels: 2
 
 System Under Test version: {{{systemUnderTestVersion}}}
 

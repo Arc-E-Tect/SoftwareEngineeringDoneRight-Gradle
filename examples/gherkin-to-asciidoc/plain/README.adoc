@@ -50,6 +50,8 @@ The build is expected to pass. The plugin writes `build/generated-docs/features.
 [source,asciidoc]
 ----
 = Feature Scenarios
+:toc:
+:toclevels: 2
 
 System Under Test version: 0.0.1
 

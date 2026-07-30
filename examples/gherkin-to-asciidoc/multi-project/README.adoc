@@ -100,6 +100,8 @@ is still generated, but empty:
 [source,asciidoc]
 ----
 = Feature Scenarios
+:toc:
+:toclevels: 2
 
 System Under Test version: v1.0.0
 
@@ -116,6 +118,8 @@ No scenarios found.
 [source,asciidoc]
 ----
 = Feature Scenarios
+:toc:
+:toclevels: 2
 
 System Under Test version: v1.0.0
 
@@ -133,6 +137,8 @@ project, re-resolved to `checkout/src/test/resources/gherkin`, since it doesn't 
 [source,asciidoc]
 ----
 = Feature Scenarios
+:toc:
+:toclevels: 2
 
 System Under Test version: v2.3.1
 
