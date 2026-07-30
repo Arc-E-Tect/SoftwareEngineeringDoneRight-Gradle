@@ -1,0 +1,21 @@
+plugins {
+    alias(libs.plugins.gherkin.to.asciidoc)
+}
+
+// Configuration here applies to every project below (root and both sub-projects) unless a
+// sub-project's own build.gradle overrides a given property for itself. See the catalog and
+// checkout sub-projects for examples of overriding.
+gherkinToAsciidoc {
+    systemUnderTestVersion = 'v1.0.0'
+
+    // Neither sub-project configures sourceDirs itself, so each one resolves this same relative
+    // path against its own directory: catalog/src/test/resources/gherkin and
+    // checkout/src/test/resources/gherkin. Declared once here instead of in every sub-project.
+    sourceDirs.from('src/test/resources/gherkin')
+}
+
+// Applies the plugin to catalog and checkout too, reusing the version already resolved above.
+// Each sub-project gets its own generateFeatureDocs task and its own generated report.
+subprojects {
+    apply plugin: 'com.arc-e-tect.gherkin-to-asciidoc'
+}
