@@ -23,7 +23,7 @@ class ShadowApiReportWriterTest {
     void reportsNoShadowsFound(@TempDir Path tempDir) throws Exception {
         File output = new File(tempDir.toFile(), "report.adoc");
 
-        writer.write(output, 3, List.of());
+        writer.write(output, 3, List.of(), "1.0.0");
 
         String content = Files.readString(output.toPath());
         assertThat(content)
@@ -42,7 +42,7 @@ class ShadowApiReportWriterTest {
                 new Endpoint(HttpVerb.GET, "/api/orders", "com.example.OrderController",
                         "listOrders()", "OrderController.java", 10));
 
-        writer.write(output, 5, shadows);
+        writer.write(output, 5, shadows, "1.0.0");
 
         String content = Files.readString(output.toPath());
         assertThat(content)
@@ -62,7 +62,7 @@ class ShadowApiReportWriterTest {
     void createsParentDirectory(@TempDir Path tempDir) throws Exception {
         File output = new File(tempDir.toFile(), "nested/dir/report.adoc");
 
-        writer.write(output, 0, List.of());
+        writer.write(output, 0, List.of(), "1.0.0");
 
         assertThat(output).exists();
     }
@@ -75,9 +75,19 @@ class ShadowApiReportWriterTest {
                 new Endpoint(HttpVerb.GET, "/api/orders", "com.example.OrderController",
                         "listOrders()", "OrderController.java", 10));
 
-        writer.write(output, 1, shadows);
+        writer.write(output, 1, shadows, "1.0.0");
 
         assertThat(Files.readString(output.toPath())).contains("1 of them is not described");
+    }
+
+    @Test
+    @DisplayName("includes the given system under test version")
+    void includesSystemUnderTestVersion(@TempDir Path tempDir) throws Exception {
+        File output = new File(tempDir.toFile(), "report.adoc");
+
+        writer.write(output, 0, List.of(), "v2.3.1");
+
+        assertThat(Files.readString(output.toPath())).contains("System Under Test version: v2.3.1");
     }
 
     @Test
@@ -85,7 +95,7 @@ class ShadowApiReportWriterTest {
     void includesBundledPreamble(@TempDir Path tempDir) throws Exception {
         File output = new File(tempDir.toFile(), "report.adoc");
 
-        writer.write(output, 0, List.of());
+        writer.write(output, 0, List.of(), "1.0.0");
 
         String content = Files.readString(output.toPath());
         assertThat(content)
@@ -99,7 +109,7 @@ class ShadowApiReportWriterTest {
     void preambleMatchesBundledResource(@TempDir Path tempDir) throws Exception {
         File output = new File(tempDir.toFile(), "report.adoc");
 
-        writer.write(output, 0, List.of());
+        writer.write(output, 0, List.of(), "1.0.0");
 
         String content = Files.readString(output.toPath());
         String preamble;

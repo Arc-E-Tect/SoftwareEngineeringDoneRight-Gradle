@@ -94,6 +94,15 @@ public abstract class DetectShadowApisTask extends DefaultTask {
     public abstract Property<String> getReportFileName();
 
     /**
+     * Version of the system under test whose {@code @RestController} classes were scanned, printed
+     * in the generated report as e.g. {@code System Under Test version: v1.0.0}.
+     *
+     * @return mutable string property for the system-under-test version
+     */
+    @Input
+    public abstract Property<String> getSystemUnderTestVersion();
+
+    /**
      * Creates the task. Instantiated by Gradle infrastructure via {@link javax.inject.Inject}.
      */
     @Inject
@@ -130,7 +139,8 @@ public abstract class DetectShadowApisTask extends DefaultTask {
         File outputDir = getReportDir().getAsFile().get();
         File outputFile = new File(outputDir, getReportFileName().get());
         try {
-            new ShadowApiReportWriter().write(outputFile, endpoints.size(), shadows);
+            new ShadowApiReportWriter().write(
+                    outputFile, endpoints.size(), shadows, getSystemUnderTestVersion().get());
         } catch (IOException e) {
             throw new GradleException("shadowApiDetector: failed to write report to " + outputFile, e);
         }

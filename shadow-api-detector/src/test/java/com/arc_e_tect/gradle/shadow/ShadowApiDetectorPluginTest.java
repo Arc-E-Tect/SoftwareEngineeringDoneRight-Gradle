@@ -52,6 +52,39 @@ class ShadowApiDetectorPluginTest {
     }
 
     @Test
+    @DisplayName("extension default: systemUnderTestVersion is the project's version")
+    void extensionDefaultSystemUnderTestVersionIsProjectVersion() {
+        Project project = projectWithPlugin();
+        project.setVersion("2.5.0");
+
+        assertThat(extension(project).getSystemUnderTestVersion().get()).isEqualTo("2.5.0");
+    }
+
+    @Test
+    @DisplayName("extension: systemUnderTestVersion can be overridden")
+    void extensionSystemUnderTestVersionCanBeOverridden() {
+        Project project = projectWithPlugin();
+        project.setVersion("2.5.0");
+
+        extension(project).getSystemUnderTestVersion().set("v1.0.0");
+
+        assertThat(extension(project).getSystemUnderTestVersion().get()).isEqualTo("v1.0.0");
+    }
+
+    @Test
+    @DisplayName("wires the task's systemUnderTestVersion from the extension")
+    void wiresTaskSystemUnderTestVersionFromExtension() {
+        Project project = projectWithPlugin();
+        project.setVersion("2.5.0");
+
+        ((ProjectInternal) project).evaluate();
+
+        DetectShadowApisTask task = (DetectShadowApisTask)
+                project.getTasks().getByName(ShadowApiDetectorPlugin.TASK_NAME);
+        assertThat(task.getSystemUnderTestVersion().get()).isEqualTo("2.5.0");
+    }
+
+    @Test
     @DisplayName("extension default: controllerDirs is empty before evaluation")
     void extensionDefaultControllerDirsEmptyBeforeEvaluation() {
         Project project = projectWithPlugin();
