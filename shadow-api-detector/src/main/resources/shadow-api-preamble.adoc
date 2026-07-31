@@ -1,0 +1,44 @@
+== What Is a Shadow API?
+
+A _shadow API_ is an endpoint that is live and reachable in production but was never registered in the
+project's official API documentation - in this plugin's terms, a `@RestController` endpoint with no
+matching entry in the OpenAPI description. Shadow APIs typically appear when an endpoint is added during
+development and the OpenAPI document simply never catches up: a debug or experimental endpoint left enabled,
+a quick addition that skipped API review, or a handler method whose mapping annotation was copied and
+tweaked without updating the contract it was supposed to implement.
+
+=== Shadow API vs. Zombie API
+
+The two terms describe opposite lifecycle failures:
+
+* A *shadow API* was never documented in the first place. It is "born in the shadows" - it exists in code,
+  but no design or review process ever gave it a name in the API contract.
+* A *zombie API* _was_ documented and intentionally exposed at some point, but should have been retired -
+  deprecated, replaced by a newer version, or fully decommissioned - and never was. It "should be dead but
+  isn't," often still running old, unpatched logic that never received the fixes applied to its replacement.
+
+Both are forms of API sprawl that expand the attack surface beyond what anyone is actually governing, but a
+shadow API slips *in* without ever being tracked, while a zombie API slips *out* of tracking after its
+retirement should have happened. This plugin's scope is shadow APIs specifically: endpoints exposed by
+`@RestController` classes that are not described in the configured OpenAPI documentation.
+
+=== Why Shadow APIs Are A Risk
+
+* API gateways, WAFs, rate limiting, and authentication policies are usually configured against the
+  *documented* API surface - a shadow endpoint can bypass all of them simply by not being on anyone's list.
+* Security testing and penetration testing scoped from the API inventory never exercises endpoints that
+  aren't in that inventory, leaving them effectively untested.
+* Monitoring and alerting built from the API catalog won't surface unusual traffic to an endpoint it doesn't
+  know exists, delaying incident detection.
+* Endpoints that skip API review also skip the scrutiny that catches excessive data exposure, missing
+  authorization checks, and versioning mistakes before they ship.
+* Regulators and internal audits typically work from the documented inventory, so undocumented endpoints
+  create blind spots for data protection and access control compliance.
+
+=== Reference
+
+The OWASP API Security Top 10 (2023) names this class of problem
+https://owasp.org/API-Security/editions/2023/en/0xa9-improper-inventory-management/[API9:2023 Improper Inventory Management],
+which explicitly calls out shadow and zombie APIs as symptoms of an inadequate API inventory. See the full
+https://owasp.org/API-Security/editions/2023/en/0x11-t10/[OWASP API Security Top 10] for the complete list of
+API security risks.

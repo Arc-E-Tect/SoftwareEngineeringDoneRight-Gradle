@@ -51,5 +51,5 @@ cd examples/shadow-api-detector/multi-file-openapi
 == What To Expect
 
 The build is expected to pass. Every endpoint - whether described in the root document or in the linked
-`paths/authors.yaml` - is accounted for, so `build/reports/shadow-api-detector/shadow-apis.adoc` reports
-no shadow APIs.
+`paths/authors.yaml` - is accounted for, so `build/reports/shadow-api-detector/shadow-apis.adoc` (after its
+usual preamble explaining what a shadow API is) reports no shadow APIs.
