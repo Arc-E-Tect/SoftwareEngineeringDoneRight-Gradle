@@ -18,6 +18,11 @@ on:
         description: 'Directory where the Semantic Release configuration is located'
         type: string
         required: false
+      tag_format:
+        description: 'Semantic-release tagFormat template for this project, with ${version} as the version placeholder'
+        type: string
+        required: false
+        default: 'v${version}'
       DEBUG:
         description: 'Run the workflow in debug mode'
         type: boolean
@@ -130,17 +135,16 @@ jobs:
         id: check_tag
         run: |
           VERSION="${{ steps.calculate_semantic_version.outputs.next_version }}"
-          
-          # Check if tag exists with or without 'v' prefix
+          TAG_FORMAT="${{ inputs.tag_format }}"
+          EXPECTED_TAG="${TAG_FORMAT//\$\{version\}/$VERSION}"
+
+          # Check whether the tag this project's semantic-release run would create already exists
           TAG_EXISTS=false
-          if git rev-parse "refs/tags/${VERSION}" >/dev/null 2>&1; then
+          if git rev-parse "refs/tags/${EXPECTED_TAG}" >/dev/null 2>&1; then
             TAG_EXISTS=true
-            EXISTING_TAG="${VERSION}"
-          elif git rev-parse "refs/tags/v${VERSION}" >/dev/null 2>&1; then
-            TAG_EXISTS=true
-            EXISTING_TAG="v${VERSION}"
+            EXISTING_TAG="${EXPECTED_TAG}"
           fi
-          
+
           echo "tag_exists=${TAG_EXISTS}" >> "$GITHUB_OUTPUT"
           
           if [ "${TAG_EXISTS}" = "true" ]; then

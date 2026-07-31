@@ -16,6 +16,7 @@ jobs:
       fail_on_empty_version: false
       fail_on_existing_tag: false
       project_dir: zombie-api-detector
+      tag_format: 'zombie-api-detector-v${version}'
     secrets:
       sem_rel_token_token: ${{ secrets.SEMANTIC_RELEASE_TOKEN }}
 
