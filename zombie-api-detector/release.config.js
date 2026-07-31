@@ -4,6 +4,11 @@
 
 module.exports = {
     branches: ["main"],
+    // Scoped to this plugin's own tag namespace so its version history is independent of the
+    // other plugins in this monorepo (which share the unscoped "v${version}" tag format).
+    // A "zombie-api-detector-v0.0.0" tag is seeded as the baseline so the first real release
+    // computes as 0.1.0 instead of semantic-release's hardcoded 1.0.0 first-release default.
+    tagFormat: "zombie-api-detector-v${version}",
     plugins: [
         ["@semantic-release/commit-analyzer", {
             preset: 'angular',
