@@ -44,7 +44,9 @@ cd examples/shadow-api-detector/clean
 
 == What To Expect
 
-The build is expected to pass. The plugin writes `build/reports/shadow-api-detector/shadow-apis.adoc`:
+The build is expected to pass. The plugin writes `build/reports/shadow-api-detector/shadow-apis.adoc`, opening
+with a preamble explaining what a shadow API is (omitted below for brevity - see
+link:../../../shadow-api-detector/README.adoc[the plugin README]'s "Report output" section), followed by:
 
 [source,asciidoc]
 ----

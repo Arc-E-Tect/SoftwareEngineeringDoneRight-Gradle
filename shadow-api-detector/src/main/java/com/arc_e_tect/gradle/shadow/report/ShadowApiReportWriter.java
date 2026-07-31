@@ -4,6 +4,7 @@ import com.arc_e_tect.gradle.shadow.model.Endpoint;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
@@ -17,8 +18,15 @@ import java.util.stream.Collectors;
 /**
  * Writes the AsciiDoc shadow API report: every {@code @RestController} endpoint that is not
  * described in the configured OpenAPI documentation.
+ *
+ * <p>Every report opens with a preamble explaining what a shadow API is, loaded from the
+ * {@value #PREAMBLE_RESOURCE} classpath resource so that explanatory text can be revised without
+ * touching this class.</p>
  */
 public class ShadowApiReportWriter {
+
+    /** Classpath resource holding the "what is a shadow API" preamble, bundled with the plugin. */
+    static final String PREAMBLE_RESOURCE = "shadow-api-preamble.adoc";
 
     /** Creates a new {@code ShadowApiReportWriter}. */
     public ShadowApiReportWriter() {}
@@ -49,6 +57,8 @@ public class ShadowApiReportWriter {
                     + " endpoint(s) exposed by `@RestController` classes. " + shadows.size()
                     + (shadows.size() == 1 ? " of them is" : " of them are")
                     + " not described in the OpenAPI documentation.");
+            writer.println();
+            writer.print(loadPreamble());
             writer.println();
             writer.println("== Shadow APIs");
             writer.println();
@@ -83,6 +93,21 @@ public class ShadowApiReportWriter {
                 writer.println("|===");
                 writer.println();
             });
+        }
+    }
+
+    /**
+     * Loads the "what is a shadow API" preamble bundled with the plugin as a classpath resource.
+     *
+     * @return the preamble's AsciiDoc content
+     * @throws IOException if the {@value #PREAMBLE_RESOURCE} resource is missing or cannot be read
+     */
+    private String loadPreamble() throws IOException {
+        try (InputStream stream = ShadowApiReportWriter.class.getClassLoader().getResourceAsStream(PREAMBLE_RESOURCE)) {
+            if (stream == null) {
+                throw new IOException("Missing bundled resource: " + PREAMBLE_RESOURCE);
+            }
+            return new String(stream.readAllBytes(), StandardCharsets.UTF_8);
         }
     }
 }

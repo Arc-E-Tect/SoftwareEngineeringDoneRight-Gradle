@@ -79,4 +79,35 @@ class ShadowApiReportWriterTest {
 
         assertThat(Files.readString(output.toPath())).contains("1 of them is not described");
     }
+
+    @Test
+    @DisplayName("includes the bundled preamble explaining what a shadow API is")
+    void includesBundledPreamble(@TempDir Path tempDir) throws Exception {
+        File output = new File(tempDir.toFile(), "report.adoc");
+
+        writer.write(output, 0, List.of());
+
+        String content = Files.readString(output.toPath());
+        assertThat(content)
+                .contains("What Is a Shadow API?")
+                .contains("Zombie API")
+                .contains("owasp.org/API-Security");
+    }
+
+    @Test
+    @DisplayName("preamble content matches the bundled shadow-api-preamble.adoc resource verbatim")
+    void preambleMatchesBundledResource(@TempDir Path tempDir) throws Exception {
+        File output = new File(tempDir.toFile(), "report.adoc");
+
+        writer.write(output, 0, List.of());
+
+        String content = Files.readString(output.toPath());
+        String preamble;
+        try (var stream = getClass().getClassLoader()
+                .getResourceAsStream(ShadowApiReportWriter.PREAMBLE_RESOURCE)) {
+            preamble = new String(stream.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+        }
+
+        assertThat(content).contains(preamble);
+    }
 }

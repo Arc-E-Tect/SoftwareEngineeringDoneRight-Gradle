@@ -63,8 +63,9 @@ The build is expected to fail:
 shadowApiDetector: found 1 shadow API(s) not described in the OpenAPI documentation. See .../shadow-apis.adoc
 ----
 
-`build/reports/shadow-api-detector/shadow-apis.adoc` is still written before the failure, and lists the
-undocumented endpoint:
+`build/reports/shadow-api-detector/shadow-apis.adoc` is still written before the failure. It opens with a
+preamble explaining what a shadow API is (see link:../../../shadow-api-detector/README.adoc[the plugin
+README]'s "Report output" section), then lists the undocumented endpoint:
 
 [source,asciidoc]
 ----
