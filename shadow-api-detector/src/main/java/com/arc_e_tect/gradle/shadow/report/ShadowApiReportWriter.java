@@ -34,12 +34,14 @@ public class ShadowApiReportWriter {
     /**
      * Writes the report to {@code outputFile}, creating its parent directory if necessary.
      *
-     * @param outputFile         target AsciiDoc file
-     * @param totalEndpointCount total number of endpoints found across all scanned controllers
-     * @param shadows            the endpoints not described in the OpenAPI documentation
+     * @param outputFile             target AsciiDoc file
+     * @param totalEndpointCount     total number of endpoints found across all scanned controllers
+     * @param shadows                the endpoints not described in the OpenAPI documentation
+     * @param systemUnderTestVersion version of the system under test that was scanned
      * @throws IOException if the output file cannot be written
      */
-    public void write(File outputFile, int totalEndpointCount, List<Endpoint> shadows) throws IOException {
+    public void write(File outputFile, int totalEndpointCount, List<Endpoint> shadows, String systemUnderTestVersion)
+            throws IOException {
         File parent = outputFile.getParentFile();
         if (parent != null && !parent.exists() && !parent.mkdirs()) {
             throw new IOException("Could not create output directory: " + parent);
@@ -49,6 +51,8 @@ public class ShadowApiReportWriter {
             writer.println("= Shadow API Report");
             writer.println(":toc:");
             writer.println(":toclevels: 2");
+            writer.println();
+            writer.println("System Under Test version: " + systemUnderTestVersion);
             writer.println();
             writer.println("Generated: " + LocalDateTime.now()
                     .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));

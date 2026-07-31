@@ -97,6 +97,11 @@ shadowApiDetector {
     // Name of the generated AsciiDoc report file.
     // Default: 'shadow-apis.adoc'
     reportFileName = 'shadow-apis.adoc'
+
+    // Version of the system under test whose @RestController classes are scanned, printed near
+    // the top of the generated report (see "System Under Test Version" below).
+    // Default: the project's own `version`
+    // systemUnderTestVersion = 'v1.0.0'
 }
 ----
 
@@ -109,6 +114,7 @@ shadowApiDetector {
     failOnShadow.set(false)
     reportDir.set(layout.buildDirectory.dir("reports/shadow-api-detector"))
     reportFileName.set("shadow-apis.adoc")
+    // systemUnderTestVersion.set("v1.0.0")
 }
 ----
 
@@ -129,6 +135,24 @@ Running the report explicitly:
 [source,shell]
 ----
 ./gradlew detectShadowApis
+----
+
+== System Under Test Version
+
+Every generated report includes a line just below the title identifying the version of the system under test that was scanned:
+
+[source,asciidoc]
+----
+System Under Test version: 1.0.0
+----
+
+By default, this is the project's own `version`, exactly as set in `build.gradle`/`build.gradle.kts` or a `gradle.properties` file. Set `systemUnderTestVersion` to override it - useful when the `@RestController` classes in `controllerDirs` belong to a different, independently versioned artifact than the one Gradle is building:
+
+[source,groovy]
+----
+shadowApiDetector {
+    systemUnderTestVersion = 'v1.0.0'
+}
 ----
 
 == Report output

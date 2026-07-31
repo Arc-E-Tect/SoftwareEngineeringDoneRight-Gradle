@@ -63,6 +63,7 @@ class DetectShadowApisTaskTest {
         task.getReportDir().set(reportDir);
         task.getReportFileName().set("shadow-apis.adoc");
         task.getFailOnShadow().set(false);
+        task.getSystemUnderTestVersion().set("1.0.0");
 
         assertThatThrownBy(task::generate)
                 .isInstanceOf(GradleException.class)
@@ -85,6 +86,18 @@ class DetectShadowApisTaskTest {
                 .contains("/users/{id}")
                 .contains("com.example.UserController")
                 .doesNotContain("listUsers()");
+    }
+
+    @Test
+    @DisplayName("writes the configured system under test version into the report")
+    void writesSystemUnderTestVersionIntoReport() throws Exception {
+        DetectShadowApisTask task = configuredTask(openApiFixture("single-endpoint.yaml"), false);
+        task.getSystemUnderTestVersion().set("v2.3.1");
+
+        task.generate();
+
+        String content = Files.readString(new File(reportDir, "shadow-apis.adoc").toPath());
+        assertThat(content).contains("System Under Test version: v2.3.1");
     }
 
     @Test
@@ -125,6 +138,7 @@ class DetectShadowApisTaskTest {
         task.getReportDir().set(reportDir);
         task.getReportFileName().set("shadow-apis.adoc");
         task.getFailOnShadow().set(failOnShadow);
+        task.getSystemUnderTestVersion().set("1.0.0");
         return task;
     }
 

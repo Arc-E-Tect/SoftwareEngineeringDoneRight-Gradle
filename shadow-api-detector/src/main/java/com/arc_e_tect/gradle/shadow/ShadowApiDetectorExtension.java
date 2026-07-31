@@ -16,6 +16,7 @@ import org.gradle.api.provider.Property;
  *     failOnShadow   = false                                                  // default
  *     reportDir      = layout.buildDirectory.dir('reports/shadow-api-detector') // default
  *     reportFileName = 'shadow-apis.adoc'                                     // default
+ *     // systemUnderTestVersion = 'v1.0.0'          // optional; default: project.version
  * }
  * </pre>
  */
@@ -82,4 +83,15 @@ public abstract class ShadowApiDetectorExtension {
      * @return mutable string property for the report file name
      */
     public abstract Property<String> getReportFileName();
+
+    /**
+     * Version of the system under test whose {@code @RestController} classes are scanned, printed
+     * in the generated report as e.g. {@code System Under Test version: v1.0.0}. Defaults to the
+     * project's own {@code version} (as set in the build file or a properties file); set this
+     * property to override that default, e.g. when the controllers scanned belong to a different
+     * artifact than the one being built.
+     *
+     * @return mutable string property for the system-under-test version
+     */
+    public abstract Property<String> getSystemUnderTestVersion();
 }

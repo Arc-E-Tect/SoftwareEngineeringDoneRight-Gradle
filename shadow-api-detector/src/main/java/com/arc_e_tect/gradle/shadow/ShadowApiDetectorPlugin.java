@@ -48,6 +48,8 @@ public class ShadowApiDetectorPlugin implements Plugin<Project> {
         ext.getReportDir().convention(
                 project.getLayout().getBuildDirectory().dir("reports/shadow-api-detector"));
         ext.getReportFileName().convention(ShadowApiDetectorExtension.DEFAULT_REPORT_FILE_NAME);
+        ext.getSystemUnderTestVersion().convention(
+                project.provider(() -> String.valueOf(project.getVersion())));
         ext.getOpenApiDir().convention(ext.getRootDocument().flatMap(rootDocument ->
                 project.getLayout().dir(project.provider(() -> rootDocument.getAsFile().getParentFile()))));
 
@@ -59,6 +61,7 @@ public class ShadowApiDetectorPlugin implements Plugin<Project> {
                     task.getFailOnShadow().set(ext.getFailOnShadow());
                     task.getReportDir().set(ext.getReportDir());
                     task.getReportFileName().set(ext.getReportFileName());
+                    task.getSystemUnderTestVersion().set(ext.getSystemUnderTestVersion());
                 });
 
         // Default to src/main/java only when the user has not configured any controller
