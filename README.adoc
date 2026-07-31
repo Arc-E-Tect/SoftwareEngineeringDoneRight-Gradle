@@ -6,8 +6,7 @@
 :source-highlighter: rouge
 
 image:https://img.shields.io/github/license/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle[License,link=LICENSE]
-image:https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/actions/workflows/jacoco-exclusion-report-security-scan.yml/badge.svg[Security Scan (jacoco-exclusion-report),link=https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/actions/workflows/jacoco-exclusion-report-security-scan.yml]
-image:https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/actions/workflows/gherkin-to-asciidoc-security-scan.yml/badge.svg[Security Scan (gherkin-to-asciidoc),link=https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/actions/workflows/gherkin-to-asciidoc-security-scan.yml]
+image:https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/actions/workflows/nvd-cache-refresh.yml/badge.svg[Vulnerability Scan,link=https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/actions/workflows/nvd-cache-refresh.yml]
 
 A collection of useful and usable Gradle plugins and utilities for software engineering projects.
 

@@ -1,8 +1,9 @@
-name: NVD Cache Refresh
+name: NVD Cache Refresh & Vulnerability Scan
 
 on:
   schedule:
-    - cron: '17 2 * * 1'
+    - cron: '17 2 * * 1'  # Every Monday at 02:17 UTC
+    - cron: '0 7 * * 5'   # Every Friday at 07:00 UTC
   workflow_dispatch:
 
 jobs:
@@ -86,3 +87,131 @@ jobs:
             echo "- Update timed out: ${{ steps.nvd-update.outputs.nvd_update_timed_out || 'false' }}"
             echo "- Update failed: ${{ steps.nvd-update.outputs.nvd_update_failed || 'false' }}"
           } >> "$GITHUB_STEP_SUMMARY"
+
+  Read-Version-Architecture-Validator:
+    name: Read Architecture Validator Version
+    needs: refresh-nvd-cache
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.read-version.outputs.version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Read version from gradle.properties
+        id: read-version
+        run: |
+          VERSION=$(grep -oP 'version\s*=\s*\K\S+' architecture-validator/gradle.properties)
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+  Security-Scan-Architecture-Validator:
+    name: Vulnerability Scan - Architecture Validator
+    needs: Read-Version-Architecture-Validator
+    uses: ./.github/workflows/security-scan.yml
+    with:
+      project_dir: architecture-validator
+      project_name: 'architecture-validator'
+      semantic_version: ${{ needs.Read-Version-Architecture-Validator.outputs.version }}
+      fail_on_fatal: true
+      reports_subpath: build/reports
+    secrets:
+      NVD_APIKEY_SEDR: ${{ secrets.NVD_APIKEY_SEDR }}
+
+  Read-Version-Gherkin-To-Asciidoc:
+    name: Read Gherkin to AsciiDoc Version
+    needs: refresh-nvd-cache
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.read-version.outputs.version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Read version from gradle.properties
+        id: read-version
+        run: |
+          VERSION=$(grep -oP 'version\s*=\s*\K\S+' gherkin-to-asciidoc/gradle.properties)
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+  Security-Scan-Gherkin-To-Asciidoc:
+    name: Vulnerability Scan - Gherkin to AsciiDoc
+    needs: Read-Version-Gherkin-To-Asciidoc
+    uses: ./.github/workflows/security-scan.yml
+    with:
+      project_dir: gherkin-to-asciidoc
+      project_name: 'gherkin-to-asciidoc'
+      semantic_version: ${{ needs.Read-Version-Gherkin-To-Asciidoc.outputs.version }}
+      fail_on_fatal: true
+      reports_subpath: build/reports
+    secrets:
+      NVD_APIKEY_SEDR: ${{ secrets.NVD_APIKEY_SEDR }}
+
+  Read-Version-Jacoco-Exclusion-Report:
+    name: Read JaCoCo Exclusion Report Version
+    needs: refresh-nvd-cache
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.read-version.outputs.version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Read version from gradle.properties
+        id: read-version
+        run: |
+          VERSION=$(grep -oP 'version\s*=\s*\K\S+' jacoco-exclusion-report/gradle.properties)
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+  Security-Scan-Jacoco-Exclusion-Report:
+    name: Vulnerability Scan - JaCoCo Exclusion Report
+    needs: Read-Version-Jacoco-Exclusion-Report
+    uses: ./.github/workflows/security-scan.yml
+    with:
+      project_dir: jacoco-exclusion-report
+      project_name: 'jacoco-exclusion-report'
+      semantic_version: ${{ needs.Read-Version-Jacoco-Exclusion-Report.outputs.version }}
+      fail_on_fatal: true
+      reports_subpath: build/reports
+    secrets:
+      NVD_APIKEY_SEDR: ${{ secrets.NVD_APIKEY_SEDR }}
+
+  Read-Version-Shadow-Api-Detector:
+    name: Read Shadow API Detector Version
+    needs: refresh-nvd-cache
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.read-version.outputs.version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Read version from gradle.properties
+        id: read-version
+        run: |
+          VERSION=$(grep -oP 'version\s*=\s*\K\S+' shadow-api-detector/gradle.properties)
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+  Security-Scan-Shadow-Api-Detector:
+    name: Vulnerability Scan - Shadow API Detector
+    needs: Read-Version-Shadow-Api-Detector
+    uses: ./.github/workflows/security-scan.yml
+    with:
+      project_dir: shadow-api-detector
+      project_name: 'shadow-api-detector'
+      semantic_version: ${{ needs.Read-Version-Shadow-Api-Detector.outputs.version }}
+      fail_on_fatal: true
+      reports_subpath: build/reports
+    secrets:
+      NVD_APIKEY_SEDR: ${{ secrets.NVD_APIKEY_SEDR }}
