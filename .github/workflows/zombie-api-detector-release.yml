@@ -1,0 +1,156 @@
+name: Zombie API Detector Plugin - Release
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'zombie-api-detector/*.gradle'
+      - 'zombie-api-detector/gradle/**'
+      - 'zombie-api-detector/src/main/**'
+      - 'zombie-api-detector/docs/**'
+
+jobs:
+  Calculate-Version:
+    uses: ./.github/workflows/semantic-version-calculate.yml
+    with:
+      fail_on_empty_version: true
+      project_dir: zombie-api-detector
+      DEBUG: true
+    secrets:
+      sem_rel_token_token: ${{ secrets.SEMANTIC_RELEASE_TOKEN }}
+
+  Security-Scan:
+    needs: Calculate-Version
+    uses: ./.github/workflows/security-scan.yml
+    with:
+      fail_on_fatal: true
+      project_dir: zombie-api-detector
+      project_name: 'zombie-api-detector'
+      semantic_version: ${{ needs.Calculate-Version.outputs.next_version }}
+      reports_subpath: build/reports
+    secrets:
+      NVD_APIKEY_SEDR: ${{ secrets.NVD_APIKEY_SEDR }}
+
+  Build:
+    name: Build Zombie API Detector Plugin
+    needs: Calculate-Version
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+
+    runs-on: ubuntu-latest
+
+    env:
+      GRADLE_PROPERTIES_FILE: ./zombie-api-detector/gradle.properties
+      GRADLE_VERSION_REGEX: version\s*=\s*[0-9]\\+\.[0-9]\\+\.[0-9]\\+[a-zA-Z0-9.-]*
+      VERSION: ${{ needs.Calculate-Version.outputs.next_version }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Setup Java
+        uses: actions/setup-java@ad2b38190b15e4d6bdf0c97fb4fca8412226d287 # v5.3.0
+        with:
+          distribution: 'temurin'
+          java-version: 21
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6.2.0
+
+      - name: Update version in Gradle property file
+        run: |
+          echo "VERSION=${{ env.VERSION }}"
+          echo ===== Before - ${{ env.GRADLE_PROPERTIES_FILE }} =====
+          cat ${{ env.GRADLE_PROPERTIES_FILE }}
+          sed -i "s/${{ env.GRADLE_VERSION_REGEX }}/version = ${{ env.VERSION }}/g" ${{ env.GRADLE_PROPERTIES_FILE }}
+          echo ===== After - ${{ env.GRADLE_PROPERTIES_FILE }} =====
+          cat ${{ env.GRADLE_PROPERTIES_FILE }}
+
+      - name: Build and test Zombie API Detector Plugin
+        run: |
+          cd zombie-api-detector
+          chmod +x ./gradlew
+          ./gradlew build
+        env:
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.SEDR_AUTOMATION_TOKEN }}
+
+      - name: Upload test report
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: zombie-api-detector-plugin-test-results
+          path: zombie-api-detector/build/reports/tests/**
+
+  Release-Plugin:
+    name: Release Zombie API Detector Plugin
+    needs: [Calculate-Version, Build, Security-Scan]
+    if: ${{ needs.Calculate-Version.outputs.next_version != '' }}
+    uses: ./.github/workflows/semantic-version-apply.yml
+    with:
+      project_dir: zombie-api-detector
+    secrets:
+      sem_rel_token_token: ${{ secrets.SEMANTIC_RELEASE_TOKEN }}
+
+  Publish:
+    name: Publish Zombie API Detector Plugin to Gradle Portal
+    needs: [Calculate-Version, Release-Plugin]
+    if: ${{ needs.Calculate-Version.outputs.next_version != '' }}
+    runs-on: ubuntu-latest
+
+    env:
+      GRADLE_PROPERTIES_FILE: ./zombie-api-detector/gradle.properties
+      GRADLE_VERSION_REGEX: version\s*=\s*[0-9]\\+\.[0-9]\\+\.[0-9]\\+[a-zA-Z0-9.-]*
+      VERSION: ${{ needs.Calculate-Version.outputs.next_version }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0
+          ref: ${{ github.ref_name }}
+
+      - name: Setup Java
+        uses: actions/setup-java@ad2b38190b15e4d6bdf0c97fb4fca8412226d287 # v5.3.0
+        with:
+          distribution: 'temurin'
+          java-version: 21
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6.2.0
+
+      - name: Update version in Gradle property file
+        run: |
+          sed -i "s/${{ env.GRADLE_VERSION_REGEX }}/version = ${{ env.VERSION }}/g" ${{ env.GRADLE_PROPERTIES_FILE }}
+
+      - name: Publish to Gradle Plugin Portal
+        run: |
+          cd zombie-api-detector
+          chmod +x ./gradlew
+          ./gradlew publishPlugins --no-daemon --no-configuration-cache
+        env:
+          GRADLE_PUBLISH_KEY: ${{ secrets.GRADLE_PUBLISH_KEY }}
+          GRADLE_PUBLISH_SECRET: ${{ secrets.GRADLE_PUBLISH_SECRET }}
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.SEDR_AUTOMATION_TOKEN }}
+
+  Determine-Release-Type:
+    needs: [Calculate-Version]
+    if: ${{ needs.Calculate-Version.outputs.next_version != '' }}
+    uses: ./.github/workflows/determine-release-type.yml
+
+  Workflow-Summary:
+    name: Workflow Summary
+    needs: [Build, Security-Scan, Publish, Release-Plugin, Determine-Release-Type]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Output release completion
+        run: |
+          echo "Zombie API Detector Plugin ${{ needs.Determine-Release-Type.outputs.release_type }} release workflow completed"
+          echo "::notice title=Release Complete::Zombie API Detector Plugin ${{ needs.Determine-Release-Type.outputs.release_type }} release workflow completed"
