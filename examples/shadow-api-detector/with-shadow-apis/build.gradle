@@ -1,0 +1,25 @@
+plugins {
+    id 'java'
+    alias(libs.plugins.shadow.api.detector)
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation libs.spring.web
+}
+
+shadowApiDetector {
+    rootDocument = file('src/main/resources/openapi/openapi.yaml')
+
+    // Fail the build as soon as a shadow API is found. The report is still written either way.
+    failOnShadow = true
+}

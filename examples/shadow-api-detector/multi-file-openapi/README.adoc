@@ -1,0 +1,55 @@
+= Shadow API Detector — Multi-File OpenAPI Example
+:toc: left
+
+== Description
+
+This example splits its OpenAPI description across two files: the root `openapi.yaml` describes `/books`
+and `/books/{id}` directly, and links to `paths/authors.yaml` - relative to the root document - for the
+entire `/authors` path item, which covers both `GET /authors` and `POST /authors`.
+
+== Intent
+
+This example shows that `shadowApiDetector` follows `$ref` links to other OpenAPI documents automatically:
+`rootDocument` is the only document that needs to be configured, even though the full description spans
+two files.
+
+== The Controllers And Documents
+
+[source,yaml]
+----
+# src/main/resources/openapi/openapi.yaml
+paths:
+  /books: ...
+  /books/{id}: ...
+  /authors:
+    $ref: 'paths/authors.yaml'
+----
+
+[source,yaml]
+----
+# src/main/resources/openapi/paths/authors.yaml
+get:
+  operationId: listAuthors
+  ...
+post:
+  operationId: addAuthor
+  ...
+----
+
+`BookController` and `AuthorController` (both under
+`src/main/java/com/arc_e_tect/example/catalog/`) expose exactly the endpoints described across the two
+files: `GET /books`, `GET /books/{id}`, `GET /authors`, and `POST /authors`.
+
+== Build And Run
+
+[source,bash]
+----
+cd examples/shadow-api-detector/multi-file-openapi
+./gradlew detectShadowApis
+----
+
+== What To Expect
+
+The build is expected to pass. Every endpoint - whether described in the root document or in the linked
+`paths/authors.yaml` - is accounted for, so `build/reports/shadow-api-detector/shadow-apis.adoc` reports
+no shadow APIs.
