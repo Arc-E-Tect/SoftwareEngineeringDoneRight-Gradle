@@ -1,3 +1,15 @@
+# [0.2.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/shadow-api-detector-v0.1.0...shadow-api-detector-v0.2.0) (2026-07-31)
+
+
+### ✨ New and updated features
+
+* **shadow-api-detector:** add a "what is a shadow API" preamble to the report ([#90](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/90)) ([19cfd12](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/19cfd122ebcd31a314479a216719ed821a465f92)), closes [#90](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/90)
+
+
+### 📝 Documentation
+
+* **shadow-api-detector:** add example projects for the published plugin ([#89](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/89)) ([db993c3](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/db993c30bd318d02d41d7c2cef2fe26055826652)), closes [#89](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/89)
+
 # [0.1.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/shadow-api-detector-v0.0.0...shadow-api-detector-v0.1.0) (2026-07-31)
 
 
