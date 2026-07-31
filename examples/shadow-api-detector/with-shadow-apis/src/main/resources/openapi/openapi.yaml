@@ -1,0 +1,30 @@
+openapi: 3.0.3
+info:
+  title: Invoicing API
+  version: "1.0"
+paths:
+  /invoices:
+    get:
+      operationId: listInvoices
+      responses:
+        '200':
+          description: OK
+    post:
+      operationId: createInvoice
+      responses:
+        '201':
+          description: Created
+  /invoices/{id}:
+    get:
+      operationId: getInvoice
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: OK
+  # No DELETE /invoices/{id} entry: InvoiceController.deleteInvoice() is the shadow API
+  # this example is designed to catch.

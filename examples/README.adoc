@@ -35,3 +35,11 @@ include::gherkin-to-asciidoc/plain/README.adoc[leveloffset=+1]
 include::gherkin-to-asciidoc/progress-tracking/README.adoc[leveloffset=+1]
 
 include::gherkin-to-asciidoc/snippet-templates/README.adoc[leveloffset=+1]
+
+== Shadow API Detector Examples
+
+include::shadow-api-detector/clean/README.adoc[leveloffset=+1]
+
+include::shadow-api-detector/with-shadow-apis/README.adoc[leveloffset=+1]
+
+include::shadow-api-detector/multi-file-openapi/README.adoc[leveloffset=+1]

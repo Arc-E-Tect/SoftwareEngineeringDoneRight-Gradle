@@ -1,0 +1,62 @@
+= Shadow API Detector — Clean Example
+:toc: left
+
+== Description
+
+This example applies the Shadow API Detector plugin to a small `LibraryController` whose every endpoint is
+described in the accompanying OpenAPI document. `rootDocument` is the only property configured — every other
+property already defaults correctly for this example's layout.
+
+== Intent
+
+This example shows the plugin's baseline, "nothing wrong" outcome: scanning `@RestController` classes,
+comparing them against the OpenAPI document, and reporting that every endpoint is accounted for.
+
+== The Controller
+
+[source,java]
+----
+@RestController
+@RequestMapping("/books")
+public class LibraryController {
+
+    @GetMapping
+    public String listBooks() { ... }
+
+    @GetMapping("/{id}")
+    public String getBook(@PathVariable Long id) { ... }
+
+    @PostMapping
+    public String addBook(@RequestBody String book) { ... }
+}
+----
+
+Full source: `src/main/java/com/arc_e_tect/example/library/LibraryController.java`.
+The matching OpenAPI document is `src/main/resources/openapi/openapi.yaml`.
+
+== Build And Run
+
+[source,bash]
+----
+cd examples/shadow-api-detector/clean
+./gradlew detectShadowApis
+----
+
+== What To Expect
+
+The build is expected to pass. The plugin writes `build/reports/shadow-api-detector/shadow-apis.adoc`:
+
+[source,asciidoc]
+----
+= Shadow API Report
+:toc:
+:toclevels: 2
+
+Generated: ...
+
+Scanned 3 endpoint(s) exposed by `@RestController` classes. 0 of them are not described in the OpenAPI documentation.
+
+== Shadow APIs
+
+None found. Every endpoint exposed by the scanned controllers is described in the OpenAPI documentation.
+----

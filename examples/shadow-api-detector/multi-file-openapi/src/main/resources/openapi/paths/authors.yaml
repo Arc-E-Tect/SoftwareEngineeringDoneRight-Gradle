@@ -1,0 +1,10 @@
+get:
+  operationId: listAuthors
+  responses:
+    '200':
+      description: OK
+post:
+  operationId: addAuthor
+  responses:
+    '201':
+      description: Created

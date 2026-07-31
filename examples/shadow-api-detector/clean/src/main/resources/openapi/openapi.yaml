@@ -1,0 +1,28 @@
+openapi: 3.0.3
+info:
+  title: Library API
+  version: "1.0"
+paths:
+  /books:
+    get:
+      operationId: listBooks
+      responses:
+        '200':
+          description: OK
+    post:
+      operationId: addBook
+      responses:
+        '201':
+          description: Created
+  /books/{id}:
+    get:
+      operationId: getBook
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: OK

@@ -1,0 +1,27 @@
+openapi: 3.0.3
+info:
+  title: Library Catalog API
+  version: "1.0"
+paths:
+  /books:
+    get:
+      operationId: listBooks
+      responses:
+        '200':
+          description: OK
+  /books/{id}:
+    get:
+      operationId: getBook
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: OK
+  # The /authors path is described in a separate file, linked relative to this root
+  # document, to demonstrate that shadowApiDetector follows $ref links across documents.
+  /authors:
+    $ref: 'paths/authors.yaml'
