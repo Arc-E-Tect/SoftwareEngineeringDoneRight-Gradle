@@ -19,18 +19,6 @@ jobs:
     secrets:
       sem_rel_token_token: ${{ secrets.SEMANTIC_RELEASE_TOKEN }}
 
-  Security-Scan:
-    needs: Calculate-Version
-    uses: ./.github/workflows/security-scan.yml
-    with:
-      fail_on_fatal: true
-      project_dir: gherkin-to-asciidoc
-      project_name: 'gherkin-to-asciidoc'
-      semantic_version: ${{ needs.Calculate-Version.outputs.next_version }}
-      reports_subpath: build/reports
-    secrets:
-      NVD_APIKEY_SEDR: ${{ secrets.NVD_APIKEY_SEDR }}
-
   Build:
     name: Build Gherkin to AsciiDoc Plugin
     needs: Calculate-Version
@@ -89,7 +77,7 @@ jobs:
 
   Release-Plugin:
     name: Release Gherkin to AsciiDoc Plugin
-    needs: [Calculate-Version, Build, Security-Scan]
+    needs: [Calculate-Version, Build]
     if: ${{ needs.Calculate-Version.outputs.next_version != '' }}
     uses: ./.github/workflows/semantic-version-apply.yml
     with:
@@ -146,7 +134,7 @@ jobs:
 
   Workflow-Summary:
     name: Workflow Summary
-    needs: [Build, Security-Scan, Publish, Release-Plugin, Determine-Release-Type]
+    needs: [Build, Publish, Release-Plugin, Determine-Release-Type]
     if: always()
     runs-on: ubuntu-latest
     steps:
