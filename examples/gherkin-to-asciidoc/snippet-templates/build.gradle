@@ -41,6 +41,8 @@ def commonConfig = { GenerateFeatureDocsTask task ->
     // needs a value assigned since this example bypasses the extension's conventions.
     task.includeSubDirs.set(true)
     task.outputFileName.set('features.adoc')
+    // Not set by the extension's own convention either, since this example bypasses it entirely.
+    task.systemUnderTestVersion.set(project.version.toString())
     task.projectDirectory.set(layout.projectDirectory)
 }
 
