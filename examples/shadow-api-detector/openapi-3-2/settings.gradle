@@ -1,5 +1,4 @@
 pluginManagement {
-    includeBuild('../../../shadow-api-detector')
     repositories {
         gradlePluginPortal()
     }
@@ -15,7 +14,5 @@ refreshVersions {
         candidate.stabilityLevel.isLessStableThan(current.stabilityLevel)
     }
 }
-
-includeBuild('../../../shadow-api-detector')
 
 rootProject.name = 'shadow-api-detector-openapi-3-2-example'
