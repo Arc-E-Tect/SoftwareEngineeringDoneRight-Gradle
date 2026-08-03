@@ -1,0 +1,48 @@
+= Shadow API Detector — OpenAPI 3.2 Example
+:toc: left
+
+== Description
+
+This example applies the Shadow API Detector plugin to a small `LibraryController` whose every endpoint is described in an OpenAPI 3.2 root document.
+The example resolves the plugin from the local repository source via `includeBuild('../../../shadow-api-detector')` so it always validates the current in-repo implementation.
+
+== Intent
+
+This example demonstrates successful `detectShadowApis` execution when `rootDocument` declares `openapi: 3.2.0`.
+It provides a focused compatibility check for OpenAPI 3.2 parsing while preserving the same controller and endpoint coverage used by the clean baseline example.
+
+== The Controller
+
+[source,java]
+----
+@RestController
+@RequestMapping("/books")
+public class LibraryController {
+
+    @GetMapping
+    public String listBooks() { ... }
+
+    @GetMapping("/{id}")
+    public String getBook(@PathVariable Long id) { ... }
+
+    @PostMapping
+    public String addBook(@RequestBody String book) { ... }
+}
+----
+
+Full source: `src/main/java/com/arc_e_tect/example/library/LibraryController.java`.
+The matching OpenAPI 3.2 document is `src/main/resources/openapi/openapi.yaml`.
+
+== Build And Run
+
+[source,bash]
+----
+cd examples/shadow-api-detector/openapi-3-2
+./gradlew detectShadowApis
+----
+
+== What To Expect
+
+The build is expected to pass.
+The plugin writes `build/reports/shadow-api-detector/shadow-apis.adoc`, opening with a preamble explaining what a shadow API is (see link:../../../shadow-api-detector/README.adoc[the plugin README]'s "Report output" section), followed by a summary that all three controller endpoints are documented.
+
