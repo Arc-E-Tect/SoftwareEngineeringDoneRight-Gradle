@@ -1,3 +1,21 @@
+# [0.4.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/shadow-api-detector-v0.3.0...shadow-api-detector-v0.4.0) (2026-08-03)
+
+
+### ✨ New and updated features
+
+* **shadow-api-detector:** add OpenAPI 3.2 compatibility support and example ([#95](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/95)) ([c57432b](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/c57432b4fc73fc9043291edef634ea7ba22d89e7)), closes [#95](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/95)
+
+
+### 🐛 Bug Fixes
+
+* **gherkin-to-asciidoc:** set systemUnderTestVersion in snippet-templates example ([#94](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/94)) ([ca7fb34](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/ca7fb346bd41113294928ab441ba0099fcf4301a)), closes [#94](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/94)
+
+
+### 🔧 Misc
+
+* consolidate dependency vulnerability scanning into the NVD cache workflow ([#92](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/92)) ([35f953a](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/35f953a0b7768be3a70b9cd53213d7d7d24f3d34)), closes [#92](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/92)
+* dependency updates for Gradle plugin repository ([#93](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/93)) ([fe4ca4f](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/fe4ca4f9599058f3bcb9a15f466aaf17d27162a1)), closes [#93](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/93)
+
 # [0.3.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/shadow-api-detector-v0.2.0...shadow-api-detector-v0.3.0) (2026-07-31)
 
 
