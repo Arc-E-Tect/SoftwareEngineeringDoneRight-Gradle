@@ -4,7 +4,7 @@
 == Description
 
 This example applies the Shadow API Detector plugin to a small `LibraryController` whose every endpoint is described in an OpenAPI 3.2 root document.
-The example resolves the plugin from the local repository source via `includeBuild('../../../shadow-api-detector')` so it always validates the current in-repo implementation.
+The example resolves the plugin from the official Gradle Plugin Portal release configured in `gradle/libs.versions.toml`.
 
 == Intent
 
