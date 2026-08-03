@@ -31,6 +31,32 @@ com.arc-e-tect.shadow-api-detector
 | Java        | 17 +
 |===
 
+== OpenAPI compatibility
+
+The plugin supports OpenAPI v3 documents that are compatible with the parser stack bundled by the plugin.
+In practice, this means OpenAPI 3.0.x, 3.1.x, and 3.2.x are supported.
+OpenAPI v2 (Swagger 2.0) is not supported.
+OpenAPI versions newer than 3.2 are not supported at this time.
+If `rootDocument` declares an unsupported version, the `detectShadowApis` task fails with a parse error.
+The root document and every transitively referenced `$ref` document must also be parseable and resolvable as OpenAPI v3 content.
+
+=== OpenAPI 3.2 support details (current implementation)
+
+OpenAPI 3.2 support is currently implemented as a compatibility workaround.
+The plugin first tries to parse the configured root document as-is.
+If that parse fails and the root document declares `openapi: 3.2.x`, the plugin creates a temporary compatibility copy of the root document in the same directory.
+In that temporary copy, only the root `openapi` version string is rewritten from `3.2.x` to `3.1.0`.
+The plugin then parses that temporary compatibility file and continues normal endpoint extraction.
+The original source OpenAPI document is not modified.
+The temporary compatibility file is deleted after parsing.
+
+[CAUTION]
+====
+This is an explicit, temporary compatibility mechanism.
+It is not native end-to-end OpenAPI 3.2 parser support.
+It exists so OpenAPI 3.2 root documents can be processed with the parser stack available in the plugin today.
+====
+
 == Applying the Plugin
 
 === Using the `plugins` block (recommended)

@@ -10,7 +10,7 @@ owasp-dependency-check      = { id = "org.owasp.dependencycheck",     version.re
 owasp-dependency-check = "12.2.2"
 
 javaparser      = "3.28.2"
-swagger-parser  = "2.1.45"
+swagger-parser  = "2.1.46"
 junit-jupiter   = "6.1.2"
 junit-platform  = "6.1.2"
 assertj         = "3.27.7"

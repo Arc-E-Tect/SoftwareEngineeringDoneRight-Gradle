@@ -45,6 +45,31 @@ class OpenApiEndpointCollectorTest {
     }
 
     @Test
+    @DisplayName("collects every verb + path pair from a single-file OpenAPI 3.2 document")
+    void collectsFromSingleFile32() {
+        List<DescribedEndpoint> endpoints = collector.collect(resource("openapi/single-file-3-2/openapi.yaml"));
+
+        assertThat(endpoints)
+                .extracting(DescribedEndpoint::verb, DescribedEndpoint::path)
+                .containsExactlyInAnyOrder(
+                        tuple(HttpVerb.GET, "/items"),
+                        tuple(HttpVerb.GET, "/items/{id}"));
+    }
+
+    @Test
+    @DisplayName("follows a relative $ref from an OpenAPI 3.2 root document")
+    void followsRelativeRef32() {
+        List<DescribedEndpoint> endpoints = collector.collect(resource("openapi/with-ref-3-2/openapi.yaml"));
+
+        assertThat(endpoints)
+                .extracting(DescribedEndpoint::verb, DescribedEndpoint::path)
+                .containsExactlyInAnyOrder(
+                        tuple(HttpVerb.GET, "/items"),
+                        tuple(HttpVerb.POST, "/items"),
+                        tuple(HttpVerb.GET, "/items/{id}"));
+    }
+
+    @Test
     @DisplayName("throws when the document cannot be parsed")
     void throwsForUnparsableDocument(@org.junit.jupiter.api.io.TempDir java.nio.file.Path tempDir)
             throws Exception {

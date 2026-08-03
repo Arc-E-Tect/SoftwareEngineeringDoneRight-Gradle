@@ -1,0 +1,21 @@
+pluginManagement {
+    includeBuild('../../../shadow-api-detector')
+    repositories {
+        gradlePluginPortal()
+    }
+}
+
+plugins {
+    id 'org.gradle.toolchains.foojay-resolver-convention' version '1.0.0'
+    id "de.fayard.refreshVersions" version "0.60.6"
+}
+
+refreshVersions {
+    rejectVersionIf {
+        candidate.stabilityLevel.isLessStableThan(current.stabilityLevel)
+    }
+}
+
+includeBuild('../../../shadow-api-detector')
+
+rootProject.name = 'shadow-api-detector-openapi-3-2-example'
