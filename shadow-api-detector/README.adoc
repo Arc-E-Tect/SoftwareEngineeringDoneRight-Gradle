@@ -50,7 +50,7 @@ The plugin then parses that temporary compatibility file and continues normal en
 The original source OpenAPI document is not modified.
 The temporary compatibility file is deleted after parsing.
 
-[IMPORTANT]
+[CAUTION]
 ====
 This is an explicit, temporary compatibility mechanism.
 It is not native end-to-end OpenAPI 3.2 parser support.
