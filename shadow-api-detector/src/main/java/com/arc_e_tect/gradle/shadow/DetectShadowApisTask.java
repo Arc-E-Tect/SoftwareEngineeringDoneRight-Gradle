@@ -132,7 +132,9 @@ public abstract class DetectShadowApisTask extends DefaultTask {
         }
 
         File rootDocument = getRootDocument().getAsFile().get();
-        List<DescribedEndpoint> described = new OpenApiEndpointCollector().collect(rootDocument);
+        OpenApiEndpointCollector.CollectionResult describedResult =
+            new OpenApiEndpointCollector().collectWithMetadata(rootDocument);
+        List<DescribedEndpoint> described = describedResult.endpoints();
 
         List<Endpoint> shadows = new ShadowApiFinder().findShadows(endpoints, described);
 
@@ -140,7 +142,11 @@ public abstract class DetectShadowApisTask extends DefaultTask {
         File outputFile = new File(outputDir, getReportFileName().get());
         try {
             new ShadowApiReportWriter().write(
-                    outputFile, endpoints.size(), shadows, getSystemUnderTestVersion().get());
+                    outputFile,
+                    endpoints.size(),
+                    shadows,
+                    getSystemUnderTestVersion().get(),
+                    describedResult.usedOpenApi32CompatibilityWorkaround());
         } catch (IOException e) {
             throw new GradleException("shadowApiDetector: failed to write report to " + outputFile, e);
         }

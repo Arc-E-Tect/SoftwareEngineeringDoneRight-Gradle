@@ -131,6 +131,17 @@ class DetectShadowApisTaskTest {
         assertThat(content).contains("None found.");
     }
 
+      @Test
+      @DisplayName("adds a compatibility disclaimer to the report when parsing an OpenAPI 3.2 root")
+      void addsCompatibilityDisclaimerForOpenApi32Root() throws Exception {
+        DetectShadowApisTask task = configuredTask(openApiFixture("single-endpoint-3-2.yaml"), false);
+
+        task.generate();
+
+        String content = Files.readString(new File(reportDir, "shadow-apis.adoc").toPath());
+        assertThat(content).contains("OpenAPI 3.2 compatibility mode was used while parsing the root document.");
+      }
+
     private DetectShadowApisTask configuredTask(File rootDocument, boolean failOnShadow) {
         DetectShadowApisTask task = newTask();
         task.getControllerDirs().from(controllerDir);
@@ -188,6 +199,19 @@ class DetectShadowApisTaskTest {
                           responses:
                             '204':
                               description: No Content
+                    """;
+            case "single-endpoint-3-2.yaml" -> """
+                    openapi: 3.2.0
+                    info:
+                      title: Test API
+                      version: "1.0"
+                    paths:
+                      /users:
+                        get:
+                          operationId: listUsers
+                          responses:
+                            '200':
+                              description: OK
                     """;
             default -> throw new IllegalArgumentException("Unknown fixture: " + name);
         };

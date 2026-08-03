@@ -120,4 +120,17 @@ class ShadowApiReportWriterTest {
 
         assertThat(content).contains(preamble);
     }
+
+    @Test
+    @DisplayName("adds an explicit disclaimer when OpenAPI 3.2 compatibility mode was used")
+    void addsDisclaimerWhenOpenApi32CompatibilityModeWasUsed(@TempDir Path tempDir) throws Exception {
+        File output = new File(tempDir.toFile(), "report.adoc");
+
+        writer.write(output, 0, List.of(), "1.0.0", true);
+
+        String content = Files.readString(output.toPath());
+        assertThat(content)
+                .contains("OpenAPI 3.2 compatibility mode was used while parsing the root document.")
+                .contains("compatibility copy with the root `openapi` version rewritten to `3.1.0`.");
+    }
 }

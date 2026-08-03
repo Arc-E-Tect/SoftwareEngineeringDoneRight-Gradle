@@ -42,6 +42,26 @@ public class ShadowApiReportWriter {
      */
     public void write(File outputFile, int totalEndpointCount, List<Endpoint> shadows, String systemUnderTestVersion)
             throws IOException {
+        write(outputFile, totalEndpointCount, shadows, systemUnderTestVersion, false);
+    }
+
+    /**
+     * Writes the report to {@code outputFile}, creating its parent directory if necessary.
+     *
+     * @param outputFile                               target AsciiDoc file
+     * @param totalEndpointCount                       total number of endpoints found across all scanned controllers
+     * @param shadows                                  the endpoints not described in the OpenAPI documentation
+     * @param systemUnderTestVersion                   version of the system under test that was scanned
+     * @param usedOpenApi32CompatibilityWorkaround     whether OpenAPI 3.2 compatibility mode was used while parsing
+     * @throws IOException if the output file cannot be written
+     */
+    public void write(
+            File outputFile,
+            int totalEndpointCount,
+            List<Endpoint> shadows,
+            String systemUnderTestVersion,
+            boolean usedOpenApi32CompatibilityWorkaround)
+            throws IOException {
         File parent = outputFile.getParentFile();
         if (parent != null && !parent.exists() && !parent.mkdirs()) {
             throw new IOException("Could not create output directory: " + parent);
@@ -62,6 +82,15 @@ public class ShadowApiReportWriter {
                     + (shadows.size() == 1 ? " of them is" : " of them are")
                     + " not described in the OpenAPI documentation.");
             writer.println();
+            if (usedOpenApi32CompatibilityWorkaround) {
+                writer.println("[WARNING]");
+                writer.println("====");
+                writer.println("OpenAPI 3.2 compatibility mode was used while parsing the root document.");
+                writer.println("The root document declared `openapi: 3.2.x`, and parsing used a temporary");
+                writer.println("compatibility copy with the root `openapi` version rewritten to `3.1.0`.");
+                writer.println("====");
+                writer.println();
+            }
             writer.print(loadPreamble());
             writer.println();
             writer.println("== Shadow APIs");

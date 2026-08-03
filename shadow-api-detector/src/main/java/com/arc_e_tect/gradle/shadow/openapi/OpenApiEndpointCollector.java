@@ -33,6 +33,17 @@ public class OpenApiEndpointCollector {
     /** Creates a new {@code OpenApiEndpointCollector}. */
     public OpenApiEndpointCollector() {}
 
+        /**
+         * Result of collecting described endpoints from an OpenAPI document, including parsing
+         * metadata that callers may need for reporting.
+         *
+         * @param endpoints                            collected endpoints
+         * @param usedOpenApi32CompatibilityWorkaround whether OpenAPI 3.2 compatibility mode was used
+         */
+        public record CollectionResult(
+            List<DescribedEndpoint> endpoints,
+            boolean usedOpenApi32CompatibilityWorkaround) {}
+
     /**
      * Parses {@code rootDocument} and every document it links to (relative {@code $ref}s are
      * resolved automatically), and returns the verb + path template pair described by every
@@ -43,13 +54,27 @@ public class OpenApiEndpointCollector {
      * @throws IllegalStateException if the document cannot be parsed
      */
     public List<DescribedEndpoint> collect(File rootDocument) {
+        return collectWithMetadata(rootDocument).endpoints();
+    }
+
+    /**
+     * Parses {@code rootDocument} and every document it links to, returning both the described
+     * endpoints and whether OpenAPI 3.2 compatibility mode was used during parsing.
+     *
+     * @param rootDocument the root OpenAPI document (JSON or YAML)
+     * @return collection result containing endpoints and parsing metadata
+     * @throws IllegalStateException if the document cannot be parsed
+     */
+    public CollectionResult collectWithMetadata(File rootDocument) {
         ParseOptions options = new ParseOptions();
         options.setResolve(true);
         options.setResolveFully(true);
 
         SwaggerParseResult result = parse(rootDocument, options);
+        boolean usedCompatibilityWorkaround = false;
         if (result.getOpenAPI() == null && declaresOpenApi32(rootDocument.toPath())) {
             result = parseWithOpenApi31Compatibility(rootDocument, options);
+            usedCompatibilityWorkaround = true;
         }
 
         OpenAPI openApi = result.getOpenAPI();
@@ -62,12 +87,12 @@ public class OpenApiEndpointCollector {
         List<DescribedEndpoint> endpoints = new ArrayList<>();
         Paths paths = openApi.getPaths();
         if (paths == null) {
-            return endpoints;
+            return new CollectionResult(endpoints, usedCompatibilityWorkaround);
         }
         paths.forEach((path, item) -> item.readOperationsMap().forEach((method, operation) ->
                 endpoints.add(new DescribedEndpoint(
                         HttpVerb.valueOf(method.name()), PathTemplates.normalize(path)))));
-        return endpoints;
+        return new CollectionResult(endpoints, usedCompatibilityWorkaround);
     }
 
     private static SwaggerParseResult parse(File rootDocument, ParseOptions options) {
