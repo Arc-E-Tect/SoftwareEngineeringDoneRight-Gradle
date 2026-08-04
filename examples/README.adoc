@@ -45,3 +45,5 @@ include::shadow-api-detector/with-shadow-apis/README.adoc[leveloffset=+1]
 include::shadow-api-detector/multi-file-openapi/README.adoc[leveloffset=+1]
 
 include::shadow-api-detector/openapi-3-2/README.adoc[leveloffset=+1]
+
+include::shadow-api-detector/request-mapping-composed/README.adoc[leveloffset=+1]
