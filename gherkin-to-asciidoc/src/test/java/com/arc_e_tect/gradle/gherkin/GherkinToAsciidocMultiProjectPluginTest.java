@@ -1,5 +1,6 @@
 package com.arc_e_tect.gradle.gherkin;
 
+import com.arc_e_tect.gradle.gherkin.indexing.IndexingMode;
 import org.gradle.api.Project;
 import org.gradle.testfixtures.ProjectBuilder;
 import org.junit.jupiter.api.DisplayName;
@@ -226,6 +227,27 @@ class GherkinToAsciidocMultiProjectPluginTest {
         extension(sub).getGlueCodeDirs().from(ownDir);
 
         assertThat(task(sub).getGlueCodeDirs().getFiles()).containsExactly(ownDir);
+    }
+
+    @Test
+    @DisplayName("sub-project without its own configuration inherits indexing from the root project")
+    void subProjectInheritsIndexingFromRoot() {
+        Project root = rootProject();
+        extension(root).getIndexing().set(IndexingMode.ALL);
+        Project sub = subProject(root, "sub");
+
+        assertThat(extension(sub).getIndexing().get()).isEqualTo(IndexingMode.ALL);
+    }
+
+    @Test
+    @DisplayName("sub-project's own indexing takes precedence over the root project's")
+    void subProjectIndexingOverridesRoot() {
+        Project root = rootProject();
+        extension(root).getIndexing().set(IndexingMode.ALL);
+        Project sub = subProject(root, "sub");
+        extension(sub).getIndexing().set(IndexingMode.OFF);
+
+        assertThat(extension(sub).getIndexing().get()).isEqualTo(IndexingMode.OFF);
     }
 
     // --- helpers ---

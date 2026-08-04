@@ -1,5 +1,6 @@
 package com.arc_e_tect.gradle.gherkin;
 
+import com.arc_e_tect.gradle.gherkin.indexing.IndexingMode;
 import org.gradle.api.file.ConfigurableFileCollection;
 import org.gradle.api.file.DirectoryProperty;
 import org.gradle.api.file.RegularFileProperty;
@@ -11,15 +12,16 @@ import org.gradle.api.provider.Property;
  * <pre>
  * gherkinToAsciidoc {
  *     sourceDirs.from('src/test/resources/features')                                // default
- *     includeSubDirs = false                                                        // default
+ *     includeSubDirs = true                                                         // default
  *     outputDir      = layout.buildDirectory.dir('generated-docs')                 // default
  *     outputFileName = 'features.adoc'                                             // default
  *     trackProgress  = false                                                        // default
  *     // glueCodeDirs.from('src/test/java/.../steps')                              // required when trackProgress = true
- *     groupByFeature = false                                                        // default; forced to true whenever trackProgress = true
+ *     groupByFeature = true                                                         // default; forced to true whenever trackProgress = true
  *     // snippetDir  = layout.buildDirectory.dir('generated-docs/features/snippets') // default
  *     // template    = file('templates/report.mustache')                            // optional
  *     // systemUnderTestVersion = 'v1.0.0'          // optional; default: project.version
+ *     indexing       = IndexingMode.OFF                                             // default; requires includeSubDirs = true
  * }
  * </pre>
  */
@@ -59,7 +61,7 @@ public abstract class GherkinToAsciidocExtension {
 
     /**
      * Whether to recursively scan sub-directories of every configured directory in
-     * {@link #getSourceDirs()}. Defaults to {@code false}. Forced to {@code true} whenever
+     * {@link #getSourceDirs()}. Defaults to {@code true}. Forced to {@code true} whenever
      * {@link #getTrackProgress()} is {@code true}.
      *
      * @return mutable boolean property controlling recursive directory scanning
@@ -106,7 +108,7 @@ public abstract class GherkinToAsciidocExtension {
 
     /**
      * Whether to group scenarios by their enclosing {@code Feature} in the generated AsciiDoc,
-     * instead of a flat list. Defaults to {@code false}. Forced to {@code true} whenever
+     * instead of a flat list. Defaults to {@code true}. Forced to {@code true} whenever
      * {@link #getTrackProgress()} is {@code true}, in which case scenarios are grouped by
      * feature within each of the listed/defined/implemented sections.
      *
@@ -148,4 +150,36 @@ public abstract class GherkinToAsciidocExtension {
      * @return mutable string property for the system-under-test version
      */
     public abstract Property<String> getSystemUnderTestVersion();
+
+    /**
+     * Whether - and how - to number {@code Feature}/{@code Scenario} titles directly in the
+     * source {@code .feature} files. Defaults to {@link IndexingMode#OFF}.
+     *
+     * <ul>
+     *   <li>{@link IndexingMode#OFF} - nothing is numbered (default).</li>
+     *   <li>{@link IndexingMode#FEATURE} - every feature is numbered, e.g.
+     *       {@code Feature: 1 - User authentication}.</li>
+     *   <li>{@link IndexingMode#SCENARIO} - every scenario is numbered continuously across all
+     *       feature files, e.g. {@code Scenario: 1 - User logs in}.</li>
+     *   <li>{@link IndexingMode#ALL} - both are numbered, scenarios as
+     *       {@code <featureNumber>.<scenarioNumber>}, e.g. {@code Scenario: 1.1 - User logs in}.</li>
+     * </ul>
+     *
+     * <p>Feature files are processed in the same order the generated report lists them in: for each
+     * source directory (directories themselves ordered alphabetically by path when more than one is
+     * configured), that directory's own feature files first - alphabetically by file name - and only
+     * then, when {@link #getIncludeSubDirs()} is {@code true}, its sub-directories' files, each
+     * sub-directory visited the same way, alphabetically by name. Scenario numbers additionally
+     * follow document order within each file. Changing this property rewrites the source
+     * {@code .feature} files: any numbering left over from a previous run is removed first, then
+     * fresh numbering is applied for the new mode - including removing all numbering when set back
+     * to {@link IndexingMode#OFF}.</p>
+     *
+     * <p>Only allowed when {@link #getIncludeSubDirs()} is {@code true}. When
+     * {@link #getGroupByFeature()} is {@code false}, only {@link IndexingMode#OFF} and
+     * {@link IndexingMode#SCENARIO} are allowed.</p>
+     *
+     * @return mutable property for the indexing mode
+     */
+    public abstract Property<IndexingMode> getIndexing();
 }
