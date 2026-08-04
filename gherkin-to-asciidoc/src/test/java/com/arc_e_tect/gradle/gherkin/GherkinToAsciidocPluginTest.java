@@ -1,5 +1,6 @@
 package com.arc_e_tect.gradle.gherkin;
 
+import com.arc_e_tect.gradle.gherkin.indexing.IndexingMode;
 import org.gradle.api.Project;
 import org.gradle.testfixtures.ProjectBuilder;
 import org.junit.jupiter.api.DisplayName;
@@ -31,12 +32,12 @@ class GherkinToAsciidocPluginTest {
     }
 
     @Test
-    @DisplayName("extension default: includeSubDirs is false")
-    void extensionDefaultIncludeSubDirsIsFalse() {
+    @DisplayName("extension default: includeSubDirs is true")
+    void extensionDefaultIncludeSubDirsIsTrue() {
         Project project = projectWithPlugin();
         GherkinToAsciidocExtension ext = extension(project);
 
-        assertThat(ext.getIncludeSubDirs().get()).isFalse();
+        assertThat(ext.getIncludeSubDirs().get()).isTrue();
     }
 
     @Test
@@ -69,12 +70,12 @@ class GherkinToAsciidocPluginTest {
     }
 
     @Test
-    @DisplayName("extension default: groupByFeature is false")
-    void extensionDefaultGroupByFeatureIsFalse() {
+    @DisplayName("extension default: groupByFeature is true")
+    void extensionDefaultGroupByFeatureIsTrue() {
         Project project = projectWithPlugin();
         GherkinToAsciidocExtension ext = extension(project);
 
-        assertThat(ext.getGroupByFeature().get()).isFalse();
+        assertThat(ext.getGroupByFeature().get()).isTrue();
     }
 
     @Test
@@ -149,6 +150,15 @@ class GherkinToAsciidocPluginTest {
     }
 
     @Test
+    @DisplayName("extension default: indexing is off")
+    void extensionDefaultIndexingIsOff() {
+        Project project = projectWithPlugin();
+        GherkinToAsciidocExtension ext = extension(project);
+
+        assertThat(ext.getIndexing().get()).isEqualTo(IndexingMode.OFF);
+    }
+
+    @Test
     @DisplayName("generates features.adoc from a flat source directory")
     void generatesAsciidocFromFlatDirectory() throws IOException {
         Project project = projectWithPlugin();
@@ -188,6 +198,7 @@ class GherkinToAsciidocPluginTest {
 
         GenerateFeatureDocsTask task = task(project);
         task.getSourceDirs().from(firstDir, secondDir);
+        task.getGroupByFeature().set(false);
         task.getOutputDir().set(outputDir);
         task.getProjectDirectory().set(project.getLayout().getProjectDirectory());
         task.generate();
@@ -240,6 +251,7 @@ class GherkinToAsciidocPluginTest {
 
         GenerateFeatureDocsTask task = task(project);
         task.getSourceFile().set(singleFile);
+        task.getIncludeSubDirs().set(false);
         task.getOutputDir().set(outputDir);
         task.getProjectDirectory().set(project.getLayout().getProjectDirectory());
         task.generate();
@@ -274,6 +286,89 @@ class GherkinToAsciidocPluginTest {
         assertThat(content)
                 .contains("* Scenario: Root scenario")
                 .contains("* Scenario: Sub scenario");
+    }
+
+    @Test
+    @DisplayName("processes a directory's own feature files before descending into its sub-directories, "
+            + "even when a sub-directory would sort first alphabetically by path")
+    void processesOwnDirectoryFilesBeforeSubDirectories() throws IOException {
+        Project project = projectWithPlugin();
+        File rootDir = new File(tempDir.toFile(), "features");
+        // "sub" sorts before "z.feature" if compared as plain path strings, but the own-directory
+        // file must still be processed first: only descending into sub-directories afterwards.
+        File subDir = new File(rootDir, "sub");
+        subDir.mkdirs();
+        writeFeatureFile(rootDir, "z.feature",
+                "Feature: Z Feature\n\n  Scenario: Z scenario\n    Given z\n");
+        writeFeatureFile(subDir, "a.feature",
+                "Feature: A Feature\n\n  Scenario: A scenario\n    Given a\n");
+
+        File outputDir = new File(tempDir.toFile(), "output");
+
+        GenerateFeatureDocsTask task = task(project);
+        task.getSourceDirs().from(rootDir);
+        task.getOutputDir().set(outputDir);
+        task.getProjectDirectory().set(project.getLayout().getProjectDirectory());
+        task.generate();
+
+        List<String> lines = Files.readAllLines(new File(outputDir, "features.adoc").toPath());
+        assertThat(lines).containsSubsequence("== Z Feature", "== A Feature");
+    }
+
+    @Test
+    @DisplayName("indexing numbers a directory's own feature files before its sub-directories' files")
+    void indexingNumbersOwnDirectoryFilesBeforeSubDirectories() throws IOException {
+        Project project = projectWithPlugin();
+        File rootDir = new File(tempDir.toFile(), "features");
+        File subDir = new File(rootDir, "sub");
+        subDir.mkdirs();
+        writeFeatureFile(rootDir, "z.feature",
+                "Feature: Z Feature\n\n  Scenario: Z scenario\n    Given z\n");
+        writeFeatureFile(subDir, "a.feature",
+                "Feature: A Feature\n\n  Scenario: A scenario\n    Given a\n");
+
+        File outputDir = new File(tempDir.toFile(), "output");
+
+        GenerateFeatureDocsTask task = task(project);
+        task.getSourceDirs().from(rootDir);
+        task.getIndexing().set(IndexingMode.FEATURE);
+        task.getOutputDir().set(outputDir);
+        task.getProjectDirectory().set(project.getLayout().getProjectDirectory());
+        task.generate();
+
+        assertThat(Files.readString(rootDir.toPath().resolve("z.feature")))
+                .contains("Feature: 1 - Z Feature");
+        assertThat(Files.readString(subDir.toPath().resolve("a.feature")))
+                .contains("Feature: 2 - A Feature");
+    }
+
+    @Test
+    @DisplayName("multiple sourceDirs are processed alphabetically by path, regardless of configuration order")
+    void multipleSourceDirsProcessedAlphabeticallyByPath() throws IOException {
+        Project project = projectWithPlugin();
+        File featuresAuth = new File(tempDir.toFile(), "features-auth");
+        File featuresBilling = new File(tempDir.toFile(), "features-billing");
+        featuresAuth.mkdirs();
+        featuresBilling.mkdirs();
+        writeFeatureFile(featuresAuth, "authentication.feature",
+                "Feature: User authentication\n\n  Scenario: User logs in\n    Given a user\n");
+        writeFeatureFile(featuresBilling, "invoice.feature",
+                "Feature: Invoice payment\n\n  Scenario: User pays an invoice\n    Given an invoice\n");
+
+        File outputDir = new File(tempDir.toFile(), "output");
+
+        GenerateFeatureDocsTask task = task(project);
+        // Configured out of alphabetical order: billing before auth.
+        task.getSourceDirs().from(featuresBilling, featuresAuth);
+        task.getIndexing().set(IndexingMode.FEATURE);
+        task.getOutputDir().set(outputDir);
+        task.getProjectDirectory().set(project.getLayout().getProjectDirectory());
+        task.generate();
+
+        assertThat(Files.readString(featuresAuth.toPath().resolve("authentication.feature")))
+                .contains("Feature: 1 - User authentication");
+        assertThat(Files.readString(featuresBilling.toPath().resolve("invoice.feature")))
+                .contains("Feature: 2 - Invoice payment");
     }
 
     @Test
@@ -324,6 +419,7 @@ class GherkinToAsciidocPluginTest {
 
         GenerateFeatureDocsTask task = task(project);
         task.getSourceFile().set(file);
+        task.getIncludeSubDirs().set(false);
         task.getTrackProgress().set(true);
         task.getGlueCodeDirs().from(glueCodeDir);
         task.getOutputDir().set(new File(tempDir.toFile(), "output"));
@@ -651,6 +747,186 @@ class GherkinToAsciidocPluginTest {
         List<String> lines = Files.readAllLines(new File(outputDir, "features.adoc").toPath());
         assertThat(lines).containsSubsequence(
                 "= Feature Scenarios", ":toc:", ":toclevels: 2", "");
+    }
+
+    @Test
+    @DisplayName("throws GradleException when indexing is enabled but includeSubDirs is false")
+    void throwsWhenIndexingEnabledWithoutIncludeSubDirs() throws IOException {
+        Project project = projectWithPlugin();
+        File featuresDir = new File(tempDir.toFile(), "features");
+        featuresDir.mkdirs();
+        writeFeatureFile(featuresDir, "sample.feature", "Feature: Sample\n\n  Scenario: A scenario\n    Given g\n");
+
+        GenerateFeatureDocsTask task = task(project);
+        task.getSourceDirs().from(featuresDir);
+        task.getIncludeSubDirs().set(false);
+        task.getIndexing().set(IndexingMode.SCENARIO);
+        task.getOutputDir().set(new File(tempDir.toFile(), "output"));
+        task.getProjectDirectory().set(project.getLayout().getProjectDirectory());
+
+        assertThatThrownBy(task::generate)
+                .isInstanceOf(org.gradle.api.GradleException.class)
+                .hasMessageContaining("indexing can only be used when includeSubDirs is true");
+    }
+
+    @Test
+    @DisplayName("throws GradleException when indexing is FEATURE and groupByFeature is false")
+    void throwsWhenIndexingFeatureAndGroupByFeatureFalse() throws IOException {
+        Project project = projectWithPlugin();
+        File featuresDir = new File(tempDir.toFile(), "features");
+        featuresDir.mkdirs();
+        writeFeatureFile(featuresDir, "sample.feature", "Feature: Sample\n\n  Scenario: A scenario\n    Given g\n");
+
+        GenerateFeatureDocsTask task = task(project);
+        task.getSourceDirs().from(featuresDir);
+        task.getGroupByFeature().set(false);
+        task.getIndexing().set(IndexingMode.FEATURE);
+        task.getOutputDir().set(new File(tempDir.toFile(), "output"));
+        task.getProjectDirectory().set(project.getLayout().getProjectDirectory());
+
+        assertThatThrownBy(task::generate)
+                .isInstanceOf(org.gradle.api.GradleException.class)
+                .hasMessageContaining("when groupByFeature is false, indexing can only be 'off' or 'scenario'");
+    }
+
+    @Test
+    @DisplayName("throws GradleException when indexing is ALL and groupByFeature is false")
+    void throwsWhenIndexingAllAndGroupByFeatureFalse() throws IOException {
+        Project project = projectWithPlugin();
+        File featuresDir = new File(tempDir.toFile(), "features");
+        featuresDir.mkdirs();
+        writeFeatureFile(featuresDir, "sample.feature", "Feature: Sample\n\n  Scenario: A scenario\n    Given g\n");
+
+        GenerateFeatureDocsTask task = task(project);
+        task.getSourceDirs().from(featuresDir);
+        task.getGroupByFeature().set(false);
+        task.getIndexing().set(IndexingMode.ALL);
+        task.getOutputDir().set(new File(tempDir.toFile(), "output"));
+        task.getProjectDirectory().set(project.getLayout().getProjectDirectory());
+
+        assertThatThrownBy(task::generate)
+                .isInstanceOf(org.gradle.api.GradleException.class)
+                .hasMessageContaining("when groupByFeature is false, indexing can only be 'off' or 'scenario'");
+    }
+
+    @Test
+    @DisplayName("indexing SCENARIO is allowed when groupByFeature is false")
+    void indexingScenarioAllowedWithGroupByFeatureFalse() throws IOException {
+        Project project = projectWithPlugin();
+        File featuresDir = new File(tempDir.toFile(), "features");
+        featuresDir.mkdirs();
+        writeFeatureFile(featuresDir, "sample.feature", "Feature: Sample\n\n  Scenario: A scenario\n    Given g\n");
+
+        GenerateFeatureDocsTask task = task(project);
+        task.getSourceDirs().from(featuresDir);
+        task.getGroupByFeature().set(false);
+        task.getIndexing().set(IndexingMode.SCENARIO);
+        task.getOutputDir().set(new File(tempDir.toFile(), "output"));
+        task.getProjectDirectory().set(project.getLayout().getProjectDirectory());
+        task.generate();
+
+        assertThat(Files.readString(featuresDir.toPath().resolve("sample.feature")))
+                .contains("Scenario: 1 - A scenario");
+    }
+
+    @Test
+    @DisplayName("indexing FEATURE numbers features alphabetically by file name across source directories "
+            + "and is reflected in the generated report")
+    void indexingFeatureNumbersFeaturesAndUpdatesReport() throws IOException {
+        Project project = projectWithPlugin();
+        File authDir = new File(tempDir.toFile(), "features-auth");
+        File billingDir = new File(tempDir.toFile(), "features-billing");
+        authDir.mkdirs();
+        billingDir.mkdirs();
+        writeFeatureFile(authDir, "authentication.feature",
+                "Feature: User authentication\n\n  Scenario: User logs in\n    Given a user\n");
+        writeFeatureFile(billingDir, "invoice.feature",
+                "Feature: Invoice payment\n\n  Scenario: User pays an invoice\n    Given an invoice\n");
+
+        File outputDir = new File(tempDir.toFile(), "output");
+
+        GenerateFeatureDocsTask task = task(project);
+        task.getSourceDirs().from(authDir, billingDir);
+        task.getIndexing().set(IndexingMode.FEATURE);
+        task.getOutputDir().set(outputDir);
+        task.getProjectDirectory().set(project.getLayout().getProjectDirectory());
+        task.generate();
+
+        assertThat(Files.readString(authDir.toPath().resolve("authentication.feature")))
+                .contains("Feature: 1 - User authentication");
+        assertThat(Files.readString(billingDir.toPath().resolve("invoice.feature")))
+                .contains("Feature: 2 - Invoice payment");
+
+        String content = Files.readString(new File(outputDir, "features.adoc").toPath());
+        assertThat(content)
+                .contains("== 1 - User authentication")
+                .contains("== 2 - Invoice payment");
+    }
+
+    @Test
+    @DisplayName("indexing ALL numbers scenarios per feature and is reflected in the generated report")
+    void indexingAllNumbersScenariosPerFeatureAndUpdatesReport() throws IOException {
+        Project project = projectWithPlugin();
+        File authDir = new File(tempDir.toFile(), "features-auth");
+        authDir.mkdirs();
+        writeFeatureFile(authDir, "authentication.feature", """
+                Feature: User authentication
+
+                  Scenario: User logs in
+                    Given a user
+
+                  Scenario: User resets password
+                    Given a user
+                """);
+
+        File outputDir = new File(tempDir.toFile(), "output");
+
+        GenerateFeatureDocsTask task = task(project);
+        task.getSourceDirs().from(authDir);
+        task.getIndexing().set(IndexingMode.ALL);
+        task.getOutputDir().set(outputDir);
+        task.getProjectDirectory().set(project.getLayout().getProjectDirectory());
+        task.generate();
+
+        String content = Files.readString(new File(outputDir, "features.adoc").toPath());
+        assertThat(content)
+                .contains("== 1 - User authentication")
+                .contains("* Scenario: 1.1 - User logs in")
+                .contains("* Scenario: 1.2 - User resets password");
+    }
+
+    @Test
+    @DisplayName("changing indexing from ALL to OFF on a subsequent run removes the numbering")
+    void changingIndexingToOffRemovesNumberingOnNextRun() throws IOException {
+        Project project = projectWithPlugin();
+        File featuresDir = new File(tempDir.toFile(), "features");
+        featuresDir.mkdirs();
+        writeFeatureFile(featuresDir, "sample.feature",
+                "Feature: Sample\n\n  Scenario: A scenario\n    Given g\n");
+        File outputDir = new File(tempDir.toFile(), "output");
+
+        GenerateFeatureDocsTask firstRun = task(project);
+        firstRun.getSourceDirs().from(featuresDir);
+        firstRun.getIndexing().set(IndexingMode.ALL);
+        firstRun.getOutputDir().set(outputDir);
+        firstRun.getProjectDirectory().set(project.getLayout().getProjectDirectory());
+        firstRun.generate();
+        assertThat(Files.readString(featuresDir.toPath().resolve("sample.feature")))
+                .contains("Feature: 1 - Sample")
+                .contains("Scenario: 1.1 - A scenario");
+
+        GenerateFeatureDocsTask secondRun = task(project);
+        secondRun.getSourceDirs().from(featuresDir);
+        secondRun.getIndexing().set(IndexingMode.OFF);
+        secondRun.getOutputDir().set(outputDir);
+        secondRun.getProjectDirectory().set(project.getLayout().getProjectDirectory());
+        secondRun.generate();
+
+        assertThat(Files.readString(featuresDir.toPath().resolve("sample.feature")))
+                .contains("Feature: Sample")
+                .contains("Scenario: A scenario")
+                .doesNotContain("1 -")
+                .doesNotContain("1.1 -");
     }
 
     // --- helpers ---

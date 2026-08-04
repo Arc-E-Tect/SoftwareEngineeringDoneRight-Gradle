@@ -1,5 +1,6 @@
 package com.arc_e_tect.gradle.gherkin;
 
+import com.arc_e_tect.gradle.gherkin.indexing.IndexingMode;
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
 import org.gradle.api.file.FileCollection;
@@ -28,9 +29,11 @@ import java.util.List;
  * <h2>Defaults</h2>
  * <ul>
  *   <li>Source directory: {@code src/test/resources/features}</li>
- *   <li>Include sub-directories: {@code false}</li>
+ *   <li>Include sub-directories: {@code true}</li>
+ *   <li>Group scenarios by feature: {@code true}</li>
  *   <li>Output directory: {@code build/generated-docs}</li>
  *   <li>Output file name: {@code features.adoc}</li>
+ *   <li>Indexing: {@code off}</li>
  * </ul>
  *
  * <h2>Multi-project builds</h2>
@@ -75,11 +78,13 @@ public class GherkinToAsciidocPlugin implements Plugin<Project> {
             ext.getOutputFileName().convention(rootExt.getOutputFileName());
             ext.getTemplate().convention(rootExt.getTemplate());
             ext.getSystemUnderTestVersion().convention(rootExt.getSystemUnderTestVersion());
+            ext.getIndexing().convention(rootExt.getIndexing());
         } else {
             ext.getTrackProgress().convention(false);
             ext.getOutputFileName().convention(GherkinToAsciidocExtension.DEFAULT_OUTPUT_FILE_NAME);
             ext.getSystemUnderTestVersion().convention(
                     project.provider(() -> String.valueOf(project.getVersion())));
+            ext.getIndexing().convention(IndexingMode.OFF);
         }
 
         // outputDir/snippetDir intentionally always default to this project's own build directory,
@@ -93,10 +98,11 @@ public class GherkinToAsciidocPlugin implements Plugin<Project> {
         // Enabling trackProgress implies recursive scanning and grouping by feature, unless
         // includeSubDirs/groupByFeature have been set explicitly - either directly on this
         // project, or (absent a local trackProgress override) inherited from the root project.
+        // Both default to true when neither this project nor the root project configures them.
         Provider<Boolean> inheritedIncludeSubDirs =
-                rootExt != null ? rootExt.getIncludeSubDirs() : project.provider(() -> false);
+                rootExt != null ? rootExt.getIncludeSubDirs() : project.provider(() -> true);
         Provider<Boolean> inheritedGroupByFeature =
-                rootExt != null ? rootExt.getGroupByFeature() : project.provider(() -> false);
+                rootExt != null ? rootExt.getGroupByFeature() : project.provider(() -> true);
         ext.getIncludeSubDirs().convention(ext.getTrackProgress()
                 .flatMap(trackProgress -> trackProgress ? project.provider(() -> true) : inheritedIncludeSubDirs));
         ext.getGroupByFeature().convention(ext.getTrackProgress()
@@ -115,6 +121,7 @@ public class GherkinToAsciidocPlugin implements Plugin<Project> {
             task.getSnippetDir().set(ext.getSnippetDir());
             task.getTemplate().set(ext.getTemplate());
             task.getSystemUnderTestVersion().set(ext.getSystemUnderTestVersion());
+            task.getIndexing().set(ext.getIndexing());
             task.getProjectDirectory().set(project.getLayout().getProjectDirectory());
         });
     }
