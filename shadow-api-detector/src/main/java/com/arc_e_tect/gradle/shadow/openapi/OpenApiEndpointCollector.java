@@ -141,4 +141,51 @@ public class OpenApiEndpointCollector {
         Matcher jsonMatcher = OPENAPI_32_JSON_PATTERN.matcher(rewritten);
         return jsonMatcher.replaceFirst("$13.1.0$2");
     }
+
+    private static SwaggerParseResult parse(File rootDocument, ParseOptions options) {
+        return new OpenAPIV3Parser().readLocation(rootDocument.getAbsolutePath(), null, options);
+    }
+
+    private static SwaggerParseResult parseWithOpenApi31Compatibility(File rootDocument, ParseOptions options) {
+        Path rootPath = rootDocument.toPath();
+        try {
+            String original = Files.readString(rootPath);
+            String normalized = normalizeOpenApi32To31(original);
+            if (normalized.equals(original)) {
+                return parse(rootDocument, options);
+            }
+
+            Path parent = rootPath.getParent();
+            String prefix = rootDocument.getName() + ".shadow-api-detector-";
+            Path tempFile = Files.createTempFile(parent, prefix, ".yaml");
+            try {
+                Files.writeString(tempFile, normalized);
+                return parse(tempFile.toFile(), options);
+            } finally {
+                Files.deleteIfExists(tempFile);
+            }
+        } catch (IOException ex) {
+            throw new IllegalStateException(
+                    "shadowApiDetector: failed to prepare OpenAPI 3.2 compatibility parse for "
+                            + rootDocument + ": " + ex.getMessage(),
+                    ex);
+        }
+    }
+
+    private static boolean declaresOpenApi32(Path rootDocument) {
+        try {
+            String content = Files.readString(rootDocument);
+            return OPENAPI_32_YAML_PATTERN.matcher(content).find()
+                    || OPENAPI_32_JSON_PATTERN.matcher(content).find();
+        } catch (IOException ex) {
+            return false;
+        }
+    }
+
+    private static String normalizeOpenApi32To31(String content) {
+        Matcher yamlMatcher = OPENAPI_32_YAML_PATTERN.matcher(content);
+        String rewritten = yamlMatcher.replaceFirst("openapi: 3.1.0");
+        Matcher jsonMatcher = OPENAPI_32_JSON_PATTERN.matcher(rewritten);
+        return jsonMatcher.replaceFirst("$13.1.0$2");
+    }
 }
