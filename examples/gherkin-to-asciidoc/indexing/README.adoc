@@ -1,0 +1,239 @@
+= Gherkin to AsciiDoc — Indexing Example
+:toc: left
+
+== Description
+
+This example applies the Gherkin to AsciiDoc plugin to a Gradle multi-project build made up of a root
+project and four sub-projects - `off`, `feature`, `scenario`, and `all` - one per value of the `indexing`
+DSL property. Every sub-project starts out with byte-for-byte identical copies of the same two
+`.feature` files; the *only* difference between them is the `indexing` value each one configures.
+
+== Intent
+
+This example shows:
+
+* What each of the four `indexing` values actually does to the source `.feature` files:
+  `off` (nothing), `feature` (numbers `Feature` titles only), `scenario` (numbers `Scenario`/
+  `Scenario Outline` titles only, continuously across every feature file), and `all` (numbers both,
+  scenarios as `<featureNumber>.<scenarioNumber>`).
+* That indexing numbers features/scenarios alphabetically by feature file name -
+  `authentication.feature` is processed before `invoice.feature` - not in whatever order the
+  filesystem happens to list them.
+* That indexing rewrites the source `.feature` files in place, and that this is reflected
+  automatically in the generated report, since the report is generated *from* the (now numbered)
+  source files.
+* That running the build a second time is a no-op: indexing strips any numbering left over from a
+  previous run before reapplying it, so already-correctly-numbered files are left untouched.
+
+== Project Layout
+
+[source]
+----
+indexing/
+├── build.gradle        (root: applies the plugin everywhere, configures shared defaults)
+├── off/
+│   ├── build.gradle     (no override: indexing defaults to IndexingMode.OFF)
+│   └── src/test/resources/
+│       ├── features-auth/authentication.feature
+│       └── features-billing/invoice.feature
+├── feature/
+│   ├── build.gradle     (indexing = IndexingMode.FEATURE)
+│   └── src/test/resources/...  (same two files, byte-for-byte identical to off/)
+├── scenario/
+│   ├── build.gradle     (indexing = IndexingMode.SCENARIO)
+│   └── src/test/resources/...  (same two files, byte-for-byte identical to off/)
+└── all/
+    ├── build.gradle     (indexing = IndexingMode.ALL)
+    └── src/test/resources/...  (same two files, byte-for-byte identical to off/)
+----
+
+== Configuration
+
+.Root `build.gradle`
+[source,groovy]
+----
+plugins {
+    id 'com.arc-e-tect.gherkin-to-asciidoc'
+}
+
+gherkinToAsciidoc {
+    systemUnderTestVersion = 'v1.0.0'
+    sourceDirs.from(
+            'src/test/resources/features-auth',
+            'src/test/resources/features-billing')
+}
+
+subprojects {
+    apply plugin: 'com.arc-e-tect.gherkin-to-asciidoc'
+}
+----
+
+.`off/build.gradle`
+[source,groovy]
+----
+// No gherkinToAsciidoc { } block: indexing defaults to IndexingMode.OFF.
+----
+
+.`feature/build.gradle`
+[source,groovy]
+----
+import com.arc_e_tect.gradle.gherkin.indexing.IndexingMode
+
+gherkinToAsciidoc {
+    indexing = IndexingMode.FEATURE
+}
+----
+
+.`scenario/build.gradle`
+[source,groovy]
+----
+import com.arc_e_tect.gradle.gherkin.indexing.IndexingMode
+
+gherkinToAsciidoc {
+    indexing = IndexingMode.SCENARIO
+}
+----
+
+.`all/build.gradle`
+[source,groovy]
+----
+import com.arc_e_tect.gradle.gherkin.indexing.IndexingMode
+
+gherkinToAsciidoc {
+    indexing = IndexingMode.ALL
+}
+----
+
+`feature` and `all` both require `groupByFeature = true`, which - like `includeSubDirs = true` - is
+already the plugin's default, so neither sub-project needs to configure it explicitly.
+
+== Build And Run
+
+[source,bash]
+----
+cd examples/gherkin-to-asciidoc/indexing
+./gradlew generateFeatureDocs
+----
+
+Running `generateFeatureDocs` from the root project without a project path runs it in *every* project
+that has it - root, `off`, `feature`, `scenario`, and `all` - in one command.
+
+[IMPORTANT]
+====
+This rewrites the `.feature` files under `off/`, `feature/`, `scenario/`, and `all/` *in place* - that
+is the whole point of the `indexing` property. Running it again afterwards is a no-op (the files are
+already correctly numbered for their sub-project's mode), but the working tree will show the four
+sub-projects' `.feature` files as modified the first time you run it. Run `git diff` afterwards to see
+exactly what each mode changed - or `git checkout -- off feature scenario all` to put the four pristine,
+identically-worded copies back if you want to try it again from a clean baseline.
+====
+
+== What To Expect
+
+Before the build runs, `off/`, `feature/`, `scenario/`, and `all/` all contain the exact same
+`authentication.feature` (three scenarios: a title-only scenario, a fully-worded scenario, and a
+`Scenario Outline`) and `invoice.feature` (one scenario) - reproduced here from `off/`, which stays
+this way after the build since its `indexing` is `off`:
+
+.`off/src/test/resources/features-auth/authentication.feature` (unchanged by any mode)
+[source,gherkin]
+----
+Feature: User authentication
+
+  Scenario: User requests a password reset
+    # Not yet fleshed out - title only, no steps yet.
+
+  Scenario: User logs in successfully
+    Given the login page is open
+    When the user submits valid credentials
+    Then the dashboard is displayed
+
+  Scenario Outline: User logs in with different credential sets
+    Given the login page is open
+    When the user submits "<username>" and "<password>"
+    Then the result is "<outcome>"
+
+    Examples:
+      | username | password | outcome |
+      | alice    | secret   | success |
+      | bob      | wrong    | failure |
+----
+
+.`off/src/test/resources/features-billing/invoice.feature` (unchanged by any mode)
+[source,gherkin]
+----
+Feature: Invoice payment
+
+  Scenario: User pays an invoice
+    Given an outstanding invoice
+    When the user pays the invoice
+    Then the invoice is marked as paid
+----
+
+=== Feature — numbers Feature titles only
+
+After the build runs, `feature/src/test/resources/features-auth/authentication.feature` starts with
+`Feature: 1 - User authentication` and `feature/.../invoice.feature` starts with
+`Feature: 2 - Invoice payment` - every `Scenario`/`Scenario Outline` title is untouched. The generated
+report at `feature/build/generated-docs/features.adoc` shows the numbering in its feature headings:
+
+[source,asciidoc]
+----
+== 1 - User authentication
+
+* Scenario: User requests a password reset
+* Scenario: User logs in successfully
+* Scenario Outline: User logs in with different credential sets
+
+== 2 - Invoice payment
+
+* Scenario: User pays an invoice
+----
+
+=== Scenario — numbers Scenario/Scenario Outline titles only, continuously
+
+After the build runs, every `Scenario`/`Scenario Outline` title in
+`scenario/src/test/resources/features-auth/authentication.feature` is numbered 1 through 3, and the
+one in `scenario/.../invoice.feature` continues the same count as 4 - `Feature` titles are untouched.
+`scenario/build/generated-docs/features.adoc` reflects it:
+
+[source,asciidoc]
+----
+== User authentication
+
+* Scenario: 1 - User requests a password reset
+* Scenario: 2 - User logs in successfully
+* Scenario Outline: 3 - User logs in with different credential sets
+
+== Invoice payment
+
+* Scenario: 4 - User pays an invoice
+----
+
+=== All — numbers both, scenarios per feature
+
+After the build runs, `all/src/test/resources/features-auth/authentication.feature` gets both:
+`Feature: 1 - User authentication`, with its three scenarios numbered `1.1`, `1.2`, `1.3` - restarting
+the scenario count for each feature, unlike `scenario` mode's continuous count.
+`all/.../invoice.feature` gets `Feature: 2 - Invoice payment` with its one scenario numbered `2.1`.
+`all/build/generated-docs/features.adoc` reflects both:
+
+[source,asciidoc]
+----
+== 1 - User authentication
+
+* Scenario: 1.1 - User requests a password reset
+* Scenario: 1.2 - User logs in successfully
+* Scenario Outline: 1.3 - User logs in with different credential sets
+
+== 2 - Invoice payment
+
+* Scenario: 2.1 - User pays an invoice
+----
+
+[NOTE]
+====
+This example is pinned to `gherkin-to-asciidoc = "2.0.0"` in `gradle/libs.versions.toml` - the version
+`indexing` (and the breaking `includeSubDirs`/`groupByFeature` default changes it ships alongside) was
+released as, resolved from the Gradle Plugin Portal like any other example in this repository.
+====

@@ -1,0 +1,4 @@
+// The plugin is already applied to this project by the root project's `subprojects { }` block.
+// No gherkinToAsciidoc { } block needed here: indexing defaults to IndexingMode.OFF, so this
+// sub-project's Feature/Scenario titles are left exactly as written - the baseline the other
+// three sub-projects (feature, scenario, all) are compared against.
