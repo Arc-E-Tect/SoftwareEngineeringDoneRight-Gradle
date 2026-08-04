@@ -1,0 +1,68 @@
+= Shadow API Detector — Composed RequestMapping Example
+:toc: left
+
+== Description
+
+This example applies the Shadow API Detector plugin to a small `LibraryController` that uses `@RequestMapping` at both levels.
+The controller has a class-level `@RequestMapping("/library")` and method-level `@RequestMapping(path = ..., method = ...)` declarations.
+The accompanying OpenAPI document describes every composed endpoint.
+`rootDocument` is the only property configured because every other property already defaults correctly for this example's layout.
+
+== Intent
+
+This example demonstrates that endpoint composition from class-level and handler-level `@RequestMapping` is detected correctly.
+It also demonstrates that no false positives are reported when those composed endpoints are fully documented.
+
+== The Controller
+
+[source,java]
+----
+@RestController
+@RequestMapping("/library")
+public class LibraryController {
+
+    @RequestMapping(path = "/books", method = RequestMethod.GET)
+    public String listBooks() { ... }
+
+    @RequestMapping(path = "/books/{id}", method = RequestMethod.GET)
+    public String getBook(@PathVariable Long id) { ... }
+
+    @RequestMapping(path = "/books", method = RequestMethod.POST)
+    public String addBook(@RequestBody String book) { ... }
+}
+----
+
+Full source: `src/main/java/com/arc_e_tect/example/library/LibraryController.java`.
+The matching OpenAPI document is `src/main/resources/openapi/openapi.yaml`.
+The described paths are `/library/books` and `/library/books/{id}`.
+
+== Build And Run
+
+[source,bash]
+----
+cd examples/shadow-api-detector/request-mapping-composed
+./gradlew detectShadowApis
+----
+
+== What To Expect
+
+The build is expected to pass.
+The plugin writes `build/reports/shadow-api-detector/shadow-apis.adoc`.
+The report opens with a preamble explaining what a shadow API is (omitted below for brevity).
+See link:../../../shadow-api-detector/README.adoc[the plugin README]'s "Report output" section for the full preamble text.
+The summary then confirms that all composed endpoints are documented:
+
+[source,asciidoc]
+----
+= Shadow API Report
+:toc:
+:toclevels: 2
+
+Generated: ...
+
+Scanned 3 endpoint(s) exposed by `@RestController` classes. 0 of them are not described in the OpenAPI documentation.
+
+== Shadow APIs
+
+None found. Every endpoint exposed by the scanned controllers is described in the OpenAPI documentation.
+----
