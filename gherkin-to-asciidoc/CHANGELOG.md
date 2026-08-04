@@ -1,3 +1,31 @@
+# [2.0.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/v1.6.0...v2.0.0) (2026-08-04)
+
+
+### ✨ New and updated features
+
+* **example-shadow-api-detector:** add composed RequestMapping example ([#98](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/98)) ([6ea5163](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/6ea5163e61c1fd8d271b356e0bbdff6e48f459c1)), closes [#98](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/98)
+* **gherkin-to-asciidoc:** add indexing DSL property to number features and scenarios ([#99](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/99)) ([5c207c4](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/5c207c4e0052499c6b796a3b7640a7b13e7b676f)), closes [#99](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/99)
+* **shadow-api-detector:** add OpenAPI 3.2 compatibility support and example ([#95](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/95)) ([c57432b](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/c57432b4fc73fc9043291edef634ea7ba22d89e7)), closes [#95](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/95)
+
+
+### 🐛 Bug Fixes
+
+* **gherkin-to-asciidoc:** set systemUnderTestVersion in snippet-templates example ([#94](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/94)) ([ca7fb34](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/ca7fb346bd41113294928ab441ba0099fcf4301a)), closes [#94](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/94)
+* **example-shadow-api-detector:** use official published plugin in examples ([#96](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/96)) ([bca72d8](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/bca72d8e2dab7acecccb4cd75dafd95e030a43be)), closes [#96](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/96)
+
+
+### BREAKING CHANGE
+
+* **gherkin-to-asciidoc:** includeSubDirs and groupByFeature now default to
+true (previously false). A project relying on the old defaults -
+particularly one using sourceFile without explicitly setting
+includeSubDirs = false, which will now fail validation - must set
+includeSubDirs = false and/or groupByFeature = false explicitly to
+keep its previous behaviour. Feature file processing order is also
+now deterministic (alphabetical by path, directory files before
+sub-directory files) instead of filesystem-dependent, which may
+reorder scenarios in existing generated reports.
+
 # [1.5.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/v1.4.0...v1.5.0) (2026-07-30)
 
 
