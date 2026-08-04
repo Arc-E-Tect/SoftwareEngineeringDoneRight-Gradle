@@ -1,0 +1,10 @@
+import com.arc_e_tect.gradle.gherkin.indexing.IndexingMode
+
+// The plugin is already applied to this project by the root project's `subprojects { }` block.
+// This sub-project overrides indexing = IndexingMode.FEATURE: every Feature title in its (own
+// copy of the) source .feature files is numbered, alphabetically by feature file name -
+// authentication.feature before invoice.feature - while Scenario titles are left untouched.
+// FEATURE requires groupByFeature = true, which is already the plugin's default.
+gherkinToAsciidoc {
+    indexing = IndexingMode.FEATURE
+}
