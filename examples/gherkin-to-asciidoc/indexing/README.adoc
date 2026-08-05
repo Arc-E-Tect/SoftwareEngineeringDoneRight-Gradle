@@ -4,18 +4,20 @@
 == Description
 
 This example applies the Gherkin to AsciiDoc plugin to a Gradle multi-project build made up of a root
-project and four sub-projects - `off`, `feature`, `scenario`, and `all` - one per value of the `indexing`
-DSL property. Every sub-project starts out with byte-for-byte identical copies of the same two
-`.feature` files; the *only* difference between them is the `indexing` value each one configures.
+project and five sub-projects - `off`, `feature`, `scenario`, `all`, and `ci` - one per value of the
+`indexing` DSL property. `off`, `feature`, `scenario`, and `all` start out with byte-for-byte identical
+copies of the same two `.feature` files, differing only in the `indexing` value each one configures;
+`ci`'s copies start out *already numbered* instead (see "Intent" below).
 
 == Intent
 
 This example shows:
 
-* What each of the four `indexing` values actually does to the source `.feature` files:
-  `off` (nothing), `feature` (numbers `Feature` titles only), `scenario` (numbers `Scenario`/
-  `Scenario Outline` titles only, continuously across every feature file), and `all` (numbers both,
-  scenarios as `<featureNumber>.<scenarioNumber>`).
+* What each of the five `indexing` values actually does to the source `.feature` files:
+  `off` (nothing, but strips any prior numbering), `feature` (numbers `Feature` titles only),
+  `scenario` (numbers `Scenario`/`Scenario Outline` titles only, continuously across every feature
+  file), `all` (numbers both, scenarios as `<featureNumber>.<scenarioNumber>`), and `ci` (skips
+  indexing entirely - unlike `off`, not even to strip prior numbering).
 * That indexing numbers features/scenarios alphabetically by feature file name -
   `authentication.feature` is processed before `invoice.feature` - not in whatever order the
   filesystem happens to list them.
@@ -24,6 +26,9 @@ This example shows:
   source files.
 * That running the build a second time is a no-op: indexing strips any numbering left over from a
   previous run before reapplying it, so already-correctly-numbered files are left untouched.
+* That the `-PgherkinToAsciidoc.indexing=<value>` command-line override forces the same `indexing`
+  value onto every sub-project at once, regardless of what each one's own `build.gradle` configures -
+  typically used to force `ci` for the whole build in a CI pipeline.
 
 == Project Layout
 
@@ -42,9 +47,12 @@ indexing/
 ├── scenario/
 │   ├── build.gradle     (indexing = IndexingMode.SCENARIO)
 │   └── src/test/resources/...  (same two files, byte-for-byte identical to off/)
-└── all/
-    ├── build.gradle     (indexing = IndexingMode.ALL)
-    └── src/test/resources/...  (same two files, byte-for-byte identical to off/)
+├── all/
+│   ├── build.gradle     (indexing = IndexingMode.ALL)
+│   └── src/test/resources/...  (same two files, byte-for-byte identical to off/)
+└── ci/
+    ├── build.gradle     (indexing = IndexingMode.CI)
+    └── src/test/resources/...  (same two files, but already numbered - see "Intent" above)
 ----
 
 == Configuration
@@ -104,8 +112,19 @@ gherkinToAsciidoc {
 }
 ----
 
+.`ci/build.gradle`
+[source,groovy]
+----
+import com.arc_e_tect.gradle.gherkin.indexing.IndexingMode
+
+gherkinToAsciidoc {
+    indexing = IndexingMode.CI
+}
+----
+
 `feature` and `all` both require `groupByFeature = true`, which - like `includeSubDirs = true` - is
-already the plugin's default, so neither sub-project needs to configure it explicitly.
+already the plugin's default, so neither sub-project needs to configure it explicitly. `ci` has no such
+requirement - `IndexingMode.CI` is always allowed, regardless of `includeSubDirs`/`groupByFeature`.
 
 == Build And Run
 
@@ -116,24 +135,44 @@ cd examples/gherkin-to-asciidoc/indexing
 ----
 
 Running `generateFeatureDocs` from the root project without a project path runs it in *every* project
-that has it - root, `off`, `feature`, `scenario`, and `all` - in one command.
+that has it - root, `off`, `feature`, `scenario`, `all`, and `ci` - in one command.
 
 [IMPORTANT]
 ====
 This rewrites the `.feature` files under `off/`, `feature/`, `scenario/`, and `all/` *in place* - that
-is the whole point of the `indexing` property. Running it again afterwards is a no-op (the files are
-already correctly numbered for their sub-project's mode), but the working tree will show the four
-sub-projects' `.feature` files as modified the first time you run it. Run `git diff` afterwards to see
-exactly what each mode changed - or `git checkout -- off feature scenario all` to put the four pristine,
-identically-worded copies back if you want to try it again from a clean baseline.
+is the whole point of the `indexing` property (`ci/`'s files are never touched, by design). Running it
+again afterwards is a no-op (the files are already correctly numbered for their sub-project's mode), but
+the working tree will show `off/`, `feature/`, `scenario/`, and `all/`'s `.feature` files as modified the
+first time you run it. Run `git diff` afterwards to see exactly what each mode changed - or
+`git checkout -- off feature scenario all` to put the four pristine, identically-worded copies back if you
+want to try it again from a clean baseline.
 ====
+
+=== Overriding indexing from the command line
+
+To see the `-PgherkinToAsciidoc.indexing` override in action, run this *before* the plain command above,
+against a clean checkout:
+
+[source,bash]
+----
+./gradlew generateFeatureDocs -PgherkinToAsciidoc.indexing=ci
+----
+
+This forces `indexing = IndexingMode.CI` onto all five sub-projects for this run alone, regardless of what
+each one's own `build.gradle` configures - so even though `feature/`, `scenario/`, and `all/` are
+configured to number their files, none of the five sub-projects' `.feature` files are touched. `git status`
+afterwards shows a clean working tree; only the five generated reports (still produced normally, just from
+each project's pristine, un-numbered starting content) land under each sub-project's own `build/` directory.
+Run the plain `./gradlew generateFeatureDocs` afterwards to see `off/`, `feature/`, `scenario/`, and `all/`
+get numbered as normal - proving the override only affects the run it's passed to.
 
 == What To Expect
 
 Before the build runs, `off/`, `feature/`, `scenario/`, and `all/` all contain the exact same
 `authentication.feature` (three scenarios: a title-only scenario, a fully-worded scenario, and a
 `Scenario Outline`) and `invoice.feature` (one scenario) - reproduced here from `off/`, which stays
-this way after the build since its `indexing` is `off`:
+this way after the build since its `indexing` is `off`. `ci/`'s copies of the same two files start out
+*already* numbered instead (see "Ci" below) - and stay that way, untouched, after the build too.
 
 .`off/src/test/resources/features-auth/authentication.feature` (unchanged by any mode)
 [source,gherkin]
@@ -231,9 +270,58 @@ the scenario count for each feature, unlike `scenario` mode's continuous count.
 * Scenario: 2.1 - User pays an invoice
 ----
 
+=== Ci — indexing skipped entirely
+
+Unlike the other four, `ci/`'s copies of the two feature files start out *already* numbered - as `all`
+mode would leave them - specifically to prove that `IndexingMode.CI` leaves that numbering completely
+untouched, rather than stripping it the way `off` would:
+
+.`ci/src/test/resources/features-auth/authentication.feature` (before *and* after the build - byte-for-byte identical)
+[source,gherkin]
+----
+Feature: 1 - User authentication
+
+  Scenario: 1.1 - User requests a password reset
+    # Not yet fleshed out - title only, no steps yet.
+
+  Scenario: 1.2 - User logs in successfully
+    Given the login page is open
+    When the user submits valid credentials
+    Then the dashboard is displayed
+
+  Scenario Outline: 1.3 - User logs in with different credential sets
+    Given the login page is open
+    When the user submits "<username>" and "<password>"
+    Then the result is "<outcome>"
+
+    Examples:
+      | username | password | outcome |
+      | alice    | secret   | success |
+      | bob      | wrong    | failure |
+----
+
+`ci/build/generated-docs/features.adoc` is still generated normally - reflecting whatever numbering the
+source files already happen to have, since `generateFeatureDocs` always parses and reports on the current
+state of the source files, indexing or not:
+
+[source,asciidoc]
+----
+== 1 - User authentication
+
+* Scenario: 1.1 - User requests a password reset
+* Scenario: 1.2 - User logs in successfully
+* Scenario Outline: 1.3 - User logs in with different credential sets
+
+== 2 - Invoice payment
+
+* Scenario: 2.1 - User pays an invoice
+----
+
 [NOTE]
 ====
-This example is pinned to `gherkin-to-asciidoc = "2.0.0"` in `gradle/libs.versions.toml` - the version
-`indexing` (and the breaking `includeSubDirs`/`groupByFeature` default changes it ships alongside) was
-released as, resolved from the Gradle Plugin Portal like any other example in this repository.
+This example is pinned to `gherkin-to-asciidoc = "2.1.0"` in `gradle/libs.versions.toml` - the version the
+`ci` indexing value and the `-PgherkinToAsciidoc.indexing` command-line override are expected to release
+as (a purely additive change on top of `indexing`, itself released as `2.0.0`). Verified locally against
+the plugin's own source (via a temporary `includeBuild`, since removed) before pinning; won't build
+against the Gradle Plugin Portal until `2.1.0` is actually released.
 ====

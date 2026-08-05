@@ -6,4 +6,4 @@ gherkin-to-asciidoc = { id = "com.arc-e-tect.gherkin-to-asciidoc", version.ref =
 
 [versions]
 
-gherkin-to-asciidoc = "2.0.0"
+gherkin-to-asciidoc = "2.1.0"

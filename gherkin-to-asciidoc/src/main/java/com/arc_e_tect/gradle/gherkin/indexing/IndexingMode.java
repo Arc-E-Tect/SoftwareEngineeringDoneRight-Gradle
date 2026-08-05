@@ -27,5 +27,15 @@ public enum IndexingMode {
      * {@code <featureNumber>.<scenarioNumber>}, e.g. {@code Scenario: 1.1 - User logs in}
      * within {@code Feature: 1 - User authentication}.
      */
-    ALL
+    ALL,
+
+    /**
+     * Indexing is skipped entirely: the source {@code .feature} files are left completely
+     * untouched, not even to strip numbering left over from a previous run - unlike {@link #OFF},
+     * which does strip it. Intended to be set via the {@code -PgherkinToAsciidoc.indexing=ci}
+     * command-line override (see {@code GherkinToAsciidocExtension#getIndexing()}) so a CI
+     * pipeline never mutates source files, regardless of the {@code indexing} value configured in
+     * the build script - but it can also be configured directly like any other value.
+     */
+    CI
 }

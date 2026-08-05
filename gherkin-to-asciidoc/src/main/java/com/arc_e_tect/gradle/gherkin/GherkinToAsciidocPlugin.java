@@ -1,6 +1,7 @@
 package com.arc_e_tect.gradle.gherkin;
 
 import com.arc_e_tect.gradle.gherkin.indexing.IndexingMode;
+import org.gradle.api.GradleException;
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
 import org.gradle.api.file.FileCollection;
@@ -10,6 +11,7 @@ import java.io.File;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Gradle plugin that registers the {@code generateFeatureDocs} task and wires
@@ -57,6 +59,12 @@ import java.util.List;
  * regardless of what the root project configures, so that every project's report lands in its
  * own build output rather than colliding with another project's. Set these explicitly on a
  * specific project to relocate that project's report.</p>
+ *
+ * <h2>Overriding {@code indexing} from the command line</h2>
+ * <p>The {@code -PgherkinToAsciidoc.indexing=&lt;value&gt;} project property overrides {@code indexing}
+ * for every project in the build, regardless of what any project's own {@code gherkinToAsciidoc { }}
+ * block configures - typically set to {@code ci} in a CI pipeline so {@code generateFeatureDocs} never
+ * mutates source {@code .feature} files there, without having to change the build script itself.</p>
  */
 public class GherkinToAsciidocPlugin implements Plugin<Project> {
 
@@ -110,6 +118,13 @@ public class GherkinToAsciidocPlugin implements Plugin<Project> {
 
         Project rootProject = project.getRootProject();
 
+        // The -PgherkinToAsciidoc.indexing=<value> project property, when set, overrides indexing
+        // for every project in the build - regardless of what any project's own extension
+        // configures - typically used to force `ci` in a CI pipeline without touching build scripts.
+        Provider<IndexingMode> indexingCliOverride = project.getProviders()
+                .gradleProperty(GherkinToAsciidocExtension.INDEXING_OVERRIDE_PROPERTY)
+                .map(GherkinToAsciidocPlugin::parseIndexingMode);
+
         project.getTasks().register(TASK_NAME, GenerateFeatureDocsTask.class, task -> {
             wireSourceLocation(project, rootProject, ext, rootExt, task);
             task.getIncludeSubDirs().set(ext.getIncludeSubDirs());
@@ -121,9 +136,25 @@ public class GherkinToAsciidocPlugin implements Plugin<Project> {
             task.getSnippetDir().set(ext.getSnippetDir());
             task.getTemplate().set(ext.getTemplate());
             task.getSystemUnderTestVersion().set(ext.getSystemUnderTestVersion());
-            task.getIndexing().set(ext.getIndexing());
+            task.getIndexing().set(indexingCliOverride.orElse(ext.getIndexing()));
             task.getProjectDirectory().set(project.getLayout().getProjectDirectory());
         });
+    }
+
+    /**
+     * Parses the {@code -PgherkinToAsciidoc.indexing=<value>} project property's value, matching
+     * {@link IndexingMode} enum constant names case-insensitively (e.g. {@code ci} -&gt;
+     * {@link IndexingMode#CI}).
+     */
+    private static IndexingMode parseIndexingMode(String value) {
+        try {
+            return IndexingMode.valueOf(value.trim().toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException e) {
+            throw new GradleException(
+                    "gherkinToAsciidoc: invalid value '" + value + "' for -P"
+                    + GherkinToAsciidocExtension.INDEXING_OVERRIDE_PROPERTY
+                    + "; expected one of: off, feature, scenario, all, ci");
+        }
     }
 
     /**

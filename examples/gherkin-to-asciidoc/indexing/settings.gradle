@@ -17,4 +17,4 @@ refreshVersions {
 
 rootProject.name = 'gherkin-to-asciidoc-indexing-example'
 
-include 'off', 'feature', 'scenario', 'all'
+include 'off', 'feature', 'scenario', 'all', 'ci'

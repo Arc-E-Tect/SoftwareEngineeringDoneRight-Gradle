@@ -1,0 +1,16 @@
+import com.arc_e_tect.gradle.gherkin.indexing.IndexingMode
+
+// The plugin is already applied to this project by the root project's `subprojects { }` block.
+// This sub-project overrides indexing = IndexingMode.CI: indexing is skipped entirely, so the
+// source .feature files are never touched - not even to strip numbering. Unlike the other three
+// sub-projects, this one's feature files start out ALREADY numbered (as ALL mode would have left
+// them), specifically to prove that CI mode leaves that numbering completely untouched rather
+// than stripping it the way OFF would.
+//
+// This value is also - and more commonly - set from the command line for the whole build at
+// once, without editing any sub-project's build.gradle, e.g.:
+//   ./gradlew generateFeatureDocs -PgherkinToAsciidoc.indexing=ci
+// See the root README for that in action against the feature/scenario/all sub-projects too.
+gherkinToAsciidoc {
+    indexing = IndexingMode.CI
+}

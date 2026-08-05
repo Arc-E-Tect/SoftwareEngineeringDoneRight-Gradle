@@ -24,6 +24,9 @@ import org.gradle.api.provider.Property;
  *     indexing       = IndexingMode.OFF                                             // default; requires includeSubDirs = true
  * }
  * </pre>
+ *
+ * <p>{@code indexing} can be overridden for the whole build from the command line, e.g.
+ * {@code -PgherkinToAsciidoc.indexing=ci} - see {@link #getIndexing()}.</p>
  */
 public abstract class GherkinToAsciidocExtension {
 
@@ -41,6 +44,14 @@ public abstract class GherkinToAsciidocExtension {
 
     /** Default relative path of the directory report snippets are written to. */
     public static final String DEFAULT_SNIPPET_DIR = "generated-docs/features/snippets";
+
+    /**
+     * Name of the Gradle project property that overrides {@link #getIndexing()} from the command
+     * line for every project in the build, e.g. {@code -PgherkinToAsciidoc.indexing=ci}. Takes
+     * precedence over any project's own configured {@code indexing} value. The value is matched
+     * against {@link IndexingMode} enum constant names case-insensitively.
+     */
+    public static final String INDEXING_OVERRIDE_PROPERTY = "gherkinToAsciidoc.indexing";
 
     /**
      * Source directories that contain the {@code .feature} files to process. One or more
@@ -163,6 +174,9 @@ public abstract class GherkinToAsciidocExtension {
      *       feature files, e.g. {@code Scenario: 1 - User logs in}.</li>
      *   <li>{@link IndexingMode#ALL} - both are numbered, scenarios as
      *       {@code <featureNumber>.<scenarioNumber>}, e.g. {@code Scenario: 1.1 - User logs in}.</li>
+     *   <li>{@link IndexingMode#CI} - indexing is skipped entirely; unlike {@link IndexingMode#OFF},
+     *       the source files aren't even stripped of prior numbering. See
+     *       {@value #INDEXING_OVERRIDE_PROPERTY} below.</li>
      * </ul>
      *
      * <p>Feature files are processed in the same order the generated report lists them in: for each
@@ -175,9 +189,17 @@ public abstract class GherkinToAsciidocExtension {
      * fresh numbering is applied for the new mode - including removing all numbering when set back
      * to {@link IndexingMode#OFF}.</p>
      *
-     * <p>Only allowed when {@link #getIncludeSubDirs()} is {@code true}. When
-     * {@link #getGroupByFeature()} is {@code false}, only {@link IndexingMode#OFF} and
-     * {@link IndexingMode#SCENARIO} are allowed.</p>
+     * <p>{@link IndexingMode#OFF} and {@link IndexingMode#CI} are always allowed.
+     * {@link IndexingMode#FEATURE}, {@link IndexingMode#SCENARIO}, and {@link IndexingMode#ALL} are
+     * only allowed when {@link #getIncludeSubDirs()} is {@code true}; when
+     * {@link #getGroupByFeature()} is {@code false}, only {@link IndexingMode#SCENARIO} of those
+     * three is allowed.</p>
+     *
+     * <p>The {@value #INDEXING_OVERRIDE_PROPERTY} project property, when set (e.g.
+     * {@code -PgherkinToAsciidoc.indexing=ci}), overrides this property for every project in the
+     * build regardless of what any project configures here - typically used to force
+     * {@link IndexingMode#CI} in a CI pipeline so {@code generateFeatureDocs} never mutates source
+     * files there, without having to change the build script itself.</p>
      *
      * @return mutable property for the indexing mode
      */

@@ -180,8 +180,8 @@ Only used when `trackProgress` is `true`.
 | `template`      | File            | —                                    | Optional Mustache template used to render the report so it references the snippets via `include::` directives instead of embedding their content verbatim.
 Only consulted when `trackProgress` is `true`.
 | `systemUnderTestVersion` | String | the project's `version`             | Version of the system under test that the reported scenarios exercise, printed near the top of the generated document (see "System Under Test Version" below).
-| `indexing`      | `IndexingMode` (`OFF`/`FEATURE`/`SCENARIO`/`ALL`) | `OFF` | Numbers `Feature`/`Scenario` titles directly in the source `.feature` files (see "Numbering Features and Scenarios" below).
-Requires `includeSubDirs = true`; `FEATURE` and `ALL` additionally require `groupByFeature = true`.
+| `indexing`      | `IndexingMode` (`OFF`/`FEATURE`/`SCENARIO`/`ALL`/`CI`) | `OFF` | Numbers `Feature`/`Scenario` titles directly in the source `.feature` files (see "Numbering Features and Scenarios" below).
+`FEATURE`/`SCENARIO`/`ALL` require `includeSubDirs = true`; `FEATURE` and `ALL` additionally require `groupByFeature = true`. `CI` skips indexing entirely and is always allowed; overridable for the whole build via the `-PgherkinToAsciidoc.indexing` project property.
 |===
 
 [IMPORTANT]
@@ -199,9 +199,15 @@ configured values.
 
 `snippetDir` and `template` are only consulted when `trackProgress` is `true`; both are ignored otherwise.
 
-`indexing` can only be set to something other than `OFF` when `includeSubDirs` is `true`. `FEATURE` and `ALL`
-additionally require `groupByFeature` to be `true`; with `groupByFeature = false`, only `OFF` and `SCENARIO`
-are allowed. Setting an invalid combination fails `generateFeatureDocs` with a descriptive error.
+`OFF` and `CI` are always allowed for `indexing`. `FEATURE`, `SCENARIO`, and `ALL` require `includeSubDirs`
+to be `true`; `FEATURE` and `ALL` additionally require `groupByFeature` to be `true` - with
+`groupByFeature = false`, only `SCENARIO` of those three is allowed. Setting an invalid combination fails
+`generateFeatureDocs` with a descriptive error.
+
+The `-PgherkinToAsciidoc.indexing=<value>` project property, when set, overrides `indexing` for every
+project in the build regardless of what any project's own `gherkinToAsciidoc { }` block configures - see
+"Overriding `indexing` from the Command Line" below. An unrecognised value fails `generateFeatureDocs` with
+a descriptive error too.
 ====
 
 == Running the Task
@@ -255,7 +261,9 @@ sub-project that inherits or sets `trackProgress = true` still needs its own `gl
 | Inherited from the root project by default (subject to the usual `trackProgress` implication).
 | `indexing`
 | Inherited from the root project by default; a sub-project can override it independently, subject to
-the usual `includeSubDirs`/`groupByFeature` validation constraints for whichever value is in effect.
+the usual `includeSubDirs`/`groupByFeature` validation constraints for whichever value is in effect. The
+`-PgherkinToAsciidoc.indexing` command-line override (see "Overriding `indexing` from the Command Line"
+above) takes precedence over both, for every project in the build at once.
 | `outputFileName`
 | Inherited from the root project by default.
 | `template`
@@ -438,6 +446,7 @@ a Cucumber test run, ...), not only in `generateFeatureDocs`'s own output.
 | `FEATURE`  | Every feature is numbered, e.g. `Feature: 1 - User authentication`. Scenario titles are untouched.
 | `SCENARIO` | Every scenario is numbered continuously across all feature files, e.g. `Scenario: 1 - User logs in`. Feature titles are untouched.
 | `ALL`      | Both are numbered; scenarios are numbered per feature as `<featureNumber>.<scenarioNumber>`, e.g. `Scenario: 1.1 - User logs in` within `Feature: 1 - User authentication`.
+| `CI`       | Indexing is skipped entirely: the source files aren't touched at all - unlike `OFF`, not even to strip prior numbering. See "Overriding `indexing` from the Command Line" below.
 |===
 
 Feature files are processed - and numbered - in the same order the generated report lists them in: for each
@@ -511,10 +520,31 @@ a no-op once the files are already correctly numbered), but it does mean the tas
 its own inputs - commit the resulting numbered `.feature` files like any other source change.
 ====
 
+=== Overriding `indexing` from the Command Line
+
+A CI pipeline typically shouldn't have `generateFeatureDocs` rewrite committed `.feature` files during a
+build - a fresh checkout has no numbering to add, and a build that mutates its own source tree can leave a
+CI job with unexpected local changes for no benefit, since nothing there will ever commit them. Rather than
+requiring every project's build script to special-case CI, override `indexing` from the command line
+instead:
+
+[source,bash]
+----
+./gradlew generateFeatureDocs -PgherkinToAsciidoc.indexing=ci
+----
+
+This sets `indexing` to `IndexingMode.CI` for every project in the build - root and every sub-project alike
+- regardless of what each project's own `gherkinToAsciidoc { }` block configures. A project can keep
+`indexing = IndexingMode.FEATURE` (or any other value) for local/day-to-day use and still build cleanly in
+CI without any source file ever being mutated there, with no change to the build script itself. The
+property's value is matched against `IndexingMode` case-insensitively and accepts any of the five values
+(`off`, `feature`, `scenario`, `all`, `ci`), not just `ci` - useful for e.g. temporarily forcing a specific
+mode across an entire multi-project build without editing every sub-project's configuration.
+
 See the
 link:../examples/gherkin-to-asciidoc/indexing/README.adoc[indexing example]
-for all four modes applied to the same feature files side by side, with the exact before/after content and
-generated reports for each.
+for all five modes applied to the same feature files side by side, with the exact before/after content and
+generated reports for each, plus the command-line override in action.
 
 == Tracking Implementation Progress
 
