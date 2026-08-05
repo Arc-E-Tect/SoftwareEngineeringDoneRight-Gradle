@@ -1,3 +1,16 @@
+# [2.1.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/v2.0.0...v2.1.0) (2026-08-05)
+
+
+### ✨ New and updated features
+
+* **gherkin-to-asciidoc:** add ci indexing value and a CLI override for the whole build ([#102](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/102)) ([063c069](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/063c069e406f4b2ffe7f40016a4af6ceb45d2999)), closes [#102](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/102) [#99](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/99)
+
+
+### 📝 Documentation
+
+* **gherkin-to-asciidoc:** add multi-project example demonstrating the indexing modes ([#100](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/100)) ([a0cd7a7](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/a0cd7a7c481fdd11079b77199a16c4b43c8b1104)), closes [#100](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/100)
+* **gherkin-to-asciidoc:** document the indexing property and the includeSubDirs/groupByFeature default changes ([#101](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/101)) ([9fe4afd](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/9fe4afd23b5ee85ab95f322e4115cc67129dd2ac)), closes [#101](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/101) [#99](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/99)
+
 # [2.0.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/v1.6.0...v2.0.0) (2026-08-04)
 
 
