@@ -173,6 +173,17 @@ public abstract class GenerateFeatureDocsTask extends DefaultTask {
     public abstract Property<IndexingMode> getIndexing();
 
     /**
+     * Whether {@link #getIndexing()} renumbers every {@code Feature}/{@code Scenario} from scratch,
+     * or only the ones not already correctly numbered for the currently configured
+     * {@link IndexingMode}. Has no effect when {@link #getIndexing()} is {@link IndexingMode#OFF}
+     * or {@link IndexingMode#CI}.
+     *
+     * @return mutable boolean property controlling whether existing numbering is preserved
+     */
+    @Input
+    public abstract Property<Boolean> getForceRewrite();
+
+    /**
      * Root directory of the project, used to resolve the default source directory
      * when neither {@link #getSourceDirs()} nor {@link #getSourceFile()} is set.
      *
@@ -244,7 +255,7 @@ public abstract class GenerateFeatureDocsTask extends DefaultTask {
         // CI skips indexing entirely - the feature files are left completely untouched, not even
         // to strip numbering left over from a previous run, unlike OFF.
         if (indexing != IndexingMode.CI) {
-            new FeatureIndexer().reindex(featureFiles, indexing);
+            new FeatureIndexer().reindex(featureFiles, indexing, getForceRewrite().get());
         }
 
         List<ScenarioInfo> scenarios = new ArrayList<>();

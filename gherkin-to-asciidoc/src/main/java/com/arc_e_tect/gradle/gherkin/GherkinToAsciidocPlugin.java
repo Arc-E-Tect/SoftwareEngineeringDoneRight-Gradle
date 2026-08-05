@@ -36,6 +36,7 @@ import java.util.Locale;
  *   <li>Output directory: {@code build/generated-docs}</li>
  *   <li>Output file name: {@code features.adoc}</li>
  *   <li>Indexing: {@code off}</li>
+ *   <li>Force rewrite: {@code false}</li>
  * </ul>
  *
  * <h2>Multi-project builds</h2>
@@ -60,11 +61,13 @@ import java.util.Locale;
  * own build output rather than colliding with another project's. Set these explicitly on a
  * specific project to relocate that project's report.</p>
  *
- * <h2>Overriding {@code indexing} from the command line</h2>
- * <p>The {@code -PgherkinToAsciidoc.indexing=&lt;value&gt;} project property overrides {@code indexing}
- * for every project in the build, regardless of what any project's own {@code gherkinToAsciidoc { }}
- * block configures - typically set to {@code ci} in a CI pipeline so {@code generateFeatureDocs} never
- * mutates source {@code .feature} files there, without having to change the build script itself.</p>
+ * <h2>Overriding {@code indexing}/{@code forceRewrite} from the command line</h2>
+ * <p>The {@code -PgherkinToAsciidoc.indexing=&lt;value&gt;} and
+ * {@code -PgherkinToAsciidoc.forceRewrite=&lt;true|false&gt;} project properties each override their
+ * respective DSL property for every project in the build, regardless of what any project's own
+ * {@code gherkinToAsciidoc { }} block configures - {@code indexing} typically set to {@code ci} in a
+ * CI pipeline so {@code generateFeatureDocs} never mutates source {@code .feature} files there,
+ * without having to change the build script itself.</p>
  */
 public class GherkinToAsciidocPlugin implements Plugin<Project> {
 
@@ -87,12 +90,14 @@ public class GherkinToAsciidocPlugin implements Plugin<Project> {
             ext.getTemplate().convention(rootExt.getTemplate());
             ext.getSystemUnderTestVersion().convention(rootExt.getSystemUnderTestVersion());
             ext.getIndexing().convention(rootExt.getIndexing());
+            ext.getForceRewrite().convention(rootExt.getForceRewrite());
         } else {
             ext.getTrackProgress().convention(false);
             ext.getOutputFileName().convention(GherkinToAsciidocExtension.DEFAULT_OUTPUT_FILE_NAME);
             ext.getSystemUnderTestVersion().convention(
                     project.provider(() -> String.valueOf(project.getVersion())));
             ext.getIndexing().convention(IndexingMode.OFF);
+            ext.getForceRewrite().convention(false);
         }
 
         // outputDir/snippetDir intentionally always default to this project's own build directory,
@@ -118,12 +123,16 @@ public class GherkinToAsciidocPlugin implements Plugin<Project> {
 
         Project rootProject = project.getRootProject();
 
-        // The -PgherkinToAsciidoc.indexing=<value> project property, when set, overrides indexing
-        // for every project in the build - regardless of what any project's own extension
-        // configures - typically used to force `ci` in a CI pipeline without touching build scripts.
+        // The -PgherkinToAsciidoc.indexing=<value> and -PgherkinToAsciidoc.forceRewrite=<true|false>
+        // project properties, when set, override indexing/forceRewrite for every project in the
+        // build - regardless of what any project's own extension configures - typically used to
+        // force `ci` in a CI pipeline without touching build scripts.
         Provider<IndexingMode> indexingCliOverride = project.getProviders()
                 .gradleProperty(GherkinToAsciidocExtension.INDEXING_OVERRIDE_PROPERTY)
                 .map(GherkinToAsciidocPlugin::parseIndexingMode);
+        Provider<Boolean> forceRewriteCliOverride = project.getProviders()
+                .gradleProperty(GherkinToAsciidocExtension.FORCE_REWRITE_OVERRIDE_PROPERTY)
+                .map(GherkinToAsciidocPlugin::parseForceRewrite);
 
         project.getTasks().register(TASK_NAME, GenerateFeatureDocsTask.class, task -> {
             wireSourceLocation(project, rootProject, ext, rootExt, task);
@@ -137,6 +146,7 @@ public class GherkinToAsciidocPlugin implements Plugin<Project> {
             task.getTemplate().set(ext.getTemplate());
             task.getSystemUnderTestVersion().set(ext.getSystemUnderTestVersion());
             task.getIndexing().set(indexingCliOverride.orElse(ext.getIndexing()));
+            task.getForceRewrite().set(forceRewriteCliOverride.orElse(ext.getForceRewrite()));
             task.getProjectDirectory().set(project.getLayout().getProjectDirectory());
         });
     }
@@ -155,6 +165,24 @@ public class GherkinToAsciidocPlugin implements Plugin<Project> {
                     + GherkinToAsciidocExtension.INDEXING_OVERRIDE_PROPERTY
                     + "; expected one of: off, feature, scenario, all, ci");
         }
+    }
+
+    /**
+     * Parses the {@code -PgherkinToAsciidoc.forceRewrite=<value>} project property's value,
+     * accepting {@code true}/{@code false} case-insensitively.
+     */
+    private static boolean parseForceRewrite(String value) {
+        String normalized = value.trim().toLowerCase(Locale.ROOT);
+        if ("true".equals(normalized)) {
+            return true;
+        }
+        if ("false".equals(normalized)) {
+            return false;
+        }
+        throw new GradleException(
+                "gherkinToAsciidoc: invalid value '" + value + "' for -P"
+                + GherkinToAsciidocExtension.FORCE_REWRITE_OVERRIDE_PROPERTY
+                + "; expected 'true' or 'false'");
     }
 
     /**

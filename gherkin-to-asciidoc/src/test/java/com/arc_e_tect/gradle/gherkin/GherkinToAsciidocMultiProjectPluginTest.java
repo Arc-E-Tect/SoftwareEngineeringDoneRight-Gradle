@@ -250,6 +250,27 @@ class GherkinToAsciidocMultiProjectPluginTest {
         assertThat(extension(sub).getIndexing().get()).isEqualTo(IndexingMode.OFF);
     }
 
+    @Test
+    @DisplayName("sub-project without its own configuration inherits forceRewrite from the root project")
+    void subProjectInheritsForceRewriteFromRoot() {
+        Project root = rootProject();
+        extension(root).getForceRewrite().set(true);
+        Project sub = subProject(root, "sub");
+
+        assertThat(extension(sub).getForceRewrite().get()).isTrue();
+    }
+
+    @Test
+    @DisplayName("sub-project's own forceRewrite takes precedence over the root project's")
+    void subProjectForceRewriteOverridesRoot() {
+        Project root = rootProject();
+        extension(root).getForceRewrite().set(true);
+        Project sub = subProject(root, "sub");
+        extension(sub).getForceRewrite().set(false);
+
+        assertThat(extension(sub).getForceRewrite().get()).isFalse();
+    }
+
     // --- helpers ---
 
     private Project rootProject() {
