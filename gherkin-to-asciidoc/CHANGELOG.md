@@ -1,3 +1,20 @@
+# [3.0.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/v2.1.0...v3.0.0) (2026-08-05)
+
+
+### ✨ New and updated features
+
+* **gherkin-to-asciidoc:** add forceRewrite to skip renumbering already-numbered lines ([#103](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/103)) ([48a74de](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/48a74decfe2c73dfdefca747a65922756820984a)), closes [#103](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/103)
+
+
+### BREAKING CHANGE
+
+* **gherkin-to-asciidoc:** indexing's default numbering behaviour changes.
+Previously every generateFeatureDocs run fully renumbered every
+Feature/Scenario from scratch; by default it now preserves numbers
+that already match the current indexing value's format instead. Set
+forceRewrite = true (or -PgherkinToAsciidoc.forceRewrite=true) to
+keep the old always-renumber-everything behaviour.
+
 # [2.1.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/v2.0.0...v2.1.0) (2026-08-05)
 
 
