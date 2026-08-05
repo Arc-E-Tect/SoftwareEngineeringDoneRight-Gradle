@@ -27,7 +27,7 @@ class FeatureIndexerTest {
         File file = writeFeature("authentication.feature",
                 "Feature: User authentication\n\n  Scenario: User logs in\n    Given a user\n");
 
-        indexer.reindex(List.of(file), IndexingMode.OFF);
+        indexer.reindex(List.of(file), IndexingMode.OFF, false);
 
         assertThat(content(file))
                 .contains("Feature: User authentication")
@@ -42,7 +42,7 @@ class FeatureIndexerTest {
         File invoice = writeFeature("invoice.feature",
                 "Feature: Invoice payment\n\n  Scenario: User pays an invoice\n    Given an invoice\n");
 
-        indexer.reindex(List.of(auth, invoice), IndexingMode.FEATURE);
+        indexer.reindex(List.of(auth, invoice), IndexingMode.FEATURE, false);
 
         assertThat(content(auth))
                 .contains("Feature: 1 - User authentication")
@@ -67,7 +67,7 @@ class FeatureIndexerTest {
         File invoice = writeFeature("invoice.feature",
                 "Feature: Invoice payment\n\n  Scenario: User pays an invoice\n    Given an invoice\n");
 
-        indexer.reindex(List.of(auth, invoice), IndexingMode.SCENARIO);
+        indexer.reindex(List.of(auth, invoice), IndexingMode.SCENARIO, false);
 
         assertThat(content(auth))
                 .contains("Feature: User authentication")
@@ -93,7 +93,7 @@ class FeatureIndexerTest {
         File invoice = writeFeature("invoice.feature",
                 "Feature: Invoice payment\n\n  Scenario: User pays an invoice\n    Given an invoice\n");
 
-        indexer.reindex(List.of(auth, invoice), IndexingMode.ALL);
+        indexer.reindex(List.of(auth, invoice), IndexingMode.ALL, false);
 
         assertThat(content(auth))
                 .contains("Feature: 1 - User authentication")
@@ -113,7 +113,7 @@ class FeatureIndexerTest {
                 "Feature: A Feature\n\n  Scenario: A scenario\n    Given a\n");
 
         // Given in z-then-a order: the caller (not the indexer) is responsible for ordering.
-        indexer.reindex(List.of(zFile, aFile), IndexingMode.FEATURE);
+        indexer.reindex(List.of(zFile, aFile), IndexingMode.FEATURE, false);
 
         assertThat(content(zFile)).contains("Feature: 1 - Z Feature");
         assertThat(content(aFile)).contains("Feature: 2 - A Feature");
@@ -133,7 +133,7 @@ class FeatureIndexerTest {
                       | admin |
                 """);
 
-        indexer.reindex(List.of(file), IndexingMode.ALL);
+        indexer.reindex(List.of(file), IndexingMode.ALL, false);
 
         assertThat(content(file)).contains("Scenario Outline: 1.1 - User logs in with <role>");
     }
@@ -150,7 +150,7 @@ class FeatureIndexerTest {
                       Given a premium user
                 """);
 
-        indexer.reindex(List.of(file), IndexingMode.SCENARIO);
+        indexer.reindex(List.of(file), IndexingMode.SCENARIO, false);
 
         assertThat(content(file)).contains("    Scenario: 1 - Premium user views protected page");
     }
@@ -162,9 +162,9 @@ class FeatureIndexerTest {
                 "Feature: User authentication\n\n  Scenario: User logs in\n    Given a user\n");
         File invoice = writeFeature("invoice.feature",
                 "Feature: Invoice payment\n\n  Scenario: User pays an invoice\n    Given an invoice\n");
-        indexer.reindex(List.of(auth, invoice), IndexingMode.ALL);
+        indexer.reindex(List.of(auth, invoice), IndexingMode.ALL, false);
 
-        indexer.reindex(List.of(auth, invoice), IndexingMode.OFF);
+        indexer.reindex(List.of(auth, invoice), IndexingMode.OFF, false);
 
         assertThat(content(auth))
                 .contains("Feature: User authentication")
@@ -181,10 +181,10 @@ class FeatureIndexerTest {
     void switchingModesReplacesNumbering() throws IOException {
         File auth = writeFeature("authentication.feature",
                 "Feature: User authentication\n\n  Scenario: User logs in\n    Given a user\n");
-        indexer.reindex(List.of(auth), IndexingMode.SCENARIO);
+        indexer.reindex(List.of(auth), IndexingMode.SCENARIO, false);
         assertThat(content(auth)).contains("Scenario: 1 - User logs in");
 
-        indexer.reindex(List.of(auth), IndexingMode.FEATURE);
+        indexer.reindex(List.of(auth), IndexingMode.FEATURE, false);
 
         assertThat(content(auth))
                 .contains("Feature: 1 - User authentication")
@@ -197,10 +197,10 @@ class FeatureIndexerTest {
     void reindexingWithSameModeIsIdempotent() throws IOException {
         File auth = writeFeature("authentication.feature",
                 "Feature: User authentication\n\n  Scenario: User logs in\n    Given a user\n");
-        indexer.reindex(List.of(auth), IndexingMode.ALL);
+        indexer.reindex(List.of(auth), IndexingMode.ALL, false);
         String firstPass = content(auth);
 
-        indexer.reindex(List.of(auth), IndexingMode.ALL);
+        indexer.reindex(List.of(auth), IndexingMode.ALL, false);
 
         assertThat(content(auth)).isEqualTo(firstPass);
     }
@@ -215,11 +215,128 @@ class FeatureIndexerTest {
                     Given a user with role "Scenario: not a keyword"
                 """);
 
-        indexer.reindex(List.of(file), IndexingMode.SCENARIO);
+        indexer.reindex(List.of(file), IndexingMode.SCENARIO, false);
 
         assertThat(content(file))
                 .contains("Scenario: 1 - User logs in")
                 .contains("Given a user with role \"Scenario: not a keyword\"");
+    }
+
+    // --- forceRewrite = false (default): preserve already-correctly-numbered lines ---
+
+    @Test
+    @DisplayName("forceRewrite false: a new alphabetically-earlier file does not steal an already-numbered "
+            + "file's number")
+    void unpinnedFileDoesNotStealAlreadyNumberedFilesNumber() throws IOException {
+        File zFile = writeFeature("z.feature",
+                "Feature: 1 - Z Feature\n\n  Scenario: Z scenario\n    Given z\n");
+        File aFile = writeFeature("a.feature",
+                "Feature: A Feature\n\n  Scenario: A scenario\n    Given a\n");
+
+        // Given in correct alphabetical order: a before z.
+        indexer.reindex(List.of(aFile, zFile), IndexingMode.FEATURE, false);
+
+        assertThat(content(zFile)).contains("Feature: 1 - Z Feature");
+        assertThat(content(aFile)).contains("Feature: 2 - A Feature");
+    }
+
+    @Test
+    @DisplayName("forceRewrite true: an already-numbered file is renumbered to fit alphabetical order, "
+            + "same as before this property existed")
+    void forceRewriteTrueRenumbersEverythingFromScratch() throws IOException {
+        File zFile = writeFeature("z.feature",
+                "Feature: 1 - Z Feature\n\n  Scenario: Z scenario\n    Given z\n");
+        File aFile = writeFeature("a.feature",
+                "Feature: A Feature\n\n  Scenario: A scenario\n    Given a\n");
+
+        indexer.reindex(List.of(aFile, zFile), IndexingMode.FEATURE, true);
+
+        assertThat(content(aFile)).contains("Feature: 1 - A Feature");
+        assertThat(content(zFile)).contains("Feature: 2 - Z Feature");
+    }
+
+    @Test
+    @DisplayName("forceRewrite false: a scenario number in the wrong format for the current mode is "
+            + "renumbered, e.g. switching from SCENARIO to ALL")
+    void scenarioNumberNotMatchingNewModeFormatIsRenumbered() throws IOException {
+        File file = writeFeature("authentication.feature",
+                "Feature: User authentication\n\n  Scenario: User logs in\n    Given a user\n");
+        indexer.reindex(List.of(file), IndexingMode.SCENARIO, false);
+        assertThat(content(file)).contains("Scenario: 1 - User logs in");
+
+        indexer.reindex(List.of(file), IndexingMode.ALL, false);
+
+        assertThat(content(file))
+                .contains("Feature: 1 - User authentication")
+                .contains("Scenario: 1.1 - User logs in")
+                .doesNotContain("Scenario: 1 -");
+    }
+
+    @Test
+    @DisplayName("forceRewrite false: a feature number left over from a mode that doesn't number features "
+            + "is stripped, e.g. switching from ALL to SCENARIO")
+    void featureNumberNotExpectedByNewModeIsStripped() throws IOException {
+        File file = writeFeature("authentication.feature",
+                "Feature: User authentication\n\n  Scenario: User logs in\n    Given a user\n");
+        indexer.reindex(List.of(file), IndexingMode.ALL, false);
+        assertThat(content(file)).contains("Feature: 1 - User authentication");
+
+        indexer.reindex(List.of(file), IndexingMode.SCENARIO, false);
+
+        assertThat(content(file))
+                .contains("Feature: User authentication")
+                .contains("Scenario: 1 - User logs in");
+    }
+
+    @Test
+    @DisplayName("forceRewrite false: an already-numbered scenario keeps its number; only the unnumbered "
+            + "one gets a fresh number, not colliding with the pinned one")
+    void pinnedScenarioKeepsItsNumberUnnumberedOneGetsNextAvailable() throws IOException {
+        File file = writeFeature("sample.feature", """
+                Feature: Sample
+
+                  Scenario: 5 - Already numbered
+                    Given a user
+
+                  Scenario: Not yet numbered
+                    Given a user
+                """);
+
+        indexer.reindex(List.of(file), IndexingMode.SCENARIO, false);
+
+        assertThat(content(file))
+                .contains("Scenario: 5 - Already numbered")
+                .contains("Scenario: 6 - Not yet numbered");
+    }
+
+    @Test
+    @DisplayName("forceRewrite false: re-running the same mode twice is idempotent, same as before this "
+            + "property existed")
+    void forceRewriteFalseIsIdempotentAcrossRuns() throws IOException {
+        File auth = writeFeature("authentication.feature",
+                "Feature: User authentication\n\n  Scenario: User logs in\n    Given a user\n");
+        indexer.reindex(List.of(auth), IndexingMode.ALL, false);
+        String firstPass = content(auth);
+
+        indexer.reindex(List.of(auth), IndexingMode.ALL, false);
+
+        assertThat(content(auth)).isEqualTo(firstPass);
+    }
+
+    @Test
+    @DisplayName("forceRewrite false: an ALL-mode scenario number matching a different feature number than "
+            + "its own resolved one is renumbered")
+    void scenarioNumberMismatchedWithOwnFeatureNumberIsRenumbered() throws IOException {
+        // "3.1" would only be pinned if this feature's own resolved number were 3 - it isn't (no
+        // other feature is numbered here, so this one resolves to 1), so it must be renumbered.
+        File file = writeFeature("sample.feature",
+                "Feature: Sample\n\n  Scenario: 3.1 - Stale scenario\n    Given g\n");
+
+        indexer.reindex(List.of(file), IndexingMode.ALL, false);
+
+        assertThat(content(file))
+                .contains("Feature: 1 - Sample")
+                .contains("Scenario: 1.1 - Stale scenario");
     }
 
     private File writeFeature(String name, String content) throws IOException {

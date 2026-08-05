@@ -22,11 +22,13 @@ import org.gradle.api.provider.Property;
  *     // template    = file('templates/report.mustache')                            // optional
  *     // systemUnderTestVersion = 'v1.0.0'          // optional; default: project.version
  *     indexing       = IndexingMode.OFF                                             // default; requires includeSubDirs = true
+ *     forceRewrite   = false                                                        // default; see getForceRewrite()
  * }
  * </pre>
  *
- * <p>{@code indexing} can be overridden for the whole build from the command line, e.g.
- * {@code -PgherkinToAsciidoc.indexing=ci} - see {@link #getIndexing()}.</p>
+ * <p>{@code indexing} and {@code forceRewrite} can each be overridden for the whole build from the
+ * command line, e.g. {@code -PgherkinToAsciidoc.indexing=ci} - see {@link #getIndexing()} and
+ * {@link #getForceRewrite()}.</p>
  */
 public abstract class GherkinToAsciidocExtension {
 
@@ -52,6 +54,14 @@ public abstract class GherkinToAsciidocExtension {
      * against {@link IndexingMode} enum constant names case-insensitively.
      */
     public static final String INDEXING_OVERRIDE_PROPERTY = "gherkinToAsciidoc.indexing";
+
+    /**
+     * Name of the Gradle project property that overrides {@link #getForceRewrite()} from the
+     * command line for every project in the build, e.g.
+     * {@code -PgherkinToAsciidoc.forceRewrite=true}. Takes precedence over any project's own
+     * configured {@code forceRewrite} value. The value is parsed as a boolean.
+     */
+    public static final String FORCE_REWRITE_OVERRIDE_PROPERTY = "gherkinToAsciidoc.forceRewrite";
 
     /**
      * Source directories that contain the {@code .feature} files to process. One or more
@@ -184,10 +194,10 @@ public abstract class GherkinToAsciidocExtension {
      * configured), that directory's own feature files first - alphabetically by file name - and only
      * then, when {@link #getIncludeSubDirs()} is {@code true}, its sub-directories' files, each
      * sub-directory visited the same way, alphabetically by name. Scenario numbers additionally
-     * follow document order within each file. Changing this property rewrites the source
-     * {@code .feature} files: any numbering left over from a previous run is removed first, then
-     * fresh numbering is applied for the new mode - including removing all numbering when set back
-     * to {@link IndexingMode#OFF}.</p>
+     * follow document order within each file. A line whose existing number already reflects the
+     * currently configured mode is left untouched, rather than being renumbered to fit that
+     * processing order - see {@link #getForceRewrite()} for exactly what "reflects the currently
+     * configured mode" means and how to opt out of it.</p>
      *
      * <p>{@link IndexingMode#OFF} and {@link IndexingMode#CI} are always allowed.
      * {@link IndexingMode#FEATURE}, {@link IndexingMode#SCENARIO}, and {@link IndexingMode#ALL} are
@@ -204,4 +214,41 @@ public abstract class GherkinToAsciidocExtension {
      * @return mutable property for the indexing mode
      */
     public abstract Property<IndexingMode> getIndexing();
+
+    /**
+     * Whether {@link #getIndexing()} renumbers every {@code Feature}/{@code Scenario} from scratch
+     * (ignoring any existing numbers), or only numbers the ones that aren't already correctly
+     * numbered for the currently configured {@link IndexingMode}. Defaults to {@code false}. Has
+     * no effect when {@link #getIndexing()} is {@link IndexingMode#OFF} (which always strips every
+     * number, regardless) or {@link IndexingMode#CI} (which never touches anything, regardless).
+     *
+     * <ul>
+     *   <li>{@code true} - every {@code Feature}/{@code Scenario} number is recomputed from
+     *       scratch, exactly as if none of them had ever been numbered before - the same behaviour
+     *       as before this property existed.</li>
+     *   <li>{@code false} (default) - a line whose existing number already matches the format
+     *       {@link #getIndexing()}'s mode would itself produce is left completely untouched: for a
+     *       {@code Feature}, a single integer; for a {@code Scenario}/{@code Scenario Outline},
+     *       either a single integer ({@link IndexingMode#SCENARIO}) or
+     *       {@code <featureNumber>.<n>} matching that scenario's own feature's number
+     *       ({@link IndexingMode#ALL}). Every other numbered line - the wrong format, or a leftover
+     *       from a previously configured, different {@code indexing} value - is stripped and
+     *       renumbered, same as {@code true}. A newly added feature file that happens to sort
+     *       alphabetically before already-numbered files is given the next number not already in
+     *       use, rather than bumping every already-numbered file after it.</li>
+     * </ul>
+     *
+     * <p>For example, with {@code indexing = IndexingMode.SCENARIO} and {@code forceRewrite = false},
+     * a {@code Scenario} already reading {@code Scenario: 3 - ...} keeps that number. Changing
+     * {@code indexing} to {@link IndexingMode#ALL} affords that same scenario a fresh number - its
+     * old {@code 3} doesn't match {@code ALL}'s {@code <featureNumber>.<n>} format, so it no longer
+     * "reflects" the currently configured mode.</p>
+     *
+     * <p>The {@value #FORCE_REWRITE_OVERRIDE_PROPERTY} project property, when set (e.g.
+     * {@code -PgherkinToAsciidoc.forceRewrite=true}), overrides this property for every project in
+     * the build regardless of what any project configures here.</p>
+     *
+     * @return mutable boolean property controlling whether existing numbering is preserved
+     */
+    public abstract Property<Boolean> getForceRewrite();
 }

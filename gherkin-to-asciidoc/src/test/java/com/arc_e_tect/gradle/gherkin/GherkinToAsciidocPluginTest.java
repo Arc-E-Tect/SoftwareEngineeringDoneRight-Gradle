@@ -160,6 +160,15 @@ class GherkinToAsciidocPluginTest {
     }
 
     @Test
+    @DisplayName("extension default: forceRewrite is false")
+    void extensionDefaultForceRewriteIsFalse() {
+        Project project = projectWithPlugin();
+        GherkinToAsciidocExtension ext = extension(project);
+
+        assertThat(ext.getForceRewrite().get()).isFalse();
+    }
+
+    @Test
     @DisplayName("generates features.adoc from a flat source directory")
     void generatesAsciidocFromFlatDirectory() throws IOException {
         Project project = projectWithPlugin();
@@ -1018,6 +1027,128 @@ class GherkinToAsciidocPluginTest {
                 .hasRootCauseInstanceOf(org.gradle.api.GradleException.class)
                 .hasRootCauseMessage("gherkinToAsciidoc: invalid value 'bogus' for -PgherkinToAsciidoc.indexing; "
                         + "expected one of: off, feature, scenario, all, ci");
+    }
+
+    @Test
+    @DisplayName("forceRewrite default (false): a new alphabetically-earlier feature file added on a later "
+            + "run does not renumber an already-numbered file")
+    void forceRewriteDefaultDoesNotRenumberOnLaterRun() throws IOException {
+        Project project = projectWithPlugin();
+        File featuresDir = new File(tempDir.toFile(), "features");
+        featuresDir.mkdirs();
+        writeFeatureFile(featuresDir, "z.feature",
+                "Feature: Z Feature\n\n  Scenario: Z scenario\n    Given z\n");
+        File outputDir = new File(tempDir.toFile(), "output");
+
+        GenerateFeatureDocsTask firstRun = task(project);
+        firstRun.getSourceDirs().from(featuresDir);
+        firstRun.getIndexing().set(IndexingMode.FEATURE);
+        firstRun.getOutputDir().set(outputDir);
+        firstRun.getProjectDirectory().set(project.getLayout().getProjectDirectory());
+        firstRun.generate();
+        assertThat(Files.readString(featuresDir.toPath().resolve("z.feature")))
+                .contains("Feature: 1 - Z Feature");
+
+        // A new file that sorts alphabetically before z.feature is added on a later run.
+        writeFeatureFile(featuresDir, "a.feature",
+                "Feature: A Feature\n\n  Scenario: A scenario\n    Given a\n");
+
+        GenerateFeatureDocsTask secondRun = task(project);
+        secondRun.getSourceDirs().from(featuresDir);
+        secondRun.getIndexing().set(IndexingMode.FEATURE);
+        secondRun.getOutputDir().set(outputDir);
+        secondRun.getProjectDirectory().set(project.getLayout().getProjectDirectory());
+        secondRun.generate();
+
+        assertThat(Files.readString(featuresDir.toPath().resolve("z.feature")))
+                .contains("Feature: 1 - Z Feature");
+        assertThat(Files.readString(featuresDir.toPath().resolve("a.feature")))
+                .contains("Feature: 2 - A Feature");
+    }
+
+    @Test
+    @DisplayName("forceRewrite true: a new alphabetically-earlier feature file added on a later run "
+            + "renumbers the already-numbered file to fit alphabetical order")
+    void forceRewriteTrueRenumbersOnLaterRun() throws IOException {
+        Project project = projectWithPlugin();
+        File featuresDir = new File(tempDir.toFile(), "features");
+        featuresDir.mkdirs();
+        writeFeatureFile(featuresDir, "z.feature",
+                "Feature: Z Feature\n\n  Scenario: Z scenario\n    Given z\n");
+        File outputDir = new File(tempDir.toFile(), "output");
+
+        GenerateFeatureDocsTask firstRun = task(project);
+        firstRun.getSourceDirs().from(featuresDir);
+        firstRun.getIndexing().set(IndexingMode.FEATURE);
+        firstRun.getForceRewrite().set(true);
+        firstRun.getOutputDir().set(outputDir);
+        firstRun.getProjectDirectory().set(project.getLayout().getProjectDirectory());
+        firstRun.generate();
+
+        writeFeatureFile(featuresDir, "a.feature",
+                "Feature: A Feature\n\n  Scenario: A scenario\n    Given a\n");
+
+        GenerateFeatureDocsTask secondRun = task(project);
+        secondRun.getSourceDirs().from(featuresDir);
+        secondRun.getIndexing().set(IndexingMode.FEATURE);
+        secondRun.getForceRewrite().set(true);
+        secondRun.getOutputDir().set(outputDir);
+        secondRun.getProjectDirectory().set(project.getLayout().getProjectDirectory());
+        secondRun.generate();
+
+        assertThat(Files.readString(featuresDir.toPath().resolve("a.feature")))
+                .contains("Feature: 1 - A Feature");
+        assertThat(Files.readString(featuresDir.toPath().resolve("z.feature")))
+                .contains("Feature: 2 - Z Feature");
+    }
+
+    @Test
+    @DisplayName("the -PgherkinToAsciidoc.forceRewrite project property overrides forceRewrite regardless "
+            + "of the configured value")
+    void cliPropertyOverridesConfiguredForceRewrite() throws IOException {
+        Files.writeString(tempDir.resolve("gradle.properties"), "gherkinToAsciidoc.forceRewrite=true\n");
+        Project project = projectWithPlugin();
+        File featuresDir = new File(tempDir.toFile(), "features");
+        featuresDir.mkdirs();
+        writeFeatureFile(featuresDir, "z.feature",
+                "Feature: 1 - Z Feature\n\n  Scenario: Z scenario\n    Given z\n");
+        writeFeatureFile(featuresDir, "a.feature",
+                "Feature: A Feature\n\n  Scenario: A scenario\n    Given a\n");
+
+        GenerateFeatureDocsTask task = task(project);
+        task.getSourceDirs().from(featuresDir);
+        task.getIndexing().set(IndexingMode.FEATURE);
+        // Configured to false, but the CLI override must win.
+        extension(project).getForceRewrite().set(false);
+        task.getOutputDir().set(new File(tempDir.toFile(), "output"));
+        task.getProjectDirectory().set(project.getLayout().getProjectDirectory());
+        task.generate();
+
+        assertThat(task.getForceRewrite().get()).isTrue();
+        assertThat(Files.readString(featuresDir.toPath().resolve("a.feature")))
+                .contains("Feature: 1 - A Feature");
+        assertThat(Files.readString(featuresDir.toPath().resolve("z.feature")))
+                .contains("Feature: 2 - Z Feature");
+    }
+
+    @Test
+    @DisplayName("an invalid -PgherkinToAsciidoc.forceRewrite value throws a descriptive GradleException")
+    void cliPropertyInvalidForceRewriteValueThrowsDescriptiveError() throws IOException {
+        Files.writeString(tempDir.resolve("gradle.properties"), "gherkinToAsciidoc.forceRewrite=maybe\n");
+        Project project = projectWithPlugin();
+        File featuresDir = new File(tempDir.toFile(), "features");
+        featuresDir.mkdirs();
+        writeFeatureFile(featuresDir, "sample.feature", "Feature: Sample\n\n  Scenario: A scenario\n    Given g\n");
+
+        GenerateFeatureDocsTask task = task(project);
+        task.getSourceDirs().from(featuresDir);
+        task.getOutputDir().set(new File(tempDir.toFile(), "output"));
+        task.getProjectDirectory().set(project.getLayout().getProjectDirectory());
+
+        assertThatThrownBy(task::generate)
+                .hasRootCauseInstanceOf(org.gradle.api.GradleException.class)
+                .hasRootCauseMessage("gherkinToAsciidoc: invalid value 'maybe' for "
+                        + "-PgherkinToAsciidoc.forceRewrite; expected 'true' or 'false'");
     }
 
     // --- helpers ---

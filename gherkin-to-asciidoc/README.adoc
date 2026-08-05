@@ -133,6 +133,12 @@ gherkinToAsciidoc {
     // require groupByFeature = true.
     // Default: IndexingMode.OFF
     indexing = IndexingMode.OFF
+
+    // When true, indexing renumbers every Feature/Scenario from scratch. When false, a line
+    // whose existing number already reflects the currently configured indexing value is left
+    // untouched - only lines that aren't yet correctly numbered are numbered.
+    // Default: false
+    forceRewrite = false
 }
 ----
 
@@ -153,6 +159,7 @@ gherkinToAsciidoc {
     // template.set(file("templates/report.mustache"))
     // systemUnderTestVersion.set("v1.0.0")
     indexing.set(IndexingMode.OFF)
+    forceRewrite.set(false)
 }
 ----
 
@@ -182,6 +189,8 @@ Only consulted when `trackProgress` is `true`.
 | `systemUnderTestVersion` | String | the project's `version`             | Version of the system under test that the reported scenarios exercise, printed near the top of the generated document (see "System Under Test Version" below).
 | `indexing`      | `IndexingMode` (`OFF`/`FEATURE`/`SCENARIO`/`ALL`/`CI`) | `OFF` | Numbers `Feature`/`Scenario` titles directly in the source `.feature` files (see "Numbering Features and Scenarios" below).
 `FEATURE`/`SCENARIO`/`ALL` require `includeSubDirs = true`; `FEATURE` and `ALL` additionally require `groupByFeature = true`. `CI` skips indexing entirely and is always allowed; overridable for the whole build via the `-PgherkinToAsciidoc.indexing` project property.
+| `forceRewrite`  | Boolean         | `false`                              | When `true`, `indexing` renumbers every `Feature`/`Scenario` from scratch. When `false`, a line already correctly numbered for the currently configured `indexing` value is left untouched.
+Has no effect when `indexing` is `OFF` or `CI`. Overridable for the whole build via the `-PgherkinToAsciidoc.forceRewrite` project property.
 |===
 
 [IMPORTANT]
@@ -204,10 +213,11 @@ to be `true`; `FEATURE` and `ALL` additionally require `groupByFeature` to be `t
 `groupByFeature = false`, only `SCENARIO` of those three is allowed. Setting an invalid combination fails
 `generateFeatureDocs` with a descriptive error.
 
-The `-PgherkinToAsciidoc.indexing=<value>` project property, when set, overrides `indexing` for every
-project in the build regardless of what any project's own `gherkinToAsciidoc { }` block configures - see
-"Overriding `indexing` from the Command Line" below. An unrecognised value fails `generateFeatureDocs` with
-a descriptive error too.
+The `-PgherkinToAsciidoc.indexing=<value>` and `-PgherkinToAsciidoc.forceRewrite=<true|false>` project
+properties, when set, each override their respective DSL property for every project in the build
+regardless of what any project's own `gherkinToAsciidoc { }` block configures - see "Overriding
+`indexing`/`forceRewrite` from the Command Line" below. An unrecognised value fails `generateFeatureDocs`
+with a descriptive error too.
 ====
 
 == Running the Task
@@ -262,8 +272,12 @@ sub-project that inherits or sets `trackProgress = true` still needs its own `gl
 | `indexing`
 | Inherited from the root project by default; a sub-project can override it independently, subject to
 the usual `includeSubDirs`/`groupByFeature` validation constraints for whichever value is in effect. The
-`-PgherkinToAsciidoc.indexing` command-line override (see "Overriding `indexing` from the Command Line"
-above) takes precedence over both, for every project in the build at once.
+`-PgherkinToAsciidoc.indexing` command-line override (see "Overriding `indexing`/`forceRewrite` from the
+Command Line" above) takes precedence over both, for every project in the build at once.
+| `forceRewrite`
+| Inherited from the root project by default; a sub-project can override it independently. The
+`-PgherkinToAsciidoc.forceRewrite` command-line override takes precedence over both, for every project in
+the build at once.
 | `outputFileName`
 | Inherited from the root project by default.
 | `template`
@@ -446,7 +460,7 @@ a Cucumber test run, ...), not only in `generateFeatureDocs`'s own output.
 | `FEATURE`  | Every feature is numbered, e.g. `Feature: 1 - User authentication`. Scenario titles are untouched.
 | `SCENARIO` | Every scenario is numbered continuously across all feature files, e.g. `Scenario: 1 - User logs in`. Feature titles are untouched.
 | `ALL`      | Both are numbered; scenarios are numbered per feature as `<featureNumber>.<scenarioNumber>`, e.g. `Scenario: 1.1 - User logs in` within `Feature: 1 - User authentication`.
-| `CI`       | Indexing is skipped entirely: the source files aren't touched at all - unlike `OFF`, not even to strip prior numbering. See "Overriding `indexing` from the Command Line" below.
+| `CI`       | Indexing is skipped entirely: the source files aren't touched at all - unlike `OFF`, not even to strip prior numbering. See "Overriding `indexing`/`forceRewrite` from the Command Line" below.
 |===
 
 Feature files are processed - and numbered - in the same order the generated report lists them in: for each
@@ -513,14 +527,55 @@ and the generated report reflects the same numbering, since it's parsed from the
 
 [IMPORTANT]
 ====
-Changing `indexing` - including setting it back to `OFF` - rewrites the source `.feature` files on the next
-`generateFeatureDocs` run: any numbering left over from a previous run is stripped first, then fresh
-numbering is applied for the new mode. This makes the operation idempotent (re-running with the same mode is
-a no-op once the files are already correctly numbered), but it does mean the task mutates files that are also
-its own inputs - commit the resulting numbered `.feature` files like any other source change.
+`indexing` mutates files that are also its own inputs - commit the resulting numbered `.feature` files like
+any other source change.
 ====
 
-=== Overriding `indexing` from the Command Line
+=== Not Renumbering Already-Numbered Lines (`forceRewrite`)
+
+By default (`forceRewrite = false`), a `Feature`/`Scenario` line whose existing number already matches the
+format the currently configured `indexing` value would itself produce is left completely untouched - only
+lines that aren't yet correctly numbered are numbered. Continuing the `ALL`-mode example above, adding a
+third feature file that sorts alphabetically *before* `authentication.feature` does *not* renumber the
+two files already numbered `1`/`2`:
+
+[source,gherkin]
+----
+Feature: Access control
+----
+
+[source,asciidoc]
+----
+== 3 - Access control
+
+== 1 - User authentication
+
+* Scenario: 1.1 - User requests a password reset
+* Scenario: 1.2 - User logs in successfully
+
+== 2 - Invoice payment
+
+* Scenario: 2.1 - User pays an invoice
+----
+
+The new feature is numbered `3` - the next number not already in use - rather than `1`, which would have
+required renumbering the two already-numbered files after it. Re-running `generateFeatureDocs` with no
+further changes is a complete no-op: every line is already correctly numbered, so nothing is rewritten.
+
+Numbering isn't preserved *unconditionally*, though - only when it already reflects the *currently
+configured* `indexing` value. A number left over from a *different* `indexing` value doesn't reflect the
+current one, and is still stripped and replaced. For example, with `indexing = IndexingMode.SCENARIO`, a
+scenario already reading `Scenario: 3 - ...` keeps that number - but changing `indexing` to
+`IndexingMode.ALL` gives that same scenario a fresh `<featureNumber>.<n>` number instead, since its old `3`
+doesn't match `ALL`'s format. Setting `indexing` back to `OFF` still always strips every number,
+regardless of `forceRewrite`, since `OFF`'s canonical state for every line is unnumbered.
+
+Setting `forceRewrite = true` instead restores the original behaviour (present before `forceRewrite`
+existed): every `Feature`/`Scenario` number is recomputed from scratch on every run, exactly as if none of
+them had ever been numbered before - the third feature file above would instead become `1`, bumping
+`authentication.feature`/`invoice.feature` to `2`/`3`.
+
+=== Overriding `indexing`/`forceRewrite` from the Command Line
 
 A CI pipeline typically shouldn't have `generateFeatureDocs` rewrite committed `.feature` files during a
 build - a fresh checkout has no numbering to add, and a build that mutates its own source tree can leave a
@@ -540,6 +595,14 @@ CI without any source file ever being mutated there, with no change to the build
 property's value is matched against `IndexingMode` case-insensitively and accepts any of the five values
 (`off`, `feature`, `scenario`, `all`, `ci`), not just `ci` - useful for e.g. temporarily forcing a specific
 mode across an entire multi-project build without editing every sub-project's configuration.
+
+`-PgherkinToAsciidoc.forceRewrite=<true|false>` works the same way for `forceRewrite`, e.g. to force a full
+renumber for a single run without permanently setting `forceRewrite = true` in any build script:
+
+[source,bash]
+----
+./gradlew generateFeatureDocs -PgherkinToAsciidoc.forceRewrite=true
+----
 
 See the
 link:../examples/gherkin-to-asciidoc/indexing/README.adoc[indexing example]

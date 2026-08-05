@@ -24,11 +24,17 @@ This example shows:
 * That indexing rewrites the source `.feature` files in place, and that this is reflected
   automatically in the generated report, since the report is generated *from* the (now numbered)
   source files.
-* That running the build a second time is a no-op: indexing strips any numbering left over from a
-  previous run before reapplying it, so already-correctly-numbered files are left untouched.
-* That the `-PgherkinToAsciidoc.indexing=<value>` command-line override forces the same `indexing`
-  value onto every sub-project at once, regardless of what each one's own `build.gradle` configures -
-  typically used to force `ci` for the whole build in a CI pipeline.
+* That running the build a second time is a no-op: with the default `forceRewrite = false`, a line
+  whose number already reflects the currently configured `indexing` value is left completely untouched.
+* That a new feature file added later, even one that sorts alphabetically *before* already-numbered
+  files, does *not* renumber them - it's given the next number not already in use instead, so
+  existing numbers stay stable across runs. Setting `forceRewrite = true` (or the equivalent
+  `-PgherkinToAsciidoc.forceRewrite=true` override) instead recomputes every number from scratch on
+  every run, the way `indexing` always behaved before `forceRewrite` existed.
+* That the `-PgherkinToAsciidoc.indexing=<value>` and `-PgherkinToAsciidoc.forceRewrite=<true|false>`
+  command-line overrides each force the same value onto every sub-project at once, regardless of what
+  each one's own `build.gradle` configures - `indexing` typically used to force `ci` for the whole
+  build in a CI pipeline.
 
 == Project Layout
 
@@ -165,6 +171,35 @@ afterwards shows a clean working tree; only the five generated reports (still pr
 each project's pristine, un-numbered starting content) land under each sub-project's own `build/` directory.
 Run the plain `./gradlew generateFeatureDocs` afterwards to see `off/`, `feature/`, `scenario/`, and `all/`
 get numbered as normal - proving the override only affects the run it's passed to.
+
+=== Not renumbering already-numbered files (`forceRewrite`)
+
+Starting from a clean checkout, run the plain command once so `feature/` gets numbered normally, then add
+a new feature file that sorts alphabetically *before* the existing one and run it again:
+
+[source,bash]
+----
+./gradlew generateFeatureDocs
+cat > feature/src/test/resources/features-auth/access-control.feature <<'EOF'
+Feature: Access control
+
+  Scenario: Admin views the audit log
+    Given an admin user
+EOF
+./gradlew generateFeatureDocs
+----
+
+`feature/src/test/resources/features-auth/authentication.feature` still reads `Feature: 1 - User
+authentication` and `features-billing/invoice.feature` still reads `Feature: 2 - Invoice payment` -
+unchanged by the second run - while the new `access-control.feature` is numbered `Feature: 3 - Access
+control`, even though `access-control.feature` sorts alphabetically before `authentication.feature`. This
+is `forceRewrite`'s default (`false`): only lines not yet correctly numbered get numbered.
+
+Run `git checkout -- feature && rm feature/src/test/resources/features-auth/access-control.feature` to
+reset, then repeat the same steps but with `-PgherkinToAsciidoc.forceRewrite=true` on the second command
+instead - `authentication.feature` becomes `Feature: 2 -` and `invoice.feature` becomes `Feature: 3 -`,
+renumbered to make room for `access-control.feature` at `Feature: 1 -`, matching alphabetical order exactly
+as `indexing` always did before `forceRewrite` existed.
 
 == What To Expect
 
@@ -319,9 +354,10 @@ state of the source files, indexing or not:
 
 [NOTE]
 ====
-This example is pinned to `gherkin-to-asciidoc = "2.1.0"` in `gradle/libs.versions.toml` - the version the
-`ci` indexing value and the `-PgherkinToAsciidoc.indexing` command-line override are expected to release
-as (a purely additive change on top of `indexing`, itself released as `2.0.0`). Verified locally against
-the plugin's own source (via a temporary `includeBuild`, since removed) before pinning; won't build
-against the Gradle Plugin Portal until `2.1.0` is actually released.
+This example is pinned to `gherkin-to-asciidoc = "3.0.0"` in `gradle/libs.versions.toml` - the version the
+`forceRewrite` property (and the breaking change to `indexing`'s default numbering behaviour it ships
+alongside) is expected to release as. `indexing` itself released as `2.0.0`; its `ci` value and the
+`-PgherkinToAsciidoc.indexing` command-line override as the purely additive `2.1.0`. Verified locally
+against the plugin's own source (via a temporary `includeBuild`, since removed) before pinning; won't build
+against the Gradle Plugin Portal until `3.0.0` is actually released.
 ====
