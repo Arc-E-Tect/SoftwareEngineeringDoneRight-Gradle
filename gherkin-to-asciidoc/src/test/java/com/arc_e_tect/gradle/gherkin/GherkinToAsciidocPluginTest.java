@@ -15,6 +15,7 @@ import java.nio.file.Path;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @DisplayName("GherkinToAsciidocPlugin")
@@ -786,7 +787,7 @@ class GherkinToAsciidocPluginTest {
 
         assertThatThrownBy(task::generate)
                 .isInstanceOf(org.gradle.api.GradleException.class)
-                .hasMessageContaining("when groupByFeature is false, indexing can only be 'off' or 'scenario'");
+                .hasMessageContaining("when groupByFeature is false, indexing can only be 'off', 'ci', or 'scenario'");
     }
 
     @Test
@@ -806,7 +807,7 @@ class GherkinToAsciidocPluginTest {
 
         assertThatThrownBy(task::generate)
                 .isInstanceOf(org.gradle.api.GradleException.class)
-                .hasMessageContaining("when groupByFeature is false, indexing can only be 'off' or 'scenario'");
+                .hasMessageContaining("when groupByFeature is false, indexing can only be 'off', 'ci', or 'scenario'");
     }
 
     @Test
@@ -927,6 +928,96 @@ class GherkinToAsciidocPluginTest {
                 .contains("Scenario: A scenario")
                 .doesNotContain("1 -")
                 .doesNotContain("1.1 -");
+    }
+
+    @Test
+    @DisplayName("indexing CI leaves feature files completely untouched, even numbering left over from a previous run")
+    void indexingCiLeavesFilesCompletelyUntouched() throws IOException {
+        Project project = projectWithPlugin();
+        File featuresDir = new File(tempDir.toFile(), "features");
+        featuresDir.mkdirs();
+        // Simulates numbering left over from an earlier ALL-mode run.
+        writeFeatureFile(featuresDir, "sample.feature",
+                "Feature: 1 - Sample\n\n  Scenario: 1.1 - A scenario\n    Given g\n");
+        String before = Files.readString(featuresDir.toPath().resolve("sample.feature"));
+        File outputDir = new File(tempDir.toFile(), "output");
+
+        GenerateFeatureDocsTask task = task(project);
+        task.getSourceDirs().from(featuresDir);
+        task.getIndexing().set(IndexingMode.CI);
+        task.getOutputDir().set(outputDir);
+        task.getProjectDirectory().set(project.getLayout().getProjectDirectory());
+        task.generate();
+
+        // Unlike OFF, CI does not even strip prior numbering - the file is byte-for-byte unchanged.
+        assertThat(Files.readString(featuresDir.toPath().resolve("sample.feature"))).isEqualTo(before);
+        String content = Files.readString(new File(outputDir, "features.adoc").toPath());
+        assertThat(content).contains("* Scenario: 1.1 - A scenario");
+    }
+
+    @Test
+    @DisplayName("indexing CI is allowed even when includeSubDirs and groupByFeature are both false")
+    void indexingCiAllowedRegardlessOfIncludeSubDirsAndGroupByFeature() throws IOException {
+        Project project = projectWithPlugin();
+        File featuresDir = new File(tempDir.toFile(), "features");
+        featuresDir.mkdirs();
+        writeFeatureFile(featuresDir, "sample.feature", "Feature: Sample\n\n  Scenario: A scenario\n    Given g\n");
+
+        GenerateFeatureDocsTask task = task(project);
+        task.getSourceDirs().from(featuresDir);
+        task.getIncludeSubDirs().set(false);
+        task.getGroupByFeature().set(false);
+        task.getIndexing().set(IndexingMode.CI);
+        task.getOutputDir().set(new File(tempDir.toFile(), "output"));
+        task.getProjectDirectory().set(project.getLayout().getProjectDirectory());
+
+        assertThatCode(task::generate).doesNotThrowAnyException();
+    }
+
+    @Test
+    @DisplayName("the -PgherkinToAsciidoc.indexing project property overrides indexing regardless of the configured value")
+    void cliPropertyOverridesConfiguredIndexing() throws IOException {
+        Files.writeString(tempDir.resolve("gradle.properties"), "gherkinToAsciidoc.indexing=ci\n");
+        Project project = projectWithPlugin();
+        File featuresDir = new File(tempDir.toFile(), "features");
+        featuresDir.mkdirs();
+        writeFeatureFile(featuresDir, "sample.feature",
+                "Feature: 1 - Sample\n\n  Scenario: 1.1 - A scenario\n    Given g\n");
+        String before = Files.readString(featuresDir.toPath().resolve("sample.feature"));
+
+        GenerateFeatureDocsTask task = task(project);
+        task.getSourceDirs().from(featuresDir);
+        // Configured to ALL, but the CLI override must win.
+        extension(project).getIndexing().set(IndexingMode.ALL);
+        task.getOutputDir().set(new File(tempDir.toFile(), "output"));
+        task.getProjectDirectory().set(project.getLayout().getProjectDirectory());
+        task.generate();
+
+        assertThat(task.getIndexing().get()).isEqualTo(IndexingMode.CI);
+        assertThat(Files.readString(featuresDir.toPath().resolve("sample.feature"))).isEqualTo(before);
+    }
+
+    @Test
+    @DisplayName("an invalid -PgherkinToAsciidoc.indexing value throws a descriptive GradleException")
+    void cliPropertyInvalidValueThrowsDescriptiveError() throws IOException {
+        Files.writeString(tempDir.resolve("gradle.properties"), "gherkinToAsciidoc.indexing=bogus\n");
+        Project project = projectWithPlugin();
+        File featuresDir = new File(tempDir.toFile(), "features");
+        featuresDir.mkdirs();
+        writeFeatureFile(featuresDir, "sample.feature", "Feature: Sample\n\n  Scenario: A scenario\n    Given g\n");
+
+        GenerateFeatureDocsTask task = task(project);
+        task.getSourceDirs().from(featuresDir);
+        task.getOutputDir().set(new File(tempDir.toFile(), "output"));
+        task.getProjectDirectory().set(project.getLayout().getProjectDirectory());
+
+        // Gradle wraps the exception thrown while lazily resolving the "indexing" property's
+        // value (the -P override is parsed lazily via a Provider) in a PropertyQueryException;
+        // the GradleException with the actual descriptive message is its root cause.
+        assertThatThrownBy(task::generate)
+                .hasRootCauseInstanceOf(org.gradle.api.GradleException.class)
+                .hasRootCauseMessage("gherkinToAsciidoc: invalid value 'bogus' for -PgherkinToAsciidoc.indexing; "
+                        + "expected one of: off, feature, scenario, all, ci");
     }
 
     // --- helpers ---

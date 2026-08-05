@@ -1,6 +1,6 @@
-Feature: Invoice payment
+Feature: 2 - Invoice payment
 
-  Scenario: User pays an invoice
+  Scenario: 2.1 - User pays an invoice
     Given an outstanding invoice
     When the user pays the invoice
     Then the invoice is marked as paid

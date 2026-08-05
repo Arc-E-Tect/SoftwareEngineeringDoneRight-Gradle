@@ -1,4 +1,4 @@
-Feature: 1 - User authentication
+Feature: User authentication
 
   Scenario: User requests a password reset
     # Not yet fleshed out - title only, no steps yet.

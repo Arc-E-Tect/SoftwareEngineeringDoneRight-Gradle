@@ -20,6 +20,10 @@ import java.util.regex.Pattern;
  * {@link IndexingMode#OFF} - applies fresh numbering. This makes the operation idempotent and
  * makes switching between modes (including back to {@code OFF}) simply undo the previous
  * numbering rather than requiring any state to be tracked between runs.</p>
+ *
+ * <p>Never called with {@link IndexingMode#CI}: the caller skips invoking this class entirely for
+ * that mode, since {@code CI} means the feature files must be left completely untouched, not even
+ * to strip prior numbering the way {@link IndexingMode#OFF} does.</p>
  */
 public class FeatureIndexer {
 

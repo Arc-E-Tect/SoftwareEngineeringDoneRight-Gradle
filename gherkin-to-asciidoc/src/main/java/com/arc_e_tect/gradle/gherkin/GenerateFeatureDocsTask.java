@@ -161,9 +161,11 @@ public abstract class GenerateFeatureDocsTask extends DefaultTask {
 
     /**
      * Whether - and how - to number {@code Feature}/{@code Scenario} titles directly in the
-     * source {@code .feature} files. Only allowed when {@link #getIncludeSubDirs()} is
-     * {@code true}; when {@link #getGroupByFeature()} is {@code false}, only
-     * {@link IndexingMode#OFF} and {@link IndexingMode#SCENARIO} are allowed.
+     * source {@code .feature} files. {@link IndexingMode#OFF} and {@link IndexingMode#CI} are
+     * always allowed; {@link IndexingMode#FEATURE}, {@link IndexingMode#SCENARIO}, and
+     * {@link IndexingMode#ALL} are only allowed when {@link #getIncludeSubDirs()} is
+     * {@code true}, and when {@link #getGroupByFeature()} is {@code false}, only
+     * {@link IndexingMode#SCENARIO} of those three is allowed.
      *
      * @return mutable property for the indexing mode
      */
@@ -224,21 +226,26 @@ public abstract class GenerateFeatureDocsTask extends DefaultTask {
 
         IndexingMode indexing = getIndexing().get();
         boolean groupByFeature = getGroupByFeature().get();
-        if (indexing != IndexingMode.OFF && !getIncludeSubDirs().get()) {
+        boolean indexingActive = indexing != IndexingMode.OFF && indexing != IndexingMode.CI;
+        if (indexingActive && !getIncludeSubDirs().get()) {
             throw new GradleException(
                     "gherkinToAsciidoc: indexing can only be used when includeSubDirs is true.");
         }
-        if (indexing != IndexingMode.OFF && indexing != IndexingMode.SCENARIO && !groupByFeature) {
+        if (indexingActive && indexing != IndexingMode.SCENARIO && !groupByFeature) {
             throw new GradleException(
                     "gherkinToAsciidoc: when groupByFeature is false, indexing can only be "
-                    + "'off' or 'scenario'.");
+                    + "'off', 'ci', or 'scenario'.");
         }
 
         // trackProgress implies recursive scanning, regardless of includeSubDirs's own value.
         boolean recursive = trackProgress || getIncludeSubDirs().get();
 
         List<File> featureFiles = collectFeatureFiles(sourceDirsSet, sourceFileSet, recursive);
-        new FeatureIndexer().reindex(featureFiles, indexing);
+        // CI skips indexing entirely - the feature files are left completely untouched, not even
+        // to strip numbering left over from a previous run, unlike OFF.
+        if (indexing != IndexingMode.CI) {
+            new FeatureIndexer().reindex(featureFiles, indexing);
+        }
 
         List<ScenarioInfo> scenarios = new ArrayList<>();
         FeatureParser featureParser = new FeatureParser();

@@ -1,14 +1,14 @@
-Feature: User authentication
+Feature: 1 - User authentication
 
-  Scenario: User requests a password reset
+  Scenario: 1.1 - User requests a password reset
     # Not yet fleshed out - title only, no steps yet.
 
-  Scenario: User logs in successfully
+  Scenario: 1.2 - User logs in successfully
     Given the login page is open
     When the user submits valid credentials
     Then the dashboard is displayed
 
-  Scenario Outline: User logs in with different credential sets
+  Scenario Outline: 1.3 - User logs in with different credential sets
     Given the login page is open
     When the user submits "<username>" and "<password>"
     Then the result is "<outcome>"

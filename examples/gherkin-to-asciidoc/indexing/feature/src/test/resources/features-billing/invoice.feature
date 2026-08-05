@@ -1,4 +1,4 @@
-Feature: 2 - Invoice payment
+Feature: Invoice payment
 
   Scenario: User pays an invoice
     Given an outstanding invoice

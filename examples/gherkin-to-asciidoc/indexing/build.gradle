@@ -2,7 +2,7 @@ plugins {
     alias(libs.plugins.gherkin.to.asciidoc)
 }
 
-// Configuration here applies to every project below (root and all four sub-projects) unless a
+// Configuration here applies to every project below (root and all five sub-projects) unless a
 // sub-project's own build.gradle overrides a given property for itself. Every sub-project below
 // overrides only the one property this example is about: indexing.
 gherkinToAsciidoc {
@@ -10,16 +10,18 @@ gherkinToAsciidoc {
 
     // None of the sub-projects configure sourceDirs themselves, so each one resolves these same
     // relative paths against its own directory, e.g. off/src/test/resources/features-auth and
-    // off/src/test/resources/features-billing. Every sub-project's features-auth/authentication.feature
+    // off/src/test/resources/features-billing. off/feature/scenario/all's features-auth/authentication.feature
     // and features-billing/invoice.feature start out byte-for-byte identical - only the indexing
-    // property differs, so the four generated reports (and the numbering baked into the four copies
-    // of the source files) are directly comparable.
+    // property differs, so those four generated reports (and the numbering baked into those four
+    // copies of the source files) are directly comparable. ci/'s copies start out already numbered
+    // (as ALL mode would leave them) instead, to demonstrate that indexing = IndexingMode.CI leaves
+    // that numbering completely untouched rather than stripping it the way OFF would.
     sourceDirs.from(
             'src/test/resources/features-auth',
             'src/test/resources/features-billing')
 }
 
-// Applies the plugin to off/feature/scenario/all too, reusing the version already resolved above.
+// Applies the plugin to off/feature/scenario/all/ci too, reusing the version already resolved above.
 // Each sub-project gets its own generateFeatureDocs task and its own generated report.
 subprojects {
     apply plugin: 'com.arc-e-tect.gherkin-to-asciidoc'
