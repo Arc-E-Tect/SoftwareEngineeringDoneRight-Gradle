@@ -67,10 +67,12 @@ All properties have sensible defaults and do not need to be set for a typical pr
 .Groovy DSL
 [source,groovy]
 ----
+import com.arc_e_tect.gradle.gherkin.indexing.IndexingMode // only needed if you set `indexing`
+
 gherkinToAsciidoc {
-    // One or more directories containing .feature files to scan (scanned non-recursively
-    // by default). Default: 'src/test/resources/features' relative to the project directory,
-    // used only when sourceDirs is left empty and sourceFile is not set.
+    // One or more directories containing .feature files to scan (scanned recursively by
+    // default - see includeSubDirs below). Default: 'src/test/resources/features' relative
+    // to the project directory, used only when sourceDirs is left empty and sourceFile is not set.
     // Mutually exclusive with sourceFile.
     sourceDirs.from('src/test/resources/features')
     // Add more directories by calling .from(...) again, or in the same call:
@@ -81,9 +83,9 @@ gherkinToAsciidoc {
     // sourceFile = file('src/test/resources/features/login.feature')
 
     // When true, recursively scan all sub-directories of every directory in sourceDirs.
-    // Cannot be used when sourceFile is set.
-    // Default: false
-    includeSubDirs = false
+    // Cannot be used when sourceFile is set - explicitly set this to false when using sourceFile.
+    // Default: true
+    includeSubDirs = true
 
     // Directory where the generated AsciiDoc file will be written.
     // Default: build/generated-docs
@@ -107,8 +109,8 @@ gherkinToAsciidoc {
 
     // When true, groups scenarios under their enclosing Feature instead of a flat list
     // (see "Grouping by Feature" below). Forced to true whenever trackProgress is true.
-    // Default: false
-    groupByFeature = false
+    // Default: true
+    groupByFeature = true
 
     // Directory that the listed.adoc/defined.adoc/implemented.adoc report snippets are written
     // to when trackProgress is true (see "Report Snippets and Custom Templates" below).
@@ -125,23 +127,32 @@ gherkinToAsciidoc {
     // top of the generated document (see "System Under Test Version" below).
     // Default: the project's own `version`
     // systemUnderTestVersion = 'v1.0.0'
+
+    // Numbers Feature/Scenario titles directly in the source .feature files (see "Numbering
+    // Features and Scenarios" below). Requires includeSubDirs = true; FEATURE and ALL also
+    // require groupByFeature = true.
+    // Default: IndexingMode.OFF
+    indexing = IndexingMode.OFF
 }
 ----
 
 .Kotlin DSL (`build.gradle.kts`)
 [source,kotlin]
 ----
+import com.arc_e_tect.gradle.gherkin.indexing.IndexingMode // only needed if you set `indexing`
+
 gherkinToAsciidoc {
     sourceDirs.from("src/test/resources/features")
-    includeSubDirs.set(false)
+    includeSubDirs.set(true)
     outputDir.set(layout.buildDirectory.dir("generated-docs"))
     outputFileName.set("features.adoc")
     trackProgress.set(false)
     // glueCodeDirs.from("src/test/java/com/example/steps")
-    groupByFeature.set(false)
+    groupByFeature.set(true)
     // snippetDir.set(layout.buildDirectory.dir("generated-docs/features/snippets"))
     // template.set(file("templates/report.mustache"))
     // systemUnderTestVersion.set("v1.0.0")
+    indexing.set(IndexingMode.OFF)
 }
 ----
 
@@ -154,21 +165,23 @@ gherkinToAsciidoc {
 Mutually exclusive with `sourceFile`.
 | `sourceFile`    | File            | —                                    | Single `.feature` file to parse.
 Mutually exclusive with `sourceDirs` and `includeSubDirs`.
-| `includeSubDirs`| Boolean         | `false`                              | When `true`, recursively scans all sub-directories of every directory in `sourceDirs`.
-Cannot be combined with `sourceFile`.
+| `includeSubDirs`| Boolean         | `true`                               | When `true`, recursively scans all sub-directories of every directory in `sourceDirs`.
+Cannot be combined with `sourceFile` - explicitly set this to `false` when using `sourceFile`.
 | `outputDir`     | Directory       | `build/generated-docs`               | Directory where the generated AsciiDoc file is written.
 | `outputFileName`| String          | `features.adoc`                      | Name of the generated AsciiDoc file.
 | `trackProgress` | Boolean         | `false`                              | When `true`, classifies every scenario as `listed`, `defined`, or `implemented` and adds a progress summary to the generated document.
 Requires `sourceDirs` and `glueCodeDirs`; implies `includeSubDirs = true`.
 | `glueCodeDirs`  | File collection | —                                    | One or more directories containing the Cucumber-JVM glue code, each scanned recursively for step definitions.
 Required when `trackProgress` is `true`.
-| `groupByFeature`| Boolean         | `false`                              | When `true`, groups scenarios under their enclosing `Feature` instead of a flat list.
+| `groupByFeature`| Boolean         | `true`                               | When `true`, groups scenarios under their enclosing `Feature` instead of a flat list.
 Forced to `true` whenever `trackProgress` is `true`.
 | `snippetDir`    | Directory       | `build/generated-docs/features/snippets` | Directory that the `listed.adoc`/`defined.adoc`/`implemented.adoc` report snippets are written to.
 Only used when `trackProgress` is `true`.
 | `template`      | File            | —                                    | Optional Mustache template used to render the report so it references the snippets via `include::` directives instead of embedding their content verbatim.
 Only consulted when `trackProgress` is `true`.
 | `systemUnderTestVersion` | String | the project's `version`             | Version of the system under test that the reported scenarios exercise, printed near the top of the generated document (see "System Under Test Version" below).
+| `indexing`      | `IndexingMode` (`OFF`/`FEATURE`/`SCENARIO`/`ALL`) | `OFF` | Numbers `Feature`/`Scenario` titles directly in the source `.feature` files (see "Numbering Features and Scenarios" below).
+Requires `includeSubDirs = true`; `FEATURE` and `ALL` additionally require `groupByFeature = true`.
 |===
 
 [IMPORTANT]
@@ -176,13 +189,19 @@ Only consulted when `trackProgress` is `true`.
 `sourceDirs` and `sourceFile` are mutually exclusive.
 Setting both will cause the `generateFeatureDocs` task to fail with a descriptive error.
 
-`includeSubDirs` cannot be combined with `sourceFile`.
+`includeSubDirs` cannot be combined with `sourceFile`. Since `includeSubDirs` now defaults to `true`,
+a project using `sourceFile` must explicitly set `includeSubDirs = false` - otherwise
+`generateFeatureDocs` fails with a descriptive error.
 
 `trackProgress` can only be enabled when `sourceDirs` is configured, and requires `glueCodeDirs` to be set.
 Enabling it implies `includeSubDirs = true` and `groupByFeature = true`, regardless of those properties' own
 configured values.
 
 `snippetDir` and `template` are only consulted when `trackProgress` is `true`; both are ignored otherwise.
+
+`indexing` can only be set to something other than `OFF` when `includeSubDirs` is `true`. `FEATURE` and `ALL`
+additionally require `groupByFeature` to be `true`; with `groupByFeature = false`, only `OFF` and `SCENARIO`
+are allowed. Setting an invalid combination fails `generateFeatureDocs` with a descriptive error.
 ====
 
 == Running the Task
@@ -234,6 +253,9 @@ sub-project that inherits or sets `trackProgress = true` still needs its own `gl
 | Inherited from the root project by default (subject to the usual `trackProgress` implication).
 | `groupByFeature`
 | Inherited from the root project by default (subject to the usual `trackProgress` implication).
+| `indexing`
+| Inherited from the root project by default; a sub-project can override it independently, subject to
+the usual `includeSubDirs`/`groupByFeature` validation constraints for whichever value is in effect.
 | `outputFileName`
 | Inherited from the root project by default.
 | `template`
@@ -330,7 +352,7 @@ Feature: User authentication
       | bob      | wrong    | failure |
 ----
 
-The plugin generates:
+By default (`groupByFeature = true`), the plugin generates:
 
 [source,asciidoc]
 ----
@@ -342,15 +364,16 @@ System Under Test version: 1.0.0
 
 This document lists every `Scenario` and `Scenario Outline` found under the configured feature file directories.
 
+== User authentication
+
 * Scenario: User logs in successfully
 * Scenario Outline: User logs in with different credential sets
 ----
 
 == Grouping by Feature
 
-By default, scenarios are listed as one flat list regardless of which `.feature` file they came from. Setting
-`groupByFeature = true` groups them under their enclosing `Feature` instead — useful once `sourceDirs` spans
-more than one feature area. Given two feature files:
+By default, scenarios are grouped under their enclosing `Feature`, as shown above — useful once `sourceDirs`
+spans more than one feature area, as with two feature files:
 
 [source,gherkin]
 ----
@@ -364,8 +387,6 @@ Feature: Invoice payment
   Scenario: User pays an invoice
     Given an outstanding invoice
 ----
-
-with `groupByFeature = true`, the plugin generates:
 
 [source,asciidoc]
 ----
@@ -385,6 +406,115 @@ This document lists every `Scenario` and `Scenario Outline` found under the conf
 
 * Scenario: User pays an invoice
 ----
+
+Setting `groupByFeature = false` instead lists every scenario as one flat list, regardless of which
+`.feature` file it came from:
+
+[source,asciidoc]
+----
+= Feature Scenarios
+:toc:
+:toclevels: 2
+
+System Under Test version: 1.0.0
+
+This document lists every `Scenario` and `Scenario Outline` found under the configured feature file directories.
+
+* Scenario: User logs in successfully
+* Scenario: User pays an invoice
+----
+
+== Numbering Features and Scenarios
+
+Setting `indexing` numbers `Feature`/`Scenario` titles directly in the source `.feature` files - not just in
+the generated report - so the numbering is visible wherever the feature file itself is read (in an editor, in
+a Cucumber test run, ...), not only in `generateFeatureDocs`'s own output.
+
+[cols="1,3",options="header"]
+|===
+| Value      | Effect
+
+| `OFF`      | Nothing is numbered (default). Any numbering left over from a previous run is removed.
+| `FEATURE`  | Every feature is numbered, e.g. `Feature: 1 - User authentication`. Scenario titles are untouched.
+| `SCENARIO` | Every scenario is numbered continuously across all feature files, e.g. `Scenario: 1 - User logs in`. Feature titles are untouched.
+| `ALL`      | Both are numbered; scenarios are numbered per feature as `<featureNumber>.<scenarioNumber>`, e.g. `Scenario: 1.1 - User logs in` within `Feature: 1 - User authentication`.
+|===
+
+Feature files are processed - and numbered - in the same order the generated report lists them in: for each
+source directory (directories themselves ordered alphabetically by path when more than one is configured),
+that directory's own feature files first, alphabetically by file name, and only then its sub-directories'
+files, each sub-directory visited the same way, alphabetically by name. Scenario numbers additionally follow
+document order within each file.
+
+Given two feature files, `features-auth/authentication.feature`:
+
+[source,gherkin]
+----
+Feature: User authentication
+
+  Scenario: User requests a password reset
+
+  Scenario: User logs in successfully
+    Given the login page is open
+----
+
+and `features-billing/invoice.feature`:
+
+[source,gherkin]
+----
+Feature: Invoice payment
+
+  Scenario: User pays an invoice
+    Given an outstanding invoice
+----
+
+with `indexing = IndexingMode.ALL`, the plugin rewrites both files in place:
+
+[source,gherkin]
+----
+Feature: 1 - User authentication
+
+  Scenario: 1.1 - User requests a password reset
+
+  Scenario: 1.2 - User logs in successfully
+    Given the login page is open
+----
+
+[source,gherkin]
+----
+Feature: 2 - Invoice payment
+
+  Scenario: 2.1 - User pays an invoice
+    Given an outstanding invoice
+----
+
+and the generated report reflects the same numbering, since it's parsed from the now-rewritten source files:
+
+[source,asciidoc]
+----
+== 1 - User authentication
+
+* Scenario: 1.1 - User requests a password reset
+* Scenario: 1.2 - User logs in successfully
+
+== 2 - Invoice payment
+
+* Scenario: 2.1 - User pays an invoice
+----
+
+[IMPORTANT]
+====
+Changing `indexing` - including setting it back to `OFF` - rewrites the source `.feature` files on the next
+`generateFeatureDocs` run: any numbering left over from a previous run is stripped first, then fresh
+numbering is applied for the new mode. This makes the operation idempotent (re-running with the same mode is
+a no-op once the files are already correctly numbered), but it does mean the task mutates files that are also
+its own inputs - commit the resulting numbered `.feature` files like any other source change.
+====
+
+See the
+link:../examples/gherkin-to-asciidoc/indexing/README.adoc[indexing example]
+for all four modes applied to the same feature files side by side, with the exact before/after content and
+generated reports for each.
 
 == Tracking Implementation Progress
 
