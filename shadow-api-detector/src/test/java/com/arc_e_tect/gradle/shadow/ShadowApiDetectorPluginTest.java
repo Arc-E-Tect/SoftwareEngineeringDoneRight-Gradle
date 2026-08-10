@@ -130,11 +130,24 @@ class ShadowApiDetectorPluginTest {
     }
 
     @Test
-    @DisplayName("hooks detectShadowApis into the check lifecycle task when the java plugin is applied")
-    void hooksIntoCheckTask() {
+    @DisplayName("does not hook detectShadowApis into the check lifecycle task by default")
+    void doesNotHookIntoCheckTaskByDefault() {
         Project project = ProjectBuilder.builder().withProjectDir(tempDir.toFile()).build();
         project.getPluginManager().apply("java");
         project.getPluginManager().apply(ShadowApiDetectorPlugin.class);
+
+        assertThat(project.getTasks().getByName("check").getTaskDependencies().getDependencies(null))
+                .noneMatch(t -> t.getName().equals(ShadowApiDetectorPlugin.TASK_NAME));
+    }
+
+    @Test
+    @DisplayName("can be wired into check explicitly via dependsOn")
+    void canBeWiredIntoCheckExplicitly() {
+        Project project = ProjectBuilder.builder().withProjectDir(tempDir.toFile()).build();
+        project.getPluginManager().apply("java");
+        project.getPluginManager().apply(ShadowApiDetectorPlugin.class);
+
+        project.getTasks().named("check").configure(check -> check.dependsOn(ShadowApiDetectorPlugin.TASK_NAME));
 
         assertThat(project.getTasks().getByName("check").getTaskDependencies().getDependencies(null))
                 .anyMatch(t -> t.getName().equals(ShadowApiDetectorPlugin.TASK_NAME));

@@ -154,13 +154,31 @@ shadowApiDetector {
 | `detectShadowApis`  | verification | Scans `@RestController` classes and reports endpoints not described in the OpenAPI documentation.
 |===
 
-The task is automatically wired into the `check` lifecycle task once the `java` plugin is applied, so running `./gradlew check` always regenerates the report.
+The task is **not** wired into `check` or `build` automatically. Teams that generate their OpenAPI documentation from code would otherwise see every build fail on documentation that hasn't been regenerated yet.
 
 Running the report explicitly:
 
 [source,shell]
 ----
 ./gradlew detectShadowApis
+----
+
+To make the task part of every build, wire it into `check` (or `build`) yourself once you're ready to enforce it:
+
+.Groovy DSL
+[source,groovy]
+----
+tasks.named('check') {
+    dependsOn 'detectShadowApis'
+}
+----
+
+.Kotlin DSL
+[source,kotlin]
+----
+tasks.named("check") {
+    dependsOn("detectShadowApis")
+}
 ----
 
 == System Under Test Version
@@ -202,6 +220,10 @@ plugins {
 shadowApiDetector {
     rootDocument = file('src/main/resources/openapi/openapi.yaml')
     failOnShadow = true
+}
+
+tasks.named('check') {
+    dependsOn 'detectShadowApis'
 }
 ----
 
