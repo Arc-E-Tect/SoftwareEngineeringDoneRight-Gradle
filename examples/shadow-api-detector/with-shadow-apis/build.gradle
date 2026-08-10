@@ -23,3 +23,8 @@ shadowApiDetector {
     // Fail the build as soon as a shadow API is found. The report is still written either way.
     failOnShadow = true
 }
+
+// detectShadowApis is not wired into check/build automatically - opt in explicitly.
+tasks.named('check') {
+    dependsOn 'detectShadowApis'
+}

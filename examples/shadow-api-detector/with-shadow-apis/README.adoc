@@ -51,7 +51,8 @@ cd examples/shadow-api-detector/with-shadow-apis
 ./gradlew detectShadowApis
 ----
 
-`./gradlew build` fails the same way, since `detectShadowApis` is wired into the `check` lifecycle task.
+`./gradlew build` fails the same way: this example wires `detectShadowApis` into the `check` lifecycle task
+explicitly in `build.gradle`, since the plugin does not do so automatically.
 
 == What To Expect
 
