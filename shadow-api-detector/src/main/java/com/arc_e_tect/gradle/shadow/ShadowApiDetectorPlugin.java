@@ -28,8 +28,15 @@ import org.gradle.api.tasks.TaskProvider;
  *   <li>Report file name: {@code shadow-apis.adoc}</li>
  * </ul>
  *
- * <p>The task is added as a dependency of {@code check}, so running {@code ./gradlew check}
- * always regenerates the report.</p>
+ * <p>The task is <strong>not</strong> wired into {@code check} or {@code build} automatically -
+ * teams that generate their OpenAPI documentation from code would otherwise see every build fail
+ * on documentation that hasn't been regenerated yet. Opt in explicitly once the task is safe to
+ * run as part of your build:</p>
+ * <pre>
+ * tasks.named('check') {
+ *     dependsOn 'detectShadowApis'
+ * }
+ * </pre>
  */
 public class ShadowApiDetectorPlugin implements Plugin<Project> {
 
@@ -73,8 +80,5 @@ public class ShadowApiDetectorPlugin implements Plugin<Project> {
                         task.getControllerDirs().from(p.file(ShadowApiDetectorExtension.DEFAULT_CONTROLLER_DIR)));
             }
         });
-
-        project.getPluginManager().withPlugin("java", ignored ->
-                project.getTasks().named("check").configure(check -> check.dependsOn(taskProvider)));
     }
 }
