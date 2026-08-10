@@ -1,3 +1,47 @@
+# [1.0.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/shadow-api-detector-v0.4.0...shadow-api-detector-v1.0.0) (2026-08-10)
+
+
+### ✨ New and updated features
+
+* **gherkin-to-asciidoc:** add ci indexing value and a CLI override for the whole build ([#102](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/102)) ([063c069](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/063c069e406f4b2ffe7f40016a4af6ceb45d2999)), closes [#102](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/102) [#99](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/99)
+* **example-shadow-api-detector:** add composed RequestMapping example ([#98](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/98)) ([6ea5163](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/6ea5163e61c1fd8d271b356e0bbdff6e48f459c1)), closes [#98](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/98)
+* **gherkin-to-asciidoc:** add forceRewrite to skip renumbering already-numbered lines ([#103](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/103)) ([48a74de](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/48a74decfe2c73dfdefca747a65922756820984a)), closes [#103](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/103)
+* **gherkin-to-asciidoc:** add indexing DSL property to number features and scenarios ([#99](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/99)) ([5c207c4](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/5c207c4e0052499c6b796a3b7640a7b13e7b676f)), closes [#99](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/99)
+* **shadow-api-detector:** stop auto-wiring detectShadowApis into check ([#105](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/105)) ([03a3da7](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/03a3da700c913d2ff743698c09c44c476b93a958)), closes [#105](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/105)
+
+
+### 🐛 Bug Fixes
+
+* **example-shadow-api-detector:** use official published plugin in examples ([#96](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/96)) ([bca72d8](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/bca72d8e2dab7acecccb4cd75dafd95e030a43be)), closes [#96](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/96)
+
+
+### 📝 Documentation
+
+* **gherkin-to-asciidoc:** add multi-project example demonstrating the indexing modes ([#100](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/100)) ([a0cd7a7](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/a0cd7a7c481fdd11079b77199a16c4b43c8b1104)), closes [#100](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/100)
+* **gherkin-to-asciidoc:** document the indexing property and the includeSubDirs/groupByFeature default changes ([#101](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/101)) ([9fe4afd](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/9fe4afd23b5ee85ab95f322e4115cc67129dd2ac)), closes [#101](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/101) [#99](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/99)
+
+
+### BREAKING CHANGE
+
+* **shadow-api-detector:** detectShadowApis no longer runs automatically as part
+of check/build. Projects relying on the previous automatic wiring must
+add the dependsOn shown above to keep the check in their build.
+* **gherkin-to-asciidoc:** indexing's default numbering behaviour changes.
+Previously every generateFeatureDocs run fully renumbered every
+Feature/Scenario from scratch; by default it now preserves numbers
+that already match the current indexing value's format instead. Set
+forceRewrite = true (or -PgherkinToAsciidoc.forceRewrite=true) to
+keep the old always-renumber-everything behaviour.
+* **gherkin-to-asciidoc:** includeSubDirs and groupByFeature now default to
+true (previously false). A project relying on the old defaults -
+particularly one using sourceFile without explicitly setting
+includeSubDirs = false, which will now fail validation - must set
+includeSubDirs = false and/or groupByFeature = false explicitly to
+keep its previous behaviour. Feature file processing order is also
+now deterministic (alphabetical by path, directory files before
+sub-directory files) instead of filesystem-dependent, which may
+reorder scenarios in existing generated reports.
+
 # [0.4.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/shadow-api-detector-v0.3.0...shadow-api-detector-v0.4.0) (2026-08-03)
 
 
