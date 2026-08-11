@@ -1,6 +1,6 @@
 package com.arc_e_tect.gradle.shadow.report;
 
-import com.arc_e_tect.gradle.shadow.model.Endpoint;
+import com.arc_e_tect.gradle.detector.core.model.Endpoint;
 
 import java.io.File;
 import java.io.IOException;

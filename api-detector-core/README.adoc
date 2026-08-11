@@ -1,0 +1,26 @@
+= API Detector Core
+:toc: left
+:toc-title: Contents
+:toclevels: 2
+
+`api-detector-core` is an internal library module shared by the API detector Gradle plugins - Shadow API Detector, Mirage API Detector, and Doppelganger API Detector.
+It holds the contract-matching infrastructure common to all three: scanning `@RestController` classes, parsing OpenAPI documentation, normalising and comparing path templates, and computing the set difference/intersection between what is implemented and what is described.
+
+None of it is shadow-, mirage-, or doppelganger-specific.
+Each plugin's own module keeps only what is genuinely specific to it: its Gradle DSL extension, its task, and its report writer.
+
+== Not a plugin, not published
+
+`api-detector-core` applies only the plain `java-library` plugin.
+It does not apply `java-gradle-plugin` and does not declare a Gradle plugin ID - it is not, itself, something a build applies.
+
+It is never published to the Gradle Plugin Portal, Maven Central, or GitHub Packages.
+It is consumed purely as an in-repo `project(':api-detector-core')` dependency, included as a subproject directly from each detector plugin's own `settings.gradle`.
+
+== What lives here
+
+* `model` - `Endpoint`, `HttpVerb`, `PathTemplates`, `PathMatcher`: the shared vocabulary for describing and comparing HTTP endpoints.
+* `openapi` - `DescribedEndpoint`, `OpenApiEndpointCollector`: parses a root OpenAPI document (following relative `$ref` links) into the endpoints it describes, including `operationId` and `tags`.
+* `scan` - `ControllerScanner`: parses Java source files and collects every endpoint exposed by a Spring `@RestController` class.
+* `Described` - a small interface (`verb()`, `path()`) implemented by both `Endpoint` and `DescribedEndpoint`, so the two shapes can be compared symmetrically.
+* `detect` - `ContractSetOperations`: generic `difference`/`intersection` operations over `Described` items, used by Shadow API Detector to find endpoints with no matching OpenAPI description, and by Mirage API Detector to find OpenAPI operations with no matching implementation.
