@@ -44,6 +44,9 @@ def commonConfig = { GenerateFeatureDocsTask task ->
     // Not set by the extension's own convention either, since this example bypasses it entirely.
     task.systemUnderTestVersion.set(project.version.toString())
     task.projectDirectory.set(layout.projectDirectory)
+    // Direct task registration bypasses the plugin's default task conventions.
+    task.getIndexing().set(gherkinToAsciidoc.getIndexing())
+    task.getForceRewrite().set(gherkinToAsciidoc.getForceRewrite())
 }
 
 tasks.register('generateGroupedNoTemplate', GenerateFeatureDocsTask) {
