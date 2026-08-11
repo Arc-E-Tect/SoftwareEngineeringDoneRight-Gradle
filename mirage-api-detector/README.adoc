@@ -1,0 +1,249 @@
+= Mirage API Detector Gradle Plugin
+:toc: left
+:toc-title: Contents
+:toclevels: 2
+:icons: font
+:source-highlighter: rouge
+
+image:https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/actions/workflows/nvd-cache-refresh.yml/badge.svg[Vulnerability Scan,link=https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/actions/workflows/nvd-cache-refresh.yml]
+image:https://img.shields.io/gradle-plugin-portal/v/com.arc-e-tect.mirage-api-detector[Gradle Plugin Portal,link=https://plugins.gradle.org/plugin/com.arc-e-tect.mirage-api-detector]
+image:https://img.shields.io/github/v/release/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle[GitHub release,link=https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/releases]
+image:https://img.shields.io/badge/Java-21%2B-blue[Java 21+,link=https://adoptium.net]
+image:https://img.shields.io/badge/Gradle-8.x%2B-02303A?logo=gradle[Gradle 8+,link=https://gradle.org]
+
+A Gradle plugin that scans your OpenAPI documentation for operations, compares them against the endpoints exposed by your Spring Boot `@RestController` classes, and reports every operation that has no matching implementation - a "mirage API".
+
+Mirage APIs are endpoints that exist on paper but not in code: documented, reviewed, and visible to API consumers, yet unreachable at runtime. This is the mirror image of the companion link:../shadow-api-detector/README.adoc[Shadow API Detector] plugin, which catches the opposite drift - implemented but undocumented endpoints.
+
+== Plugin ID
+
+[source]
+----
+com.arc-e-tect.mirage-api-detector
+----
+
+== Requirements
+
+[cols="1,1",options="header"]
+|===
+| Requirement | Version
+| Gradle      | 8.x +
+| Java        | 17 +
+|===
+
+== OpenAPI compatibility
+
+The plugin supports OpenAPI v3 documents that are compatible with the parser stack bundled by the plugin.
+In practice, this means OpenAPI 3.0.x, 3.1.x, and 3.2.x are supported.
+OpenAPI v2 (Swagger 2.0) is not supported.
+OpenAPI versions newer than 3.2 are not supported at this time.
+If `rootDocument` declares an unsupported version, the `detectMirageApis` task fails with a parse error.
+The root document and every transitively referenced `$ref` document must also be parseable and resolvable as OpenAPI v3 content.
+
+=== OpenAPI 3.2 support details (current implementation)
+
+OpenAPI 3.2 support is currently implemented as a compatibility workaround.
+The plugin first tries to parse the configured root document as-is.
+If that parse fails and the root document declares `openapi: 3.2.x`, the plugin creates a temporary compatibility copy of the root document in the same directory.
+In that temporary copy, only the root `openapi` version string is rewritten from `3.2.x` to `3.1.0`.
+The plugin then parses that temporary compatibility file and continues normal endpoint extraction.
+The original source OpenAPI document is not modified.
+The temporary compatibility file is deleted after parsing.
+
+[CAUTION]
+====
+This is an explicit, temporary compatibility mechanism.
+It is not native end-to-end OpenAPI 3.2 parser support.
+It exists so OpenAPI 3.2 root documents can be processed with the parser stack available in the plugin today.
+====
+
+== Applying the Plugin
+
+=== Using the `plugins` block (recommended)
+
+.Groovy DSL (`build.gradle`)
+[source,groovy]
+----
+plugins {
+    id 'com.arc-e-tect.mirage-api-detector' version '<version>'
+}
+----
+
+.Kotlin DSL (`build.gradle.kts`)
+[source,kotlin]
+----
+plugins {
+    id("com.arc-e-tect.mirage-api-detector") version "<version>"
+}
+----
+
+== How it works
+
+1. The configured root OpenAPI document is parsed, following every `$ref` link - including links to other documents, resolved relative to the root document - to build the full set of described endpoints, each with its HTTP verb, path template, `operationId`, and tags.
+2. Every Java source file under the configured controller directories is parsed and scanned for classes annotated with `@RestController`. This is an MVP restriction - only Spring MVC's annotation-based REST controllers are recognised.
+3. For each `@RestController` class, the class-level `@RequestMapping` base path (if any) is combined with every method-level `@RequestMapping`, `@GetMapping`, `@PostMapping`, `@PutMapping`, `@DeleteMapping`, and `@PatchMapping` to build the full set of implemented endpoints.
+4. Endpoints are matched by HTTP verb and by path template; path variables are matched positionally, so an OpenAPI `{userId}` matches a controller's `{id}`. A described endpoint is considered implemented as soon as a matching controller endpoint is found, whether that endpoint's verb matches exactly or the controller method carries `HttpVerb.ANY` (a Spring `@RequestMapping` that does not restrict its HTTP method).
+5. Every described endpoint with no matching implementation is a mirage API. An AsciiDoc report listing them, grouped by their OpenAPI tag (or `(untagged)` when none is set), is written to the configured report directory - the report is always written, whether or not the build is configured to fail.
+
+[NOTE]
+====
+This is a scope restriction of the current MVP, not a design limit: only `@RestController`-based endpoints are recognised as implementations, and only "documented but unimplemented" is reported (the reverse case - implemented but undocumented - is the companion link:../shadow-api-detector/README.adoc[Shadow API Detector] plugin's job). Both may be lifted in a future release.
+====
+
+== Configuration
+
+The plugin registers a `mirageApiDetector` extension.
+
+.Groovy DSL
+[source,groovy]
+----
+mirageApiDetector {
+    // One or more directories to search recursively for @RestController classes, used to
+    // determine which OpenAPI operations are implemented.
+    // Default: src/main/java
+    controllerDirs.from('src/main/java')
+
+    // The root OpenAPI document. Required - every other document is expected to be
+    // reachable from this one via $ref links relative to it.
+    rootDocument = file('src/main/resources/openapi/openapi.yaml')
+
+    // Directory where the OpenAPI documentation is stored, tracked so that a change to
+    // any linked document invalidates the task's cached result.
+    // Default: rootDocument's own parent directory
+    openApiDir = file('src/main/resources/openapi')
+
+    // Whether the build should fail when mirage APIs are found. The report is written
+    // either way.
+    // Default: false
+    failOnMirage = false
+
+    // Directory the AsciiDoc report is written to.
+    // Default: layout.buildDirectory.dir('reports/mirage-api-detector')
+    reportDir = layout.buildDirectory.dir('reports/mirage-api-detector')
+
+    // Name of the generated AsciiDoc report file.
+    // Default: 'mirage-apis.adoc'
+    reportFileName = 'mirage-apis.adoc'
+
+    // Version of the system under test whose @RestController classes are scanned, printed near
+    // the top of the generated report (see "System Under Test Version" below).
+    // Default: the project's own `version`
+    // systemUnderTestVersion = 'v1.0.0'
+}
+----
+
+.Kotlin DSL
+[source,kotlin]
+----
+mirageApiDetector {
+    controllerDirs.from("src/main/java")
+    rootDocument.set(file("src/main/resources/openapi/openapi.yaml"))
+    failOnMirage.set(false)
+    reportDir.set(layout.buildDirectory.dir("reports/mirage-api-detector"))
+    reportFileName.set("mirage-apis.adoc")
+    // systemUnderTestVersion.set("v1.0.0")
+}
+----
+
+`rootDocument` is the only property that must be set - in all but very rare cases (an OpenAPI description split across many top-level documents with no single entry point) the root document is all the plugin needs, since it is expected to link to every other document itself.
+
+== Task
+
+[cols="2,1,3",options="header"]
+|===
+| Task name           | Group        | Description
+| `detectMirageApis`  | verification | Scans the OpenAPI documentation and reports operations with no matching `@RestController` implementation.
+|===
+
+The task is **not** wired into `check` or `build` automatically. Teams that write their OpenAPI documentation ahead of the implementation - a common "spec-first" workflow - would otherwise see every build fail on endpoints that simply have not been built yet.
+
+Running the report explicitly:
+
+[source,shell]
+----
+./gradlew detectMirageApis
+----
+
+To make the task part of every build, wire it into `check` (or `build`) yourself once you're ready to enforce it:
+
+.Groovy DSL
+[source,groovy]
+----
+tasks.named('check') {
+    dependsOn 'detectMirageApis'
+}
+----
+
+.Kotlin DSL
+[source,kotlin]
+----
+tasks.named("check") {
+    dependsOn("detectMirageApis")
+}
+----
+
+== System Under Test Version
+
+Every generated report includes a line just below the title identifying the version of the system under test that was scanned:
+
+[source,asciidoc]
+----
+System Under Test version: 1.0.0
+----
+
+By default, this is the project's own `version`, exactly as set in `build.gradle`/`build.gradle.kts` or a `gradle.properties` file. Set `systemUnderTestVersion` to override it - useful when the `@RestController` classes in `controllerDirs` belong to a different, independently versioned artifact than the one Gradle is building:
+
+[source,groovy]
+----
+mirageApiDetector {
+    systemUnderTestVersion = 'v1.0.0'
+}
+----
+
+== Report output
+
+After the task runs, an AsciiDoc report is written to the configured `reportDir` (default: `build/reports/mirage-api-detector/mirage-apis.adoc`), listing every mirage API grouped by its OpenAPI tag (or `(untagged)` when the operation declares none), with its HTTP verb, path, and `operationId`.
+
+Every report opens with a preamble explaining what a mirage API is, how it differs from a shadow API and a zombie API, what the risks are, and a link to the https://owasp.org/API-Security/editions/2023/en/0x11-t10/[OWASP API Security Top 10] (specifically https://owasp.org/API-Security/editions/2023/en/0xa9-improper-inventory-management/[API9:2023 Improper Inventory Management]). The preamble text lives in its own bundled resource - `mirage-api-preamble.adoc` in the plugin's `src/main/resources` - so it can be revised independently of the report-writing code.
+
+When `failOnMirage` is `true` and at least one mirage API was found, the task fails the build after writing the report, so the report is always available for inspection regardless of build outcome.
+
+== Full example
+
+[source,groovy]
+----
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '<version>'
+    id 'com.arc-e-tect.mirage-api-detector' version '<version>'
+}
+
+mirageApiDetector {
+    rootDocument = file('src/main/resources/openapi/openapi.yaml')
+    failOnMirage = true
+}
+
+tasks.named('check') {
+    dependsOn 'detectMirageApis'
+}
+----
+
+With this setup, running `./gradlew check` will fail the build - after writing the report - as soon as any operation in `openapi.yaml` (or any document it links to) is found with no matching `@RestController` endpoint.
+
+== Relationship to the Shadow API Detector
+
+This plugin and link:../shadow-api-detector/README.adoc[Shadow API Detector] scan the same two sources of truth - your `@RestController` classes and your OpenAPI documentation - and compare them in opposite directions:
+
+[cols="1,3",options="header"]
+|===
+| Plugin                | Finds
+| Shadow API Detector   | `@RestController` endpoints with no matching OpenAPI operation (implemented, undocumented)
+| Mirage API Detector   | OpenAPI operations with no matching `@RestController` endpoint (documented, unimplemented)
+|===
+
+Applying both plugins to the same project gives full-coverage drift detection between your code and your contract in either direction. The two plugins share the same DSL shape and configuration property names (mapped one-to-one, e.g. `failOnShadow` / `failOnMirage`) so switching between - or applying both alongside - them requires no relearning.
+
+== License
+
+This plugin is part of the _Software Engineering Done Right_ project.
+See link:../LICENSE[LICENSE] for details.
