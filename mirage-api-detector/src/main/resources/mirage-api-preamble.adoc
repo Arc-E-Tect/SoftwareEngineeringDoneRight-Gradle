@@ -1,0 +1,46 @@
+== What Is a Mirage API?
+
+A _mirage API_ is an endpoint that appears real in the project's official API documentation but has no
+matching implementation behind it - in this plugin's terms, an OpenAPI operation with no matching
+`@RestController` endpoint. Mirage APIs typically appear when documentation is written ahead of the code and
+the implementation never catches up, when an endpoint is renamed or moved during a refactor without updating
+the contract to match, or when a document merges operations planned for a future release before that release
+actually ships.
+
+=== Mirage API vs. Shadow API vs. Zombie API
+
+Three ways the code and the documented contract can drift apart:
+
+* A *mirage API* is documented but never implemented. It "looks real from a distance" - it has an entry in
+  the OpenAPI document, complete with a path and a verb - but there is nothing behind it: calling it reaches
+  no matching `@RestController` handler.
+* A *shadow API* is the mirror image, handled by the companion Shadow API Detector plugin: implemented in
+  code but never documented.
+* A *zombie API* was documented and implemented, should have been retired - deprecated, replaced, or fully
+  decommissioned - and never was.
+
+All three are forms of API sprawl caused by the code and its documentation drifting out of sync, but a
+mirage API drifts in the opposite direction from a shadow API: it exists on paper without ever having been
+built, rather than being built without ever being written down. This plugin's scope is mirage APIs
+specifically: OpenAPI operations with no matching `@RestController` implementation.
+
+=== Why Mirage APIs Are A Risk
+
+* API consumers who integrate against the documentation build clients that call an endpoint which does not
+  exist, discovering the mismatch at run time - as a broken integration - instead of during API review.
+* Contract tests and consumer-driven contract suites generated from the OpenAPI document exercise a path
+  that was never real, producing failures that are easy to misdiagnose, or - worse - false confidence when
+  those tests only validate the document rather than the running service.
+* Mirage entries inflate the perceived size and maturity of an API surface, skewing capacity planning,
+  security review scope, and any client SDK generated from the document.
+* A mirage entry can also mask the opposite drift: if a documented operation is quietly removed from the
+  code during a refactor without ever pruning the document, the two look identical from the outside until a
+  consumer actually calls it.
+
+=== Reference
+
+This is the same underlying problem the Shadow API Detector plugin addresses from the opposite direction: the
+OWASP API Security Top 10 (2023) names inventory mismatches between documentation and implementation as
+https://owasp.org/API-Security/editions/2023/en/0xa9-improper-inventory-management/[API9:2023 Improper Inventory Management].
+See the full https://owasp.org/API-Security/editions/2023/en/0x11-t10/[OWASP API Security Top 10] for the
+complete list of API security risks.
