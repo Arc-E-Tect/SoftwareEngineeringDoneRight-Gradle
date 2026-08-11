@@ -6,4 +6,5 @@ owasp-dependency-check-iff = { id = "org.owasp.dependencycheck", version.ref = "
 
 [versions]
 
-owasp-dependency-check-iff = "12.2.2"
+owasp-dependency-check-iff = "13.0.0"
+

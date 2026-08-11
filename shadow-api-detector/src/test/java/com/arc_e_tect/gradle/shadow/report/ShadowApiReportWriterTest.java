@@ -1,7 +1,7 @@
 package com.arc_e_tect.gradle.shadow.report;
 
-import com.arc_e_tect.gradle.shadow.model.Endpoint;
-import com.arc_e_tect.gradle.shadow.model.HttpVerb;
+import com.arc_e_tect.gradle.detector.core.model.Endpoint;
+import com.arc_e_tect.gradle.detector.core.model.HttpVerb;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;

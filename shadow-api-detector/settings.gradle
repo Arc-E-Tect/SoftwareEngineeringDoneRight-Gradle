@@ -10,3 +10,6 @@ refreshVersions {
 }
 
 rootProject.name = 'shadow-api-detector'
+
+include 'api-detector-core'
+project(':api-detector-core').projectDir = file('../api-detector-core')
