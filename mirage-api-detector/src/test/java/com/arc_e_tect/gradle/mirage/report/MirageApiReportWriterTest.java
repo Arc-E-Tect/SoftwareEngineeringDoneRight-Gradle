@@ -67,6 +67,31 @@ class MirageApiReportWriterTest {
     }
 
     @Test
+    @DisplayName("treats a blank tag the same as no tag at all")
+    void treatsBlankTagAsUntagged(@TempDir Path tempDir) throws Exception {
+        File output = new File(tempDir.toFile(), "report.adoc");
+        List<DescribedEndpoint> mirages = List.of(
+                new DescribedEndpoint(HttpVerb.GET, "/api/ping", "ping", List.of("  ")));
+
+        writer.write(output, 1, mirages, "1.0.0");
+
+        String content = Files.readString(output.toPath());
+        assertThat(content).contains("=== (untagged)").doesNotContain("=== " + "  ");
+    }
+
+    @Test
+    @DisplayName("prints (none) for a blank operationId, same as a missing one")
+    void printsNoneForBlankOperationId(@TempDir Path tempDir) throws Exception {
+        File output = new File(tempDir.toFile(), "report.adoc");
+        List<DescribedEndpoint> mirages = List.of(
+                new DescribedEndpoint(HttpVerb.GET, "/api/ping", "  ", List.of()));
+
+        writer.write(output, 1, mirages, "1.0.0");
+
+        assertThat(Files.readString(output.toPath())).contains("| (none)");
+    }
+
+    @Test
     @DisplayName("prints (none) for a mirage with no operationId or tags")
     void printsNoneForMissingOperationIdAndTags(@TempDir Path tempDir) throws Exception {
         File output = new File(tempDir.toFile(), "report.adoc");

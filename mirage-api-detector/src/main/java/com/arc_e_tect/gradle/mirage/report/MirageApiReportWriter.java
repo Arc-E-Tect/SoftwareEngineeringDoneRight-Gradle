@@ -91,11 +91,12 @@ public class MirageApiReportWriter {
                         .sorted(Comparator.comparing(DescribedEndpoint::path)
                                 .thenComparing(e -> e.verb().name()))
                         .forEach(e -> {
+                            List<String> tags = effectiveTags(e);
                             writer.println();
                             writer.println("| " + e.verb());
                             writer.println("| " + e.path());
-                            writer.println("| " + (e.operationId() == null ? "(none)" : e.operationId()));
-                            writer.println("| " + (e.tags().isEmpty() ? "(none)" : String.join(", ", e.tags())));
+                            writer.println("| " + (isBlank(e.operationId()) ? "(none)" : e.operationId()));
+                            writer.println("| " + (tags.isEmpty() ? "(none)" : String.join(", ", tags)));
                         });
 
                 writer.println("|===");
@@ -105,7 +106,21 @@ public class MirageApiReportWriter {
     }
 
     private String primaryTag(DescribedEndpoint endpoint) {
-        return endpoint.tags().isEmpty() ? UNTAGGED_GROUP : endpoint.tags().get(0);
+        List<String> tags = effectiveTags(endpoint);
+        return tags.isEmpty() ? UNTAGGED_GROUP : tags.get(0);
+    }
+
+    /**
+     * Returns {@code endpoint}'s tags with blank entries removed, so that an OpenAPI document
+     * declaring e.g. {@code tags: [""]} - a real if uncommon generator quirk - is treated the
+     * same as declaring no tags at all, rather than grouping under an empty heading.
+     */
+    private List<String> effectiveTags(DescribedEndpoint endpoint) {
+        return endpoint.tags().stream().filter(tag -> !isBlank(tag)).toList();
+    }
+
+    private boolean isBlank(String s) {
+        return s == null || s.isBlank();
     }
 
     /**
