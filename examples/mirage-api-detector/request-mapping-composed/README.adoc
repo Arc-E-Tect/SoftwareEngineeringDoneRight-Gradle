@@ -1,0 +1,69 @@
+= Mirage API Detector — Composed RequestMapping Example
+:toc: left
+
+== Description
+
+This example applies the Mirage API Detector plugin to a small `LibraryController` that uses `@RequestMapping` at both levels.
+The controller has a class-level `@RequestMapping("/library")` and method-level `@RequestMapping(path = ..., method = ...)` declarations.
+The accompanying OpenAPI document describes every composed endpoint, and every one of them is implemented.
+`rootDocument` is the only property configured because every other property already defaults correctly for this example's layout.
+
+== Intent
+
+This example demonstrates that endpoint composition from class-level and handler-level `@RequestMapping` is
+resolved correctly on the implementation side of the comparison. It shows that no false positives are
+reported when those composed endpoints are fully implemented.
+
+== The Controller
+
+[source,java]
+----
+@RestController
+@RequestMapping("/library")
+public class LibraryController {
+
+    @RequestMapping(path = "/books", method = RequestMethod.GET)
+    public String listBooks() { ... }
+
+    @RequestMapping(path = "/books/{id}", method = RequestMethod.GET)
+    public String getBook(@PathVariable Long id) { ... }
+
+    @RequestMapping(path = "/books", method = RequestMethod.POST)
+    public String addBook(@RequestBody String book) { ... }
+}
+----
+
+Full source: `src/main/java/com/arc_e_tect/example/library/LibraryController.java`.
+The matching OpenAPI document is `src/main/resources/openapi/openapi.yaml`.
+The described paths are `/library/books` and `/library/books/{id}`.
+
+== Build And Run
+
+[source,bash]
+----
+cd examples/mirage-api-detector/request-mapping-composed
+./gradlew detectMirageApis
+----
+
+== What To Expect
+
+The build is expected to pass.
+The plugin writes `build/reports/mirage-api-detector/mirage-apis.adoc`.
+The report opens with a preamble explaining what a mirage API is (omitted below for brevity).
+See link:../../../mirage-api-detector/README.adoc[the plugin README]'s "Report output" section for the full preamble text.
+The summary then confirms that every composed endpoint is implemented:
+
+[source,asciidoc]
+----
+= Mirage API Report
+:toc:
+:toclevels: 2
+
+Generated: ...
+
+Scanned 3 endpoint(s) described in the OpenAPI documentation. 0 of them are not implemented by any `@RestController` class.
+
+== Mirage APIs
+
+None found. Every endpoint described in the OpenAPI documentation is implemented by a scanned `@RestController` class.
+----

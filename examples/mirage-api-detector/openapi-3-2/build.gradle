@@ -1,0 +1,24 @@
+plugins {
+    id 'java'
+    alias(libs.plugins.mirage.api.detector)
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation libs.spring.web
+}
+
+mirageApiDetector {
+    // The only property that must be set: the root OpenAPI document. Every other
+    // property already defaults correctly for this example's layout.
+    rootDocument = file('src/main/resources/openapi/openapi.yaml')
+}

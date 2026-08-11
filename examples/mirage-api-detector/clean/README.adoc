@@ -1,0 +1,65 @@
+= Mirage API Detector — Clean Example
+:toc: left
+
+== Description
+
+This example applies the Mirage API Detector plugin to a small `LibraryController` that implements every
+operation described in the accompanying OpenAPI document. `rootDocument` is the only property configured —
+every other property already defaults correctly for this example's layout.
+
+== Intent
+
+This example shows the plugin's baseline, "nothing wrong" outcome: parsing the OpenAPI document, comparing
+its operations against the scanned `@RestController` classes, and reporting that every described operation
+is actually implemented.
+
+== The Controller And Document
+
+[source,java]
+----
+@RestController
+@RequestMapping("/books")
+public class LibraryController {
+
+    @GetMapping
+    public String listBooks() { ... }
+
+    @GetMapping("/{id}")
+    public String getBook(@PathVariable Long id) { ... }
+
+    @PostMapping
+    public String addBook(@RequestBody String book) { ... }
+}
+----
+
+Full source: `src/main/java/com/arc_e_tect/example/library/LibraryController.java`.
+The matching OpenAPI document is `src/main/resources/openapi/openapi.yaml`.
+
+== Build And Run
+
+[source,bash]
+----
+cd examples/mirage-api-detector/clean
+./gradlew detectMirageApis
+----
+
+== What To Expect
+
+The build is expected to pass. The plugin writes `build/reports/mirage-api-detector/mirage-apis.adoc`, opening
+with a preamble explaining what a mirage API is (omitted below for brevity - see
+link:../../../mirage-api-detector/README.adoc[the plugin README]'s "Report output" section), followed by:
+
+[source,asciidoc]
+----
+= Mirage API Report
+:toc:
+:toclevels: 2
+
+Generated: ...
+
+Scanned 3 endpoint(s) described in the OpenAPI documentation. 0 of them are not implemented by any `@RestController` class.
+
+== Mirage APIs
+
+None found. Every endpoint described in the OpenAPI documentation is implemented by a scanned `@RestController` class.
+----
