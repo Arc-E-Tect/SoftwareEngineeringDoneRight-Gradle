@@ -47,3 +47,15 @@ include::shadow-api-detector/multi-file-openapi/README.adoc[leveloffset=+1]
 include::shadow-api-detector/openapi-3-2/README.adoc[leveloffset=+1]
 
 include::shadow-api-detector/request-mapping-composed/README.adoc[leveloffset=+1]
+
+== Mirage API Detector Examples
+
+include::mirage-api-detector/clean/README.adoc[leveloffset=+1]
+
+include::mirage-api-detector/with-mirage-apis/README.adoc[leveloffset=+1]
+
+include::mirage-api-detector/multi-file-openapi/README.adoc[leveloffset=+1]
+
+include::mirage-api-detector/openapi-3-2/README.adoc[leveloffset=+1]
+
+include::mirage-api-detector/request-mapping-composed/README.adoc[leveloffset=+1]

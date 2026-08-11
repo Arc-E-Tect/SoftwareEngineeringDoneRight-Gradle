@@ -1,0 +1,25 @@
+plugins {
+    id 'java'
+    alias(libs.plugins.mirage.api.detector)
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation libs.spring.web
+}
+
+mirageApiDetector {
+    rootDocument = file('src/main/resources/openapi/openapi.yaml')
+    // openApiDir is not set explicitly: it defaults to rootDocument's own parent directory
+    // (src/main/resources/openapi), which already contains paths/authors.yaml - the document
+    // openapi.yaml links to via a relative $ref. Both files are tracked as inputs either way.
+}

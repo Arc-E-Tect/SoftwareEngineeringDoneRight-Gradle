@@ -1,0 +1,56 @@
+= Mirage API Detector — Multi-File OpenAPI Example
+:toc: left
+
+== Description
+
+This example splits its OpenAPI description across two files: the root `openapi.yaml` describes `/books`
+and `/books/{id}` directly, and links to `paths/authors.yaml` - relative to the root document - for the
+entire `/authors` path item, which covers both `GET /authors` and `POST /authors`.
+
+== Intent
+
+This example shows that `mirageApiDetector` follows `$ref` links to other OpenAPI documents automatically:
+`rootDocument` is the only document that needs to be configured, even though the full description spans
+two files, and every operation reached through a `$ref` is checked against the scanned controllers exactly
+like an operation described directly in the root document.
+
+== The Controllers And Documents
+
+[source,yaml]
+----
+# src/main/resources/openapi/openapi.yaml
+paths:
+  /books: ...
+  /books/{id}: ...
+  /authors:
+    $ref: 'paths/authors.yaml'
+----
+
+[source,yaml]
+----
+# src/main/resources/openapi/paths/authors.yaml
+get:
+  operationId: listAuthors
+  ...
+post:
+  operationId: addAuthor
+  ...
+----
+
+`BookController` and `AuthorController` (both under
+`src/main/java/com/arc_e_tect/example/catalog/`) implement exactly the endpoints described across the two
+files: `GET /books`, `GET /books/{id}`, `GET /authors`, and `POST /authors`.
+
+== Build And Run
+
+[source,bash]
+----
+cd examples/mirage-api-detector/multi-file-openapi
+./gradlew detectMirageApis
+----
+
+== What To Expect
+
+The build is expected to pass. Every operation - whether described in the root document or in the linked
+`paths/authors.yaml` - is matched to an implementation, so `build/reports/mirage-api-detector/mirage-apis.adoc`
+(after its usual preamble explaining what a mirage API is) reports no mirage APIs.

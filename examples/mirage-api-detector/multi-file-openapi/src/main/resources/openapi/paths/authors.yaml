@@ -1,0 +1,12 @@
+get:
+  operationId: listAuthors
+  tags: [Authors]
+  responses:
+    '200':
+      description: OK
+post:
+  operationId: addAuthor
+  tags: [Authors]
+  responses:
+    '201':
+      description: Created
