@@ -1,6 +1,6 @@
 package com.arc_e_tect.gradle.mirage.report;
 
-import com.arc_e_tect.gradle.mirage.openapi.DescribedEndpoint;
+import com.arc_e_tect.gradle.detector.core.openapi.DescribedEndpoint;
 
 import java.io.File;
 import java.io.IOException;
