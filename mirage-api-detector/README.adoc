@@ -11,7 +11,7 @@ image:https://img.shields.io/github/v/release/Arc-E-Tect/SoftwareEngineeringDone
 image:https://img.shields.io/badge/Java-21%2B-blue[Java 21+,link=https://adoptium.net]
 image:https://img.shields.io/badge/Gradle-8.x%2B-02303A?logo=gradle[Gradle 8+,link=https://gradle.org]
 
-A Gradle plugin that scans your OpenAPI documentation for operations, compares them against the endpoints exposed by your Spring Boot `@RestController` classes, and reports every operation that has no matching implementation - a "mirage API".
+A Gradle plugin that scans your OpenAPI documentation for operations, compares them against a set of implemented endpoints, and reports every operation that has no match - a "mirage API". By default, "implemented" means exposed by a scanned Spring Boot `@RestController` class; set `scanMocks = true` to instead treat WireMock stub mapping files as the implementation evidence - see "Scanning WireMock stubs instead of controllers" below.
 
 Mirage APIs are endpoints that exist on paper but not in code: documented, reviewed, and visible to API consumers, yet unreachable at runtime. This is the mirror image of the companion link:../shadow-api-detector/README.adoc[Shadow API Detector] plugin, which catches the opposite drift - implemented but undocumented endpoints.
 
@@ -80,15 +80,48 @@ plugins {
 == How it works
 
 1. The configured root OpenAPI document is parsed, following every `$ref` link - including links to other documents, resolved relative to the root document - to build the full set of described endpoints, each with its HTTP verb, path template, `operationId`, and tags.
-2. Every Java source file under the configured controller directories is parsed and scanned for classes annotated with `@RestController`. This is an MVP restriction - only Spring MVC's annotation-based REST controllers are recognised.
+2. Steps 2-4 below describe the default mode. Every Java source file under the configured controller directories is parsed and scanned for classes annotated with `@RestController`. This is an MVP restriction - only Spring MVC's annotation-based REST controllers are recognised.
 3. For each `@RestController` class, the class-level `@RequestMapping` base path (if any) is combined with every method-level `@RequestMapping`, `@GetMapping`, `@PostMapping`, `@PutMapping`, `@DeleteMapping`, and `@PatchMapping` to build the full set of implemented endpoints.
 4. Endpoints are matched by HTTP verb and by path template; path variables are matched positionally, so an OpenAPI `{userId}` matches a controller's `{id}`. A described endpoint is considered implemented as soon as a matching controller endpoint is found, whether that endpoint's verb matches exactly or the controller method carries `HttpVerb.ANY` (a Spring `@RequestMapping` that does not restrict its HTTP method).
 5. Every described endpoint with no matching implementation is a mirage API. An AsciiDoc report listing them, grouped by their OpenAPI tag (or `(untagged)` when none is set), is written to the configured report directory - the report is always written, whether or not the build is configured to fail.
 
 [NOTE]
 ====
-This is a scope restriction of the current MVP, not a design limit: only `@RestController`-based endpoints are recognised as implementations, and only "documented but unimplemented" is reported (the reverse case - implemented but undocumented - is the companion link:../shadow-api-detector/README.adoc[Shadow API Detector] plugin's job). Both may be lifted in a future release.
+This is a scope restriction of the current MVP, not a design limit: only `@RestController`-based endpoints (or, in `scanMocks` mode, WireMock stubs) are recognised as implementation evidence, and only "documented but unimplemented" is reported (the reverse case - implemented but undocumented - is the companion link:../shadow-api-detector/README.adoc[Shadow API Detector] plugin's job). Both may be lifted in a future release.
 ====
+
+== Scanning WireMock stubs instead of controllers
+
+By default, an OpenAPI operation is considered implemented as soon as a matching `@RestController` endpoint is found. Set `scanMocks = true` to use a different notion of "implemented" entirely: an operation is implemented when a WireMock stub mocks it, regardless of whether any controller exists for it. This suits teams building against a contract before the real implementation exists - or testing purely at the API-mock boundary - where "is this endpoint stubbed for consumer testing?" matters more than "does a controller method exist?".
+
+[IMPORTANT]
+====
+`scanMocks` and controller scanning are mutually exclusive, not additive. When `scanMocks = true`, `controllerDirs` is not scanned at all - a real, working `@RestController` implementation with no matching stub still reports as a mirage API.
+====
+
+The plugin looks for `*.json` files, recursively, under `stubDirs` (default `src/test/resources/mappings`, WireMock's own conventional mapping directory). One file is expected to describe one stub - the common convention for files stored under a `mappings` directory. Each file is read structurally for its first `method` field and its first `url`, `urlPath`, `urlPattern`, or `urlPathPattern` field - deliberately without a JSON parser or the WireMock library itself on this plugin's classpath, the same "read the file as data, not code" approach the companion link:../doppelganger-api-detector/README.adoc[Doppelganger API Detector] plugin uses for Spring Cloud Contract files.
+
+.Example stub mapping file (`src/test/resources/mappings/getItem.json`)
+[source,json]
+----
+{
+  "request": {
+    "method": "GET",
+    "urlPath": "/items/1"
+  },
+  "response": {
+    "status": 200
+  }
+}
+----
+
+[source,groovy]
+----
+mirageApiDetector {
+    scanMocks = true
+    stubDirs.from('src/test/resources/mappings')
+}
+----
 
 == Configuration
 
@@ -99,9 +132,19 @@ The plugin registers a `mirageApiDetector` extension.
 ----
 mirageApiDetector {
     // One or more directories to search recursively for @RestController classes, used to
-    // determine which OpenAPI operations are implemented.
+    // determine which OpenAPI operations are implemented. Not scanned when scanMocks is true.
     // Default: src/main/java
     controllerDirs.from('src/main/java')
+
+    // Whether to determine implemented endpoints from WireMock stub mapping files instead of
+    // scanning @RestController classes. See "Scanning WireMock stubs instead of controllers".
+    // Default: false
+    scanMocks = false
+
+    // One or more directories to search recursively for WireMock stub mapping files, used only
+    // when scanMocks is true.
+    // Default: src/test/resources/mappings
+    // stubDirs.from('src/test/resources/mappings')
 
     // The root OpenAPI document. Required - every other document is expected to be
     // reachable from this one via $ref links relative to it.
@@ -137,6 +180,8 @@ mirageApiDetector {
 ----
 mirageApiDetector {
     controllerDirs.from("src/main/java")
+    scanMocks.set(false)
+    // stubDirs.from("src/test/resources/mappings")
     rootDocument.set(file("src/main/resources/openapi/openapi.yaml"))
     failOnMirage.set(false)
     reportDir.set(layout.buildDirectory.dir("reports/mirage-api-detector"))
@@ -152,7 +197,7 @@ mirageApiDetector {
 [cols="2,1,3",options="header"]
 |===
 | Task name           | Group        | Description
-| `detectMirageApis`  | verification | Scans the OpenAPI documentation and reports operations with no matching `@RestController` implementation.
+| `detectMirageApis`  | verification | Scans the OpenAPI documentation and reports operations with no matching implementation (a `@RestController` class by default, or a WireMock stub when `scanMocks` is true).
 |===
 
 The task is **not** wired into `check` or `build` automatically. Teams that write their OpenAPI documentation ahead of the implementation - a common "spec-first" workflow - would otherwise see every build fail on endpoints that simply have not been built yet.
