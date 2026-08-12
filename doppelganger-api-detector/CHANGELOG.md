@@ -1,3 +1,18 @@
+# [0.2.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/doppelganger-api-detector-v0.1.1...doppelganger-api-detector-v0.2.0) (2026-08-12)
+
+
+### ✅ Tests
+
+* **gherkin-to-asciidoc:** cover scenario renumbering when moved between features ([#125](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/125)) ([201a59e](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/201a59e5ff1ecd7996e28fd58529f72a17f0ff63)), closes [#125](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/125)
+
+
+### ✨ New and updated features
+
+* **examples:** add mirage-api-detector scan-mocks example ([#124](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/124)) ([edc641d](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/edc641d99667c65fa9355008b215effae8988450)), closes [#124](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/124)
+* **mirage-api-detector:** add scanMocks/stubDirs to detect mirage APIs from WireMock stubs ([#123](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/123)) ([3aa5958](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/3aa5958efc35d14af0cdd2d1d8579d20a4d115fe)), closes [#123](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/123)
+* **gherkin-to-asciidoc:** add trackProgressHistory to persist per-scenario progress history ([#126](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/126)) ([f4212f1](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/f4212f1d47f4036270d953fdaf6bd27642cb2bb4)), closes [#126](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/126) [#114](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/114)
+* log LIFECYCLE-level scan progress in all three API detector plugins ([#127](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/127)) ([cb3dcfb](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/cb3dcfb49d08092d8e7fc419a1c71453ee47f82a)), closes [#127](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/127) [#56](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/56) [#56](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/56)
+
 ## [0.1.1](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/doppelganger-api-detector-v0.1.0...doppelganger-api-detector-v0.1.1) (2026-08-12)
 
 
