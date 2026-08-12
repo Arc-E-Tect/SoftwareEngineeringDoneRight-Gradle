@@ -117,6 +117,32 @@ jobs:
         run: |
           sed -i "s/${{ env.GRADLE_VERSION_REGEX }}/version = ${{ env.VERSION }}/g" ${{ env.GRADLE_PROPERTIES_FILE }}
 
+      - name: Resolve sibling plugin versions
+        # shadow/mirage/doppelganger-api-detector are pulled in as subprojects of this build, but
+        # their own gradle.properties always stays at the unpublished placeholder version (each
+        # plugin's own release workflow only patches it transiently, in its own separate CI run,
+        # never commits the bump back to main). Left as-is, api-only-suite's published POM would
+        # declare a runtime dependency on that placeholder version, which nobody could resolve -
+        # exactly the bug this repo just finished fixing for api-detector-core. Resolve each
+        # sibling's real latest released version from its own tag namespace instead.
+        id: sibling-versions
+        run: |
+          SHADOW_VERSION=$(git tag -l 'shadow-api-detector-v*' | sed 's/^shadow-api-detector-v//' | sort -V | tail -1)
+          MIRAGE_VERSION=$(git tag -l 'mirage-api-detector-v*' | sed 's/^mirage-api-detector-v//' | sort -V | tail -1)
+          DOPPELGANGER_VERSION=$(git tag -l 'doppelganger-api-detector-v*' | sed 's/^doppelganger-api-detector-v//' | sort -V | tail -1)
+          {
+            echo "shadow_version=${SHADOW_VERSION}"
+            echo "mirage_version=${MIRAGE_VERSION}"
+            echo "doppelganger_version=${DOPPELGANGER_VERSION}"
+          } >> "$GITHUB_OUTPUT"
+          echo "::notice title=Resolved Sibling Versions::shadow-api-detector=${SHADOW_VERSION} mirage-api-detector=${MIRAGE_VERSION} doppelganger-api-detector=${DOPPELGANGER_VERSION}"
+
+      - name: Update sibling plugin versions in their Gradle property files
+        run: |
+          sed -i "s/${{ env.GRADLE_VERSION_REGEX }}/version = ${{ steps.sibling-versions.outputs.shadow_version }}/g" shadow-api-detector/gradle.properties
+          sed -i "s/${{ env.GRADLE_VERSION_REGEX }}/version = ${{ steps.sibling-versions.outputs.mirage_version }}/g" mirage-api-detector/gradle.properties
+          sed -i "s/${{ env.GRADLE_VERSION_REGEX }}/version = ${{ steps.sibling-versions.outputs.doppelganger_version }}/g" doppelganger-api-detector/gradle.properties
+
       - name: Publish to Gradle Plugin Portal
         run: |
           cd api-only-suite
