@@ -8,6 +8,7 @@ on:
       - 'doppelganger-api-detector/gradle/**'
       - 'doppelganger-api-detector/src/main/**'
       - 'doppelganger-api-detector/docs/**'
+  workflow_dispatch: {}
 
 jobs:
   Calculate-Version:
