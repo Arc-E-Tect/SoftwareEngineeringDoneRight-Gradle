@@ -151,6 +151,30 @@ class MirageApiReportWriterTest {
     }
 
     @Test
+    @DisplayName("uses WireMock stub wording when scanMocks is true")
+    void usesWireMockStubWordingWhenScanningMocks(@TempDir Path tempDir) throws Exception {
+        File output = new File(tempDir.toFile(), "report.adoc");
+        List<DescribedEndpoint> mirages = List.of(
+                new DescribedEndpoint(HttpVerb.GET, "/api/orders", "listOrders", List.of()));
+
+        writer.write(output, 1, mirages, "1.0.0", true);
+
+        assertThat(Files.readString(output.toPath()))
+                .contains("1 of them is not backed by any WireMock stub");
+    }
+
+    @Test
+    @DisplayName("uses WireMock stub wording for the empty case when scanMocks is true")
+    void usesWireMockStubWordingForEmptyCaseWhenScanningMocks(@TempDir Path tempDir) throws Exception {
+        File output = new File(tempDir.toFile(), "report.adoc");
+
+        writer.write(output, 3, List.of(), "1.0.0", true);
+
+        assertThat(Files.readString(output.toPath()))
+                .contains("None found. Every endpoint described in the OpenAPI documentation is backed by a WireMock stub.");
+    }
+
+    @Test
     @DisplayName("preamble content matches the bundled mirage-api-preamble.adoc resource verbatim")
     void preambleMatchesBundledResource(@TempDir Path tempDir) throws Exception {
         File output = new File(tempDir.toFile(), "report.adoc");

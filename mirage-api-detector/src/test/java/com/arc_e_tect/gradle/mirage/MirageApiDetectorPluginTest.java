@@ -120,6 +120,89 @@ class MirageApiDetectorPluginTest {
     }
 
     @Test
+    @DisplayName("extension default: scanMocks is false")
+    void extensionDefaultScanMocksIsFalse() {
+        Project project = projectWithPlugin();
+
+        assertThat(extension(project).getScanMocks().get()).isFalse();
+    }
+
+    @Test
+    @DisplayName("extension default: stubDirs is empty before evaluation")
+    void extensionDefaultStubDirsEmptyBeforeEvaluation() {
+        Project project = projectWithPlugin();
+
+        assertThat(extension(project).getStubDirs().isEmpty()).isTrue();
+    }
+
+    @Test
+    @DisplayName("task defaults stubDirs to src/test/resources/mappings when scanMocks is true and unset")
+    void taskDefaultsStubDirsAfterEvaluationWhenScanningMocks() {
+        Project project = projectWithPlugin();
+        extension(project).getScanMocks().set(true);
+
+        ((ProjectInternal) project).evaluate();
+
+        DetectMirageApisTask task = (DetectMirageApisTask)
+                project.getTasks().getByName(MirageApiDetectorPlugin.TASK_NAME);
+        assertThat(task.getStubDirs().getFiles())
+                .containsExactly(new File(project.getProjectDir(), "src/test/resources/mappings"));
+    }
+
+    @Test
+    @DisplayName("does not default stubDirs when scanMocks is false")
+    void doesNotDefaultStubDirsWhenNotScanningMocks() {
+        Project project = projectWithPlugin();
+
+        ((ProjectInternal) project).evaluate();
+
+        DetectMirageApisTask task = (DetectMirageApisTask)
+                project.getTasks().getByName(MirageApiDetectorPlugin.TASK_NAME);
+        assertThat(task.getStubDirs().getFiles()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("does not default controllerDirs when scanMocks is true")
+    void doesNotDefaultControllerDirsWhenScanningMocks() {
+        Project project = projectWithPlugin();
+        extension(project).getScanMocks().set(true);
+
+        ((ProjectInternal) project).evaluate();
+
+        DetectMirageApisTask task = (DetectMirageApisTask)
+                project.getTasks().getByName(MirageApiDetectorPlugin.TASK_NAME);
+        assertThat(task.getControllerDirs().getFiles()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("does not override stubDirs configured explicitly by the user")
+    void doesNotOverrideExplicitStubDirs() {
+        Project project = projectWithPlugin();
+        extension(project).getScanMocks().set(true);
+        File custom = new File(project.getProjectDir(), "src/test/resources/stubs");
+        extension(project).getStubDirs().from(custom);
+
+        ((ProjectInternal) project).evaluate();
+
+        DetectMirageApisTask task = (DetectMirageApisTask)
+                project.getTasks().getByName(MirageApiDetectorPlugin.TASK_NAME);
+        assertThat(task.getStubDirs().getFiles()).containsExactly(custom);
+    }
+
+    @Test
+    @DisplayName("wires the task's scanMocks from the extension")
+    void wiresTaskScanMocksFromExtension() {
+        Project project = projectWithPlugin();
+        extension(project).getScanMocks().set(true);
+
+        ((ProjectInternal) project).evaluate();
+
+        DetectMirageApisTask task = (DetectMirageApisTask)
+                project.getTasks().getByName(MirageApiDetectorPlugin.TASK_NAME);
+        assertThat(task.getScanMocks().get()).isTrue();
+    }
+
+    @Test
     @DisplayName("openApiDir defaults to the rootDocument's parent directory")
     void openApiDirDefaultsToRootDocumentParent() {
         Project project = projectWithPlugin();

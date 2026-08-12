@@ -125,9 +125,63 @@ class DetectMirageApisTaskTest {
         assertThat(content).contains("None found.");
     }
 
+    @Test
+    @DisplayName("scans WireMock stubs instead of controllers when scanMocks is true")
+    void scansStubsInsteadOfControllersWhenScanMocksTrue() throws Exception {
+        File stubDir = new File(tempDir.toFile(), "src/test/resources/mappings");
+        Files.createDirectories(stubDir.toPath());
+        Files.writeString(stubDir.toPath().resolve("listUsers.json"), """
+                {
+                  "request": { "method": "GET", "urlPath": "/users" },
+                  "response": { "status": 200 }
+                }
+                """);
+
+        DetectMirageApisTask task = newTask();
+        task.getScanMocks().set(true);
+        task.getStubDirs().from(stubDir);
+        task.getControllerDirs().from(controllerDir);
+        task.getRootDocument().set(openApiFixture("both-endpoints.yaml"));
+        task.getReportDir().set(reportDir);
+        task.getReportFileName().set("mirage-apis.adoc");
+        task.getFailOnMirage().set(false);
+        task.getSystemUnderTestVersion().set("1.0.0");
+
+        task.generate();
+
+        String content = Files.readString(new File(reportDir, "mirage-apis.adoc").toPath());
+        assertThat(content)
+                .contains("1 of them is not backed by any WireMock stub")
+                .contains("/users/{id}")
+                .contains("deleteUser");
+    }
+
+    @Test
+    @DisplayName("does not consider an endpoint implemented by a matching controller when scanMocks is true")
+    void ignoresControllerImplementationWhenScanningMocks() throws Exception {
+        File stubDir = new File(tempDir.toFile(), "src/test/resources/mappings");
+        Files.createDirectories(stubDir.toPath());
+
+        DetectMirageApisTask task = newTask();
+        task.getScanMocks().set(true);
+        task.getStubDirs().from(stubDir);
+        task.getControllerDirs().from(controllerDir);
+        task.getRootDocument().set(openApiFixture("single-endpoint.yaml"));
+        task.getReportDir().set(reportDir);
+        task.getReportFileName().set("mirage-apis.adoc");
+        task.getFailOnMirage().set(false);
+        task.getSystemUnderTestVersion().set("1.0.0");
+
+        task.generate();
+
+        String content = Files.readString(new File(reportDir, "mirage-apis.adoc").toPath());
+        assertThat(content).contains("1 of them is not backed by any WireMock stub");
+    }
+
     private DetectMirageApisTask configuredTask(File rootDocument, boolean failOnMirage) {
         DetectMirageApisTask task = newTask();
         task.getControllerDirs().from(controllerDir);
+        task.getScanMocks().set(false);
         task.getRootDocument().set(rootDocument);
         task.getReportDir().set(reportDir);
         task.getReportFileName().set("mirage-apis.adoc");

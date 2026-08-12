@@ -23,6 +23,9 @@ import org.gradle.api.tasks.TaskProvider;
  * <ul>
  *   <li>Controller directories: {@code src/main/java}</li>
  *   <li>OpenAPI description directory: the root document's own parent directory</li>
+ *   <li>Scan mocks instead of controllers: {@code false}</li>
+ *   <li>WireMock stub directories: {@code src/test/resources/mappings} (used only when scanning
+ *       mocks)</li>
  *   <li>Fail on mirage APIs: {@code false}</li>
  *   <li>Report directory: {@code build/reports/mirage-api-detector}</li>
  *   <li>Report file name: {@code mirage-apis.adoc}</li>
@@ -52,6 +55,7 @@ public class MirageApiDetectorPlugin implements Plugin<Project> {
                 .create(MirageApiDetectorExtension.NAME, MirageApiDetectorExtension.class);
 
         ext.getFailOnMirage().convention(false);
+        ext.getScanMocks().convention(false);
         ext.getReportDir().convention(
                 project.getLayout().getBuildDirectory().dir("reports/mirage-api-detector"));
         ext.getReportFileName().convention(MirageApiDetectorExtension.DEFAULT_REPORT_FILE_NAME);
@@ -63,6 +67,8 @@ public class MirageApiDetectorPlugin implements Plugin<Project> {
         TaskProvider<DetectMirageApisTask> taskProvider =
                 project.getTasks().register(TASK_NAME, DetectMirageApisTask.class, task -> {
                     task.getControllerDirs().from(ext.getControllerDirs());
+                    task.getScanMocks().set(ext.getScanMocks());
+                    task.getStubDirs().from(ext.getStubDirs());
                     task.getRootDocument().set(ext.getRootDocument());
                     task.getOpenApiDir().set(ext.getOpenApiDir());
                     task.getFailOnMirage().set(ext.getFailOnMirage());
@@ -71,13 +77,17 @@ public class MirageApiDetectorPlugin implements Plugin<Project> {
                     task.getSystemUnderTestVersion().set(ext.getSystemUnderTestVersion());
                 });
 
-        // Default to src/main/java only when the user has not configured any controller
-        // directories themselves; deferred to afterEvaluate so the check happens once the build
-        // script has had a chance to configure the extension.
+        // Default controllerDirs/stubDirs only when the corresponding scanning mode is active and
+        // the user has not configured them themselves; deferred to afterEvaluate so the check
+        // happens once the build script has had a chance to configure the extension.
         project.afterEvaluate(p -> {
-            if (ext.getControllerDirs().isEmpty()) {
+            if (!ext.getScanMocks().get() && ext.getControllerDirs().isEmpty()) {
                 taskProvider.configure(task ->
                         task.getControllerDirs().from(p.file(MirageApiDetectorExtension.DEFAULT_CONTROLLER_DIR)));
+            }
+            if (ext.getScanMocks().get() && ext.getStubDirs().isEmpty()) {
+                taskProvider.configure(task ->
+                        task.getStubDirs().from(p.file(MirageApiDetectorExtension.DEFAULT_STUB_DIR)));
             }
         });
     }
