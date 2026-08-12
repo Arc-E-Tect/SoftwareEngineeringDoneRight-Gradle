@@ -11,10 +11,10 @@ import org.gradle.api.provider.Property;
  * <pre>
  * doppelgangerApiDetector {
  *     controllerDirs.from('src/main/java')                                    // default
- *     testDirs.from('src/test/java')                                          // default
+ *     testDirs.from('src/testContract/java')                                  // default
  *     rootDocument   = file('src/main/resources/openapi/openapi.yaml')       // required
  *     // openApiDir  = rootDocument.get().asFile.parentFile                  // default
- *     // contractsDir = file('src/test/resources/contracts')                // default
+ *     // contractsDir = file('src/testContract/resources/contracts')        // default
  *     useRestDocs                 = true                                      // default
  *     useOpenApiRequestValidator  = false                                     // default
  *     useSpringCloudContract      = false                                     // default
@@ -37,10 +37,10 @@ public abstract class DoppelgangerApiDetectorExtension {
     public static final String DEFAULT_CONTROLLER_DIR = "src/main/java";
 
     /** Default relative path of the directory searched for test classes. */
-    public static final String DEFAULT_TEST_DIR = "src/test/java";
+    public static final String DEFAULT_TEST_DIR = "src/testContract/java";
 
     /** Default relative path of the directory searched for Spring Cloud Contract DSL files. */
-    public static final String DEFAULT_CONTRACTS_DIR = "src/test/resources/contracts";
+    public static final String DEFAULT_CONTRACTS_DIR = "src/testContract/resources/contracts";
 
     /** Default name of the generated AsciiDoc report file. */
     public static final String DEFAULT_REPORT_FILE_NAME = "doppelganger-apis.adoc";

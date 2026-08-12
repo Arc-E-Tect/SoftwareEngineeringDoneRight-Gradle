@@ -16,8 +16,8 @@ import java.util.regex.Pattern;
 
 /**
  * {@link ContractVerificationSource} for Spring Cloud Contract: declarative contract DSL files
- * under {@code src/test/resources/contracts/**&#47;*.groovy} (and {@code .yml}), read structurally
- * for {@code method '...'} and {@code url '...'} / {@code urlPath '...'} entries.
+ * under {@code src/testContract/resources/contracts/**&#47;*.groovy} (and {@code .yml}), read
+ * structurally for {@code method '...'} and {@code url '...'} / {@code urlPath '...'} entries.
  *
  * <p>Contract files are data, not code - this is a plain line/regex scan, deliberately without an
  * AST or a Groovy/YAML parser on the classpath.</p>
