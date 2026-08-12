@@ -80,7 +80,7 @@ Like its siblings, this plugin operates entirely at the source level: it parses 
 | Source                       | Evidence recognised
 | Spring RestDocs               | A test method containing `mockMvc.perform(get(...)/post(...)/put(...)/delete(...)/patch(...))` whose call chain also includes `.andDo(document(...))`. The HTTP verb comes from the static builder method name, the path from its first string-literal argument.
 | Atlassian OpenAPI request validator | A test method containing either `.filter(new OpenApiValidationFilter(...))` (REST Assured style) or a direct `.validateRequest(...)` / `.validateResponse(...)` call, paired with a REST-Assured-style request built via `given().when().get("/orders/{id}")`-style calls in the same method.
-| Spring Cloud Contract         | Contract DSL files under `contractsDir` (default `src/test/resources/contracts/**/*.groovy` and `*.yml`), read structurally for `method '...'` and `url '...'` / `urlPath '...'` entries - no AST, no Groovy compilation.
+| Spring Cloud Contract         | Contract DSL files under `contractsDir` (default `src/testContract/resources/contracts/**/*.groovy` and `*.yml`), read structurally for `method '...'` and `url '...'` / `urlPath '...'` entries - no AST, no Groovy compilation.
 |===
 
 Each source matches by simple class/method name only, never resolving types - so none of the underlying testing libraries need to be on this plugin's own classpath. This matters in particular for the Atlassian OpenAPI request validator, whose Maven coordinates changed after v3.0.0 from `swagger-request-validator-*` to `openapi-request-validator-*` under `com.atlassian.oai`: matching by simple name recognises both old and new artifact versions identically.
@@ -117,8 +117,8 @@ doppelgangerApiDetector {
 
     // One or more directories to search recursively for test classes, scanned by the Spring
     // RestDocs and OpenAPI request validator verification sources.
-    // Default: src/test/java
-    testDirs.from('src/test/java')
+    // Default: src/testContract/java
+    testDirs.from('src/testContract/java')
 
     // The root OpenAPI document. Required - every other document is expected to be
     // reachable from this one via $ref links relative to it.
@@ -130,8 +130,8 @@ doppelgangerApiDetector {
     openApiDir = file('src/main/resources/openapi')
 
     // Directory searched for Spring Cloud Contract DSL files.
-    // Default: src/test/resources/contracts
-    contractsDir = file('src/test/resources/contracts')
+    // Default: src/testContract/resources/contracts
+    contractsDir = file('src/testContract/resources/contracts')
 
     // Whether each contract verification source is enabled.
     // Default: true for all three
@@ -164,7 +164,7 @@ doppelgangerApiDetector {
 ----
 doppelgangerApiDetector {
     controllerDirs.from("src/main/java")
-    testDirs.from("src/test/java")
+    testDirs.from("src/testContract/java")
     rootDocument.set(file("src/main/resources/openapi/openapi.yaml"))
     failOnDoppelganger.set(false)
     reportDir.set(layout.buildDirectory.dir("reports/doppelganger-api-detector"))

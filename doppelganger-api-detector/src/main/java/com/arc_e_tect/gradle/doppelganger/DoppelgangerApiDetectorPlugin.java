@@ -22,9 +22,9 @@ import org.gradle.api.tasks.TaskProvider;
  * <h2>Defaults</h2>
  * <ul>
  *   <li>Controller directories: {@code src/main/java}</li>
- *   <li>Test directories: {@code src/test/java}</li>
+ *   <li>Test directories: {@code src/testContract/java}</li>
  *   <li>OpenAPI description directory: the root document's own parent directory</li>
- *   <li>Contracts directory: {@code src/test/resources/contracts}</li>
+ *   <li>Contracts directory: {@code src/testContract/resources/contracts}</li>
  *   <li>Contract verification sources: Spring RestDocs, OpenAPI request validator, and Spring
  *       Cloud Contract, all enabled</li>
  *   <li>Fail on doppelganger APIs: {@code false}</li>

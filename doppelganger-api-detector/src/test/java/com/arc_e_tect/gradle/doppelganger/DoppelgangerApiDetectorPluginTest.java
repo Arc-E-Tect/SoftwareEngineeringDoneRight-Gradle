@@ -138,7 +138,7 @@ class DoppelgangerApiDetectorPluginTest {
     }
 
     @Test
-    @DisplayName("task defaults testDirs to src/test/java after evaluation when unset")
+    @DisplayName("task defaults testDirs to src/testContract/java after evaluation when unset")
     void taskDefaultsTestDirsAfterEvaluation() {
         Project project = projectWithPlugin();
 
@@ -147,7 +147,7 @@ class DoppelgangerApiDetectorPluginTest {
         DetectDoppelgangerApisTask task = (DetectDoppelgangerApisTask)
                 project.getTasks().getByName(DoppelgangerApiDetectorPlugin.TASK_NAME);
         assertThat(task.getTestDirs().getFiles())
-                .containsExactly(new File(project.getProjectDir(), "src/test/java"));
+                .containsExactly(new File(project.getProjectDir(), "src/testContract/java"));
     }
 
     @Test
@@ -175,12 +175,12 @@ class DoppelgangerApiDetectorPluginTest {
     }
 
     @Test
-    @DisplayName("contractsDir defaults to src/test/resources/contracts")
+    @DisplayName("contractsDir defaults to src/testContract/resources/contracts")
     void contractsDirDefaultsToStandardLocation() {
         Project project = projectWithPlugin();
 
         assertThat(extension(project).getContractsDir().get().getAsFile())
-                .isEqualTo(new File(project.getProjectDir(), "src/test/resources/contracts"));
+                .isEqualTo(new File(project.getProjectDir(), "src/testContract/resources/contracts"));
     }
 
     @Test
