@@ -25,8 +25,8 @@ import org.gradle.api.tasks.TaskProvider;
  *   <li>Test directories: {@code src/test/java}</li>
  *   <li>OpenAPI description directory: the root document's own parent directory</li>
  *   <li>Contracts directory: {@code src/test/resources/contracts}</li>
- *   <li>Contract verification sources: Spring RestDocs, OpenAPI request validator, and Spring
- *       Cloud Contract, all enabled</li>
+ *   <li>Contract verification sources: Spring RestDocs enabled by default; the OpenAPI request
+ *       validator and Spring Cloud Contract sources are opt-in</li>
  *   <li>Fail on doppelganger APIs: {@code false}</li>
  *   <li>Report directory: {@code build/reports/doppelganger-api-detector}</li>
  *   <li>Report file name: {@code doppelganger-apis.adoc}</li>
@@ -57,8 +57,8 @@ public class DoppelgangerApiDetectorPlugin implements Plugin<Project> {
 
         ext.getFailOnDoppelganger().convention(false);
         ext.getUseRestDocs().convention(true);
-        ext.getUseOpenApiRequestValidator().convention(true);
-        ext.getUseSpringCloudContract().convention(true);
+        ext.getUseOpenApiRequestValidator().convention(false);
+        ext.getUseSpringCloudContract().convention(false);
         ext.getReportDir().convention(
                 project.getLayout().getBuildDirectory().dir("reports/doppelganger-api-detector"));
         ext.getReportFileName().convention(DoppelgangerApiDetectorExtension.DEFAULT_REPORT_FILE_NAME);
