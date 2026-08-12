@@ -16,8 +16,8 @@ import org.gradle.api.provider.Property;
  *     // openApiDir  = rootDocument.get().asFile.parentFile                  // default
  *     // contractsDir = file('src/test/resources/contracts')                // default
  *     useRestDocs                 = true                                      // default
- *     useOpenApiRequestValidator  = true                                      // default
- *     useSpringCloudContract      = true                                      // default
+ *     useOpenApiRequestValidator  = false                                     // default
+ *     useSpringCloudContract      = false                                     // default
  *     failOnDoppelganger = false                                              // default
  *     reportDir      = layout.buildDirectory.dir('reports/doppelganger-api-detector') // default
  *     reportFileName = 'doppelganger-apis.adoc'                               // default
@@ -99,7 +99,7 @@ public abstract class DoppelgangerApiDetectorExtension {
 
     /**
      * Whether to treat Atlassian OpenAPI request validator usage as verification evidence.
-     * Defaults to {@code true}.
+     * Defaults to {@code false}.
      *
      * @return mutable boolean property controlling whether the OpenAPI request validator source
      *         is enabled
@@ -108,7 +108,7 @@ public abstract class DoppelgangerApiDetectorExtension {
 
     /**
      * Whether to treat Spring Cloud Contract DSL files under {@link #getContractsDir()} as
-     * verification evidence. Defaults to {@code true}.
+     * verification evidence. Defaults to {@code false}.
      *
      * @return mutable boolean property controlling whether the Spring Cloud Contract source is
      *         enabled

@@ -43,19 +43,19 @@ class DoppelgangerApiDetectorPluginTest {
     }
 
     @Test
-    @DisplayName("extension default: useOpenApiRequestValidator is true")
-    void extensionDefaultUseOpenApiRequestValidatorIsTrue() {
+    @DisplayName("extension default: useOpenApiRequestValidator is false")
+    void extensionDefaultUseOpenApiRequestValidatorIsFalse() {
         Project project = projectWithPlugin();
 
-        assertThat(extension(project).getUseOpenApiRequestValidator().get()).isTrue();
+        assertThat(extension(project).getUseOpenApiRequestValidator().get()).isFalse();
     }
 
     @Test
-    @DisplayName("extension default: useSpringCloudContract is true")
-    void extensionDefaultUseSpringCloudContractIsTrue() {
+    @DisplayName("extension default: useSpringCloudContract is false")
+    void extensionDefaultUseSpringCloudContractIsFalse() {
         Project project = projectWithPlugin();
 
-        assertThat(extension(project).getUseSpringCloudContract().get()).isTrue();
+        assertThat(extension(project).getUseSpringCloudContract().get()).isFalse();
     }
 
     @Test
