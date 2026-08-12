@@ -2,12 +2,14 @@ package com.arc_e_tect.gradle.doppelganger;
 
 import org.gradle.api.GradleException;
 import org.gradle.api.Project;
+import org.gradle.api.logging.Logger;
 import org.gradle.testfixtures.ProjectBuilder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import javax.inject.Inject;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -173,6 +175,66 @@ class DetectDoppelgangerApisTaskTest {
         task.getUseSpringCloudContract().set(false);
         task.getSystemUnderTestVersion().set("1.0.0");
         return task;
+    }
+
+    @Test
+    @DisplayName("emits phase banners and at least one progress line while scanning more than one controller file")
+    void emitsPhaseBannersAndProgressLineWhileScanningMultipleControllerFiles() throws Exception {
+        Files.writeString(controllerDir.toPath().resolve("PaymentController.java"), """
+                package com.example;
+
+                import org.springframework.web.bind.annotation.GetMapping;
+                import org.springframework.web.bind.annotation.RequestMapping;
+                import org.springframework.web.bind.annotation.RestController;
+
+                @RestController
+                @RequestMapping("/payments")
+                public class PaymentController {
+
+                    @GetMapping
+                    public String listPayments() { return "[]"; }
+                }
+                """);
+
+        RecordingLogger recordingLogger = new RecordingLogger();
+        LoggerCapturingDetectDoppelgangerApisTask task = project.getTasks()
+                .create("detectDoppelgangerApisWithRecordingLogger", LoggerCapturingDetectDoppelgangerApisTask.class);
+        task.recordingLogger = recordingLogger;
+        task.getControllerDirs().from(controllerDir);
+        task.getTestDirs().from(testDir);
+        task.getRootDocument().set(openApiFixture("both-endpoints.yaml"));
+        task.getReportDir().set(reportDir);
+        task.getReportFileName().set("doppelganger-apis.adoc");
+        task.getFailOnDoppelganger().set(false);
+        task.getUseRestDocs().set(true);
+        task.getUseOpenApiRequestValidator().set(false);
+        task.getUseSpringCloudContract().set(false);
+        task.getSystemUnderTestVersion().set("1.0.0");
+
+        task.generate();
+
+        assertThat(recordingLogger.lifecycleMessages())
+                .anyMatch(message -> message.contains("Scanning @RestController classes"));
+        assertThat(recordingLogger.lifecycleMessages())
+                .anyMatch(message -> message.contains("Doppelganger API Detector: [{}/{}]"));
+    }
+
+    /**
+     * Test-only subclass that substitutes a {@link RecordingLogger} for the framework-provided
+     * task logger, since {@link DetectDoppelgangerApisTask#getLogger()} cannot otherwise be
+     * observed from a {@link ProjectBuilder}-based test.
+     */
+    abstract static class LoggerCapturingDetectDoppelgangerApisTask extends DetectDoppelgangerApisTask {
+
+        RecordingLogger recordingLogger;
+
+        @Inject
+        public LoggerCapturingDetectDoppelgangerApisTask() {}
+
+        @Override
+        public Logger getLogger() {
+            return recordingLogger;
+        }
     }
 
     private DetectDoppelgangerApisTask newTask() {

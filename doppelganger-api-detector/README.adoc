@@ -213,6 +213,28 @@ tasks.named("check") {
 }
 ----
 
+== Progress reporting
+
+This task runs several phases in sequence - scanning `@RestController` classes, collecting OpenAPI endpoints, then scanning each enabled contract verification source - and each can take a while on a large codebase.
+A one-line phase banner is logged at `LIFECYCLE` level before each phase starts, numbered out of the total phase count for that run, followed by periodic progress within the phase itself.
+
+[source,shell]
+----
+> Task :detectDoppelgangerApis
+Doppelganger API Detector: [1/3] Scanning @RestController classes...
+Scanning @RestController classes: 150/438 (34%)
+Scanning @RestController classes: done, 438 file(s)
+Doppelganger API Detector: [2/3] Collecting OpenAPI endpoints...
+Resolving OpenAPI documents: done, 14 item(s)
+Doppelganger API Detector: [3/3] Scanning Spring RestDocs verification evidence...
+Doppelganger API Detector: scanned 402 declared-and-implemented endpoint(s), found 5 doppelganger API(s). Report → build/reports/doppelganger-api-detector/doppelganger-apis.adoc
+----
+
+The total phase count reflects only the verification sources actually enabled and configured (`useRestDocs`, `useOpenApiRequestValidator`, `useSpringCloudContract`), so it varies from run to run.
+This is plain log output, not an animated progress indicator.
+The plugin deliberately avoids Gradle's internal, unsupported console/progress APIs, since their shape can change between Gradle versions and this plugin is published on the Gradle Plugin Portal for consumers on Gradle versions this project doesn't control.
+Each line is printed once and never overwritten in place, so it plays back cleanly in CI logs as well as an interactive terminal.
+
 == System Under Test Version
 
 Every generated report includes a line just below the title identifying the version of the system under test that was scanned:
