@@ -2,12 +2,14 @@ package com.arc_e_tect.gradle.shadow;
 
 import org.gradle.api.GradleException;
 import org.gradle.api.Project;
+import org.gradle.api.logging.Logger;
 import org.gradle.testfixtures.ProjectBuilder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import javax.inject.Inject;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -129,6 +131,59 @@ class DetectShadowApisTaskTest {
 
         String content = Files.readString(new File(reportDir, "shadow-apis.adoc").toPath());
         assertThat(content).contains("None found.");
+    }
+
+    @Test
+    @DisplayName("emits at least one progress line while scanning more than one controller file")
+    void emitsProgressLineWhileScanningMultipleControllerFiles() throws Exception {
+        Files.writeString(controllerDir.toPath().resolve("OrderController.java"), """
+                package com.example;
+
+                import org.springframework.web.bind.annotation.GetMapping;
+                import org.springframework.web.bind.annotation.RequestMapping;
+                import org.springframework.web.bind.annotation.RestController;
+
+                @RestController
+                @RequestMapping("/orders")
+                public class OrderController {
+
+                    @GetMapping
+                    public String listOrders() { return ""; }
+                }
+                """);
+        RecordingLogger recordingLogger = new RecordingLogger();
+        LoggerCapturingDetectShadowApisTask task = project.getTasks()
+                .create("detectShadowApisWithRecordingLogger", LoggerCapturingDetectShadowApisTask.class);
+        task.recordingLogger = recordingLogger;
+        task.getControllerDirs().from(controllerDir);
+        task.getRootDocument().set(openApiFixture("both-endpoints.yaml"));
+        task.getReportDir().set(reportDir);
+        task.getReportFileName().set("shadow-apis.adoc");
+        task.getFailOnShadow().set(false);
+        task.getSystemUnderTestVersion().set("1.0.0");
+
+        task.generate();
+
+        assertThat(recordingLogger.lifecycleMessages())
+                .anyMatch(message -> message.contains("Scanning @RestController classes"));
+    }
+
+    /**
+     * Test-only subclass that substitutes a {@link RecordingLogger} for the framework-provided
+     * task logger, since {@link DetectShadowApisTask#getLogger()} cannot otherwise be observed
+     * from a {@link ProjectBuilder}-based test.
+     */
+    abstract static class LoggerCapturingDetectShadowApisTask extends DetectShadowApisTask {
+
+        RecordingLogger recordingLogger;
+
+        @Inject
+        public LoggerCapturingDetectShadowApisTask() {}
+
+        @Override
+        public Logger getLogger() {
+            return recordingLogger;
+        }
     }
 
     private DetectShadowApisTask configuredTask(File rootDocument, boolean failOnShadow) {
