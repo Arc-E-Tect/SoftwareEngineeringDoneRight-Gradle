@@ -11,6 +11,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -103,6 +104,56 @@ class GlueCodeScannerTest {
         List<Expression> expressions = scanner.scan(tempDir.toFile());
 
         assertThat(expressions).isEmpty();
+    }
+
+    // --- scan(File, Consumer<File>) callback overload ---
+
+    @Test
+    @DisplayName("callback overload invokes the callback exactly once per source file scanned")
+    void callbackOverloadInvokesCallbackOncePerSourceFile(@TempDir Path tempDir) throws IOException {
+        writeFile(tempDir, "LoginSteps.java", """
+                public class LoginSteps {
+                    @Given("the login page is open")
+                    public void loginPageOpen() {}
+                }
+                """);
+        writeFile(tempDir, "PlainClass.java", "public class PlainClass {}");
+        writeFile(tempDir, "notes.txt", "not a source file");
+        AtomicInteger callbackCount = new AtomicInteger();
+
+        scanner.scan(tempDir.toFile(), file -> callbackCount.incrementAndGet());
+
+        assertThat(callbackCount.get()).isEqualTo(2);
+    }
+
+    @Test
+    @DisplayName("callback overload returns the exact same expressions the no-callback overload would")
+    void callbackOverloadBehavesExactlyLikeNoCallbackOverload(@TempDir Path tempDir) throws IOException {
+        writeFile(tempDir, "LoginSteps.java", """
+                public class LoginSteps {
+                    @Given("the login page is open")
+                    public void loginPageOpen() {}
+                }
+                """);
+
+        List<Expression> expressions = scanner.scan(tempDir.toFile(), file -> { });
+
+        assertThat(expressions).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("no-callback overload still behaves exactly as before this overload existed")
+    void noCallbackOverloadUnaffectedByCallbackOverloadExisting(@TempDir Path tempDir) throws IOException {
+        writeFile(tempDir, "LoginSteps.java", """
+                public class LoginSteps {
+                    @Given("the login page is open")
+                    public void loginPageOpen() {}
+                }
+                """);
+
+        List<Expression> expressions = scanner.scan(tempDir.toFile());
+
+        assertThat(expressions).hasSize(1);
     }
 
     private void writeFile(Path dir, String name, String content) throws IOException {

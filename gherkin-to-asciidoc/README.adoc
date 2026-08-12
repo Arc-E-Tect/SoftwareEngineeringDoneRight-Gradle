@@ -259,6 +259,30 @@ The plugin registers a single task named `generateFeatureDocs` in the `documenta
 
 The task scans the configured source location, collects every `Scenario` and `Scenario Outline` title, and writes the result to `<outputDir>/<outputFileName>`.
 
+== Progress Reporting
+
+Parsing a large tree of `.feature` files, reindexing them, and scanning glue code directories for step definitions can all take a while on a real project.
+The task periodically logs progress at `LIFECYCLE` level so a long-running scan doesn't sit silently until it finishes.
+
+[source,shell]
+----
+> Task :generateFeatureDocs
+gherkinToAsciidoc: parsing feature files...
+Parsing feature files: 50/210 (23%)
+Parsing feature files: 100/210 (47%)
+Parsing feature files: done, 210 item(s)
+gherkinToAsciidoc: scanning glue code...
+Scanning glue code: 340 processed so far
+Scanning glue code: done, 458 item(s)
+Generated 640 scenario title(s) to build/docs/feature-scenarios.adoc
+----
+
+This is plain log output, not an animated progress indicator.
+The plugin deliberately avoids Gradle's internal, unsupported console/progress APIs, since their shape can change between Gradle versions and this plugin is published on the Gradle Plugin Portal for consumers on Gradle versions this project doesn't control.
+Each line is printed once and never overwritten in place, so it plays back cleanly in CI logs as well as an interactive terminal.
+
+Reindexing gets its own banner and progress lines too, but only when `indexing` is actually numbering something (`feature`, `scenario`, or `all`); with `indexing = off` or `indexing = ci`, that phase is silent, and glue code scanning only reports when `trackProgress` is `true`.
+
 [[multi-project-builds]]
 == Multi-Project Builds
 

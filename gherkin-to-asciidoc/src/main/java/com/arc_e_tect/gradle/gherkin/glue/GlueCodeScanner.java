@@ -13,6 +13,7 @@ import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -44,13 +45,30 @@ public class GlueCodeScanner {
 
     /**
      * Recursively scans {@code glueCodeDir} for step definition source files and
-     * returns every step pattern found as a compiled {@link Expression}.
+     * returns every step pattern found as a compiled {@link Expression}. Equivalent to
+     * {@link #scan(File, Consumer)} with a callback that does nothing.
      *
      * @param glueCodeDir directory containing the glue code source files
      * @return step definition patterns found across all source files; patterns that
      *         cannot be compiled are skipped and logged as a warning
      */
     public List<Expression> scan(File glueCodeDir) {
+        return scan(glueCodeDir, file -> { });
+    }
+
+    /**
+     * Same as {@link #scan(File)}, additionally invoking {@code onFileScanned} once for every
+     * source file it processes - whether or not that file contains any step definitions - so a
+     * caller can drive a progress indicator during what would otherwise be a single opaque,
+     * potentially long-running call across a whole directory tree.
+     *
+     * @param glueCodeDir   directory containing the glue code source files
+     * @param onFileScanned invoked once per source file found under {@code glueCodeDir}; never
+     *                      {@code null}
+     * @return step definition patterns found across all source files; patterns that
+     *         cannot be compiled are skipped and logged as a warning
+     */
+    public List<Expression> scan(File glueCodeDir, Consumer<File> onFileScanned) {
         List<Expression> expressions = new ArrayList<>();
         List<File> sourceFiles = new ArrayList<>();
         collectSourceFiles(glueCodeDir, sourceFiles);
@@ -64,6 +82,7 @@ public class GlueCodeScanner {
                             rawPattern, file, e.getMessage());
                 }
             }
+            onFileScanned.accept(file);
         }
         return expressions;
     }

@@ -10,6 +10,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -365,6 +366,44 @@ class FeatureIndexerTest {
                 .contains("Feature: 2 - Invoice payment")
                 .contains("Scenario: 2.1 - User pays an invoice")
                 .contains("Scenario: 2.2 - User logs in");
+    }
+
+    // --- reindex(..., Runnable) callback overload ---
+
+    @Test
+    @DisplayName("callback overload invokes the callback exactly once per feature file")
+    void callbackOverloadInvokesCallbackOncePerFile() throws IOException {
+        File auth = writeFeature("authentication.feature",
+                "Feature: User authentication\n\n  Scenario: User logs in\n    Given a user\n");
+        File invoice = writeFeature("invoice.feature",
+                "Feature: Invoice payment\n\n  Scenario: User pays an invoice\n    Given an invoice\n");
+        AtomicInteger callbackCount = new AtomicInteger();
+
+        indexer.reindex(List.of(auth, invoice), IndexingMode.FEATURE, false, callbackCount::incrementAndGet);
+
+        assertThat(callbackCount.get()).isEqualTo(2);
+    }
+
+    @Test
+    @DisplayName("callback overload leaves file content exactly as the no-callback overload would")
+    void callbackOverloadBehavesExactlyLikeNoCallbackOverload() throws IOException {
+        File file = writeFeature("authentication.feature",
+                "Feature: User authentication\n\n  Scenario: User logs in\n    Given a user\n");
+
+        indexer.reindex(List.of(file), IndexingMode.ALL, false, () -> { });
+
+        assertThat(content(file)).contains("Feature: 1 - User authentication", "Scenario: 1.1 - User logs in");
+    }
+
+    @Test
+    @DisplayName("no-callback overload still behaves exactly as before this overload existed")
+    void noCallbackOverloadUnaffectedByCallbackOverloadExisting() throws IOException {
+        File file = writeFeature("authentication.feature",
+                "Feature: User authentication\n\n  Scenario: User logs in\n    Given a user\n");
+
+        indexer.reindex(List.of(file), IndexingMode.ALL, false);
+
+        assertThat(content(file)).contains("Feature: 1 - User authentication", "Scenario: 1.1 - User logs in");
     }
 
     private File writeFeature(String name, String content) throws IOException {
