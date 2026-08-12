@@ -1,3 +1,11 @@
+## [0.1.1](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/api-only-suite-v0.1.0...api-only-suite-v0.1.1) (2026-08-12)
+
+
+### 🐛 Bug Fixes
+
+* **doppelganger-api-detector:** allow manually dispatching the release workflow ([#113](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/113)) ([714b739](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/714b739a79875cf238a1833d79eee15b648563c9)), closes [#113](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/113)
+* depend on the published api-detector-core artifact ([#114](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/114)) ([13313e6](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/13313e683f0519f446c82f0333b7030024a468b8)), closes [#114](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/114)
+
 # [0.1.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/api-only-suite-v0.0.0...api-only-suite-v0.1.0) (2026-08-12)
 
 
