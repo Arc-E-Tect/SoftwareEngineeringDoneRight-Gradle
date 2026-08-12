@@ -12,12 +12,10 @@ refreshVersions {
 rootProject.name = 'api-only-suite'
 
 // A single Gradle build has exactly one settings.gradle - each sibling module's own settings.gradle
-// (and its own `include 'api-detector-core'`) is not honored once that module is pulled in here as a
-// subproject, so every project(':...') dependency reachable from shadow/mirage/doppelganger's own
-// build.gradle files must be declared directly in this settings.gradle too.
-include 'api-detector-core'
-project(':api-detector-core').projectDir = file('../api-detector-core')
-
+// is not honored once that module is pulled in here as a subproject, so every project(':...')
+// dependency reachable from shadow/mirage/doppelganger's own build.gradle files must be declared
+// directly in this settings.gradle too. (api-detector-core no longer needs an entry here - all
+// three now depend on it as a published Maven Central artifact, not a project(...) dependency.)
 include 'shadow-api-detector'
 project(':shadow-api-detector').projectDir = file('../shadow-api-detector')
 
