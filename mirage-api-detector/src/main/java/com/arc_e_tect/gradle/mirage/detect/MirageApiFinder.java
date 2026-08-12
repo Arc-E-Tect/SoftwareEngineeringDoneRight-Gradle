@@ -1,17 +1,19 @@
 package com.arc_e_tect.gradle.mirage.detect;
 
-import com.arc_e_tect.gradle.mirage.model.Endpoint;
-import com.arc_e_tect.gradle.mirage.model.HttpVerb;
-import com.arc_e_tect.gradle.mirage.model.PathMatcher;
-import com.arc_e_tect.gradle.mirage.openapi.DescribedEndpoint;
+import com.arc_e_tect.gradle.detector.core.detect.ContractSetOperations;
+import com.arc_e_tect.gradle.detector.core.model.Endpoint;
+import com.arc_e_tect.gradle.detector.core.model.HttpVerb;
+import com.arc_e_tect.gradle.detector.core.openapi.DescribedEndpoint;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
  * Determines which {@link DescribedEndpoint}s collected from the OpenAPI documentation have no
  * matching controller {@link Endpoint}, i.e. which endpoints are "mirage APIs" - endpoints that
  * are declared but never implemented.
+ *
+ * <p>Delegates to the shared {@link ContractSetOperations#difference(List, List)} in
+ * {@code api-detector-core}.</p>
  */
 public class MirageApiFinder {
 
@@ -31,15 +33,6 @@ public class MirageApiFinder {
      * @return the described endpoints that are not implemented, in the order they were passed in
      */
     public List<DescribedEndpoint> findMirages(List<DescribedEndpoint> described, List<Endpoint> endpoints) {
-        List<DescribedEndpoint> mirages = new ArrayList<>();
-        for (DescribedEndpoint d : described) {
-            boolean isImplemented = endpoints.stream().anyMatch(endpoint ->
-                    (endpoint.verb() == HttpVerb.ANY || endpoint.verb() == d.verb())
-                            && PathMatcher.matches(d.path(), endpoint.path()));
-            if (!isImplemented) {
-                mirages.add(d);
-            }
-        }
-        return mirages;
+        return ContractSetOperations.difference(described, endpoints);
     }
 }

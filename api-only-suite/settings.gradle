@@ -1,0 +1,28 @@
+plugins {
+    id 'org.gradle.toolchains.foojay-resolver-convention' version '1.0.0'
+    id "de.fayard.refreshVersions" version "0.60.6"
+}
+
+refreshVersions {
+    rejectVersionIf {
+        candidate.stabilityLevel.isLessStableThan(current.stabilityLevel)
+    }
+}
+
+rootProject.name = 'api-only-suite'
+
+// A single Gradle build has exactly one settings.gradle - each sibling module's own settings.gradle
+// (and its own `include 'api-detector-core'`) is not honored once that module is pulled in here as a
+// subproject, so every project(':...') dependency reachable from shadow/mirage/doppelganger's own
+// build.gradle files must be declared directly in this settings.gradle too.
+include 'api-detector-core'
+project(':api-detector-core').projectDir = file('../api-detector-core')
+
+include 'shadow-api-detector'
+project(':shadow-api-detector').projectDir = file('../shadow-api-detector')
+
+include 'mirage-api-detector'
+project(':mirage-api-detector').projectDir = file('../mirage-api-detector')
+
+include 'doppelganger-api-detector'
+project(':doppelganger-api-detector').projectDir = file('../doppelganger-api-detector')

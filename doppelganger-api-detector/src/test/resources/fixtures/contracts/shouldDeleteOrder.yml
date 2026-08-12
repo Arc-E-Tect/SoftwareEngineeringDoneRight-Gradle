@@ -1,0 +1,5 @@
+request:
+  method: DELETE
+  urlPath: /orders/1
+response:
+  status: 204

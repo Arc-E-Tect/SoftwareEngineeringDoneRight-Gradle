@@ -1,8 +1,8 @@
 package com.arc_e_tect.gradle.mirage.detect;
 
-import com.arc_e_tect.gradle.mirage.model.Endpoint;
-import com.arc_e_tect.gradle.mirage.model.HttpVerb;
-import com.arc_e_tect.gradle.mirage.openapi.DescribedEndpoint;
+import com.arc_e_tect.gradle.detector.core.model.Endpoint;
+import com.arc_e_tect.gradle.detector.core.model.HttpVerb;
+import com.arc_e_tect.gradle.detector.core.openapi.DescribedEndpoint;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 

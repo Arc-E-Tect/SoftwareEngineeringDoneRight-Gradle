@@ -36,8 +36,7 @@ dependencyCheck {
 }
 
 dependencies {
-    implementation libs.javaparser.core
-    implementation libs.swagger.parser
+    implementation project(':api-detector-core')
 
     testImplementation libs.junit.jupiter
     testImplementation libs.assertj.core

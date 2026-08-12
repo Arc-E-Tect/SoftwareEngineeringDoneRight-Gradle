@@ -1,0 +1,278 @@
+= Doppelganger API Detector Gradle Plugin
+:toc: left
+:toc-title: Contents
+:toclevels: 2
+:icons: font
+:source-highlighter: rouge
+
+image:https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/actions/workflows/nvd-cache-refresh.yml/badge.svg[Vulnerability Scan,link=https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/actions/workflows/nvd-cache-refresh.yml]
+image:https://img.shields.io/gradle-plugin-portal/v/com.arc-e-tect.doppelganger-api-detector[Gradle Plugin Portal,link=https://plugins.gradle.org/plugin/com.arc-e-tect.doppelganger-api-detector]
+image:https://img.shields.io/github/v/release/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle[GitHub release,link=https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/releases]
+image:https://img.shields.io/badge/Java-21%2B-blue[Java 21+,link=https://adoptium.net]
+image:https://img.shields.io/badge/Gradle-8.x%2B-02303A?logo=gradle[Gradle 8+,link=https://gradle.org]
+
+A Gradle plugin that finds endpoints which are both declared in your OpenAPI documentation *and* implemented by a `@RestController` method, but have no test verifying that the implementation still honors the contract - a "doppelganger API".
+
+Doppelganger APIs look completely legitimate: they exist on paper and they exist in code. What nobody has confirmed is that the two still agree. This is the companion plugin to link:../shadow-api-detector/README.adoc[Shadow API Detector] (implemented but undocumented) and link:../mirage-api-detector/README.adoc[Mirage API Detector] (documented but unimplemented) - together the three cover the ways an endpoint's documentation, implementation, and verification can drift apart.
+
+== Plugin ID
+
+[source]
+----
+com.arc-e-tect.doppelganger-api-detector
+----
+
+== Requirements
+
+[cols="1,1",options="header"]
+|===
+| Requirement | Version
+| Gradle      | 8.x +
+| Java        | 17 +
+|===
+
+== OpenAPI compatibility
+
+The plugin supports OpenAPI v3 documents that are compatible with the parser stack bundled by the plugin.
+In practice, this means OpenAPI 3.0.x, 3.1.x, and 3.2.x are supported.
+OpenAPI v2 (Swagger 2.0) is not supported.
+OpenAPI versions newer than 3.2 are not supported at this time.
+If `rootDocument` declares an unsupported version, the `detectDoppelgangerApis` task fails with a parse error.
+The root document and every transitively referenced `$ref` document must also be parseable and resolvable as OpenAPI v3 content.
+
+== Applying the Plugin
+
+=== Using the `plugins` block (recommended)
+
+.Groovy DSL (`build.gradle`)
+[source,groovy]
+----
+plugins {
+    id 'com.arc-e-tect.doppelganger-api-detector' version '<version>'
+}
+----
+
+.Kotlin DSL (`build.gradle.kts`)
+[source,kotlin]
+----
+plugins {
+    id("com.arc-e-tect.doppelganger-api-detector") version "<version>"
+}
+----
+
+== How it works
+
+1. Every Java source file under the configured controller directories is parsed and scanned for `@RestController` classes, exactly the way link:../shadow-api-detector/README.adoc[Shadow API Detector] does, to build the set of *implemented* endpoints.
+2. The configured root OpenAPI document is parsed, following every `$ref` link, to build the set of *described* endpoints.
+3. The intersection of the two - endpoints that are both implemented and described - is the candidate set checked for verification evidence.
+4. Every enabled contract verification source scans its own directory for evidence that a candidate endpoint's contract has actually been exercised (see "Contract verification sources" below). An endpoint is verified as soon as *any one* source finds evidence for it - the three sources do not need to agree, so teams can adopt them incrementally, in any combination.
+5. Every candidate endpoint with no verification evidence from any enabled source is a doppelganger API. An AsciiDoc report listing them, grouped by declaring controller class, is written to the configured report directory - the report is always written, whether or not the build is configured to fail.
+
+[NOTE]
+====
+Like its siblings, this plugin operates entirely at the source level: it parses Java and configuration source with JavaParser, or a plain structural read for non-Java DSLs, and never compiles or executes anything. This is what gives it a short feedback cycle, including on code that does not currently build.
+====
+
+== Contract verification sources
+
+[cols="1,3",options="header"]
+|===
+| Source                       | Evidence recognised
+| Spring RestDocs               | A test method containing `mockMvc.perform(get(...)/post(...)/put(...)/delete(...)/patch(...))` whose call chain also includes `.andDo(document(...))`. The HTTP verb comes from the static builder method name, the path from its first string-literal argument.
+| Atlassian OpenAPI request validator | A test method containing either `.filter(new OpenApiValidationFilter(...))` (REST Assured style) or a direct `.validateRequest(...)` / `.validateResponse(...)` call, paired with a REST-Assured-style request built via `given().when().get("/orders/{id}")`-style calls in the same method.
+| Spring Cloud Contract         | Contract DSL files under `contractsDir` (default `src/test/resources/contracts/**/*.groovy` and `*.yml`), read structurally for `method '...'` and `url '...'` / `urlPath '...'` entries - no AST, no Groovy compilation.
+|===
+
+Each source matches by simple class/method name only, never resolving types - so none of the underlying testing libraries need to be on this plugin's own classpath. This matters in particular for the Atlassian OpenAPI request validator, whose Maven coordinates changed after v3.0.0 from `swagger-request-validator-*` to `openapi-request-validator-*` under `com.atlassian.oai`: matching by simple name recognises both old and new artifact versions identically.
+
+=== Matching a concrete contract example against a templated endpoint
+
+Unlike RestDocs and REST Assured - which build requests using the same `{id}`-style path template syntax Spring itself uses, so the literal string the scanner captures *is* the template - a Spring Cloud Contract file describes one concrete, resolved example request (e.g. `url '/items/1'`), not a template. `getItem` declared as `GET /items/{id}` is still correctly recognised as verified by a contract example for `/items/1`: matching is asymmetric here, treating the declared-and-implemented side as the template and the contract's own path as a concrete instance of it, rather than requiring the two to be structurally identical.
+
+[NOTE]
+====
+This has one accepted, documented tradeoff: a concrete example path carries no information about which endpoint it was written to exemplify, so it can structurally satisfy a *different* template than the one it was actually meant to cover, if the two happen to share the same segment count and the same literal segments outside the templated position. In practice this is rare, and it is the same class of heuristic imprecision the detector family already accepts elsewhere (e.g. an unrestricted `@RequestMapping`'s `HttpVerb.ANY` matching any documented verb).
+====
+
+Disable a source your team does not use:
+
+[source,groovy]
+----
+doppelgangerApiDetector {
+    useSpringCloudContract = false
+}
+----
+
+== Configuration
+
+The plugin registers a `doppelgangerApiDetector` extension.
+
+.Groovy DSL
+[source,groovy]
+----
+doppelgangerApiDetector {
+    // One or more directories to search recursively for @RestController classes.
+    // Default: src/main/java
+    controllerDirs.from('src/main/java')
+
+    // One or more directories to search recursively for test classes, scanned by the Spring
+    // RestDocs and OpenAPI request validator verification sources.
+    // Default: src/test/java
+    testDirs.from('src/test/java')
+
+    // The root OpenAPI document. Required - every other document is expected to be
+    // reachable from this one via $ref links relative to it.
+    rootDocument = file('src/main/resources/openapi/openapi.yaml')
+
+    // Directory where the OpenAPI documentation is stored, tracked so that a change to
+    // any linked document invalidates the task's cached result.
+    // Default: rootDocument's own parent directory
+    openApiDir = file('src/main/resources/openapi')
+
+    // Directory searched for Spring Cloud Contract DSL files.
+    // Default: src/test/resources/contracts
+    contractsDir = file('src/test/resources/contracts')
+
+    // Whether each contract verification source is enabled.
+    // Default: true for all three
+    useRestDocs                = true
+    useOpenApiRequestValidator = true
+    useSpringCloudContract     = true
+
+    // Whether the build should fail when doppelganger APIs are found. The report is written
+    // either way.
+    // Default: false
+    failOnDoppelganger = false
+
+    // Directory the AsciiDoc report is written to.
+    // Default: layout.buildDirectory.dir('reports/doppelganger-api-detector')
+    reportDir = layout.buildDirectory.dir('reports/doppelganger-api-detector')
+
+    // Name of the generated AsciiDoc report file.
+    // Default: 'doppelganger-apis.adoc'
+    reportFileName = 'doppelganger-apis.adoc'
+
+    // Version of the system under test whose @RestController classes are scanned, printed near
+    // the top of the generated report (see "System Under Test Version" below).
+    // Default: the project's own `version`
+    // systemUnderTestVersion = 'v1.0.0'
+}
+----
+
+.Kotlin DSL
+[source,kotlin]
+----
+doppelgangerApiDetector {
+    controllerDirs.from("src/main/java")
+    testDirs.from("src/test/java")
+    rootDocument.set(file("src/main/resources/openapi/openapi.yaml"))
+    failOnDoppelganger.set(false)
+    reportDir.set(layout.buildDirectory.dir("reports/doppelganger-api-detector"))
+    reportFileName.set("doppelganger-apis.adoc")
+    // systemUnderTestVersion.set("v1.0.0")
+}
+----
+
+`rootDocument` is the only property that must be set - in all but very rare cases (an OpenAPI description split across many top-level documents with no single entry point) the root document is all the plugin needs, since it is expected to link to every other document itself.
+
+== Task
+
+[cols="2,1,3",options="header"]
+|===
+| Task name                | Group        | Description
+| `detectDoppelgangerApis` | verification | Scans OpenAPI documentation, `@RestController` implementations, and test-level verification evidence, and reports endpoints that are declared and implemented but never verified against their contract.
+|===
+
+The task is **not** wired into `check` or `build` automatically. Teams generating their OpenAPI documentation from code, or migrating their tests onto one of the supported verification mechanisms gradually, would otherwise see every build fail immediately.
+
+Running the report explicitly:
+
+[source,shell]
+----
+./gradlew detectDoppelgangerApis
+----
+
+To make the task part of every build, wire it into `check` (or `build`) yourself once you're ready to enforce it:
+
+.Groovy DSL
+[source,groovy]
+----
+tasks.named('check') {
+    dependsOn 'detectDoppelgangerApis'
+}
+----
+
+.Kotlin DSL
+[source,kotlin]
+----
+tasks.named("check") {
+    dependsOn("detectDoppelgangerApis")
+}
+----
+
+== System Under Test Version
+
+Every generated report includes a line just below the title identifying the version of the system under test that was scanned:
+
+[source,asciidoc]
+----
+System Under Test version: 1.0.0
+----
+
+By default, this is the project's own `version`, exactly as set in `build.gradle`/`build.gradle.kts` or a `gradle.properties` file. Set `systemUnderTestVersion` to override it - useful when the `@RestController` classes in `controllerDirs` belong to a different, independently versioned artifact than the one Gradle is building:
+
+[source,groovy]
+----
+doppelgangerApiDetector {
+    systemUnderTestVersion = 'v1.0.0'
+}
+----
+
+== Report output
+
+After the task runs, an AsciiDoc report is written to the configured `reportDir` (default: `build/reports/doppelganger-api-detector/doppelganger-apis.adoc`), listing every doppelganger API grouped by declaring controller class, with its HTTP verb, path, handler method, source file, and line number.
+
+Every report opens with a preamble explaining what a doppelganger API is, how it differs from a shadow API and a mirage API, what the risks are, and a link to the https://owasp.org/API-Security/editions/2023/en/0x11-t10/[OWASP API Security Top 10] (specifically https://owasp.org/API-Security/editions/2023/en/0xa9-improper-inventory-management/[API9:2023 Improper Inventory Management]). The preamble text lives in its own bundled resource - `doppelganger-api-preamble.adoc` in the plugin's `src/main/resources` - so it can be revised independently of the report-writing code.
+
+When `failOnDoppelganger` is `true` and at least one doppelganger API was found, the task fails the build after writing the report, so the report is always available for inspection regardless of build outcome.
+
+== Full example
+
+[source,groovy]
+----
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '<version>'
+    id 'com.arc-e-tect.doppelganger-api-detector' version '<version>'
+}
+
+doppelgangerApiDetector {
+    rootDocument = file('src/main/resources/openapi/openapi.yaml')
+    failOnDoppelganger = true
+}
+
+tasks.named('check') {
+    dependsOn 'detectDoppelgangerApis'
+}
+----
+
+With this setup, running `./gradlew check` will fail the build - after writing the report - as soon as any endpoint declared in `openapi.yaml` and implemented by a `@RestController` class has no verification evidence from any enabled contract verification source.
+
+== Relationship to the Shadow and Mirage API Detectors
+
+This plugin and its two siblings scan the same sources of truth - your `@RestController` classes and your OpenAPI documentation - plus, for this plugin alone, your tests:
+
+[cols="1,3",options="header"]
+|===
+| Plugin                       | Finds
+| Shadow API Detector          | `@RestController` endpoints with no matching OpenAPI operation (implemented, undocumented)
+| Mirage API Detector          | OpenAPI operations with no matching `@RestController` endpoint (documented, unimplemented)
+| Doppelganger API Detector    | Endpoints both declared and implemented, but with no verification evidence (documented, implemented, unverified)
+|===
+
+Applying all three to the same project gives full-coverage drift detection across documentation, implementation, and verification. All three plugins share the same DSL shape and configuration property naming pattern (e.g. `failOnShadow` / `failOnMirage` / `failOnDoppelganger`), so switching between - or applying all of them alongside each other - requires no relearning.
+
+== License
+
+This plugin is part of the _Software Engineering Done Right_ project.
+See link:../LICENSE[LICENSE] for details.

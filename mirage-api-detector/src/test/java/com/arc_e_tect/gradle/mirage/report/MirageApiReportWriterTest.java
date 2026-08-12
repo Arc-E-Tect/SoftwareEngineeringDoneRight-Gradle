@@ -1,7 +1,7 @@
 package com.arc_e_tect.gradle.mirage.report;
 
-import com.arc_e_tect.gradle.mirage.model.HttpVerb;
-import com.arc_e_tect.gradle.mirage.openapi.DescribedEndpoint;
+import com.arc_e_tect.gradle.detector.core.model.HttpVerb;
+import com.arc_e_tect.gradle.detector.core.openapi.DescribedEndpoint;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;

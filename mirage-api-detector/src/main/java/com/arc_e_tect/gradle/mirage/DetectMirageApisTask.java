@@ -1,11 +1,11 @@
 package com.arc_e_tect.gradle.mirage;
 
+import com.arc_e_tect.gradle.detector.core.model.Endpoint;
+import com.arc_e_tect.gradle.detector.core.openapi.DescribedEndpoint;
+import com.arc_e_tect.gradle.detector.core.openapi.OpenApiEndpointCollector;
+import com.arc_e_tect.gradle.detector.core.scan.ControllerScanner;
 import com.arc_e_tect.gradle.mirage.detect.MirageApiFinder;
-import com.arc_e_tect.gradle.mirage.model.Endpoint;
-import com.arc_e_tect.gradle.mirage.openapi.DescribedEndpoint;
-import com.arc_e_tect.gradle.mirage.openapi.OpenApiEndpointCollector;
 import com.arc_e_tect.gradle.mirage.report.MirageApiReportWriter;
-import com.arc_e_tect.gradle.mirage.scan.ControllerScanner;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.GradleException;
 import org.gradle.api.file.ConfigurableFileCollection;
