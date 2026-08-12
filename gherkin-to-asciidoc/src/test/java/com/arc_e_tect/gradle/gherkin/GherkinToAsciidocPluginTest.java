@@ -1,6 +1,9 @@
 package com.arc_e_tect.gradle.gherkin;
 
 import com.arc_e_tect.gradle.gherkin.indexing.IndexingMode;
+import com.arc_e_tect.gradle.gherkin.progress.ProgressHistoryStore;
+import com.arc_e_tect.gradle.gherkin.progress.ScenarioFingerprint;
+import com.arc_e_tect.gradle.gherkin.progress.ScenarioProgressRecord;
 import org.gradle.api.Project;
 import org.gradle.testfixtures.ProjectBuilder;
 import org.junit.jupiter.api.DisplayName;
@@ -13,6 +16,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
@@ -166,6 +170,36 @@ class GherkinToAsciidocPluginTest {
         GherkinToAsciidocExtension ext = extension(project);
 
         assertThat(ext.getForceRewrite().get()).isFalse();
+    }
+
+    @Test
+    @DisplayName("extension default: trackProgressHistory is false")
+    void extensionDefaultTrackProgressHistoryIsFalse() {
+        Project project = projectWithPlugin();
+        GherkinToAsciidocExtension ext = extension(project);
+
+        assertThat(ext.getTrackProgressHistory().get()).isFalse();
+    }
+
+    @Test
+    @DisplayName("extension default: progressHistoryFile is gherkin-progress-history.ndjson in the project directory")
+    void extensionDefaultProgressHistoryFileIsInProjectDirectory() {
+        Project project = projectWithPlugin();
+        GherkinToAsciidocExtension ext = extension(project);
+
+        assertThat(ext.getProgressHistoryFile().get().getAsFile())
+                .isEqualTo(new File(project.getProjectDir(), "gherkin-progress-history.ndjson"));
+    }
+
+    @Test
+    @DisplayName("extension default: updateProgressHistory follows trackProgressHistory's own value")
+    void extensionDefaultUpdateProgressHistoryFollowsTrackProgressHistory() {
+        Project project = projectWithPlugin();
+        GherkinToAsciidocExtension ext = extension(project);
+
+        ext.getTrackProgressHistory().set(true);
+
+        assertThat(ext.getUpdateProgressHistory().get()).isTrue();
     }
 
     @Test
@@ -1149,6 +1183,255 @@ class GherkinToAsciidocPluginTest {
                 .hasRootCauseInstanceOf(org.gradle.api.GradleException.class)
                 .hasRootCauseMessage("gherkinToAsciidoc: invalid value 'maybe' for "
                         + "-PgherkinToAsciidoc.forceRewrite; expected 'true' or 'false'");
+    }
+
+    @Test
+    @DisplayName("throws GradleException when trackProgressHistory is enabled without trackProgress")
+    void throwsWhenTrackProgressHistoryEnabledWithoutTrackProgress() throws IOException {
+        Project project = projectWithPlugin();
+        File featuresDir = new File(tempDir.toFile(), "features");
+        featuresDir.mkdirs();
+        writeFeatureFile(featuresDir, "sample.feature", "Feature: F\n  Scenario: S\n    Given g\n");
+
+        GenerateFeatureDocsTask task = task(project);
+        task.getSourceDirs().from(featuresDir);
+        task.getTrackProgressHistory().set(true);
+        task.getOutputDir().set(new File(tempDir.toFile(), "output"));
+        task.getProjectDirectory().set(project.getLayout().getProjectDirectory());
+
+        assertThatThrownBy(task::generate)
+                .isInstanceOf(org.gradle.api.GradleException.class)
+                .hasMessageContaining("trackProgressHistory requires trackProgress to be enabled");
+    }
+
+    @Test
+    @DisplayName("writes the progress history file when trackProgressHistory and updateProgressHistory are both true")
+    void writesProgressHistoryFileWhenBothPropertiesAreTrue() throws IOException {
+        Project project = projectWithPlugin();
+        File featuresDir = new File(tempDir.toFile(), "features");
+        featuresDir.mkdirs();
+        writeFeatureFile(featuresDir, "sample.feature", "Feature: Sample\n\n  Scenario: A scenario\n");
+        File glueCodeDir = new File(tempDir.toFile(), "steps");
+        glueCodeDir.mkdirs();
+        File historyFile = new File(tempDir.toFile(), "history.ndjson");
+
+        GenerateFeatureDocsTask task = task(project);
+        task.getSourceDirs().from(featuresDir);
+        task.getTrackProgress().set(true);
+        task.getGlueCodeDirs().from(glueCodeDir);
+        task.getTrackProgressHistory().set(true);
+        task.getUpdateProgressHistory().set(true);
+        task.getProgressHistoryFile().set(historyFile);
+        task.getOutputDir().set(new File(tempDir.toFile(), "output"));
+        task.getProjectDirectory().set(project.getLayout().getProjectDirectory());
+        task.generate();
+
+        assertThat(historyFile).exists();
+    }
+
+    @Test
+    @DisplayName("does not write the progress history file when updateProgressHistory is false, "
+            + "even though trackProgressHistory is true")
+    void doesNotWriteProgressHistoryFileWhenUpdateProgressHistoryIsFalse() throws IOException {
+        Project project = projectWithPlugin();
+        File featuresDir = new File(tempDir.toFile(), "features");
+        featuresDir.mkdirs();
+        writeFeatureFile(featuresDir, "sample.feature", "Feature: Sample\n\n  Scenario: A scenario\n");
+        File glueCodeDir = new File(tempDir.toFile(), "steps");
+        glueCodeDir.mkdirs();
+        File historyFile = new File(tempDir.toFile(), "history.ndjson");
+
+        GenerateFeatureDocsTask task = task(project);
+        task.getSourceDirs().from(featuresDir);
+        task.getTrackProgress().set(true);
+        task.getGlueCodeDirs().from(glueCodeDir);
+        task.getTrackProgressHistory().set(true);
+        task.getUpdateProgressHistory().set(false);
+        task.getProgressHistoryFile().set(historyFile);
+        task.getOutputDir().set(new File(tempDir.toFile(), "output"));
+        task.getProjectDirectory().set(project.getLayout().getProjectDirectory());
+        task.generate();
+
+        assertThat(historyFile).doesNotExist();
+    }
+
+    @Test
+    @DisplayName("still renders a Progress Over Time section from the in-memory history "
+            + "even when updateProgressHistory is false")
+    void rendersProgressOverTimeSectionEvenWhenNotPersisted() throws IOException {
+        Project project = projectWithPlugin();
+        File featuresDir = new File(tempDir.toFile(), "features");
+        featuresDir.mkdirs();
+        writeFeatureFile(featuresDir, "sample.feature", "Feature: Sample\n\n  Scenario: A scenario\n");
+        File glueCodeDir = new File(tempDir.toFile(), "steps");
+        glueCodeDir.mkdirs();
+        File outputDir = new File(tempDir.toFile(), "output");
+
+        GenerateFeatureDocsTask task = task(project);
+        task.getSourceDirs().from(featuresDir);
+        task.getTrackProgress().set(true);
+        task.getGlueCodeDirs().from(glueCodeDir);
+        task.getTrackProgressHistory().set(true);
+        task.getUpdateProgressHistory().set(false);
+        task.getProgressHistoryFile().set(new File(tempDir.toFile(), "history.ndjson"));
+        task.getOutputDir().set(outputDir);
+        task.getProjectDirectory().set(project.getLayout().getProjectDirectory());
+        task.generate();
+
+        String content = Files.readString(new File(outputDir, "features.adoc").toPath());
+        assertThat(content).contains("Progress Over Time");
+    }
+
+    @Test
+    @DisplayName("the -PgherkinToAsciidoc.updateProgressHistory project property overrides updateProgressHistory "
+            + "regardless of the configured value")
+    void cliPropertyOverridesConfiguredUpdateProgressHistory() throws IOException {
+        Files.writeString(tempDir.resolve("gradle.properties"), "gherkinToAsciidoc.updateProgressHistory=true\n");
+        Project project = projectWithPlugin();
+        File featuresDir = new File(tempDir.toFile(), "features");
+        featuresDir.mkdirs();
+        writeFeatureFile(featuresDir, "sample.feature", "Feature: Sample\n\n  Scenario: A scenario\n");
+        File glueCodeDir = new File(tempDir.toFile(), "steps");
+        glueCodeDir.mkdirs();
+        File historyFile = new File(tempDir.toFile(), "history.ndjson");
+
+        GenerateFeatureDocsTask task = task(project);
+        task.getSourceDirs().from(featuresDir);
+        task.getTrackProgress().set(true);
+        task.getGlueCodeDirs().from(glueCodeDir);
+        task.getTrackProgressHistory().set(true);
+        // Configured to false, but the CLI override must win.
+        extension(project).getUpdateProgressHistory().set(false);
+        task.getProgressHistoryFile().set(historyFile);
+        task.getOutputDir().set(new File(tempDir.toFile(), "output"));
+        task.getProjectDirectory().set(project.getLayout().getProjectDirectory());
+        task.generate();
+
+        assertThat(historyFile).exists();
+    }
+
+    @Test
+    @DisplayName("an invalid -PgherkinToAsciidoc.updateProgressHistory value throws a descriptive GradleException")
+    void cliPropertyInvalidUpdateProgressHistoryValueThrowsDescriptiveError() throws IOException {
+        Files.writeString(tempDir.resolve("gradle.properties"), "gherkinToAsciidoc.updateProgressHistory=maybe\n");
+        Project project = projectWithPlugin();
+        File featuresDir = new File(tempDir.toFile(), "features");
+        featuresDir.mkdirs();
+        writeFeatureFile(featuresDir, "sample.feature", "Feature: Sample\n\n  Scenario: A scenario\n");
+        File glueCodeDir = new File(tempDir.toFile(), "steps");
+        glueCodeDir.mkdirs();
+
+        GenerateFeatureDocsTask task = task(project);
+        task.getSourceDirs().from(featuresDir);
+        task.getTrackProgress().set(true);
+        task.getGlueCodeDirs().from(glueCodeDir);
+        task.getTrackProgressHistory().set(true);
+        task.getProgressHistoryFile().set(new File(tempDir.toFile(), "history.ndjson"));
+        task.getOutputDir().set(new File(tempDir.toFile(), "output"));
+        task.getProjectDirectory().set(project.getLayout().getProjectDirectory());
+
+        assertThatThrownBy(task::generate)
+                .hasRootCauseInstanceOf(org.gradle.api.GradleException.class)
+                .hasRootCauseMessage("gherkinToAsciidoc: invalid value 'maybe' for "
+                        + "-PgherkinToAsciidoc.updateProgressHistory; expected 'true' or 'false'");
+    }
+
+    @Test
+    @DisplayName("persists scenario progress history across runs, preserving it when a scenario moves "
+            + "between features - the gherkinToAsciidoc trackProgressHistory worked example")
+    void persistsProgressHistoryAcrossRunsAndScenarioMoves() throws IOException {
+        Project project = projectWithPlugin();
+        File featuresDir = new File(tempDir.toFile(), "features");
+        featuresDir.mkdirs();
+        writeFeatureFile(featuresDir, "auth.feature", """
+                Feature: User authentication
+
+                  Scenario: User logs in
+
+                  Scenario: User resets password
+                """);
+
+        File glueCodeDir = new File(tempDir.toFile(), "steps");
+        glueCodeDir.mkdirs();
+        File outputDir = new File(tempDir.toFile(), "output");
+        File historyFile = new File(tempDir.toFile(), "history.ndjson");
+        ProgressHistoryStore store = new ProgressHistoryStore();
+        ScenarioFingerprint fingerprinter = new ScenarioFingerprint();
+        String loginFingerprint = fingerprinter.fingerprint("Scenario: User logs in");
+        String resetFingerprint = fingerprinter.fingerprint("Scenario: User resets password");
+
+        // Run 1: neither scenario has steps yet - both are listed.
+        runTrackProgressHistory(project, featuresDir, glueCodeDir, historyFile, outputDir);
+        Map<String, ScenarioProgressRecord> afterRun1 = store.load(historyFile);
+        ScenarioProgressRecord loginAfterRun1 = afterRun1.get(loginFingerprint);
+        ScenarioProgressRecord resetAfterRun1 = afterRun1.get(resetFingerprint);
+        assertThat(loginAfterRun1.listedAt()).isNotNull();
+        assertThat(loginAfterRun1.definedAt()).isNull();
+        assertThat(loginAfterRun1.implementedAt()).isNull();
+
+        // Run 2: "User logs in" gains steps, fully covered by newly added glue code;
+        // "User resets password" is untouched and stays listed.
+        writeFeatureFile(featuresDir, "auth.feature", """
+                Feature: User authentication
+
+                  Scenario: User logs in
+                    Given a registered user
+                    When they submit valid credentials
+                    Then they are signed in
+
+                  Scenario: User resets password
+                """);
+        Files.writeString(new File(glueCodeDir, "LoginSteps.java").toPath(), """
+                public class LoginSteps {
+                    @Given("a registered user")
+                    public void aRegisteredUser() {}
+                    @When("they submit valid credentials")
+                    public void theySubmitValidCredentials() {}
+                    @Then("they are signed in")
+                    public void theyAreSignedIn() {}
+                }
+                """);
+        runTrackProgressHistory(project, featuresDir, glueCodeDir, historyFile, outputDir);
+        Map<String, ScenarioProgressRecord> afterRun2 = store.load(historyFile);
+        ScenarioProgressRecord loginAfterRun2 = afterRun2.get(loginFingerprint);
+        // The scenario jumped straight from listed to implemented - defined was never observed.
+        assertThat(loginAfterRun2.listedAt()).isEqualTo(loginAfterRun1.listedAt());
+        assertThat(loginAfterRun2.definedAt()).isNull();
+        assertThat(loginAfterRun2.implementedAt()).isNotNull();
+        ScenarioProgressRecord resetAfterRun2 = afterRun2.get(resetFingerprint);
+        assertThat(resetAfterRun2.listedAt()).isEqualTo(resetAfterRun1.listedAt());
+
+        // Run 3: "User logs in" is moved, unchanged, into a new Feature: Sign-in.
+        writeFeatureFile(featuresDir, "auth.feature",
+                "Feature: User authentication\n\n  Scenario: User resets password\n");
+        writeFeatureFile(featuresDir, "sign-in.feature", """
+                Feature: Sign-in
+
+                  Scenario: User logs in
+                    Given a registered user
+                    When they submit valid credentials
+                    Then they are signed in
+                """);
+        runTrackProgressHistory(project, featuresDir, glueCodeDir, historyFile, outputDir);
+        Map<String, ScenarioProgressRecord> afterRun3 = store.load(historyFile);
+        ScenarioProgressRecord loginAfterRun3 = afterRun3.get(loginFingerprint);
+        assertThat(loginAfterRun3.featureTitle()).isEqualTo("Sign-in");
+        assertThat(loginAfterRun3.listedAt()).isEqualTo(loginAfterRun1.listedAt());
+        assertThat(loginAfterRun3.implementedAt()).isEqualTo(loginAfterRun2.implementedAt());
+    }
+
+    private void runTrackProgressHistory(
+            Project project, File featuresDir, File glueCodeDir, File historyFile, File outputDir) {
+        GenerateFeatureDocsTask task = task(project);
+        task.getSourceDirs().from(featuresDir);
+        task.getTrackProgress().set(true);
+        task.getGlueCodeDirs().from(glueCodeDir);
+        task.getTrackProgressHistory().set(true);
+        task.getUpdateProgressHistory().set(true);
+        task.getProgressHistoryFile().set(historyFile);
+        task.getOutputDir().set(outputDir);
+        task.getProjectDirectory().set(project.getLayout().getProjectDirectory());
+        task.generate();
     }
 
     // --- helpers ---

@@ -6,8 +6,11 @@ import com.arc_e_tect.gradle.gherkin.indexing.IndexingMode;
 import com.arc_e_tect.gradle.gherkin.parser.FeatureParser;
 import com.arc_e_tect.gradle.gherkin.parser.ScenarioGrouping;
 import com.arc_e_tect.gradle.gherkin.parser.ScenarioInfo;
+import com.arc_e_tect.gradle.gherkin.progress.ProgressHistoryStore;
+import com.arc_e_tect.gradle.gherkin.progress.ProgressHistoryUpdater;
 import com.arc_e_tect.gradle.gherkin.progress.ProgressReportOptions;
 import com.arc_e_tect.gradle.gherkin.progress.ProgressReportWriter;
+import com.arc_e_tect.gradle.gherkin.progress.ScenarioProgressRecord;
 import io.cucumber.cucumberexpressions.Expression;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.GradleException;
@@ -31,6 +34,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -51,6 +55,11 @@ import java.util.Map;
  * <p>When {@link #getTrackProgress()} is enabled, every scenario is classified as
  * {@code listed}, {@code defined}, or {@code implemented} by cross-referencing its
  * steps against the step definitions found in {@link #getGlueCodeDirs()}.</p>
+ *
+ * <p>When {@link #getTrackProgressHistory()} is also enabled, a per-scenario history of when each
+ * scenario first reached each of those three statuses is loaded from
+ * {@link #getProgressHistoryFile()}, advanced with the current run's scenarios, and - only when
+ * {@link #getUpdateProgressHistory()} resolves to {@code true} - written back.</p>
  */
 @DisableCachingByDefault(because = "Generated documentation depends on source file content and is cheap to regenerate")
 public abstract class GenerateFeatureDocsTask extends DefaultTask {
@@ -184,6 +193,39 @@ public abstract class GenerateFeatureDocsTask extends DefaultTask {
     public abstract Property<Boolean> getForceRewrite();
 
     /**
+     * Whether to persist, across builds, a per-scenario history of when each scenario first
+     * reached {@code listed}, {@code defined}, and {@code implemented} status. Requires
+     * {@link #getTrackProgress()} to also be {@code true}.
+     *
+     * @return mutable boolean property controlling whether scenario progress history is tracked
+     */
+    @Input
+    public abstract Property<Boolean> getTrackProgressHistory();
+
+    /**
+     * File that the persisted scenario progress history is read from and, when
+     * {@link #getUpdateProgressHistory()} is {@code true}, written back to. Deliberately not
+     * declared as an {@code @InputFile}/{@code @OutputFile}: the file legitimately may not exist yet
+     * (treated as an empty history, not an error) and is only conditionally written back, so it's
+     * read and written directly in {@link #generate()} instead of through Gradle's up-to-date
+     * checking.
+     *
+     * @return mutable file property for the progress history file
+     */
+    @Internal
+    public abstract RegularFileProperty getProgressHistoryFile();
+
+    /**
+     * Whether {@link #getProgressHistoryFile()} is written back to disk after being updated with the
+     * current run's scenarios. Only consulted when {@link #getTrackProgressHistory()} is
+     * {@code true}; the history file is always read regardless.
+     *
+     * @return mutable boolean property controlling whether the progress history file is written back
+     */
+    @Input
+    public abstract Property<Boolean> getUpdateProgressHistory();
+
+    /**
      * Root directory of the project, used to resolve the default source directory
      * when neither {@link #getSourceDirs()} nor {@link #getSourceFile()} is set.
      *
@@ -235,6 +277,12 @@ public abstract class GenerateFeatureDocsTask extends DefaultTask {
             }
         }
 
+        boolean trackProgressHistory = getTrackProgressHistory().get();
+        if (trackProgressHistory && !trackProgress) {
+            throw new GradleException(
+                    "gherkinToAsciidoc: trackProgressHistory requires trackProgress to be enabled.");
+        }
+
         IndexingMode indexing = getIndexing().get();
         boolean groupByFeature = getGroupByFeature().get();
         boolean indexingActive = indexing != IndexingMode.OFF && indexing != IndexingMode.CI;
@@ -275,14 +323,36 @@ public abstract class GenerateFeatureDocsTask extends DefaultTask {
         if (trackProgress) {
             List<Expression> glueCode = scanGlueCode();
             File template = getTemplate().isPresent() ? getTemplate().getAsFile().get() : null;
+            Map<String, ScenarioProgressRecord> history = trackProgressHistory
+                    ? updateProgressHistory(scenarios, glueCode) : Map.of();
             ProgressReportOptions options = new ProgressReportOptions(
-                    groupByFeature, getSnippetDir().getAsFile().get(), template, systemUnderTestVersion);
+                    groupByFeature, getSnippetDir().getAsFile().get(), template, systemUnderTestVersion, history);
             new ProgressReportWriter().write(outputFile, scenarios, glueCode, options);
         } else {
             writeAsciidoc(outputFile, scenarios, groupByFeature, systemUnderTestVersion);
         }
 
         getLogger().lifecycle("Generated {} scenario title(s) to {}", scenarios.size(), outputFile);
+    }
+
+    /**
+     * Loads the persisted progress history, advances it with the current run's scenarios, and -
+     * only when {@link #getUpdateProgressHistory()} resolves to {@code true} - saves it back.
+     * The history file is always read regardless of {@link #getUpdateProgressHistory()}, so the
+     * generated report reflects the up-to-date-in-memory history even on a run that doesn't
+     * persist it.
+     */
+    private Map<String, ScenarioProgressRecord> updateProgressHistory(
+            List<ScenarioInfo> scenarios, List<Expression> glueCode) {
+        File historyFile = getProgressHistoryFile().getAsFile().get();
+        ProgressHistoryStore store = new ProgressHistoryStore();
+        Map<String, ScenarioProgressRecord> previous = store.load(historyFile);
+        Map<String, ScenarioProgressRecord> updated =
+                new ProgressHistoryUpdater().update(previous, scenarios, glueCode, Instant.now());
+        if (getUpdateProgressHistory().get()) {
+            store.save(historyFile, updated.values());
+        }
+        return updated;
     }
 
     private List<Expression> scanGlueCode() {

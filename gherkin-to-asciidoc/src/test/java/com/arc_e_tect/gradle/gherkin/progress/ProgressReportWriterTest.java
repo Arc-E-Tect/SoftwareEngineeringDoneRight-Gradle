@@ -13,8 +13,11 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -232,6 +235,105 @@ class ProgressReportWriterTest {
         assertThat(content).contains("TEMPLATE OUTPUT");
         assertThat(content).doesNotContain("Progress Summary");
         assertThat(content).contains("snippets/listed.adoc");
+    }
+
+    @Test
+    @DisplayName("omits the Progress Over Time section when history is empty")
+    void omitsProgressOverTimeSectionWhenHistoryIsEmpty(@TempDir Path tempDir) throws IOException {
+        ScenarioInfo implemented = new ScenarioInfo(
+                "Authentication", "Scenario: Fully wired up", List.of("an implemented step"));
+        List<Expression> glueCode = List.of(expression("an implemented step"));
+
+        File outputFile = tempDir.resolve("features.adoc").toFile();
+        writer.write(outputFile, List.of(implemented), glueCode, grouped(tempDir));
+
+        String content = Files.readString(outputFile.toPath(), StandardCharsets.UTF_8);
+        assertThat(content).doesNotContain("Progress Over Time");
+    }
+
+    @Test
+    @DisplayName("adds a Progress Over Time section after Progress Summary when history is non-empty")
+    void addsProgressOverTimeSectionAfterProgressSummaryWhenHistoryIsNonEmpty(@TempDir Path tempDir)
+            throws IOException {
+        ScenarioInfo implemented = new ScenarioInfo(
+                "Authentication", "Scenario: Fully wired up", List.of("an implemented step"));
+        List<Expression> glueCode = List.of(expression("an implemented step"));
+        Map<String, ScenarioProgressRecord> history = Map.of("fp1", new ScenarioProgressRecord(
+                "fp1", "Fully wired up", "Authentication",
+                Instant.parse("2026-01-01T00:00:00Z"), null, Instant.parse("2026-01-05T00:00:00Z"),
+                Instant.parse("2026-01-05T00:00:00Z"), null));
+
+        File outputFile = tempDir.resolve("features.adoc").toFile();
+        writer.write(outputFile, List.of(implemented), glueCode,
+                new ProgressReportOptions(true, tempDir.resolve("snippets").toFile(), null, "1.0.0", history));
+
+        String content = Files.readString(outputFile.toPath(), StandardCharsets.UTF_8);
+        assertThat(content.indexOf("Progress Summary")).isLessThan(content.indexOf("Progress Over Time"));
+    }
+
+    @Test
+    @DisplayName("reports the earliest non-null timestamp across all records as Tracked since")
+    void reportsEarliestTimestampAsTrackedSince(@TempDir Path tempDir) throws IOException {
+        ScenarioInfo implemented = new ScenarioInfo(
+                "Authentication", "Scenario: Fully wired up", List.of("an implemented step"));
+        List<Expression> glueCode = List.of(expression("an implemented step"));
+        Map<String, ScenarioProgressRecord> history = Map.of("fp1", new ScenarioProgressRecord(
+                "fp1", "Fully wired up", "Authentication",
+                Instant.parse("2026-01-14T09:02:11Z"), null, Instant.parse("2026-02-20T11:15:44Z"),
+                Instant.parse("2026-02-20T11:15:44Z"), null));
+
+        File outputFile = tempDir.resolve("features.adoc").toFile();
+        writer.write(outputFile, List.of(implemented), glueCode,
+                new ProgressReportOptions(true, tempDir.resolve("snippets").toFile(), null, "1.0.0", history));
+
+        String content = Files.readString(outputFile.toPath(), StandardCharsets.UTF_8);
+        assertThat(content).contains("2026-01-14T09:02:11Z");
+    }
+
+    @Test
+    @DisplayName("counts records implemented within the last 7 days")
+    void countsRecordsImplementedWithinLast7Days(@TempDir Path tempDir) throws IOException {
+        ScenarioInfo implemented = new ScenarioInfo(
+                "Authentication", "Scenario: Fully wired up", List.of("an implemented step"));
+        List<Expression> glueCode = List.of(expression("an implemented step"));
+        Instant recentlyImplemented = Instant.now().minus(Duration.ofDays(2));
+        Instant longAgoImplemented = Instant.now().minus(Duration.ofDays(40));
+        Map<String, ScenarioProgressRecord> history = Map.of(
+                "fp1", new ScenarioProgressRecord(
+                        "fp1", "A", "Authentication", recentlyImplemented, null, recentlyImplemented,
+                        recentlyImplemented, null),
+                "fp2", new ScenarioProgressRecord(
+                        "fp2", "B", "Authentication", longAgoImplemented, null, longAgoImplemented,
+                        longAgoImplemented, null));
+
+        File outputFile = tempDir.resolve("features.adoc").toFile();
+        writer.write(outputFile, List.of(implemented), glueCode,
+                new ProgressReportOptions(true, tempDir.resolve("snippets").toFile(), null, "1.0.0", history));
+
+        String content = Files.readString(outputFile.toPath(), StandardCharsets.UTF_8);
+        assertThat(content).contains("| Implemented in the last 7 days" + System.lineSeparator() + "| 1");
+    }
+
+    @Test
+    @DisplayName("counts records with a non-null removedAt as removed")
+    void countsRecordsWithNonNullRemovedAtAsRemoved(@TempDir Path tempDir) throws IOException {
+        ScenarioInfo implemented = new ScenarioInfo(
+                "Authentication", "Scenario: Fully wired up", List.of("an implemented step"));
+        List<Expression> glueCode = List.of(expression("an implemented step"));
+        Map<String, ScenarioProgressRecord> history = Map.of(
+                "fp1", new ScenarioProgressRecord(
+                        "fp1", "A", "Authentication", Instant.parse("2026-01-01T00:00:00Z"), null, null,
+                        Instant.parse("2026-01-01T00:00:00Z"), Instant.parse("2026-02-01T00:00:00Z")),
+                "fp2", new ScenarioProgressRecord(
+                        "fp2", "B", "Authentication", Instant.parse("2026-01-01T00:00:00Z"), null, null,
+                        Instant.parse("2026-01-01T00:00:00Z"), null));
+
+        File outputFile = tempDir.resolve("features.adoc").toFile();
+        writer.write(outputFile, List.of(implemented), glueCode,
+                new ProgressReportOptions(true, tempDir.resolve("snippets").toFile(), null, "1.0.0", history));
+
+        String content = Files.readString(outputFile.toPath(), StandardCharsets.UTF_8);
+        assertThat(content).contains("| Removed (no longer seen)" + System.lineSeparator() + "| 1");
     }
 
     @Test

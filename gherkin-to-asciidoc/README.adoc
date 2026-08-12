@@ -139,6 +139,21 @@ gherkinToAsciidoc {
     // untouched - only lines that aren't yet correctly numbered are numbered.
     // Default: false
     forceRewrite = false
+
+    // Persists a per-scenario history of when each scenario first reached listed/defined/
+    // implemented status (see "Tracking Progress History" below). Requires trackProgress = true.
+    // Default: false
+    trackProgressHistory = false
+
+    // NDJSON file the history is read from/written to. Defaults into the project directory
+    // (not build/), since it's meant to be committed.
+    // Default: file('gherkin-progress-history.ndjson')
+    // progressHistoryFile = file('gherkin-progress-history.ndjson')
+
+    // When true, progressHistoryFile is written back to disk. Only consulted when
+    // trackProgressHistory is true; the file is always read either way.
+    // Default: same as trackProgressHistory
+    // updateProgressHistory = true
 }
 ----
 
@@ -160,6 +175,9 @@ gherkinToAsciidoc {
     // systemUnderTestVersion.set("v1.0.0")
     indexing.set(IndexingMode.OFF)
     forceRewrite.set(false)
+    trackProgressHistory.set(false)
+    // progressHistoryFile.set(file("gherkin-progress-history.ndjson"))
+    // updateProgressHistory.set(true)
 }
 ----
 
@@ -191,6 +209,12 @@ Only consulted when `trackProgress` is `true`.
 `FEATURE`/`SCENARIO`/`ALL` require `includeSubDirs = true`; `FEATURE` and `ALL` additionally require `groupByFeature = true`. `CI` skips indexing entirely and is always allowed; overridable for the whole build via the `-PgherkinToAsciidoc.indexing` project property.
 | `forceRewrite`  | Boolean         | `false`                              | When `true`, `indexing` renumbers every `Feature`/`Scenario` from scratch. When `false`, a line already correctly numbered for the currently configured `indexing` value is left untouched.
 Has no effect when `indexing` is `OFF` or `CI`. Overridable for the whole build via the `-PgherkinToAsciidoc.forceRewrite` project property.
+| `trackProgressHistory` | Boolean  | `false`                              | When `true`, persists a per-scenario history of when each scenario first reached `listed`/`defined`/`implemented` status (see "Tracking Progress History" below).
+Requires `trackProgress = true`.
+| `progressHistoryFile` | File      | `gherkin-progress-history.ndjson` (project directory) | NDJSON file the progress history is read from and, when `updateProgressHistory` is `true`, written back to.
+Only consulted when `trackProgressHistory` is `true`.
+| `updateProgressHistory` | Boolean | same as `trackProgressHistory`       | When `true`, writes `progressHistoryFile` back to disk after updating it with the current run's scenarios.
+The file is always read when `trackProgressHistory` is `true`, regardless of this property. Overridable for the whole build via the `-PgherkinToAsciidoc.updateProgressHistory` project property.
 |===
 
 [IMPORTANT]
@@ -207,6 +231,10 @@ Enabling it implies `includeSubDirs = true` and `groupByFeature = true`, regardl
 configured values.
 
 `snippetDir` and `template` are only consulted when `trackProgress` is `true`; both are ignored otherwise.
+
+`trackProgressHistory` requires `trackProgress = true` and does *not* imply it - both must be set explicitly.
+Enabling `trackProgressHistory` while `trackProgress` is `false` fails `generateFeatureDocs` with a descriptive
+error. See "Tracking Progress History" below.
 
 `OFF` and `CI` are always allowed for `indexing`. `FEATURE`, `SCENARIO`, and `ALL` require `includeSubDirs`
 to be `true`; `FEATURE` and `ALL` additionally require `groupByFeature` to be `true` - with
@@ -946,6 +974,92 @@ See the
 link:../examples/gherkin-to-asciidoc/snippet-templates/README.adoc[snippet-templates example]
 for these two templates in use, alongside their non-templated equivalents, generated from the same
 feature/glue content.
+
+== Tracking Progress History
+
+Setting `trackProgressHistory = true` (in addition to `trackProgress = true`) persists, across builds, a per-scenario history of when each scenario first reached `listed`, `defined`, and `implemented` status.
+The history is keyed by a fingerprint of the scenario's own name, not by which feature file it lives in, so it survives a scenario being moved between feature files.
+The plugin itself has no dependency on git or any other version control system - branch-based control over when to advance the history (e.g. "only on `main`") is entirely a CI concern, expressed through `updateProgressHistory`.
+
+[cols="1,1,1,3",options="header"]
+|===
+| Property                | Type            | Default                              | Description
+| `trackProgressHistory`  | Boolean         | `false`                              | When `true`, loads, advances, and reports from a persisted per-scenario progress history file.
+Requires `trackProgress = true`; fails `generateFeatureDocs` with a descriptive error otherwise.
+| `progressHistoryFile`   | File            | `gherkin-progress-history.ndjson` (project directory) | The NDJSON file the history is read from and, when `updateProgressHistory` is `true`, written back to.
+Deliberately defaults into the project directory, not `build/`, since it's meant to be committed. Only consulted when `trackProgressHistory` is `true`.
+| `updateProgressHistory` | Boolean         | same as `trackProgressHistory`       | When `true`, `progressHistoryFile` is written back to disk after being updated with the current run's scenarios.
+The file is always *read* when `trackProgressHistory` is `true`, regardless of this property - so the generated report always reflects the up-to-date history, whether or not this run persists it. Overridable for the whole build via the `-PgherkinToAsciidoc.updateProgressHistory` project property.
+|===
+
+[IMPORTANT]
+====
+`trackProgressHistory` does *not* imply `trackProgress` - both must be set explicitly.
+Enabling `trackProgressHistory` while `trackProgress` is `false` fails `generateFeatureDocs` with a descriptive error.
+
+The `-PgherkinToAsciidoc.updateProgressHistory=<true|false>` project property, when set, overrides `updateProgressHistory` for every project in the build regardless of what any project's own `gherkinToAsciidoc { }` block configures - see "Advancing History Only on Certain Branches" below. An unrecognised value fails `generateFeatureDocs` with a descriptive error too.
+====
+
+=== How Scenarios Are Matched Across Runs
+
+Every scenario is identified by a fingerprint computed from its own name alone: the `Scenario:`/`Scenario Outline:` keyword and any existing index prefix (see "Numbering Features and Scenarios" above) are stripped, the remainder is trimmed and lower-cased, and the result is hashed with SHA-256, truncated to its first 16 hex characters.
+Because the fingerprint never takes the enclosing `Feature` into account, a scenario keeps its history even after being cut from one feature file and pasted into another, as long as its own name doesn't change.
+
+On every run, each of the current scenarios is looked up by fingerprint in the previously persisted history (or given a fresh record, if none exists), and classified exactly as `trackProgress` itself would (see "Tracking Implementation Progress" above).
+Whichever of `listedAt`/`definedAt`/`implementedAt` matches that classification is stamped with the current time the first time it's observed, and is never overwritten afterwards - so a scenario that jumps straight from `listed` to `implemented` between two runs never gains a `definedAt` at all, and a scenario that later regresses (e.g. its glue code is deleted) doesn't lose the timestamp it already earned.
+A scenario's `scenarioName` and `featureTitle` are refreshed to their current values on every run even though neither is part of the key, so a renamed-in-place scenario or one moved to a different feature shows up-to-date in the persisted file.
+
+A previously persisted record whose fingerprint is no longer present in the current scan is *never deleted* - it's kept exactly as it was, except its `removedAt` is stamped with the current time the first time it goes missing (and left alone on every subsequent run, once set).
+If a scenario with the same fingerprint reappears in a later run (e.g. a revert), its `removedAt` is cleared and its other fields resume advancing normally.
+
+=== File Format
+
+`progressHistoryFile` is newline-delimited JSON (NDJSON) - one line per scenario - sorted by fingerprint so that git diffs stay minimal and stable regardless of how scenarios are reordered or moved between feature files.
+Given the following feature file:
+
+[source,gherkin]
+----
+Feature: User authentication
+
+  Scenario: User logs in
+    Given a registered user
+    When they submit valid credentials
+    Then they are signed in
+
+  Scenario: User resets password
+    Given a registered user
+    When they request a password reset
+----
+
+after a few builds spread over several months, `progressHistoryFile` looks like:
+
+[source,json]
+----
+{"fingerprint":"a1f3c9d0e21b7f44","scenarioName":"User logs in","featureTitle":"User authentication","listedAt":"2026-01-14T09:02:11Z","definedAt":"2026-02-03T16:40:00Z","implementedAt":"2026-02-20T11:15:44Z","lastSeenAt":"2026-08-12T07:00:00Z","removedAt":null}
+{"fingerprint":"7be04412aa3390d1","scenarioName":"User resets password","featureTitle":"User authentication","listedAt":"2026-06-01T08:00:00Z","definedAt":null,"implementedAt":null,"lastSeenAt":"2026-08-12T07:00:00Z","removedAt":null}
+----
+
+A missing `progressHistoryFile` is treated as an empty history, not an error - the first run on a fresh checkout simply starts every scenario's history from scratch.
+A line that fails to parse (e.g. hand-edited into something invalid) is skipped with a `WARN`-level log message identifying its line number; it never fails the build.
+
+The generated report reflects the loaded (and possibly just-advanced) history as a `== Progress Over Time` section, directly below `== Progress Summary`, once `trackProgressHistory` finds at least one record: the earliest timestamp across every record ("Tracked since"), how many scenarios were implemented in the last 7 and 30 days, and how many previously tracked scenarios are no longer seen in the current run.
+
+=== Advancing History Only on Certain Branches
+
+Since the plugin has no notion of git branches (or any other VCS), gating *when* `progressHistoryFile` gets written back is entirely up to the CI pipeline invoking `generateFeatureDocs`, via `updateProgressHistory` (or its command-line override):
+
+[source,bash]
+----
+# On a release/main branch: advance and commit the history.
+./gradlew generateFeatureDocs -PgherkinToAsciidoc.updateProgressHistory=true
+
+# On a feature branch or pull request build: read and report from the existing
+# history, but never write it back - leaving it for the target branch's own
+# build to advance once the change actually merges.
+./gradlew generateFeatureDocs -PgherkinToAsciidoc.updateProgressHistory=false
+----
+
+Leaving `updateProgressHistory` at its default (equal to `trackProgressHistory`) works too for a single-branch setup with no CI-driven distinction; the override above is only needed once different branches should behave differently.
 
 == License
 

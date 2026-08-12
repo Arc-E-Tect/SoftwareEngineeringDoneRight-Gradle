@@ -271,6 +271,54 @@ class GherkinToAsciidocMultiProjectPluginTest {
         assertThat(extension(sub).getForceRewrite().get()).isFalse();
     }
 
+    @Test
+    @DisplayName("sub-project without its own configuration inherits trackProgressHistory from the root project")
+    void subProjectInheritsTrackProgressHistoryFromRoot() {
+        Project root = rootProject();
+        extension(root).getTrackProgressHistory().set(true);
+        Project sub = subProject(root, "sub");
+
+        assertThat(extension(sub).getTrackProgressHistory().get()).isTrue();
+    }
+
+    @Test
+    @DisplayName("sub-project's own trackProgressHistory takes precedence over the root project's")
+    void subProjectTrackProgressHistoryOverridesRoot() {
+        Project root = rootProject();
+        extension(root).getTrackProgressHistory().set(true);
+        Project sub = subProject(root, "sub");
+        extension(sub).getTrackProgressHistory().set(false);
+
+        assertThat(extension(sub).getTrackProgressHistory().get()).isFalse();
+    }
+
+    @Test
+    @DisplayName("sub-project's own progressHistoryFile always defaults to its own project directory, "
+            + "even when the root project configures a custom progressHistoryFile")
+    void subProjectProgressHistoryFileNeverInheritsFromRoot() {
+        Project root = rootProject();
+        File rootCustomFile = new File(tempDir.toFile(), "shared-history.ndjson");
+        extension(root).getProgressHistoryFile().set(rootCustomFile);
+        Project sub = subProject(root, "sub");
+
+        File subOwnDefault = new File(sub.getProjectDir(), "gherkin-progress-history.ndjson");
+        assertThat(extension(sub).getProgressHistoryFile().get().getAsFile())
+                .isEqualTo(subOwnDefault)
+                .isNotEqualTo(rootCustomFile);
+    }
+
+    @Test
+    @DisplayName("sub-project's own updateProgressHistory follows its own trackProgressHistory, "
+            + "not the root project's")
+    void subProjectUpdateProgressHistoryFollowsItsOwnTrackProgressHistory() {
+        Project root = rootProject();
+        extension(root).getTrackProgressHistory().set(true);
+        Project sub = subProject(root, "sub");
+        extension(sub).getTrackProgressHistory().set(false);
+
+        assertThat(extension(sub).getUpdateProgressHistory().get()).isFalse();
+    }
+
     // --- helpers ---
 
     private Project rootProject() {

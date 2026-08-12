@@ -23,12 +23,15 @@ import org.gradle.api.provider.Property;
  *     // systemUnderTestVersion = 'v1.0.0'          // optional; default: project.version
  *     indexing       = IndexingMode.OFF                                             // default; requires includeSubDirs = true
  *     forceRewrite   = false                                                        // default; see getForceRewrite()
+ *     trackProgressHistory  = false                                                 // default; requires trackProgress = true
+ *     // progressHistoryFile = layout.projectDirectory.file('gherkin-progress-history.ndjson') // default
+ *     updateProgressHistory = trackProgressHistory                                  // default; see getUpdateProgressHistory()
  * }
  * </pre>
  *
- * <p>{@code indexing} and {@code forceRewrite} can each be overridden for the whole build from the
- * command line, e.g. {@code -PgherkinToAsciidoc.indexing=ci} - see {@link #getIndexing()} and
- * {@link #getForceRewrite()}.</p>
+ * <p>{@code indexing}, {@code forceRewrite}, and {@code updateProgressHistory} can each be overridden for
+ * the whole build from the command line, e.g. {@code -PgherkinToAsciidoc.indexing=ci} - see
+ * {@link #getIndexing()}, {@link #getForceRewrite()}, and {@link #getUpdateProgressHistory()}.</p>
  */
 public abstract class GherkinToAsciidocExtension {
 
@@ -47,6 +50,9 @@ public abstract class GherkinToAsciidocExtension {
     /** Default relative path of the directory report snippets are written to. */
     public static final String DEFAULT_SNIPPET_DIR = "generated-docs/features/snippets";
 
+    /** Default name of the persisted scenario progress history file. */
+    public static final String DEFAULT_PROGRESS_HISTORY_FILE_NAME = "gherkin-progress-history.ndjson";
+
     /**
      * Name of the Gradle project property that overrides {@link #getIndexing()} from the command
      * line for every project in the build, e.g. {@code -PgherkinToAsciidoc.indexing=ci}. Takes
@@ -62,6 +68,14 @@ public abstract class GherkinToAsciidocExtension {
      * configured {@code forceRewrite} value. The value is parsed as a boolean.
      */
     public static final String FORCE_REWRITE_OVERRIDE_PROPERTY = "gherkinToAsciidoc.forceRewrite";
+
+    /**
+     * Name of the Gradle project property that overrides {@link #getUpdateProgressHistory()} from
+     * the command line for every project in the build, e.g.
+     * {@code -PgherkinToAsciidoc.updateProgressHistory=true}. Takes precedence over any project's
+     * own configured {@code updateProgressHistory} value. The value is parsed as a boolean.
+     */
+    public static final String UPDATE_PROGRESS_HISTORY_OVERRIDE_PROPERTY = "gherkinToAsciidoc.updateProgressHistory";
 
     /**
      * Source directories that contain the {@code .feature} files to process. One or more
@@ -251,4 +265,58 @@ public abstract class GherkinToAsciidocExtension {
      * @return mutable boolean property controlling whether existing numbering is preserved
      */
     public abstract Property<Boolean> getForceRewrite();
+
+    /**
+     * Whether to persist, across builds, a per-scenario history of when each scenario first
+     * reached {@code listed}, {@code defined}, and {@code implemented} status - surviving scenarios
+     * being moved between feature files, since the history is keyed by a fingerprint of the
+     * scenario's name rather than by feature file location. Defaults to {@code false}.
+     *
+     * <p>Requires {@link #getTrackProgress()} to also be {@code true}; enabling this property while
+     * {@code trackProgress} is {@code false} fails {@code generateFeatureDocs} with a descriptive
+     * error. The history file configured via {@link #getProgressHistoryFile()} is always read when
+     * this property is {@code true}, regardless of {@link #getUpdateProgressHistory()}.</p>
+     *
+     * <p>The plugin itself has no dependency on git or any other version control system;
+     * branch-based control over when to advance the history (e.g. "only on {@code main}") is a CI
+     * concern, expressed purely through {@link #getUpdateProgressHistory()} - typically driven from
+     * a Gradle property set differently per branch in the CI pipeline itself.</p>
+     *
+     * @return mutable boolean property controlling whether scenario progress history is tracked
+     */
+    public abstract Property<Boolean> getTrackProgressHistory();
+
+    /**
+     * File that the persisted scenario progress history is read from and, when
+     * {@link #getUpdateProgressHistory()} is {@code true}, written back to. Defaults to
+     * {@code gherkin-progress-history.ndjson} directly in the project directory - deliberately not
+     * under {@code build/}, since this file is meant to be committed to version control so the
+     * history survives across checkouts. Only consulted when {@link #getTrackProgressHistory()} is
+     * {@code true}.
+     *
+     * @return mutable file property for the progress history file
+     */
+    public abstract RegularFileProperty getProgressHistoryFile();
+
+    /**
+     * Whether {@link #getProgressHistoryFile()} is written back to disk after being updated with the
+     * current run's scenarios. Defaults to the same value as {@link #getTrackProgressHistory()}.
+     * Only consulted when {@link #getTrackProgressHistory()} is {@code true}; the history file is
+     * always read regardless of this property's value, so a build with this set to {@code false}
+     * still reports against the up-to-date-in-memory history, it simply doesn't persist it.
+     *
+     * <p>Set this to {@code false} for branches/builds that shouldn't advance the committed history
+     * (e.g. feature branches or pull request builds), and leave it {@code true} (the default, once
+     * {@code trackProgressHistory} is enabled) for the branch(es) that should - typically expressed
+     * via the {@value #UPDATE_PROGRESS_HISTORY_OVERRIDE_PROPERTY} project property from the CI
+     * pipeline rather than hardcoded in the build script, since the plugin itself has no notion of
+     * which branch is currently checked out.</p>
+     *
+     * <p>The {@value #UPDATE_PROGRESS_HISTORY_OVERRIDE_PROPERTY} project property, when set (e.g.
+     * {@code -PgherkinToAsciidoc.updateProgressHistory=true}), overrides this property for every
+     * project in the build regardless of what any project configures here.</p>
+     *
+     * @return mutable boolean property controlling whether the progress history file is written back
+     */
+    public abstract Property<Boolean> getUpdateProgressHistory();
 }

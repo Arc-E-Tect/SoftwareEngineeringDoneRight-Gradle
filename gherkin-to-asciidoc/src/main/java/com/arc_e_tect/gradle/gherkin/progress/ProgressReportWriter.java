@@ -13,10 +13,14 @@ import java.io.PrintWriter;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 
 /**
  * Writes an AsciiDoc progress report that breaks scenarios down by
@@ -65,7 +69,9 @@ public class ProgressReportWriter {
             templateRenderer.render(
                     outputFile, options.template(), options.systemUnderTestVersion(), summaries, snippets);
         } else {
-            writeDefaultReport(outputFile, summaries, options.groupByFeature(), options.systemUnderTestVersion());
+            writeDefaultReport(
+                    outputFile, summaries, options.groupByFeature(), options.systemUnderTestVersion(),
+                    options.history());
         }
     }
 
@@ -126,7 +132,8 @@ public class ProgressReportWriter {
     }
 
     private void writeDefaultReport(
-            File outputFile, List<StatusSummary> summaries, boolean groupByFeature, String systemUnderTestVersion) {
+            File outputFile, List<StatusSummary> summaries, boolean groupByFeature, String systemUnderTestVersion,
+            Map<String, ScenarioProgressRecord> history) {
         try (PrintWriter writer = new PrintWriter(outputFile, StandardCharsets.UTF_8)) {
             writer.println("= Feature Scenarios");
             writer.println(":toc:");
@@ -144,12 +151,57 @@ public class ProgressReportWriter {
             writeSummaryTable(writer, summaries);
             writer.println();
 
+            if (!history.isEmpty()) {
+                writeProgressOverTime(writer, history);
+            }
+
             for (StatusSummary summary : summaries) {
                 writeSection(writer, summary, groupByFeature);
             }
         } catch (IOException e) {
             throw new GradleException("gherkinToAsciidoc: failed to write AsciiDoc file: " + outputFile, e);
         }
+    }
+
+    private void writeProgressOverTime(PrintWriter writer, Map<String, ScenarioProgressRecord> history) {
+        Instant now = Instant.now();
+        Instant trackedSince = history.values().stream()
+                .flatMap(record -> Stream.of(
+                        record.listedAt(), record.definedAt(), record.implementedAt(),
+                        record.lastSeenAt(), record.removedAt()))
+                .filter(instant -> instant != null)
+                .min(Comparator.naturalOrder())
+                .orElse(null);
+        long implementedLast7Days = countImplementedWithin(history, now, Duration.ofDays(7));
+        long implementedLast30Days = countImplementedWithin(history, now, Duration.ofDays(30));
+        long removedNotSeen = history.values().stream().filter(record -> record.removedAt() != null).count();
+
+        writer.println("== Progress Over Time");
+        writer.println();
+        writer.println("[cols=\"1,1\",options=\"header\"]");
+        writer.println("|===");
+        writer.println("| Metric | Value");
+        writer.println();
+        writer.println("| Tracked since");
+        writer.println("| " + (trackedSince != null ? trackedSince : "N/A"));
+        writer.println();
+        writer.println("| Implemented in the last 7 days");
+        writer.println("| " + implementedLast7Days);
+        writer.println();
+        writer.println("| Implemented in the last 30 days");
+        writer.println("| " + implementedLast30Days);
+        writer.println();
+        writer.println("| Removed (no longer seen)");
+        writer.println("| " + removedNotSeen);
+        writer.println("|===");
+        writer.println();
+    }
+
+    private long countImplementedWithin(Map<String, ScenarioProgressRecord> history, Instant now, Duration window) {
+        Instant threshold = now.minus(window);
+        return history.values().stream()
+                .filter(record -> record.implementedAt() != null && record.implementedAt().isAfter(threshold))
+                .count();
     }
 
     private void writeStatusLegend(PrintWriter writer, List<StatusSummary> summaries) {
