@@ -37,6 +37,9 @@ import java.util.Locale;
  *   <li>Output file name: {@code features.adoc}</li>
  *   <li>Indexing: {@code off}</li>
  *   <li>Force rewrite: {@code false}</li>
+ *   <li>Track progress history: {@code false}</li>
+ *   <li>Progress history file: {@code gherkin-progress-history.ndjson} (project directory)</li>
+ *   <li>Update progress history: same as track progress history</li>
  * </ul>
  *
  * <h2>Multi-project builds</h2>
@@ -45,7 +48,8 @@ import java.util.Locale;
  * {@code generateFeatureDocs} task and its own generated report. Every DSL property defaults to
  * the value configured on the root project's own {@code gherkinToAsciidoc} extension; a
  * sub-project that configures a property itself overrides that inherited default for that
- * property only - except for {@code outputDir} and {@code snippetDir} (see below).</p>
+ * property only - except for {@code outputDir}, {@code snippetDir}, and
+ * {@code progressHistoryFile} (see below).</p>
  * <p>{@code sourceDirs}, {@code sourceFile}, and {@code glueCodeDirs} cascade too, but not
  * verbatim: when a sub-project configures neither its own {@code sourceDirs} nor
  * {@code sourceFile}, any of the root project's directories/file that live inside the root
@@ -55,19 +59,22 @@ import java.util.Locale;
  * "convention over configuration". A root-configured path that points outside the root
  * project's own directory (e.g. a directory shared by every module) is used as-is, unchanged,
  * by every sub-project that inherits it.</p>
- * <p>{@code outputDir} and {@code snippetDir} are the one exception that never inherits from the
- * root project: each project always defaults to a location under its own build directory,
- * regardless of what the root project configures, so that every project's report lands in its
- * own build output rather than colliding with another project's. Set these explicitly on a
- * specific project to relocate that project's report.</p>
+ * <p>{@code outputDir}, {@code snippetDir}, and {@code progressHistoryFile} are the exceptions that
+ * never inherit from the root project: each project always defaults to a location under its own
+ * directory, regardless of what the root project configures, so that every project's
+ * report/history lands in its own location rather than colliding with another project's. Set
+ * these explicitly on a specific project to relocate that project's report/history file.</p>
  *
- * <h2>Overriding {@code indexing}/{@code forceRewrite} from the command line</h2>
- * <p>The {@code -PgherkinToAsciidoc.indexing=&lt;value&gt;} and
- * {@code -PgherkinToAsciidoc.forceRewrite=&lt;true|false&gt;} project properties each override their
- * respective DSL property for every project in the build, regardless of what any project's own
+ * <h2>Overriding {@code indexing}/{@code forceRewrite}/{@code updateProgressHistory} from the command line</h2>
+ * <p>The {@code -PgherkinToAsciidoc.indexing=&lt;value&gt;},
+ * {@code -PgherkinToAsciidoc.forceRewrite=&lt;true|false&gt;}, and
+ * {@code -PgherkinToAsciidoc.updateProgressHistory=&lt;true|false&gt;} project properties each override
+ * their respective DSL property for every project in the build, regardless of what any project's own
  * {@code gherkinToAsciidoc { }} block configures - {@code indexing} typically set to {@code ci} in a
  * CI pipeline so {@code generateFeatureDocs} never mutates source {@code .feature} files there,
- * without having to change the build script itself.</p>
+ * and {@code updateProgressHistory} typically set to {@code true} only for the branch(es) whose CI
+ * pipeline should advance the committed progress history file, without having to change the build
+ * script itself for either.</p>
  */
 public class GherkinToAsciidocPlugin implements Plugin<Project> {
 
@@ -91,6 +98,7 @@ public class GherkinToAsciidocPlugin implements Plugin<Project> {
             ext.getSystemUnderTestVersion().convention(rootExt.getSystemUnderTestVersion());
             ext.getIndexing().convention(rootExt.getIndexing());
             ext.getForceRewrite().convention(rootExt.getForceRewrite());
+            ext.getTrackProgressHistory().convention(rootExt.getTrackProgressHistory());
         } else {
             ext.getTrackProgress().convention(false);
             ext.getOutputFileName().convention(GherkinToAsciidocExtension.DEFAULT_OUTPUT_FILE_NAME);
@@ -98,15 +106,23 @@ public class GherkinToAsciidocPlugin implements Plugin<Project> {
                     project.provider(() -> String.valueOf(project.getVersion())));
             ext.getIndexing().convention(IndexingMode.OFF);
             ext.getForceRewrite().convention(false);
+            ext.getTrackProgressHistory().convention(false);
         }
 
-        // outputDir/snippetDir intentionally always default to this project's own build directory,
-        // never to the root project's, so that every project's report lands in its own build output
-        // by default instead of colliding with another project's when neither configures them.
+        // outputDir/snippetDir/progressHistoryFile intentionally always default to this project's
+        // own directory, never to the root project's, so that every project's report/history lands
+        // in its own location by default instead of colliding with another project's when neither
+        // configures them.
         ext.getOutputDir().convention(
                 project.getLayout().getBuildDirectory().dir("generated-docs"));
         ext.getSnippetDir().convention(
                 project.getLayout().getBuildDirectory().dir(GherkinToAsciidocExtension.DEFAULT_SNIPPET_DIR));
+        ext.getProgressHistoryFile().convention(project.getLayout().getProjectDirectory()
+                .file(GherkinToAsciidocExtension.DEFAULT_PROGRESS_HISTORY_FILE_NAME));
+
+        // updateProgressHistory defaults to trackProgressHistory's own (possibly root-inherited)
+        // value, tracking it live rather than snapshotting it at this point.
+        ext.getUpdateProgressHistory().convention(ext.getTrackProgressHistory());
 
         // Enabling trackProgress implies recursive scanning and grouping by feature, unless
         // includeSubDirs/groupByFeature have been set explicitly - either directly on this
@@ -133,6 +149,9 @@ public class GherkinToAsciidocPlugin implements Plugin<Project> {
         Provider<Boolean> forceRewriteCliOverride = project.getProviders()
                 .gradleProperty(GherkinToAsciidocExtension.FORCE_REWRITE_OVERRIDE_PROPERTY)
                 .map(GherkinToAsciidocPlugin::parseForceRewrite);
+        Provider<Boolean> updateProgressHistoryCliOverride = project.getProviders()
+                .gradleProperty(GherkinToAsciidocExtension.UPDATE_PROGRESS_HISTORY_OVERRIDE_PROPERTY)
+                .map(GherkinToAsciidocPlugin::parseUpdateProgressHistory);
 
         project.getTasks().register(TASK_NAME, GenerateFeatureDocsTask.class, task -> {
             wireSourceLocation(project, rootProject, ext, rootExt, task);
@@ -147,6 +166,9 @@ public class GherkinToAsciidocPlugin implements Plugin<Project> {
             task.getSystemUnderTestVersion().set(ext.getSystemUnderTestVersion());
             task.getIndexing().set(indexingCliOverride.orElse(ext.getIndexing()));
             task.getForceRewrite().set(forceRewriteCliOverride.orElse(ext.getForceRewrite()));
+            task.getTrackProgressHistory().set(ext.getTrackProgressHistory());
+            task.getProgressHistoryFile().set(ext.getProgressHistoryFile());
+            task.getUpdateProgressHistory().set(updateProgressHistoryCliOverride.orElse(ext.getUpdateProgressHistory()));
             task.getProjectDirectory().set(project.getLayout().getProjectDirectory());
         });
     }
@@ -182,6 +204,24 @@ public class GherkinToAsciidocPlugin implements Plugin<Project> {
         throw new GradleException(
                 "gherkinToAsciidoc: invalid value '" + value + "' for -P"
                 + GherkinToAsciidocExtension.FORCE_REWRITE_OVERRIDE_PROPERTY
+                + "; expected 'true' or 'false'");
+    }
+
+    /**
+     * Parses the {@code -PgherkinToAsciidoc.updateProgressHistory=<value>} project property's
+     * value, accepting {@code true}/{@code false} case-insensitively.
+     */
+    private static boolean parseUpdateProgressHistory(String value) {
+        String normalized = value.trim().toLowerCase(Locale.ROOT);
+        if ("true".equals(normalized)) {
+            return true;
+        }
+        if ("false".equals(normalized)) {
+            return false;
+        }
+        throw new GradleException(
+                "gherkinToAsciidoc: invalid value '" + value + "' for -P"
+                + GherkinToAsciidocExtension.UPDATE_PROGRESS_HISTORY_OVERRIDE_PROPERTY
                 + "; expected 'true' or 'false'");
     }
 
