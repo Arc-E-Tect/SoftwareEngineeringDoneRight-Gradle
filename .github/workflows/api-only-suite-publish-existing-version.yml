@@ -36,6 +36,29 @@ jobs:
         run: |
           sed -i "s/${{ env.GRADLE_VERSION_REGEX }}/version = ${{ env.VERSION }}/g" ${{ env.GRADLE_PROPERTIES_FILE }}
 
+      - name: Resolve sibling plugin versions
+        # See api-only-suite-release.yml's Publish job for why this is needed: shadow/mirage/
+        # doppelganger-api-detector's own gradle.properties always stays at the unpublished
+        # placeholder version, so it must be patched to their real latest released version before
+        # publishing, or the published POM declares an unresolvable dependency.
+        id: sibling-versions
+        run: |
+          SHADOW_VERSION=$(git tag -l 'shadow-api-detector-v*' | sed 's/^shadow-api-detector-v//' | sort -V | tail -1)
+          MIRAGE_VERSION=$(git tag -l 'mirage-api-detector-v*' | sed 's/^mirage-api-detector-v//' | sort -V | tail -1)
+          DOPPELGANGER_VERSION=$(git tag -l 'doppelganger-api-detector-v*' | sed 's/^doppelganger-api-detector-v//' | sort -V | tail -1)
+          {
+            echo "shadow_version=${SHADOW_VERSION}"
+            echo "mirage_version=${MIRAGE_VERSION}"
+            echo "doppelganger_version=${DOPPELGANGER_VERSION}"
+          } >> "$GITHUB_OUTPUT"
+          echo "::notice title=Resolved Sibling Versions::shadow-api-detector=${SHADOW_VERSION} mirage-api-detector=${MIRAGE_VERSION} doppelganger-api-detector=${DOPPELGANGER_VERSION}"
+
+      - name: Update sibling plugin versions in their Gradle property files
+        run: |
+          sed -i "s/${{ env.GRADLE_VERSION_REGEX }}/version = ${{ steps.sibling-versions.outputs.shadow_version }}/g" shadow-api-detector/gradle.properties
+          sed -i "s/${{ env.GRADLE_VERSION_REGEX }}/version = ${{ steps.sibling-versions.outputs.mirage_version }}/g" mirage-api-detector/gradle.properties
+          sed -i "s/${{ env.GRADLE_VERSION_REGEX }}/version = ${{ steps.sibling-versions.outputs.doppelganger_version }}/g" doppelganger-api-detector/gradle.properties
+
       - name: Publish to Gradle Plugin Portal
         run: |
           cd api-only-suite
