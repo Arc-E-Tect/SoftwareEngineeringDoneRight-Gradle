@@ -5,7 +5,6 @@ on:
       - main
     paths:
       - 'shadow-api-detector/**'
-      - 'api-detector-core/**'
       - '.github/workflows/shadow-api-detector-build.yml'
       - '.github/workflows/semantic-version-calculate.yml'
       - '.github/workflows/determine-release-type.yml'
