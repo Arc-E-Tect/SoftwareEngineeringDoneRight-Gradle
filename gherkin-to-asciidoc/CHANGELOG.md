@@ -1,3 +1,11 @@
+# [4.2.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/v4.1.0...v4.2.0) (2026-08-12)
+
+
+### ✨ New and updated features
+
+* **gherkin-to-asciidoc:** log LIFECYCLE-level scan progress during feature docs generation ([#128](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/128)) ([1e269bd](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/1e269bdc496508e5083e69ee521fa1da1c26c7df)), closes [#128](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/128) [#56](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/56) [#56](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/56)
+* log LIFECYCLE-level scan progress in all three API detector plugins ([#127](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/127)) ([cb3dcfb](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/cb3dcfb49d08092d8e7fc419a1c71453ee47f82a)), closes [#127](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/127) [#56](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/56) [#56](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/56)
+
 # [4.1.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/v4.0.0...v4.1.0) (2026-08-12)
 
 
