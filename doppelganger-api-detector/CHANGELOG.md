@@ -1,3 +1,12 @@
+## [0.1.1](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/doppelganger-api-detector-v0.1.0...doppelganger-api-detector-v0.1.1) (2026-08-12)
+
+
+### 🐛 Bug Fixes
+
+* **doppelganger-api-detector:** default testDirs/contractsDir to a dedicated testContract source set ([#121](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/121)) ([f3b81e9](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/f3b81e94dae76ee42a25d00b8a89bd8810e544fa)), closes [#121](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/121)
+* **examples:** explicitly opt in to the doppelganger verification sources these examples demonstrate ([#120](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/120)) ([0810b76](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/0810b760883dc7ec596c4df3613b5518e7b5da60)), closes [#120](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/120)
+* **examples:** point doppelganger examples at their actual src/test source location ([#122](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/122)) ([eb8e8f4](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/eb8e8f46f7e3c2ce41b5388e43f00b51d445b4f0)), closes [#122](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/122)
+
 # [0.1.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/doppelganger-api-detector-v0.0.2...doppelganger-api-detector-v0.1.0) (2026-08-12)
 
 
