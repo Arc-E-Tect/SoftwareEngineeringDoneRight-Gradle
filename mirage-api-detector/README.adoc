@@ -227,6 +227,27 @@ tasks.named("check") {
 }
 ----
 
+== Progress reporting
+
+Resolving OpenAPI documents and scanning `@RestController` classes can take a while on a large codebase.
+The task periodically logs progress at `LIFECYCLE` level so a long-running scan doesn't sit silently until it finishes.
+
+[source,shell]
+----
+> Task :detectMirageApis
+Resolving OpenAPI documents: 12 processed so far
+Resolving OpenAPI documents: done, 14 item(s)
+Scanning @RestController classes: 150/438 (34%)
+Scanning @RestController classes: done, 438 file(s)
+Mirage API Detector: scanned 512 described endpoint(s), found 2 mirage API(s). Report → build/reports/mirage-api-detector/mirage-apis.adoc
+----
+
+This is plain log output, not an animated progress indicator.
+The plugin deliberately avoids Gradle's internal, unsupported console/progress APIs, since their shape can change between Gradle versions and this plugin is published on the Gradle Plugin Portal for consumers on Gradle versions this project doesn't control.
+Each line is printed once and never overwritten in place, so it plays back cleanly in CI logs as well as an interactive terminal.
+
+The `@RestController` progress line only appears when `scanMocks` is `false`; scanning WireMock stubs does not currently report per-file progress.
+
 == System Under Test Version
 
 Every generated report includes a line just below the title identifying the version of the system under test that was scanned:

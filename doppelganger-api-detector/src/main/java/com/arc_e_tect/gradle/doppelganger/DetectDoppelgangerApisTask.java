@@ -1,5 +1,6 @@
 package com.arc_e_tect.gradle.doppelganger;
 
+import com.arc_e_tect.gradle.detector.core.console.ScanProgressReporter;
 import com.arc_e_tect.gradle.detector.core.detect.ContractSetOperations;
 import com.arc_e_tect.gradle.detector.core.model.Endpoint;
 import com.arc_e_tect.gradle.detector.core.openapi.DescribedEndpoint;
@@ -183,24 +184,39 @@ public abstract class DetectDoppelgangerApisTask extends DefaultTask {
                     + "it is the required root OpenAPI document.");
         }
 
+        int totalPhases = countTotalPhases();
+        int phase = 0;
+
+        phase = announcePhase(phase, totalPhases, "Scanning @RestController classes...");
+        List<File> controllerFiles = new ArrayList<>();
+        for (File dir : getControllerDirs()) {
+            controllerFiles.addAll(collectJavaFiles(dir));
+        }
         ControllerScanner controllerScanner = new ControllerScanner();
         List<Endpoint> implemented = new ArrayList<>();
-        for (File dir : getControllerDirs()) {
-            for (File javaFile : collectJavaFiles(dir)) {
-                try {
-                    implemented.addAll(controllerScanner.scan(javaFile));
-                } catch (IOException e) {
-                    throw new GradleException("doppelgangerApiDetector: failed to scan " + javaFile, e);
-                }
+        ScanProgressReporter controllerScanProgress = ScanProgressReporter.determinate(
+                getLogger(), "Scanning @RestController classes", controllerFiles.size());
+        for (File javaFile : controllerFiles) {
+            try {
+                implemented.addAll(controllerScanner.scan(javaFile));
+            } catch (IOException e) {
+                throw new GradleException("doppelgangerApiDetector: failed to scan " + javaFile, e);
             }
+            controllerScanProgress.step();
         }
+        controllerScanProgress.complete();
 
+        phase = announcePhase(phase, totalPhases, "Collecting OpenAPI endpoints...");
         File rootDocument = getRootDocument().getAsFile().get();
-        List<DescribedEndpoint> described = new OpenApiEndpointCollector().collect(rootDocument);
+        ScanProgressReporter openApiProgress =
+                ScanProgressReporter.indeterminate(getLogger(), "Resolving OpenAPI documents");
+        List<DescribedEndpoint> described = new OpenApiEndpointCollector()
+                .collect(rootDocument, file -> openApiProgress.step());
+        openApiProgress.complete();
 
         List<Endpoint> declaredAndImplemented = ContractSetOperations.intersection(implemented, described);
 
-        List<Endpoint> verified = collectVerifiedEndpoints();
+        List<Endpoint> verified = collectVerifiedEndpoints(phase, totalPhases);
 
         List<Endpoint> doppelgangers = new DoppelgangerApiFinder()
                 .findDoppelgangers(declaredAndImplemented, verified);
@@ -226,16 +242,20 @@ public abstract class DetectDoppelgangerApisTask extends DefaultTask {
         }
     }
 
-    private List<Endpoint> collectVerifiedEndpoints() {
+    private List<Endpoint> collectVerifiedEndpoints(int phase, int totalPhases) {
         List<Endpoint> verified = new ArrayList<>();
         try {
             if (getUseRestDocs().get()) {
+                phase = announcePhase(phase, totalPhases, "Scanning Spring RestDocs verification evidence...");
                 verified.addAll(scanTestDirs(new RestDocsScanner()));
             }
             if (getUseOpenApiRequestValidator().get()) {
+                phase = announcePhase(phase, totalPhases,
+                        "Scanning OpenAPI request validator verification evidence...");
                 verified.addAll(scanTestDirs(new OpenApiRequestValidatorScanner()));
             }
             if (getUseSpringCloudContract().get() && getContractsDir().isPresent()) {
+                announcePhase(phase, totalPhases, "Scanning Spring Cloud Contract verification evidence...");
                 File contractsDir = getContractsDir().getAsFile().get();
                 verified.addAll(new SpringCloudContractScanner().scan(contractsDir));
             }
@@ -243,6 +263,43 @@ public abstract class DetectDoppelgangerApisTask extends DefaultTask {
             throw new GradleException("doppelgangerApiDetector: failed to scan verification evidence", e);
         }
         return verified;
+    }
+
+    /**
+     * Total number of phases {@link #generate()} will announce, computed from which verification
+     * sources are actually enabled and configured so the banner's {@code [n/total]} count matches
+     * the work that will really run.
+     *
+     * @return the total phase count for this invocation
+     */
+    private int countTotalPhases() {
+        int total = 2;
+        if (getUseRestDocs().get()) {
+            total++;
+        }
+        if (getUseOpenApiRequestValidator().get()) {
+            total++;
+        }
+        if (getUseSpringCloudContract().get() && getContractsDir().isPresent()) {
+            total++;
+        }
+        return total;
+    }
+
+    /**
+     * Emits a one-line {@code LIFECYCLE} phase banner, e.g.
+     * {@code "Doppelganger API Detector: [2/5] Collecting OpenAPI endpoints..."}, and returns the
+     * incremented phase number.
+     *
+     * @param phase       the previous phase number (0 before the first phase)
+     * @param totalPhases total number of phases, from {@link #countTotalPhases()}
+     * @param phaseLabel  human-readable description of the phase that is starting
+     * @return {@code phase + 1}
+     */
+    private int announcePhase(int phase, int totalPhases, String phaseLabel) {
+        int nextPhase = phase + 1;
+        getLogger().lifecycle("Doppelganger API Detector: [{}/{}] {}", nextPhase, totalPhases, phaseLabel);
+        return nextPhase;
     }
 
     private List<Endpoint> scanTestDirs(ContractVerificationSource source) throws IOException {

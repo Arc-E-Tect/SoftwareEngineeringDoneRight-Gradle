@@ -1,5 +1,6 @@
 package com.arc_e_tect.gradle.shadow;
 
+import com.arc_e_tect.gradle.detector.core.console.ScanProgressReporter;
 import com.arc_e_tect.gradle.detector.core.model.Endpoint;
 import com.arc_e_tect.gradle.detector.core.openapi.DescribedEndpoint;
 import com.arc_e_tect.gradle.detector.core.openapi.OpenApiEndpointCollector;
@@ -123,16 +124,27 @@ public abstract class DetectShadowApisTask extends DefaultTask {
                     + "it is the required root OpenAPI document.");
         }
 
-        ControllerScanner scanner = new ControllerScanner();
-        List<Endpoint> endpoints = new ArrayList<>();
+        List<File> controllerFiles = new ArrayList<>();
         for (File dir : getControllerDirs()) {
-            for (File javaFile : collectJavaFiles(dir)) {
-                scanFile(scanner, javaFile, endpoints);
-            }
+            controllerFiles.addAll(collectJavaFiles(dir));
         }
 
+        ControllerScanner scanner = new ControllerScanner();
+        List<Endpoint> endpoints = new ArrayList<>();
+        ScanProgressReporter controllerScanProgress = ScanProgressReporter.determinate(
+                getLogger(), "Scanning @RestController classes", controllerFiles.size());
+        for (File javaFile : controllerFiles) {
+            scanFile(scanner, javaFile, endpoints);
+            controllerScanProgress.step();
+        }
+        controllerScanProgress.complete();
+
         File rootDocument = getRootDocument().getAsFile().get();
-        List<DescribedEndpoint> described = new OpenApiEndpointCollector().collect(rootDocument);
+        ScanProgressReporter openApiProgress =
+                ScanProgressReporter.indeterminate(getLogger(), "Resolving OpenAPI documents");
+        List<DescribedEndpoint> described = new OpenApiEndpointCollector()
+                .collect(rootDocument, file -> openApiProgress.step());
+        openApiProgress.complete();
 
         List<Endpoint> shadows = new ShadowApiFinder().findShadows(endpoints, described);
 

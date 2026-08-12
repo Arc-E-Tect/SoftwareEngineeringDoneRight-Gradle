@@ -1,5 +1,6 @@
 package com.arc_e_tect.gradle.mirage;
 
+import com.arc_e_tect.gradle.detector.core.console.ScanProgressReporter;
 import com.arc_e_tect.gradle.detector.core.model.Endpoint;
 import com.arc_e_tect.gradle.detector.core.openapi.DescribedEndpoint;
 import com.arc_e_tect.gradle.detector.core.openapi.OpenApiEndpointCollector;
@@ -151,7 +152,11 @@ public abstract class DetectMirageApisTask extends DefaultTask {
         List<Endpoint> endpoints = scanMocks ? scanStubs() : scanControllers();
 
         File rootDocument = getRootDocument().getAsFile().get();
-        List<DescribedEndpoint> described = new OpenApiEndpointCollector().collect(rootDocument);
+        ScanProgressReporter openApiProgress =
+                ScanProgressReporter.indeterminate(getLogger(), "Resolving OpenAPI documents");
+        List<DescribedEndpoint> described = new OpenApiEndpointCollector()
+                .collect(rootDocument, file -> openApiProgress.step());
+        openApiProgress.complete();
 
         List<DescribedEndpoint> mirages = new MirageApiFinder().findMirages(described, endpoints);
 
@@ -178,13 +183,20 @@ public abstract class DetectMirageApisTask extends DefaultTask {
     }
 
     private List<Endpoint> scanControllers() {
+        List<File> controllerFiles = new ArrayList<>();
+        for (File dir : getControllerDirs()) {
+            controllerFiles.addAll(collectJavaFiles(dir));
+        }
+
         ControllerScanner scanner = new ControllerScanner();
         List<Endpoint> endpoints = new ArrayList<>();
-        for (File dir : getControllerDirs()) {
-            for (File javaFile : collectJavaFiles(dir)) {
-                scanFile(scanner, javaFile, endpoints);
-            }
+        ScanProgressReporter controllerScanProgress = ScanProgressReporter.determinate(
+                getLogger(), "Scanning @RestController classes", controllerFiles.size());
+        for (File javaFile : controllerFiles) {
+            scanFile(scanner, javaFile, endpoints);
+            controllerScanProgress.step();
         }
+        controllerScanProgress.complete();
         return endpoints;
     }
 
