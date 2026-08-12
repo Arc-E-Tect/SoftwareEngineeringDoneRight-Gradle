@@ -339,6 +339,34 @@ class FeatureIndexerTest {
                 .contains("Scenario: 1.1 - Stale scenario");
     }
 
+    @Test
+    @DisplayName("forceRewrite false: a scenario moved from one already-numbered feature to another keeps "
+            + "its old feature's number pinned only in the old feature - in the new feature it's renumbered "
+            + "to follow that feature's own already-pinned scenarios")
+    void scenarioMovedToAnotherFeatureIsRenumberedForItsNewFeature() throws IOException {
+        // "1.1" was this scenario's number back when it lived in feature 1; feature 2 already has
+        // its own "2.1", so the moved-in scenario must not keep the stale "1.1" - it should become
+        // "2.2", continuing feature 2's own sequence.
+        File auth = writeFeature("authentication.feature",
+                "Feature: 1 - User authentication\n\n  Scenario: Some other scenario\n    Given a user\n");
+        File invoice = writeFeature("invoice.feature", """
+                Feature: 2 - Invoice payment
+
+                  Scenario: 2.1 - User pays an invoice
+                    Given an invoice
+
+                  Scenario: 1.1 - User logs in
+                    Given a user
+                """);
+
+        indexer.reindex(List.of(auth, invoice), IndexingMode.ALL, false);
+
+        assertThat(content(invoice))
+                .contains("Feature: 2 - Invoice payment")
+                .contains("Scenario: 2.1 - User pays an invoice")
+                .contains("Scenario: 2.2 - User logs in");
+    }
+
     private File writeFeature(String name, String content) throws IOException {
         File file = tempDir.resolve(name).toFile();
         Files.writeString(file.toPath(), content, StandardCharsets.UTF_8);
