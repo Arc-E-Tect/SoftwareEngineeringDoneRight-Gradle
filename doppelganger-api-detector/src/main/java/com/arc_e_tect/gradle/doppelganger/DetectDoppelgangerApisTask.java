@@ -1,0 +1,278 @@
+package com.arc_e_tect.gradle.doppelganger;
+
+import com.arc_e_tect.gradle.detector.core.detect.ContractSetOperations;
+import com.arc_e_tect.gradle.detector.core.model.Endpoint;
+import com.arc_e_tect.gradle.detector.core.openapi.DescribedEndpoint;
+import com.arc_e_tect.gradle.detector.core.openapi.OpenApiEndpointCollector;
+import com.arc_e_tect.gradle.detector.core.scan.ControllerScanner;
+import com.arc_e_tect.gradle.doppelganger.detect.ContractVerificationSource;
+import com.arc_e_tect.gradle.doppelganger.detect.DoppelgangerApiFinder;
+import com.arc_e_tect.gradle.doppelganger.report.DoppelgangerApiReportWriter;
+import com.arc_e_tect.gradle.doppelganger.scan.OpenApiRequestValidatorScanner;
+import com.arc_e_tect.gradle.doppelganger.scan.RestDocsScanner;
+import com.arc_e_tect.gradle.doppelganger.scan.SpringCloudContractScanner;
+import org.gradle.api.DefaultTask;
+import org.gradle.api.GradleException;
+import org.gradle.api.file.ConfigurableFileCollection;
+import org.gradle.api.file.DirectoryProperty;
+import org.gradle.api.file.RegularFileProperty;
+import org.gradle.api.provider.Property;
+import org.gradle.api.tasks.Input;
+import org.gradle.api.tasks.InputDirectory;
+import org.gradle.api.tasks.InputFile;
+import org.gradle.api.tasks.InputFiles;
+import org.gradle.api.tasks.Optional;
+import org.gradle.api.tasks.OutputDirectory;
+import org.gradle.api.tasks.PathSensitive;
+import org.gradle.api.tasks.PathSensitivity;
+import org.gradle.api.tasks.TaskAction;
+import org.gradle.work.DisableCachingByDefault;
+
+import javax.inject.Inject;
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * Gradle task that compares endpoints both declared in the configured OpenAPI documentation and
+ * implemented by scanned {@code @RestController} classes against verification evidence collected
+ * from the enabled {@link ContractVerificationSource}s, and writes an AsciiDoc report of every
+ * endpoint with no such evidence - the "doppelganger APIs".
+ *
+ * <p>Registered automatically by {@link DoppelgangerApiDetectorPlugin} under the name
+ * {@code detectDoppelgangerApis}.</p>
+ */
+@DisableCachingByDefault(because = "Report depends on source, test, contract, and OpenAPI document content and is cheap to regenerate")
+public abstract class DetectDoppelgangerApisTask extends DefaultTask {
+
+    /**
+     * Directories to search recursively for {@code @RestController} classes.
+     *
+     * @return mutable file collection of controller source directories
+     */
+    @InputFiles
+    @PathSensitive(PathSensitivity.RELATIVE)
+    public abstract ConfigurableFileCollection getControllerDirs();
+
+    /**
+     * Directories to search recursively for test classes, scanned by the Spring RestDocs and
+     * OpenAPI request validator verification sources when enabled.
+     *
+     * @return mutable file collection of test source directories
+     */
+    @InputFiles
+    @PathSensitive(PathSensitivity.RELATIVE)
+    public abstract ConfigurableFileCollection getTestDirs();
+
+    /**
+     * The root OpenAPI document describing the API.
+     *
+     * @return mutable file property for the root OpenAPI document
+     */
+    @InputFile
+    @PathSensitive(PathSensitivity.RELATIVE)
+    public abstract RegularFileProperty getRootDocument();
+
+    /**
+     * Directory where OpenAPI descriptions are stored, tracked so that changes to any document
+     * reachable from {@link #getRootDocument()} invalidate the task's cached result.
+     *
+     * @return mutable directory property for the OpenAPI description directory
+     */
+    @Optional
+    @InputDirectory
+    @PathSensitive(PathSensitivity.RELATIVE)
+    public abstract DirectoryProperty getOpenApiDir();
+
+    /**
+     * Directory searched for Spring Cloud Contract DSL files when
+     * {@link #getUseSpringCloudContract()} is {@code true}.
+     *
+     * <p>Validated as {@code @InputFiles} rather than {@code @InputDirectory}: most projects have
+     * no {@code contracts} directory at all, and unlike {@code @InputDirectory}, {@code @InputFiles}
+     * does not require the configured directory to actually exist.</p>
+     *
+     * @return mutable directory property for the Spring Cloud Contract directory
+     */
+    @Optional
+    @InputFiles
+    @PathSensitive(PathSensitivity.RELATIVE)
+    public abstract DirectoryProperty getContractsDir();
+
+    /**
+     * Whether to treat Spring RestDocs test methods as verification evidence.
+     *
+     * @return mutable boolean property controlling whether the Spring RestDocs source is enabled
+     */
+    @Input
+    public abstract Property<Boolean> getUseRestDocs();
+
+    /**
+     * Whether to treat Atlassian OpenAPI request validator usage as verification evidence.
+     *
+     * @return mutable boolean property controlling whether the OpenAPI request validator source
+     *         is enabled
+     */
+    @Input
+    public abstract Property<Boolean> getUseOpenApiRequestValidator();
+
+    /**
+     * Whether to treat Spring Cloud Contract DSL files as verification evidence.
+     *
+     * @return mutable boolean property controlling whether the Spring Cloud Contract source is
+     *         enabled
+     */
+    @Input
+    public abstract Property<Boolean> getUseSpringCloudContract();
+
+    /**
+     * Whether the build should fail when doppelganger APIs are found.
+     *
+     * @return mutable boolean property controlling whether the build fails on doppelganger APIs
+     */
+    @Input
+    public abstract Property<Boolean> getFailOnDoppelganger();
+
+    /**
+     * Directory the AsciiDoc report is written to.
+     *
+     * @return mutable directory property for the report output directory
+     */
+    @OutputDirectory
+    public abstract DirectoryProperty getReportDir();
+
+    /**
+     * Name of the generated AsciiDoc report file (without path).
+     *
+     * @return mutable string property for the report file name
+     */
+    @Input
+    public abstract Property<String> getReportFileName();
+
+    /**
+     * Version of the system under test whose {@code @RestController} classes were scanned, printed
+     * in the generated report as e.g. {@code System Under Test version: v1.0.0}.
+     *
+     * @return mutable string property for the system-under-test version
+     */
+    @Input
+    public abstract Property<String> getSystemUnderTestVersion();
+
+    /**
+     * Creates the task. Instantiated by Gradle infrastructure via {@link javax.inject.Inject}.
+     */
+    @Inject
+    public DetectDoppelgangerApisTask() {
+        setGroup("verification");
+        setDescription("Scans OpenAPI documentation, @RestController implementations, and test-level "
+                + "verification evidence, and reports endpoints that are declared and implemented but never "
+                + "verified against their contract.");
+    }
+
+    /**
+     * Task action: scans the configured controller directories and OpenAPI documentation to find
+     * endpoints both declared and implemented, scans the enabled verification sources, writes the
+     * doppelganger API report, and - when {@link #getFailOnDoppelganger()} is {@code true} - fails
+     * the build if any doppelganger API was found.
+     */
+    @TaskAction
+    public void generate() {
+        if (!getRootDocument().isPresent()) {
+            throw new GradleException("doppelgangerApiDetector: rootDocument must be configured - "
+                    + "it is the required root OpenAPI document.");
+        }
+
+        ControllerScanner controllerScanner = new ControllerScanner();
+        List<Endpoint> implemented = new ArrayList<>();
+        for (File dir : getControllerDirs()) {
+            for (File javaFile : collectJavaFiles(dir)) {
+                try {
+                    implemented.addAll(controllerScanner.scan(javaFile));
+                } catch (IOException e) {
+                    throw new GradleException("doppelgangerApiDetector: failed to scan " + javaFile, e);
+                }
+            }
+        }
+
+        File rootDocument = getRootDocument().getAsFile().get();
+        List<DescribedEndpoint> described = new OpenApiEndpointCollector().collect(rootDocument);
+
+        List<Endpoint> declaredAndImplemented = ContractSetOperations.intersection(implemented, described);
+
+        List<Endpoint> verified = collectVerifiedEndpoints();
+
+        List<Endpoint> doppelgangers = new DoppelgangerApiFinder()
+                .findDoppelgangers(declaredAndImplemented, verified);
+
+        File outputDir = getReportDir().getAsFile().get();
+        File outputFile = new File(outputDir, getReportFileName().get());
+        try {
+            new DoppelgangerApiReportWriter().write(
+                    outputFile, declaredAndImplemented.size(), doppelgangers, getSystemUnderTestVersion().get());
+        } catch (IOException e) {
+            throw new GradleException("doppelgangerApiDetector: failed to write report to " + outputFile, e);
+        }
+
+        getLogger().lifecycle(
+                "Doppelganger API Detector: scanned {} declared-and-implemented endpoint(s), found {} "
+                        + "doppelganger API(s). Report → {}",
+                declaredAndImplemented.size(), doppelgangers.size(), outputFile);
+
+        if (!doppelgangers.isEmpty() && getFailOnDoppelganger().get()) {
+            throw new GradleException("doppelgangerApiDetector: found " + doppelgangers.size()
+                    + " doppelganger API(s) declared and implemented but not verified by any configured "
+                    + "contract verification source. See " + outputFile);
+        }
+    }
+
+    private List<Endpoint> collectVerifiedEndpoints() {
+        List<Endpoint> verified = new ArrayList<>();
+        try {
+            if (getUseRestDocs().get()) {
+                verified.addAll(scanTestDirs(new RestDocsScanner()));
+            }
+            if (getUseOpenApiRequestValidator().get()) {
+                verified.addAll(scanTestDirs(new OpenApiRequestValidatorScanner()));
+            }
+            if (getUseSpringCloudContract().get() && getContractsDir().isPresent()) {
+                File contractsDir = getContractsDir().getAsFile().get();
+                verified.addAll(new SpringCloudContractScanner().scan(contractsDir));
+            }
+        } catch (IOException e) {
+            throw new GradleException("doppelgangerApiDetector: failed to scan verification evidence", e);
+        }
+        return verified;
+    }
+
+    private List<Endpoint> scanTestDirs(ContractVerificationSource source) throws IOException {
+        List<Endpoint> results = new ArrayList<>();
+        for (File testDir : getTestDirs()) {
+            results.addAll(source.scan(testDir));
+        }
+        return results;
+    }
+
+    private List<File> collectJavaFiles(File dir) {
+        List<File> files = new ArrayList<>();
+        collectJavaFiles(dir, files);
+        return files;
+    }
+
+    private void collectJavaFiles(File dir, List<File> files) {
+        if (!dir.isDirectory()) {
+            return;
+        }
+        File[] children = dir.listFiles();
+        if (children == null) {
+            return;
+        }
+        for (File child : children) {
+            if (child.isFile() && child.getName().endsWith(".java")) {
+                files.add(child);
+            } else if (child.isDirectory()) {
+                collectJavaFiles(child, files);
+            }
+        }
+    }
+}

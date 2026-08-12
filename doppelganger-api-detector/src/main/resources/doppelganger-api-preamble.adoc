@@ -1,0 +1,46 @@
+== What Is a Doppelganger API?
+
+A _doppelganger API_ is an endpoint that looks completely legitimate - it is described in the OpenAPI
+documentation *and* implemented by a matching `@RestController` method - but has no test verifying that the
+implementation still honors the contract it claims to fulfill. It "looks exactly like the real thing" because,
+on paper and in code, it is: nobody has actually confirmed the two still agree. A path rename, a response
+shape change, or a status code that silently drifted from the documented contract can all slip through
+untouched, because nothing exercises the endpoint against its own documentation.
+
+=== Doppelganger API vs. Shadow API vs. Mirage API
+
+Three different ways an endpoint's documentation, implementation, and verification can drift apart:
+
+* A *doppelganger API* is declared and implemented, but unverified against its contract. It passes every
+  surface-level check - it exists on paper and it exists in code - while nothing confirms the two actually
+  match at runtime.
+* A *shadow API*, handled by the companion Shadow API Detector plugin, is implemented in code but never
+  documented.
+* A *mirage API*, handled by the companion Mirage API Detector plugin, is documented but never implemented.
+
+Shadow and mirage APIs are both detectable from a single missing side of the contract - code without
+documentation, or documentation without code. A doppelganger API is more insidious: both sides exist, so
+naive inventory checks pass, and the drift only becomes visible when something actually exercises the
+implementation against the contract. This plugin's scope is doppelganger APIs specifically: endpoints that are
+both declared and implemented, with no verification evidence from any of the three supported testing
+mechanisms - Spring RestDocs, the Atlassian OpenAPI request validator, or Spring Cloud Contract.
+
+=== Why Doppelganger APIs Are A Risk
+
+* Consumer trust in the documentation is highest exactly where it is least deserved: an endpoint that looks
+  fully specified gives no visible signal that its behavior has never actually been checked against that
+  specification.
+* Contract drift introduced by a refactor - a renamed field, a changed status code, a loosened validation
+  rule - ships silently, since nothing in the build re-derives the contract from the running implementation.
+* Client SDKs and mocks generated from the OpenAPI document inherit whatever the document says, not what the
+  service actually does, compounding the gap every time the generated client is regenerated and redistributed.
+* Security and compliance reviews that treat "documented and implemented" as "verified" will not catch this
+  class of drift, since both of those boxes are checked.
+
+=== Reference
+
+This is the same underlying inventory-and-contract problem the Shadow and Mirage API Detector plugins address
+from their own angles: the OWASP API Security Top 10 (2023) names inventory and documentation mismatches as
+https://owasp.org/API-Security/editions/2023/en/0xa9-improper-inventory-management/[API9:2023 Improper Inventory Management].
+See the full https://owasp.org/API-Security/editions/2023/en/0x11-t10/[OWASP API Security Top 10] for the
+complete list of API security risks.

@@ -14,12 +14,15 @@ Each plugin's own module keeps only what is genuinely specific to it: its Gradle
 `api-detector-core` applies only the plain `java-library` plugin.
 It does not apply `java-gradle-plugin` and does not declare a Gradle plugin ID - it is not, itself, something a build applies.
 
-It is never published to the Gradle Plugin Portal, Maven Central, or GitHub Packages.
+It is never published to any *public* repository - the Gradle Plugin Portal, Maven Central, or GitHub Packages.
 It is consumed purely as an in-repo `project(':api-detector-core')` dependency, included as a subproject directly from each detector plugin's own `settings.gradle`.
+
+It does apply `maven-publish` and declares a `MavenPublication`, but only so that `publishToMavenLocal`, run from one of the detector plugins' own builds, produces a real, resolvable `com.arc-e-tect:api-detector-core` artifact in the local Maven cache - otherwise a detector plugin published to `mavenLocal()` for local example testing would carry a dependency on an artifact that does not exist anywhere.
+This is purely a local testing convenience; it does not change the "never published publicly" story above.
 
 == What lives here
 
-* `model` - `Endpoint`, `HttpVerb`, `PathTemplates`, `PathMatcher`: the shared vocabulary for describing and comparing HTTP endpoints.
+* `model` - `Endpoint`, `HttpVerb`, `PathTemplates`, `PathMatcher`: the shared vocabulary for describing and comparing HTTP endpoints. `PathMatcher.matches(...)` compares two path templates symmetrically; `PathMatcher.matchesConcrete(...)` compares a genuinely concrete, resolved path (e.g. a Spring Cloud Contract example URL) against a template - added for Doppelganger API Detector, but general-purpose enough to live here rather than in that plugin's own package.
 * `openapi` - `DescribedEndpoint`, `OpenApiEndpointCollector`: parses a root OpenAPI document (following relative `$ref` links) into the endpoints it describes, including `operationId` and `tags`.
 * `scan` - `ControllerScanner`: parses Java source files and collects every endpoint exposed by a Spring `@RestController` class.
 * `Described` - a small interface (`verb()`, `path()`) implemented by both `Endpoint` and `DescribedEndpoint`, so the two shapes can be compared symmetrically.
