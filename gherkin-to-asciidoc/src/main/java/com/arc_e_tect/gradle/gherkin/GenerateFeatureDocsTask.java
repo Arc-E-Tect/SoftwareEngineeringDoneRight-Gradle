@@ -1,5 +1,6 @@
 package com.arc_e_tect.gradle.gherkin;
 
+import com.arc_e_tect.gradle.gherkin.console.ScanProgressReporter;
 import com.arc_e_tect.gradle.gherkin.glue.GlueCodeScanner;
 import com.arc_e_tect.gradle.gherkin.indexing.FeatureIndexer;
 import com.arc_e_tect.gradle.gherkin.indexing.IndexingMode;
@@ -60,6 +61,13 @@ import java.util.Map;
  * scenario first reached each of those three statuses is loaded from
  * {@link #getProgressHistoryFile()}, advanced with the current run's scenarios, and - only when
  * {@link #getUpdateProgressHistory()} resolves to {@code true} - written back.</p>
+ *
+ * <p>{@link #generate()} runs up to three scan-shaped phases - reindexing (only when indexing is
+ * active), parsing (always), and glue code scanning (only when {@link #getTrackProgress()} is
+ * {@code true}) - each announced with its own {@code LIFECYCLE} banner and reported on
+ * periodically via {@link ScanProgressReporter}, using that class's own default throttle (every
+ * 50 items or every 2 seconds) unmodified, so a consumer watching the build knows the task is
+ * still alive on a large feature tree.</p>
  */
 @DisableCachingByDefault(because = "Generated documentation depends on source file content and is cheap to regenerate")
 public abstract class GenerateFeatureDocsTask extends DefaultTask {
@@ -301,16 +309,31 @@ public abstract class GenerateFeatureDocsTask extends DefaultTask {
 
         List<File> featureFiles = collectFeatureFiles(sourceDirsSet, sourceFileSet, recursive);
         // CI skips indexing entirely - the feature files are left completely untouched, not even
-        // to strip numbering left over from a previous run, unlike OFF.
+        // to strip numbering left over from a previous run, unlike OFF. Only FEATURE/SCENARIO/ALL
+        // get their own announced, progress-reported phase - OFF still runs (to strip stale
+        // numbering) but silently, since numbering isn't actually happening.
         if (indexing != IndexingMode.CI) {
-            new FeatureIndexer().reindex(featureFiles, indexing, getForceRewrite().get());
+            if (indexingActive) {
+                getLogger().lifecycle("gherkinToAsciidoc: reindexing feature files...");
+                ScanProgressReporter indexingProgress = ScanProgressReporter.determinate(
+                        getLogger(), "Reindexing feature files", featureFiles.size());
+                new FeatureIndexer().reindex(featureFiles, indexing, getForceRewrite().get(), indexingProgress::step);
+                indexingProgress.complete();
+            } else {
+                new FeatureIndexer().reindex(featureFiles, indexing, getForceRewrite().get());
+            }
         }
 
+        getLogger().lifecycle("gherkinToAsciidoc: parsing feature files...");
         List<ScenarioInfo> scenarios = new ArrayList<>();
         FeatureParser featureParser = new FeatureParser();
+        ScanProgressReporter parsingProgress = ScanProgressReporter.determinate(
+                getLogger(), "Parsing feature files", featureFiles.size());
         for (File featureFile : featureFiles) {
             scenarios.addAll(featureParser.parse(featureFile));
+            parsingProgress.step();
         }
+        parsingProgress.complete();
 
         File outDir = getOutputDir().getAsFile().get();
         if (!outDir.exists() && !outDir.mkdirs()) {
@@ -356,11 +379,14 @@ public abstract class GenerateFeatureDocsTask extends DefaultTask {
     }
 
     private List<Expression> scanGlueCode() {
+        getLogger().lifecycle("gherkinToAsciidoc: scanning glue code...");
         List<Expression> glueCode = new ArrayList<>();
         GlueCodeScanner scanner = new GlueCodeScanner();
+        ScanProgressReporter glueCodeProgress = ScanProgressReporter.indeterminate(getLogger(), "Scanning glue code");
         for (File dir : getGlueCodeDirs()) {
-            glueCode.addAll(scanner.scan(dir));
+            glueCode.addAll(scanner.scan(dir, file -> glueCodeProgress.step()));
         }
+        glueCodeProgress.complete();
         return glueCode;
     }
 

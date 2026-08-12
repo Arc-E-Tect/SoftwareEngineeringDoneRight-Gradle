@@ -1,15 +1,18 @@
 package com.arc_e_tect.gradle.gherkin;
 
+import com.arc_e_tect.gradle.gherkin.console.RecordingLogger;
 import com.arc_e_tect.gradle.gherkin.indexing.IndexingMode;
 import com.arc_e_tect.gradle.gherkin.progress.ProgressHistoryStore;
 import com.arc_e_tect.gradle.gherkin.progress.ScenarioFingerprint;
 import com.arc_e_tect.gradle.gherkin.progress.ScenarioProgressRecord;
 import org.gradle.api.Project;
+import org.gradle.api.logging.Logger;
 import org.gradle.testfixtures.ProjectBuilder;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import javax.inject.Inject;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -1432,6 +1435,59 @@ class GherkinToAsciidocPluginTest {
         task.getOutputDir().set(outputDir);
         task.getProjectDirectory().set(project.getLayout().getProjectDirectory());
         task.generate();
+    }
+
+    @Test
+    @DisplayName("emits at least one progress line while parsing more than one feature file")
+    void emitsProgressLineWhileParsingMultipleFeatureFiles() throws IOException {
+        Project project = projectWithPlugin();
+        File featuresDir = new File(tempDir.toFile(), "features");
+        featuresDir.mkdirs();
+        writeFeatureFile(featuresDir, "signup.feature",
+                "Feature: Sign Up\n\n  Scenario: New user signs up\n    Given the sign-up page\n");
+        writeFeatureFile(featuresDir, "login.feature",
+                "Feature: Login\n\n  Scenario: User logs in\n    Given the login page\n");
+        RecordingLogger recordingLogger = new RecordingLogger();
+        // Created directly rather than via the registered generateFeatureDocs task, so every
+        // property the plugin would otherwise wire from the extension must be set explicitly here.
+        LoggerCapturingGenerateFeatureDocsTask task = project.getTasks()
+                .create("generateFeatureDocsWithRecordingLogger", LoggerCapturingGenerateFeatureDocsTask.class);
+        task.recordingLogger = recordingLogger;
+        task.getSourceDirs().from(featuresDir);
+        task.getIncludeSubDirs().set(true);
+        task.getOutputDir().set(new File(tempDir.toFile(), "output"));
+        task.getOutputFileName().set("features.adoc");
+        task.getTrackProgress().set(false);
+        task.getGroupByFeature().set(true);
+        task.getSystemUnderTestVersion().set("1.0.0");
+        task.getIndexing().set(IndexingMode.OFF);
+        task.getForceRewrite().set(false);
+        task.getTrackProgressHistory().set(false);
+        task.getUpdateProgressHistory().set(false);
+        task.getProjectDirectory().set(project.getLayout().getProjectDirectory());
+
+        task.generate();
+
+        assertThat(recordingLogger.lifecycleMessages())
+                .anyMatch(message -> message.contains("Parsing feature files"));
+    }
+
+    /**
+     * Test-only subclass that substitutes a {@link RecordingLogger} for the framework-provided
+     * task logger, since {@link GenerateFeatureDocsTask#getLogger()} cannot otherwise be observed
+     * from a {@link ProjectBuilder}-based test.
+     */
+    abstract static class LoggerCapturingGenerateFeatureDocsTask extends GenerateFeatureDocsTask {
+
+        RecordingLogger recordingLogger;
+
+        @Inject
+        public LoggerCapturingGenerateFeatureDocsTask() {}
+
+        @Override
+        public Logger getLogger() {
+            return recordingLogger;
+        }
     }
 
     // --- helpers ---

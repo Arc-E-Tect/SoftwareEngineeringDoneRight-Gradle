@@ -51,7 +51,8 @@ public class FeatureIndexer {
      * {@code forceRewrite} - see the class documentation for exactly what changes and what's left
      * alone. Files are numbered in the order they appear in {@code featureFiles} - the caller is
      * responsible for ordering that list the way numbers should be assigned. A file is only
-     * rewritten on disk when its content actually changes.
+     * rewritten on disk when its content actually changes. Equivalent to
+     * {@link #reindex(List, IndexingMode, boolean, Runnable)} with a callback that does nothing.
      *
      * @param featureFiles the feature files collected for this run, in the order to number them in
      * @param mode         the indexing mode to apply
@@ -59,6 +60,24 @@ public class FeatureIndexer {
      *                     scratch; when {@code false}, leaves already-correctly-numbered lines alone
      */
     public void reindex(List<File> featureFiles, IndexingMode mode, boolean forceRewrite) {
+        reindex(featureFiles, mode, forceRewrite, () -> { });
+    }
+
+    /**
+     * Same as {@link #reindex(List, IndexingMode, boolean)}, additionally invoking
+     * {@code onFileReindexed} once for every file in {@code featureFiles} as it finishes being
+     * reindexed, so a caller can drive a progress indicator during what would otherwise be a
+     * single opaque, potentially long-running call.
+     *
+     * @param featureFiles    the feature files collected for this run, in the order to number them in
+     * @param mode            the indexing mode to apply
+     * @param forceRewrite    when {@code true}, ignores existing numbers and renumbers everything
+     *                        from scratch; when {@code false}, leaves already-correctly-numbered
+     *                        lines alone
+     * @param onFileReindexed invoked once per file in {@code featureFiles}, in order; never
+     *                        {@code null}
+     */
+    public void reindex(List<File> featureFiles, IndexingMode mode, boolean forceRewrite, Runnable onFileReindexed) {
         List<ParsedFile> parsedFiles = new ArrayList<>();
         for (File featureFile : featureFiles) {
             parsedFiles.add(parse(featureFile));
@@ -92,6 +111,7 @@ public class FeatureIndexer {
 
         for (ParsedFile parsedFile : parsedFiles) {
             applyAndWrite(parsedFile, mode);
+            onFileReindexed.run();
         }
     }
 
