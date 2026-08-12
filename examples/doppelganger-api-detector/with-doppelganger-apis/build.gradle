@@ -1,0 +1,30 @@
+plugins {
+    id 'java'
+    alias(libs.plugins.doppelganger.api.detector)
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation libs.spring.web
+}
+
+doppelgangerApiDetector {
+    rootDocument = file('src/main/resources/openapi/openapi.yaml')
+
+    // Fail the build as soon as a doppelganger API is found. The report is still written either way.
+    failOnDoppelganger = true
+}
+
+// detectDoppelgangerApis is not wired into check/build automatically - opt in explicitly.
+tasks.named('check') {
+    dependsOn 'detectDoppelgangerApis'
+}

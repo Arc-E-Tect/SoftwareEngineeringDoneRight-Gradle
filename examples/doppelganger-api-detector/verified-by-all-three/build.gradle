@@ -1,0 +1,45 @@
+plugins {
+    id 'java'
+    alias(libs.plugins.spring.boot)
+    alias(libs.plugins.spring.dependency.management)
+    alias(libs.plugins.doppelganger.api.detector)
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.restdocs:spring-restdocs-mockmvc'
+    testImplementation libs.rest.assured
+    testImplementation libs.swagger.request.validator.restassured
+}
+
+test {
+    useJUnitPlatform()
+}
+
+doppelgangerApiDetector {
+    rootDocument = file('src/main/resources/openapi/openapi.yaml')
+
+    // Three of the four endpoints below are verified, each by a different mechanism. The fourth
+    // - deleteItem - has no verification evidence anywhere, so it is expected to remain a
+    // doppelganger API even with all three sources enabled and working. failOnDoppelganger is
+    // enabled to demonstrate exactly that: mixing verification mechanisms in one project does not
+    // let anything slip through unnoticed.
+    failOnDoppelganger = true
+}
+
+// detectDoppelgangerApis is not wired into check/build automatically - opt in explicitly.
+tasks.named('check') {
+    dependsOn 'detectDoppelgangerApis'
+}
