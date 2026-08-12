@@ -1,0 +1,61 @@
+name: Example - API-Only Suite With All Three Gaps Build
+on:
+  push:
+    paths:
+      - 'examples/api-only-suite/with-all-three-gaps/**/*.java'
+      - 'examples/api-only-suite/with-all-three-gaps/**/*.yaml'
+      - 'examples/api-only-suite/with-all-three-gaps/**/*.gradle'
+      - 'examples/api-only-suite/with-all-three-gaps/**/*.properties'
+      - 'examples/api-only-suite/with-all-three-gaps/**/libs.versions.toml'
+      - '.github/workflows/example-api-only-suite-with-all-three-gaps-build.yml'
+
+jobs:
+  Build-Example:
+    name: Build Example
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Setup Java
+        uses: actions/setup-java@ad2b38190b15e4d6bdf0c97fb4fca8412226d287 # v5.3.0
+        with:
+          distribution: 'temurin'
+          java-version: 21
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6.2.0
+
+      - name: Build example and verify all three detectors ran
+        run: |
+          cd examples/api-only-suite/with-all-three-gaps
+          chmod +x ./gradlew
+          ./gradlew detectAllApiGaps --no-daemon
+
+          REPORT_DIR=build/reports
+          FAILED=0
+
+          if ! grep -q '/items/{id}' "$REPORT_DIR/shadow-api-detector/shadow-apis.adoc"; then
+            echo "::error::Expected shadow-apis.adoc to list GET /items/{id}"
+            FAILED=1
+          fi
+
+          if ! grep -q 'createItem' "$REPORT_DIR/mirage-api-detector/mirage-apis.adoc"; then
+            echo "::error::Expected mirage-apis.adoc to list the createItem operation"
+            FAILED=1
+          fi
+
+          if ! grep -q 'listItems' "$REPORT_DIR/doppelganger-api-detector/doppelganger-apis.adoc"; then
+            echo "::error::Expected doppelganger-apis.adoc to list the listItems endpoint"
+            FAILED=1
+          fi
+
+          if [ "$FAILED" -ne 0 ]; then
+            exit 1
+          fi
+
+          echo "::notice::All three detectors ran and found their expected gap."

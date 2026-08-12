@@ -1,0 +1,118 @@
+= Doppelganger API Detector — Verified By OpenAPI Request Validator Example
+:toc: left
+
+== Description
+
+This example applies the Doppelganger API Detector plugin to an `ItemController` with two endpoints:
+
+[cols="1,3",options="header"]
+|===
+| Endpoint      | Verified by
+| `GET /items/{id}` (`getItem`) | A real, passing REST Assured test (`ItemControllerValidatorTest`) with live OpenAPI validation from the real Atlassian validator library, run against a real embedded server (`@SpringBootTest(webEnvironment = RANDOM_PORT)`).
+| `GET /items` (`listItems`)    | **Nothing.** No test at all - deliberately left unverified.
+|===
+
+`failOnDoppelganger` is enabled; the build is expected to **fail**, on exactly `listItems`.
+
+== Intent
+
+This example proves two things at once: that a real
+`given().filter(new OpenApiValidationFilter(...)).when().get(...)` call chain is recognised as verification
+evidence for `getItem` (it does *not* appear in the failure below), and that the detector genuinely still
+catches `listItems`, which has no evidence anywhere. A build that always succeeds proves nothing about whether
+detection actually works - this example is designed to fail on exactly one endpoint, so the failure itself is
+the demonstration.
+
+Unlike a structural-only check, `ItemControllerValidatorTest` genuinely exercises the running application over
+real HTTP and genuinely validates the response against `openapi.yaml` at test time - if the controller's actual
+response ever drifted from the document, this test would fail on its own, independently of anything the
+Doppelganger plugin does.
+
+=== A Note On The Library's Maven Coordinates
+
+The plugin's own scanner is documented as recognising this library under either its old Maven coordinates
+(`com.atlassian.oai:swagger-request-validator-restassured`) or its newer ones
+(`com.atlassian.oai:openapi-request-validator-restassured`), matching by simple class name only. At the time
+this example was written, only the *old* artifact coordinates are actually published to Maven Central - the
+renamed artifact does not exist there yet, even though the `OpenApiValidationFilter` class itself (verified by
+inspecting the published jar directly) already carries its newer name inside the still-`swagger-request-validator-*`-named
+artifact. This example therefore depends on `com.atlassian.oai:swagger-request-validator-restassured`, which is
+what is actually resolvable today.
+
+== The Controller, Document, And Test
+
+[source,java]
+----
+@RestController
+@RequestMapping("/items")
+public class ItemController {
+
+    @GetMapping("/{id}")
+    public String getItem(@PathVariable Long id) { return "{}"; }
+
+    @GetMapping
+    public String listItems() { return "[]"; }
+}
+----
+
+[source,java]
+----
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+class ItemControllerValidatorTest {
+
+    @Value("${local.server.port}")
+    private int port;
+
+    @Test
+    void getItem() {
+        given()
+                .filter(new OpenApiValidationFilter("src/main/resources/openapi/openapi.yaml"))
+                .port(port)
+                .when()
+                .get("/items/{id}", 1)
+                .then()
+                .statusCode(200);
+    }
+}
+----
+
+`openapi.yaml` declares both `GET /items/{id}` (with a `text/plain` response body schema matching what the
+controller actually returns) and `GET /items`. Only `getItem` has a test.
+
+== Build And Run
+
+[source,bash]
+----
+cd examples/doppelganger-api-detector/verified-by-openapi-request-validator
+./gradlew build
+----
+
+`detectDoppelgangerApis` runs before the test suite in this build's task graph and fails first, so
+`./gradlew build` stops there without reaching `test`. To confirm the real REST Assured test genuinely passes
+on its own, run:
+
+[source,bash]
+----
+./gradlew test
+----
+
+== What To Expect
+
+`./gradlew build` fails on exactly `listItems`:
+
+[source]
+----
+> Task :detectDoppelgangerApis FAILED
+Doppelganger API Detector: scanned 2 declared-and-implemented endpoint(s), found 1 doppelganger API(s).
+doppelgangerApiDetector: found 1 doppelganger API(s) declared and implemented but not verified by any configured contract verification source.
+----
+
+`build/reports/doppelganger-api-detector/doppelganger-apis.adoc` lists exactly `GET /items` (`listItems`) -
+`getItem` does not appear, since it has real verification evidence.
+
+`./gradlew test` succeeds independently, confirming the REST Assured test is genuinely working code.
+
+== Suggested Fix
+
+Add a validated REST Assured test for `listItems`, or remove it from `openapi.yaml` if it was never meant to
+be covered by this mechanism.

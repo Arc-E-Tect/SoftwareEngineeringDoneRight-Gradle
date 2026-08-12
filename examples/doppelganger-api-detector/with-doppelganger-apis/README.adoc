@@ -1,0 +1,100 @@
+= Doppelganger API Detector — With Doppelganger APIs Example
+:toc: left
+
+== Description
+
+This example applies the Doppelganger API Detector plugin to an `OrderController` whose three endpoints are
+all declared in `openapi.yaml` *and* implemented - but this module has no `src/test/java` and no
+`src/test/resources/contracts` at all. None of the three contract verification sources (Spring RestDocs, the
+Atlassian OpenAPI request validator, Spring Cloud Contract) has any evidence for any of them, so all three are
+doppelganger APIs. `failOnDoppelganger` is enabled, so the build fails once the mismatch is detected.
+
+== Intent
+
+This example is intended to show what a failing doppelganger-API detection run looks like, and that the
+AsciiDoc report is still written even though the build fails - so the drift is always visible, not just
+reported as a bare failure.
+
+This is the plugin's canonical "why this exists" example: endpoints that are declared and implemented look
+completely legitimate to Shadow API Detector and Mirage API Detector alike, since both sides of the contract
+exist. Nothing but actually exercising the implementation against its contract reveals that nobody has ever
+confirmed the two agree - exactly what `doppelgangerApiDetector` is meant to catch.
+
+== A Note On How This Example Applies The Plugin
+
+Unlike the Shadow and Mirage API Detector examples, this example does not resolve
+`com.arc-e-tect.doppelganger-api-detector` from the Gradle Plugin Portal. Doppelganger API Detector has not had
+its first release yet (see the module README's "Versioning" notes), so there is no published version to
+depend on there. Instead, this example resolves the plugin from `mavenLocal()` - `settings.gradle` adds
+`mavenLocal()` (and `mavenCentral()`, for the plugin's own transitive dependencies) to
+`pluginManagement.repositories`, and `build.gradle` applies it as `id 'com.arc-e-tect.doppelganger-api-detector'
+version '0.0.0'`, matching the version the plugin's own `gradle.properties` currently publishes under.
+
+Before building this example, publish the plugin - and `api-detector-core`, which it depends on and which gets
+published alongside it as a subproject of the same build - to your local Maven repository:
+
+[source,bash]
+----
+cd doppelganger-api-detector
+./gradlew publishToMavenLocal
+----
+
+Once the plugin has a first Gradle Plugin Portal release, this example should switch to
+`alias(libs.plugins.doppelganger.api.detector)`, matching the other two examples, for consistency.
+
+== The Controller And Document
+
+[source,java]
+----
+@RestController
+@RequestMapping("/orders")
+public class OrderController {
+
+    @GetMapping
+    public String listOrders() { ... }
+
+    @GetMapping("/{id}")
+    public String getOrder(@PathVariable Long id) { ... }
+
+    @PostMapping
+    public String createOrder(@RequestBody String order) { ... }
+}
+----
+
+Full source: `src/main/java/com/arc_e_tect/example/ordering/OrderController.java`.
+The OpenAPI document - `src/main/resources/openapi/openapi.yaml` - describes the same three operations:
+`GET /orders`, `POST /orders`, and `GET /orders/{id}`. All three are implemented, so neither Shadow nor Mirage
+API Detector would flag anything here - the drift only shows up once verification evidence is considered.
+
+== Build And Run
+
+[source,bash]
+----
+cd examples/doppelganger-api-detector/with-doppelganger-apis
+./gradlew detectDoppelgangerApis
+----
+
+`./gradlew build` fails the same way: this example wires `detectDoppelgangerApis` into the `check` lifecycle
+task explicitly in `build.gradle`, since the plugin does not do so automatically.
+
+== What To Expect
+
+The build is expected to fail:
+
+[source]
+----
+> Task :detectDoppelgangerApis FAILED
+doppelgangerApiDetector: found 3 doppelganger API(s) declared and implemented but not verified by any configured contract verification source. See .../doppelganger-apis.adoc
+----
+
+`build/reports/doppelganger-api-detector/doppelganger-apis.adoc` is still written before the failure. It opens
+with a preamble explaining what a doppelganger API is (see
+link:../../../doppelganger-api-detector/README.adoc[the plugin README]'s "Report output" section), then lists
+all three unverified operations grouped by declaring controller class.
+
+== Suggested Fix
+
+Add verification evidence for each operation using whichever of the three supported mechanisms your team has
+adopted - a Spring RestDocs test, an OpenAPI-request-validator-backed REST Assured test, or a Spring Cloud
+Contract DSL file under `src/test/resources/contracts` - or remove the operation from the OpenAPI document if
+it was never meant to be covered.
