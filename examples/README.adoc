@@ -54,6 +54,8 @@ include::mirage-api-detector/clean/README.adoc[leveloffset=+1]
 
 include::mirage-api-detector/with-mirage-apis/README.adoc[leveloffset=+1]
 
+include::mirage-api-detector/scan-mocks/README.adoc[leveloffset=+1]
+
 include::mirage-api-detector/multi-file-openapi/README.adoc[leveloffset=+1]
 
 include::mirage-api-detector/openapi-3-2/README.adoc[leveloffset=+1]

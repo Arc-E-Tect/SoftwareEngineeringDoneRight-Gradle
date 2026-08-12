@@ -1,0 +1,36 @@
+plugins {
+    id 'java'
+    alias(libs.plugins.mirage.api.detector)
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation libs.spring.web
+}
+
+mirageApiDetector {
+    rootDocument = file('src/main/resources/openapi/openapi.yaml')
+
+    // Determine implemented endpoints from WireMock stub mapping files instead of scanning
+    // @RestController classes. ItemController genuinely implements getItem(...), but it is
+    // never consulted in this mode - only stubDirs is.
+    scanMocks = true
+    stubDirs.from('src/test/resources/mappings')
+
+    // Fail the build as soon as a mirage API is found. The report is still written either way.
+    failOnMirage = true
+}
+
+// detectMirageApis is not wired into check/build automatically - opt in explicitly.
+tasks.named('check') {
+    dependsOn 'detectMirageApis'
+}
