@@ -29,6 +29,10 @@ test {
 doppelgangerApiDetector {
     rootDocument = file('src/main/resources/openapi/openapi.yaml')
 
+    // The plugin's default testDirs is src/testContract/java; this example's test lives in the
+    // standard src/test/java source set so Gradle actually compiles and runs it.
+    testDirs.from('src/test/java')
+
     // Fail the build if anything is still unverified. getItem is exercised by a real, passing
     // Spring RestDocs test - see src/test/java - so this is expected to pass.
     failOnDoppelganger = true

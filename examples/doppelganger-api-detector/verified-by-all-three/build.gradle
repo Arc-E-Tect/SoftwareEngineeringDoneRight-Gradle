@@ -31,6 +31,11 @@ test {
 doppelgangerApiDetector {
     rootDocument = file('src/main/resources/openapi/openapi.yaml')
 
+    // The plugin's defaults are src/testContract/java and src/testContract/resources/contracts;
+    // this example's tests and contract file live under the standard src/test source set.
+    testDirs.from('src/test/java')
+    contractsDir = file('src/test/resources/contracts')
+
     // Three of the four endpoints below are verified, each by a different mechanism. The fourth
     // - deleteItem - has no verification evidence anywhere, so it is expected to remain a
     // doppelganger API even with all three sources enabled and working. failOnDoppelganger is
