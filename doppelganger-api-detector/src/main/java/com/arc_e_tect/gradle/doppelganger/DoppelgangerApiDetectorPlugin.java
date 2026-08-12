@@ -57,8 +57,8 @@ public class DoppelgangerApiDetectorPlugin implements Plugin<Project> {
 
         ext.getFailOnDoppelganger().convention(false);
         ext.getUseRestDocs().convention(true);
-        ext.getUseOpenApiRequestValidator().convention(true);
-        ext.getUseSpringCloudContract().convention(true);
+        ext.getUseOpenApiRequestValidator().convention(false);
+        ext.getUseSpringCloudContract().convention(false);
         ext.getReportDir().convention(
                 project.getLayout().getBuildDirectory().dir("reports/doppelganger-api-detector"));
         ext.getReportFileName().convention(DoppelgangerApiDetectorExtension.DEFAULT_REPORT_FILE_NAME);

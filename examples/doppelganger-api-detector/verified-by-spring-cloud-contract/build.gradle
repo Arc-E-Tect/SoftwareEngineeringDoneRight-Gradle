@@ -20,6 +20,9 @@ dependencies {
 doppelgangerApiDetector {
     rootDocument = file('src/main/resources/openapi/openapi.yaml')
 
+    // Only useRestDocs is enabled by default - opt in to the source this example demonstrates.
+    useSpringCloudContract = true
+
     // Fail the build if anything is still unverified. Every endpoint here is covered by the
     // Spring Cloud Contract file under src/test/resources/contracts, so this is expected to pass.
     failOnDoppelganger = true

@@ -94,12 +94,14 @@ Unlike RestDocs and REST Assured - which build requests using the same `{id}`-st
 This has one accepted, documented tradeoff: a concrete example path carries no information about which endpoint it was written to exemplify, so it can structurally satisfy a *different* template than the one it was actually meant to cover, if the two happen to share the same segment count and the same literal segments outside the templated position. In practice this is rare, and it is the same class of heuristic imprecision the detector family already accepts elsewhere (e.g. an unrestricted `@RequestMapping`'s `HttpVerb.ANY` matching any documented verb).
 ====
 
-Disable a source your team does not use:
+Spring RestDocs is enabled by default; the other two are opt-in. Enable the sources your team
+actually uses:
 
 [source,groovy]
 ----
 doppelgangerApiDetector {
-    useSpringCloudContract = false
+    useOpenApiRequestValidator = true
+    useSpringCloudContract     = true
 }
 ----
 
@@ -134,10 +136,11 @@ doppelgangerApiDetector {
     contractsDir = file('src/testContract/resources/contracts')
 
     // Whether each contract verification source is enabled.
-    // Default: true for all three
+    // Default: true for Spring RestDocs, false for the other two - opt in explicitly to the
+    // sources your team actually uses.
     useRestDocs                = true
-    useOpenApiRequestValidator = true
-    useSpringCloudContract     = true
+    useOpenApiRequestValidator = false
+    useSpringCloudContract     = false
 
     // Whether the build should fail when doppelganger APIs are found. The report is written
     // either way.

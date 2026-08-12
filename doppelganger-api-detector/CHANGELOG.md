@@ -1,3 +1,18 @@
+# [0.1.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/doppelganger-api-detector-v0.0.2...doppelganger-api-detector-v0.1.0) (2026-08-12)
+
+
+### ✨ New and updated features
+
+* **examples:** add doppelganger-api-detector and api-only-suite examples ([#117](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/117)) ([f96de9e](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/f96de9eb9ec6115c73a3ac91a2e71baa0f61caab)), closes [#117](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/117)
+
+
+### 🐛 Bug Fixes
+
+* **doppelganger-api-detector:** only enable Spring RestDocs by default ([#119](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/119)) ([ffd0336](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/ffd03368b4f89b11e2b3cb064a018853b2781b9a)), closes [#119](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/119)
+* **api-only-suite:** publish sibling plugin versions instead of the placeholder ([#116](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/116)) ([5506967](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/5506967f684b8a85112191e2d7070ac5ce9b2cb0)), closes [#116](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/116)
+* **api-only-suite:** scope the Gradle Portal publish to the root project only ([#115](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/115)) ([a2fb3ea](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/a2fb3ea9444c2d4185e10721fdfeee79696d484b)), closes [#115](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/115)
+* **docs:** update repo root index and per-plugin GitHub release badges ([#118](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/118)) ([9385925](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/9385925815598e99316379bcbd4d31e81f534f10)), closes [#118](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/118)
+
 ## [0.0.2](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/doppelganger-api-detector-v0.0.1...doppelganger-api-detector-v0.0.2) (2026-08-12)
 
 

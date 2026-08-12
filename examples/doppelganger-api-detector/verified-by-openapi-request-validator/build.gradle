@@ -30,6 +30,9 @@ test {
 doppelgangerApiDetector {
     rootDocument = file('src/main/resources/openapi/openapi.yaml')
 
+    // Only useRestDocs is enabled by default - opt in to the source this example demonstrates.
+    useOpenApiRequestValidator = true
+
     // Fail the build if anything is still unverified. getItem is exercised by a real, passing
     // REST Assured test validated against the OpenAPI document - see src/test/java - so this is
     // expected to pass.
