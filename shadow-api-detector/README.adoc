@@ -7,7 +7,7 @@
 
 image:https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/actions/workflows/nvd-cache-refresh.yml/badge.svg[Vulnerability Scan,link=https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/actions/workflows/nvd-cache-refresh.yml]
 image:https://img.shields.io/gradle-plugin-portal/v/com.arc-e-tect.shadow-api-detector[Gradle Plugin Portal,link=https://plugins.gradle.org/plugin/com.arc-e-tect.shadow-api-detector]
-image:https://img.shields.io/github/v/release/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle[GitHub release,link=https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/releases]
+image:https://img.shields.io/github/v/release/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle?filter=shadow-api-detector-v*[GitHub release,link=https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/releases?q=shadow-api-detector]
 image:https://img.shields.io/badge/Java-21%2B-blue[Java 21+,link=https://adoptium.net]
 image:https://img.shields.io/badge/Gradle-8.x%2B-02303A?logo=gradle[Gradle 8+,link=https://gradle.org]
 
