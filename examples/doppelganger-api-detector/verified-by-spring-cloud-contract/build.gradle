@@ -20,8 +20,9 @@ dependencies {
 doppelgangerApiDetector {
     rootDocument = file('src/main/resources/openapi/openapi.yaml')
 
-    // Only useRestDocs is enabled by default - opt in to the source this example demonstrates.
-    useSpringCloudContract = true
+    // The plugin's default contractsDir is src/testContract/resources/contracts; this example's
+    // contract file lives under the standard src/test/resources/contracts path.
+    contractsDir = file('src/test/resources/contracts')
 
     // Fail the build if anything is still unverified. Every endpoint here is covered by the
     // Spring Cloud Contract file under src/test/resources/contracts, so this is expected to pass.

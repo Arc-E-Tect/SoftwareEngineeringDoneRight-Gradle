@@ -31,10 +31,10 @@ test {
 doppelgangerApiDetector {
     rootDocument = file('src/main/resources/openapi/openapi.yaml')
 
-    // Only useRestDocs is enabled by default - opt in to the other two sources this example
-    // demonstrates alongside it.
-    useOpenApiRequestValidator = true
-    useSpringCloudContract = true
+    // The plugin's defaults are src/testContract/java and src/testContract/resources/contracts;
+    // this example's tests and contract file live under the standard src/test source set.
+    testDirs.from('src/test/java')
+    contractsDir = file('src/test/resources/contracts')
 
     // Three of the four endpoints below are verified, each by a different mechanism. The fourth
     // - deleteItem - has no verification evidence anywhere, so it is expected to remain a
