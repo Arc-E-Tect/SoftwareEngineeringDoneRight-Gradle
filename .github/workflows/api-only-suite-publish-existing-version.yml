@@ -1,0 +1,71 @@
+name: API-Only Suite Plugin - Publish Existing Version
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Already-released version to (re)publish to the Gradle Plugin Portal, e.g. 0.1.1. Use this when a release completed (tag/GitHub Release exist) but the Portal publish step itself failed - Calculate-Version would otherwise find nothing new to release and skip Publish.'
+        required: true
+        type: string
+
+jobs:
+  Publish:
+    name: Publish API-Only Suite Plugin to Gradle Portal
+    runs-on: ubuntu-latest
+
+    env:
+      GRADLE_PROPERTIES_FILE: ./api-only-suite/gradle.properties
+      GRADLE_VERSION_REGEX: version\s*=\s*[0-9]\\+\.[0-9]\\+\.[0-9]\\+[a-zA-Z0-9.-]*
+      VERSION: ${{ inputs.version }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0
+
+      - name: Setup Java
+        uses: actions/setup-java@ad2b38190b15e4d6bdf0c97fb4fca8412226d287 # v5.3.0
+        with:
+          distribution: 'temurin'
+          java-version: 21
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6.2.0
+
+      - name: Update version in Gradle property file
+        run: |
+          sed -i "s/${{ env.GRADLE_VERSION_REGEX }}/version = ${{ env.VERSION }}/g" ${{ env.GRADLE_PROPERTIES_FILE }}
+
+      - name: Resolve sibling plugin versions
+        # See api-only-suite-release.yml's Publish job for why this is needed: shadow/mirage/
+        # doppelganger-api-detector's own gradle.properties always stays at the unpublished
+        # placeholder version, so it must be patched to their real latest released version before
+        # publishing, or the published POM declares an unresolvable dependency.
+        id: sibling-versions
+        run: |
+          SHADOW_VERSION=$(git tag -l 'shadow-api-detector-v*' | sed 's/^shadow-api-detector-v//' | sort -V | tail -1)
+          MIRAGE_VERSION=$(git tag -l 'mirage-api-detector-v*' | sed 's/^mirage-api-detector-v//' | sort -V | tail -1)
+          DOPPELGANGER_VERSION=$(git tag -l 'doppelganger-api-detector-v*' | sed 's/^doppelganger-api-detector-v//' | sort -V | tail -1)
+          {
+            echo "shadow_version=${SHADOW_VERSION}"
+            echo "mirage_version=${MIRAGE_VERSION}"
+            echo "doppelganger_version=${DOPPELGANGER_VERSION}"
+          } >> "$GITHUB_OUTPUT"
+          echo "::notice title=Resolved Sibling Versions::shadow-api-detector=${SHADOW_VERSION} mirage-api-detector=${MIRAGE_VERSION} doppelganger-api-detector=${DOPPELGANGER_VERSION}"
+
+      - name: Update sibling plugin versions in their Gradle property files
+        run: |
+          sed -i "s/${{ env.GRADLE_VERSION_REGEX }}/version = ${{ steps.sibling-versions.outputs.shadow_version }}/g" shadow-api-detector/gradle.properties
+          sed -i "s/${{ env.GRADLE_VERSION_REGEX }}/version = ${{ steps.sibling-versions.outputs.mirage_version }}/g" mirage-api-detector/gradle.properties
+          sed -i "s/${{ env.GRADLE_VERSION_REGEX }}/version = ${{ steps.sibling-versions.outputs.doppelganger_version }}/g" doppelganger-api-detector/gradle.properties
+
+      - name: Publish to Gradle Plugin Portal
+        run: |
+          cd api-only-suite
+          chmod +x ./gradlew
+          ./gradlew :publishPlugins --no-daemon --no-configuration-cache
+        env:
+          GRADLE_PUBLISH_KEY: ${{ secrets.GRADLE_PUBLISH_KEY }}
+          GRADLE_PUBLISH_SECRET: ${{ secrets.GRADLE_PUBLISH_SECRET }}
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.SEDR_AUTOMATION_TOKEN }}

@@ -1,0 +1,93 @@
+= Mirage API Detector — Scan Mocks Example
+:toc: left
+
+== Description
+
+This example applies the Mirage API Detector plugin in `scanMocks` mode: instead of scanning
+`@RestController` classes, the plugin looks for WireMock stub mapping files under `stubDirs` and
+treats each stubbed request as an implemented endpoint.
+
+`ItemController` genuinely implements all three operations described in the OpenAPI document -
+`GET /items`, `POST /items`, and `GET /items/{id}` - with real, working handlers. WireMock stubs
+only exist for the first two. Because `scanMocks = true` means controllers are never consulted at
+all, `GET /items/{id}` is still reported as a mirage API, even though a real implementation exists
+for it.
+
+== Intent
+
+This example exists to show that `scanMocks` genuinely redefines "implemented" rather than
+supplementing controller scanning: a working `@RestController` handler with no matching stub is
+not enough. This suits teams building against a contract before the real implementation exists,
+or testing purely at the API-mock boundary, where "is this endpoint stubbed for consumer testing?"
+is the question that matters.
+
+== The Controller, Document, And Stubs
+
+[source,java]
+----
+@RestController
+@RequestMapping("/items")
+public class ItemController {
+
+    @GetMapping
+    public String listItems() { ... }
+
+    @PostMapping
+    public String createItem(@RequestBody String item) { ... }
+
+    @GetMapping("/{id}")
+    public String getItem(@PathVariable Long id) { ... }   // implemented, but not stubbed
+}
+----
+
+Full source: `src/main/java/com/arc_e_tect/example/catalog/ItemController.java`.
+The OpenAPI document - `src/main/resources/openapi/openapi.yaml` - describes all three operations.
+WireMock stubs exist under `src/test/resources/mappings/` for `listItems` (`GET /items`) and
+`createItem` (`POST /items`) only - no stub exists for `getItem`.
+
+== Build And Run
+
+[source,bash]
+----
+cd examples/mirage-api-detector/scan-mocks
+./gradlew detectMirageApis
+----
+
+`./gradlew build` fails the same way: this example wires `detectMirageApis` into the `check`
+lifecycle task explicitly in `build.gradle`, since the plugin does not do so automatically.
+
+== What To Expect
+
+The build is expected to fail:
+
+[source]
+----
+> Task :detectMirageApis FAILED
+mirageApiDetector: found 1 mirage API(s) described in the OpenAPI documentation but not backed by any WireMock stub. See .../mirage-apis.adoc
+----
+
+`build/reports/mirage-api-detector/mirage-apis.adoc` is still written before the failure. It opens
+with a preamble explaining what a mirage API is (see link:../../../mirage-api-detector/README.adoc[the
+plugin README]), then lists the unstubbed operation:
+
+[source,asciidoc]
+----
+== Mirage APIs
+
+=== Items
+
+[cols="1,3,3,3",options="header"]
+|===
+| HTTP Verb | Path | Operation ID | Tags
+
+| GET
+| /items/{id}
+| getItem
+| Items
+|===
+----
+
+== Suggested Fix
+
+Either add a WireMock stub mapping file for `GET /items/{id}` under `src/test/resources/mappings/`,
+or remove `scanMocks` if controller-based scanning is actually what this project needs.

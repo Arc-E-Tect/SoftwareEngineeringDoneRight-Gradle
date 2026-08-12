@@ -1,0 +1,12 @@
+{
+  "request": {
+    "method": "GET",
+    "urlPath": "/orders/1"
+  },
+  "response": {
+    "status": 200,
+    "jsonBody": {
+      "id": 1
+    }
+  }
+}

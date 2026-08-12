@@ -1,0 +1,112 @@
+= Doppelganger API Detector — Verified By Spring Cloud Contract Example
+:toc: left
+
+== Description
+
+This example applies the Doppelganger API Detector plugin to an `ItemController` with two endpoints:
+
+[cols="1,3",options="header"]
+|===
+| Endpoint      | Verified by
+| `GET /items/{id}` (`getItem`) | A real Spring Cloud Contract DSL file (`shouldReturnItem.groovy`), whose concrete example URL is `/items/1`.
+| `GET /items` (`listItems`)    | **Nothing.** No contract at all - deliberately left unverified.
+|===
+
+`failOnDoppelganger` is enabled; the build is expected to **fail**, on exactly `listItems`.
+
+== Intent
+
+This example proves two things at once: that a `method '...'` / `url '...'` pair in a real, correctly-formatted
+Spring Cloud Contract file is recognised as verification evidence for `getItem` (it does *not* appear in the
+failure below), and that the detector genuinely still catches `listItems`, which has no evidence anywhere. A
+build that always succeeds proves nothing about whether detection actually works - this example is designed to
+fail on exactly one endpoint, so the failure itself is the demonstration.
+
+Unlike the RestDocs and OpenAPI-request-validator examples, this contract file is never compiled or executed -
+the plugin reads it structurally, exactly the way it would if a real `spring-cloud-contract-verifier` Gradle
+plugin were also configured to generate and run tests from it. No such plugin is applied here, since it is not
+needed to demonstrate what Doppelganger API Detector itself checks.
+
+=== Matching A Concrete Example Against A Templated Endpoint
+
+`getItem` is declared with a path variable (`GET /items/{id}`), but the contract's `url` is a concrete,
+resolved example (`/items/1`) - Spring Cloud Contract describes one specific request/response pair, not a path
+*template* the way an OpenAPI document or a Spring `@RequestMapping` is. The plugin recognises `/items/1` as a
+valid instance of `/items/{id}` via `PathMatcher.matchesConcrete(...)` in `api-detector-core`: matching here is
+asymmetric, treating the declared-and-implemented side as the template and the contract's own path as a
+concrete instance of it, rather than requiring the two to be structurally identical.
+
+[NOTE]
+====
+This has one accepted, documented tradeoff, described in full in the plugin's own README: a concrete example
+path carries no information about which endpoint it was written to exemplify, so in principle it could
+structurally satisfy a *different* template than the one it actually covers, if the two happened to share the
+same segment count and literal segments outside the templated position. In practice this is rare, and it is
+the same class of heuristic imprecision the detector family already accepts elsewhere.
+====
+
+== The Controller, Document, And Contract
+
+[source,java]
+----
+@RestController
+@RequestMapping("/items")
+public class ItemController {
+
+    @GetMapping("/{id}")
+    public String getItem(@PathVariable Long id) { return "{}"; }
+
+    @GetMapping
+    public String listItems() { return "[]"; }
+}
+----
+
+[source,groovy]
+----
+import org.springframework.cloud.contract.spec.Contract
+
+Contract.make {
+    description "returns an item by id - a concrete example of the templated GET /items/{id} endpoint"
+    request {
+        method 'GET'
+        url '/items/1'
+    }
+    response {
+        status 200
+        body([:])
+    }
+}
+----
+
+`openapi.yaml` declares both `GET /items/{id}` and `GET /items`. Only `getItem` has a contract.
+
+== Build And Run
+
+[source,bash]
+----
+cd examples/doppelganger-api-detector/verified-by-spring-cloud-contract
+./gradlew build
+----
+
+There is no `src/test/java` in this example, so `test` has nothing to run - the contract file is the only
+verification evidence, and it is read structurally, not executed. `detectDoppelgangerApis` is wired into
+`check` explicitly in `build.gradle`.
+
+== What To Expect
+
+`./gradlew build` fails on exactly `listItems`:
+
+[source]
+----
+> Task :detectDoppelgangerApis FAILED
+Doppelganger API Detector: scanned 2 declared-and-implemented endpoint(s), found 1 doppelganger API(s).
+doppelgangerApiDetector: found 1 doppelganger API(s) declared and implemented but not verified by any configured contract verification source.
+----
+
+`build/reports/doppelganger-api-detector/doppelganger-apis.adoc` lists exactly `GET /items` (`listItems`) -
+`getItem` does not appear, since it has real verification evidence.
+
+== Suggested Fix
+
+Add a Spring Cloud Contract file for `listItems`, or remove it from `openapi.yaml` if it was never meant to be
+covered by this mechanism.

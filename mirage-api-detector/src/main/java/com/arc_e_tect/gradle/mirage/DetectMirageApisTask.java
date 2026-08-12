@@ -6,6 +6,7 @@ import com.arc_e_tect.gradle.detector.core.openapi.OpenApiEndpointCollector;
 import com.arc_e_tect.gradle.detector.core.scan.ControllerScanner;
 import com.arc_e_tect.gradle.mirage.detect.MirageApiFinder;
 import com.arc_e_tect.gradle.mirage.report.MirageApiReportWriter;
+import com.arc_e_tect.gradle.mirage.scan.WireMockStubScanner;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.GradleException;
 import org.gradle.api.file.ConfigurableFileCollection;
@@ -31,8 +32,10 @@ import java.util.List;
 
 /**
  * Gradle task that parses the configured OpenAPI documentation, compares the operations it
- * describes against the endpoints exposed by scanned {@code @RestController} classes, and writes
- * an AsciiDoc report of every operation that has no matching implementation - the "mirage APIs".
+ * describes against a set of implemented endpoints, and writes an AsciiDoc report of every
+ * operation that has no match - the "mirage APIs". The implemented-endpoint set is either the
+ * endpoints exposed by scanned {@code @RestController} classes (the default), or, when
+ * {@link #getScanMocks()} is {@code true}, the requests stubbed by WireMock mapping files.
  *
  * <p>Registered automatically by {@link MirageApiDetectorPlugin} under the name
  * {@code detectMirageApis}.</p>
@@ -41,13 +44,33 @@ import java.util.List;
 public abstract class DetectMirageApisTask extends DefaultTask {
 
     /**
-     * Directories to search recursively for {@code @RestController} classes.
+     * Directories to search recursively for {@code @RestController} classes. Not scanned when
+     * {@link #getScanMocks()} is {@code true}.
      *
      * @return mutable file collection of controller source directories
      */
     @InputFiles
     @PathSensitive(PathSensitivity.RELATIVE)
     public abstract ConfigurableFileCollection getControllerDirs();
+
+    /**
+     * Whether to determine implemented endpoints from WireMock stub mapping files under
+     * {@link #getStubDirs()} instead of scanning {@code @RestController} classes.
+     *
+     * @return mutable boolean property controlling whether stub-based scanning is used
+     */
+    @Input
+    public abstract Property<Boolean> getScanMocks();
+
+    /**
+     * Directories to search recursively for WireMock stub mapping files, used to determine
+     * implemented endpoints when {@link #getScanMocks()} is {@code true}. Not scanned otherwise.
+     *
+     * @return mutable file collection of WireMock stub directories
+     */
+    @InputFiles
+    @PathSensitive(PathSensitivity.RELATIVE)
+    public abstract ConfigurableFileCollection getStubDirs();
 
     /**
      * The root OpenAPI document describing the API.
@@ -112,9 +135,10 @@ public abstract class DetectMirageApisTask extends DefaultTask {
     }
 
     /**
-     * Task action: loads the configured OpenAPI documentation, scans the configured controller
-     * directories, writes the mirage API report, and - when {@link #getFailOnMirage()} is
-     * {@code true} - fails the build if any mirage API was found.
+     * Task action: loads the configured OpenAPI documentation, scans either the configured
+     * controller directories or WireMock stub directories (per {@link #getScanMocks()}), writes
+     * the mirage API report, and - when {@link #getFailOnMirage()} is {@code true} - fails the
+     * build if any mirage API was found.
      */
     @TaskAction
     public void generate() {
@@ -123,13 +147,8 @@ public abstract class DetectMirageApisTask extends DefaultTask {
                     + "it is the required root OpenAPI document.");
         }
 
-        ControllerScanner scanner = new ControllerScanner();
-        List<Endpoint> endpoints = new ArrayList<>();
-        for (File dir : getControllerDirs()) {
-            for (File javaFile : collectJavaFiles(dir)) {
-                scanFile(scanner, javaFile, endpoints);
-            }
-        }
+        boolean scanMocks = getScanMocks().get();
+        List<Endpoint> endpoints = scanMocks ? scanStubs() : scanControllers();
 
         File rootDocument = getRootDocument().getAsFile().get();
         List<DescribedEndpoint> described = new OpenApiEndpointCollector().collect(rootDocument);
@@ -140,7 +159,7 @@ public abstract class DetectMirageApisTask extends DefaultTask {
         File outputFile = new File(outputDir, getReportFileName().get());
         try {
             new MirageApiReportWriter().write(
-                    outputFile, described.size(), mirages, getSystemUnderTestVersion().get());
+                    outputFile, described.size(), mirages, getSystemUnderTestVersion().get(), scanMocks);
         } catch (IOException e) {
             throw new GradleException("mirageApiDetector: failed to write report to " + outputFile, e);
         }
@@ -149,10 +168,37 @@ public abstract class DetectMirageApisTask extends DefaultTask {
                 described.size(), mirages.size(), outputFile);
 
         if (!mirages.isEmpty() && getFailOnMirage().get()) {
+            String evidenceNoun = scanMocks
+                    ? "backed by any WireMock stub"
+                    : "implemented by any @RestController class";
             throw new GradleException("mirageApiDetector: found " + mirages.size()
-                    + " mirage API(s) described in the OpenAPI documentation but not implemented by any "
-                    + "@RestController class. See " + outputFile);
+                    + " mirage API(s) described in the OpenAPI documentation but not " + evidenceNoun
+                    + ". See " + outputFile);
         }
+    }
+
+    private List<Endpoint> scanControllers() {
+        ControllerScanner scanner = new ControllerScanner();
+        List<Endpoint> endpoints = new ArrayList<>();
+        for (File dir : getControllerDirs()) {
+            for (File javaFile : collectJavaFiles(dir)) {
+                scanFile(scanner, javaFile, endpoints);
+            }
+        }
+        return endpoints;
+    }
+
+    private List<Endpoint> scanStubs() {
+        WireMockStubScanner scanner = new WireMockStubScanner();
+        List<Endpoint> endpoints = new ArrayList<>();
+        for (File dir : getStubDirs()) {
+            try {
+                endpoints.addAll(scanner.scan(dir));
+            } catch (IOException e) {
+                throw new GradleException("mirageApiDetector: failed to scan " + dir, e);
+            }
+        }
+        return endpoints;
     }
 
     private List<File> collectJavaFiles(File dir) {

@@ -1,0 +1,203 @@
+= Arc-E-Tect API-Only Suite Gradle Plugin
+:toc: left
+:toc-title: Contents
+:toclevels: 2
+:icons: font
+:source-highlighter: rouge
+
+image:https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/actions/workflows/nvd-cache-refresh.yml/badge.svg[Vulnerability Scan,link=https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/actions/workflows/nvd-cache-refresh.yml]
+image:https://img.shields.io/gradle-plugin-portal/v/com.arc-e-tect.api-only-suite[Gradle Plugin Portal,link=https://plugins.gradle.org/plugin/com.arc-e-tect.api-only-suite]
+image:https://img.shields.io/github/v/release/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle?filter=api-only-suite-v*[GitHub release,link=https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/releases?q=api-only-suite]
+image:https://img.shields.io/badge/Java-21%2B-blue[Java 21+,link=https://adoptium.net]
+image:https://img.shields.io/badge/Gradle-8.x%2B-02303A?logo=gradle[Gradle 8+,link=https://gradle.org]
+
+This project calls its approach to API contracts "API-Only" rather than "API-First," deliberately: "First" implies a client is coming next, which in practice biases teams toward designing the API around that one client instead of treating it as a first-class, consumer-agnostic contract. Being API-Only means the contract, the implementation, and the verification that the two agree are all treated as first-class citizens together, for every endpoint, regardless of who calls it. The Arc-E-Tect API-Only Suite plugin exists to make that discipline easy to adopt in one step: it applies link:../shadow-api-detector/README.adoc[Shadow API Detector], link:../mirage-api-detector/README.adoc[Mirage API Detector], and link:../doppelganger-api-detector/README.adoc[Doppelganger API Detector] together, so declared, implemented, and verified are all checked - with no plugin left out by oversight.
+
+This is a pure composition module. It contains no detection logic of its own, only wiring: applying it is indistinguishable, from each individual plugin's own point of view, from applying all three directly.
+
+== Plugin ID
+
+[source]
+----
+com.arc-e-tect.api-only-suite
+----
+
+== Requirements
+
+[cols="1,1",options="header"]
+|===
+| Requirement | Version
+| Gradle      | 8.x +
+| Java        | 17 +
+|===
+
+== Applying the Plugin
+
+=== Using the `plugins` block (recommended)
+
+.Groovy DSL (`build.gradle`)
+[source,groovy]
+----
+plugins {
+    id 'com.arc-e-tect.api-only-suite' version '<version>'
+}
+----
+
+.Kotlin DSL (`build.gradle.kts`)
+[source,kotlin]
+----
+plugins {
+    id("com.arc-e-tect.api-only-suite") version "<version>"
+}
+----
+
+Applying this plugin applies all three detector plugins. Each one registers its own task and extension exactly as it does when applied on its own - `shadowApiDetector`, `mirageApiDetector`, and `doppelgangerApiDetector` are all available to configure directly, and `detectShadowApis`, `detectMirageApis`, and `detectDoppelgangerApis` are all registered as normal.
+
+== Configuration
+
+The plugin registers a thin `apiOnlySuite` extension exposing only the two settings that are almost always identical across all three underlying plugins in practice: the shared OpenAPI document, and the controller directories to scan.
+
+.Groovy DSL
+[source,groovy]
+----
+apiOnlySuite {
+    // The root OpenAPI document, forwarded to all three underlying plugins' own rootDocument.
+    rootDocument = file('src/main/resources/openapi/openapi.yaml')
+
+    // Controller directories, forwarded to all three underlying plugins' own controllerDirs.
+    // Default (when left unset here, and unset on every individual plugin too): src/main/java
+    controllerDirs.from('src/main/java')
+}
+----
+
+.Kotlin DSL
+[source,kotlin]
+----
+apiOnlySuite {
+    rootDocument.set(file("src/main/resources/openapi/openapi.yaml"))
+    controllerDirs.from("src/main/java")
+}
+----
+
+**This extension is not a full proxy** for the three underlying plugins - it exists for the common case, not to duplicate every property from `shadowApiDetector`, `mirageApiDetector`, and `doppelgangerApiDetector`. Anything not exposed here - `failOnShadow`/`failOnMirage`/`failOnDoppelganger`, `reportDir`, `reportFileName`, Doppelganger's `testDirs`/`contractsDir`/`useRestDocs`/etc., `systemUnderTestVersion` - must be configured directly on the individual plugin's own extension block:
+
+[source,groovy]
+----
+shadowApiDetector {
+    failOnShadow = true
+}
+
+mirageApiDetector {
+    failOnMirage = true
+}
+
+doppelgangerApiDetector {
+    failOnDoppelganger = true
+    useSpringCloudContract = false
+}
+----
+
+=== Precedence
+
+`rootDocument` and `controllerDirs` set on `apiOnlySuite` are forwarded to each of the three underlying extensions as a fallback - applied only where that individual extension does not already have a value.footnote:[For `controllerDirs`, "already has a value" is checked once, after the whole build script has evaluated - so a consumer can configure `shadowApiDetector.controllerDirs` anywhere in the script, in any order relative to `apiOnlySuite`, and it will still be recognised as explicitly set.]
+**A value set directly on an individual plugin's own extension always wins over the value set on `apiOnlySuite`**, regardless of which block appears first in the build script:
+
+[source,groovy]
+----
+apiOnlySuite {
+    rootDocument = file('openapi/openapi.yaml')
+}
+
+shadowApiDetector {
+    // This wins for Shadow API Detector specifically - Mirage and Doppelganger still get
+    // apiOnlySuite's rootDocument above, since neither of them overrides it directly.
+    rootDocument = file('openapi/legacy-openapi.yaml')
+}
+----
+
+== Task
+
+[cols="2,1,3",options="header"]
+|===
+| Task name           | Group        | Description
+| `detectAllApiGaps`  | verification | Runs all three Arc-E-Tect API-Only detectors: Shadow, Mirage, and Doppelganger.
+|===
+
+`detectAllApiGaps` is a plain aggregate task with no logic of its own - it depends on `detectShadowApis`, `detectMirageApis`, and `detectDoppelgangerApis`, so a consumer who wants everything can run one task instead of three. Running any of the three individual tasks directly (`./gradlew detectShadowApis`, etc.) continues to work exactly as it does without this plugin.
+
+The task is **not** wired into `check` or `build` automatically, for the same reason none of the three individual plugins are: teams generating their OpenAPI documentation from code, or migrating their tests onto one of Doppelganger's verification mechanisms gradually, would otherwise see every build fail immediately.
+
+Running all three detectors explicitly:
+
+[source,shell]
+----
+./gradlew detectAllApiGaps
+----
+
+To make the aggregate task part of every build, wire it into `check` (or `build`) yourself once you're ready to enforce it:
+
+.Groovy DSL
+[source,groovy]
+----
+tasks.named('check') {
+    dependsOn 'detectAllApiGaps'
+}
+----
+
+.Kotlin DSL
+[source,kotlin]
+----
+tasks.named("check") {
+    dependsOn("detectAllApiGaps")
+}
+----
+
+== Report output
+
+This plugin produces no report of its own - it is pure composition, with no detection logic to report on. Each of the three underlying plugins writes its own AsciiDoc report exactly as it does when applied individually:
+
+[cols="1,3",options="header"]
+|===
+| Plugin                    | Report
+| Shadow API Detector       | `build/reports/shadow-api-detector/shadow-apis.adoc` - see link:../shadow-api-detector/README.adoc#_report_output[its own "Report output" section]
+| Mirage API Detector       | `build/reports/mirage-api-detector/mirage-apis.adoc` - see link:../mirage-api-detector/README.adoc#_report_output[its own "Report output" section]
+| Doppelganger API Detector | `build/reports/doppelganger-api-detector/doppelganger-apis.adoc` - see link:../doppelganger-api-detector/README.adoc#_report_output[its own "Report output" section]
+|===
+
+== Full example
+
+[source,groovy]
+----
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '<version>'
+    id 'com.arc-e-tect.api-only-suite' version '<version>'
+}
+
+apiOnlySuite {
+    rootDocument = file('src/main/resources/openapi/openapi.yaml')
+}
+
+shadowApiDetector {
+    failOnShadow = true
+}
+
+mirageApiDetector {
+    failOnMirage = true
+}
+
+doppelgangerApiDetector {
+    failOnDoppelganger = true
+}
+
+tasks.named('check') {
+    dependsOn 'detectAllApiGaps'
+}
+----
+
+With this setup, running `./gradlew check` runs all three detectors against the single configured `rootDocument`, and fails the build - after every report has been written - as soon as any of the three finds a gap.
+
+== License
+
+This plugin is part of the _Software Engineering Done Right_ project.
+See link:../LICENSE[LICENSE] for details.

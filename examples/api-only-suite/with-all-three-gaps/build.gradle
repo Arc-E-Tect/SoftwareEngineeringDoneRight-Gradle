@@ -1,0 +1,27 @@
+plugins {
+    id 'java'
+    alias(libs.plugins.api.only.suite)
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation libs.spring.web
+}
+
+apiOnlySuite {
+    rootDocument = file('src/main/resources/openapi/openapi.yaml')
+}
+
+// detectAllApiGaps is not wired into check/build automatically - opt in explicitly.
+tasks.named('check') {
+    dependsOn 'detectAllApiGaps'
+}
