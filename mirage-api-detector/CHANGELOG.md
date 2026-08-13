@@ -1,3 +1,11 @@
+## [0.4.1](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/mirage-api-detector-v0.4.0...mirage-api-detector-v0.4.1) (2026-08-13)
+
+
+### 🐛 Bug Fixes
+
+* **api-only-suite:** detectAllApiGaps no longer fails when an early detector finds a gap ([#132](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/132)) ([7fea3e7](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/7fea3e7a02508efb7d97bb7c899512b4636659eb)), closes [#132](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/132)
+* renaming the history file path no longer leaves history-tracking tasks UP-TO-DATE ([#133](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/133)) ([9d7e7d6](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/9d7e7d653f207440acf61cd8fe6437707b48e7d2)), closes [#133](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/133)
+
 # [0.4.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/mirage-api-detector-v0.3.0...mirage-api-detector-v0.4.0) (2026-08-13)
 
 
