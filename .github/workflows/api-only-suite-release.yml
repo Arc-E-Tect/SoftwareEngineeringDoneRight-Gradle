@@ -8,9 +8,26 @@ on:
       - 'api-only-suite/gradle/**'
       - 'api-only-suite/src/main/**'
       - 'api-only-suite/docs/**'
+  # A sibling detector plugin releasing a new version - even one that touches none of the paths
+  # above - still means the published api-only-suite plugin should pick up that new version, since
+  # Publish below resolves each sibling's real version from its own release tags. Without this,
+  # a sibling-only change (nothing under api-only-suite/ itself) never re-triggers this workflow at
+  # all, and api-only-suite stays silently pinned to whatever sibling versions it last resolved.
+  workflow_run:
+    workflows:
+      - "Shadow API Detector Plugin - Release"
+      - "Mirage API Detector Plugin - Release"
+      - "Doppelganger API Detector Plugin - Release"
+    types:
+      - completed
+    branches:
+      - main
 
 jobs:
   Calculate-Version:
+    # Skip entirely when the triggering sibling release workflow itself failed or was skipped -
+    # its own Publish step won't have created a new tag, so there's nothing new to resolve here.
+    if: ${{ github.event_name == 'push' || github.event.workflow_run.conclusion == 'success' }}
     uses: ./.github/workflows/semantic-version-calculate.yml
     with:
       fail_on_empty_version: true
@@ -93,78 +110,60 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-        with:
-          fetch-depth: 0
-
-      - name: Wait for any sibling detector plugin whose own release this push also triggers
+      - name: Wait for any sibling detector plugin release still in flight
         # api-only-suite pulls shadow/mirage/doppelganger-api-detector in as subprojects and the
-        # Publish job below resolves their real released version from git tags. Each sibling's own
-        # release workflow is triggered by this very same push, in parallel, with no ordering
-        # between the four release workflows - so when a single commit bumps api-only-suite
-        # together with one or more siblings, tag resolution can run before that sibling's own
-        # release has tagged its new version, silently pinning api-only-suite to the sibling's
-        # previous (stale) version. This happened for real: api-only-suite 0.2.0 was published
-        # referencing shadow-api-detector 1.2.0 and mirage-api-detector 0.2.0 instead of the 1.3.0/
-        # 0.3.0 that same push actually released, because this job didn't exist yet.
+        # Publish job below resolves their real released version from git tags. This workflow fires
+        # both when api-only-suite's own files change (push) and whenever any sibling's own release
+        # workflow completes (workflow_run, added so a sibling-only change still reaches a new
+        # api-only-suite release). Either way, a *different* sibling's release triggered by the same
+        # underlying push can still be in flight when we reach this point, which would silently pin
+        # api-only-suite to that sibling's stale previous version.
         #
-        # Detect - from the files this push actually touched - which sibling release workflows it
-        # also triggered, and block on each of those finishing successfully before Publish resolves
-        # sibling versions from tags. Deliberately coarser than each sibling's own path filters
-        # (any change under `<sibling>/`, not just the specific globs that workflow reacts to): a
-        # false-positive wait costs a little time, a false-negative reintroduces the race.
+        # Rather than diffing the triggering push - workflow_run events don't carry a comparable
+        # before/after pair - check each sibling's own release workflow's most recent run on main
+        # directly and wait for it if still in progress. This is correct for both trigger types and
+        # for any number of siblings releasing concurrently, at the cost of not knowing in advance
+        # which siblings are actually relevant to this run (so it checks all three, unconditionally),
+        # and of no longer aborting outright when a sibling's most recent run failed: unlike the
+        # old push-diff version, this can't tell "a sibling relevant to this exact push failed" from
+        # "some unrelated earlier run of that sibling failed", so it simply waits for in-progress
+        # runs and otherwise proceeds - the Resolve sibling plugin versions step below then reads
+        # each sibling's last successfully tagged version regardless, never a broken one.
+        #
+        # This traces back to a real incident: api-only-suite 0.2.0 was published referencing
+        # shadow-api-detector 1.2.0 and mirage-api-detector 0.2.0 instead of the 1.3.0/0.3.0 that
+        # same push actually released, because this job didn't exist yet.
         env:
           GH_TOKEN: ${{ secrets.SEDR_AUTOMATION_TOKEN }}
         run: |
           set -euo pipefail
-          BEFORE="${{ github.event.before }}"
-          SHA="${{ github.sha }}"
-          if [[ -z "$BEFORE" || "$BEFORE" =~ ^0+$ ]]; then
-            CHANGED_FILES=$(git diff --name-only "$(git hash-object -t tree /dev/null)" "$SHA")
-          else
-            CHANGED_FILES=$(git diff --name-only "$BEFORE" "$SHA")
-          fi
 
-          declare -A SIBLING_WORKFLOWS=(
-            [shadow-api-detector]="Shadow API Detector Plugin - Release"
-            [mirage-api-detector]="Mirage API Detector Plugin - Release"
-            [doppelganger-api-detector]="Doppelganger API Detector Plugin - Release"
+          SIBLING_WORKFLOWS=(
+            "Shadow API Detector Plugin - Release"
+            "Mirage API Detector Plugin - Release"
+            "Doppelganger API Detector Plugin - Release"
           )
 
           TIMEOUT_SECONDS=1200
           INTERVAL_SECONDS=20
 
-          for DIR in "${!SIBLING_WORKFLOWS[@]}"; do
-            if ! grep -q "^${DIR}/" <<< "$CHANGED_FILES"; then
-              echo "This push did not touch ${DIR}/ - not waiting on its release workflow."
-              continue
-            fi
-
-            WF="${SIBLING_WORKFLOWS[$DIR]}"
-            echo "This push touched ${DIR}/ - waiting for '$WF' to finish for commit $SHA..."
+          for WF in "${SIBLING_WORKFLOWS[@]}"; do
+            echo "Checking '$WF' for an in-progress run on main..."
             ELAPSED=0
             while :; do
-              RUN_JSON=$(gh run list --workflow "$WF" --json headSha,status,conclusion \
-                -q "[.[] | select(.headSha == \"$SHA\")][0]")
-              STATUS=$(jq -r '.status // empty' <<< "$RUN_JSON")
-              CONCLUSION=$(jq -r '.conclusion // empty' <<< "$RUN_JSON")
+              STATUS=$(gh run list --workflow "$WF" --branch main --limit 1 --json status -q '.[0].status // empty')
 
-              if [[ "$STATUS" == "completed" ]]; then
-                if [[ "$CONCLUSION" != "success" ]]; then
-                  echo "::error::'$WF' finished with conclusion '$CONCLUSION' for $SHA - aborting api-only-suite release rather than resolving a sibling version from a failed or incomplete run."
-                  exit 1
-                fi
-                echo "'$WF' completed successfully."
+              if [[ -z "$STATUS" || "$STATUS" == "completed" ]]; then
+                echo "'$WF' has no run in progress."
                 break
               fi
 
               if (( ELAPSED >= TIMEOUT_SECONDS )); then
-                echo "::error::Timed out after ${TIMEOUT_SECONDS}s waiting for '$WF' to finish for $SHA (last status: '${STATUS:-not started}'). Re-run this workflow once it has completed."
+                echo "::error::Timed out after ${TIMEOUT_SECONDS}s waiting for '$WF' to finish (last status: '$STATUS'). Re-run this workflow once it has completed."
                 exit 1
               fi
 
-              echo "'$WF' status: '${STATUS:-not started yet}' - waiting ${INTERVAL_SECONDS}s..."
+              echo "'$WF' status: '$STATUS' - waiting ${INTERVAL_SECONDS}s..."
               sleep "$INTERVAL_SECONDS"
               ELAPSED=$((ELAPSED + INTERVAL_SECONDS))
             done
