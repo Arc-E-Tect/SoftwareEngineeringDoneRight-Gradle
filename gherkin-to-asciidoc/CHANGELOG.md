@@ -1,3 +1,16 @@
+# [4.3.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/v4.2.1...v4.3.0) (2026-08-13)
+
+
+### ✨ New and updated features
+
+* track contract progress history and report it over time in all three API detector plugins ([#131](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/131)) ([e65f7bf](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/e65f7bf72557402f4078dcfa7abc0a10436103db)), closes [#131](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/131) [#59](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/59) [#59](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/59)
+
+
+### 🐛 Bug Fixes
+
+* **api-only-suite:** detectAllApiGaps no longer fails when an early detector finds a gap ([#132](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/132)) ([7fea3e7](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/7fea3e7a02508efb7d97bb7c899512b4636659eb)), closes [#132](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/132)
+* renaming the history file path no longer leaves history-tracking tasks UP-TO-DATE ([#133](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/133)) ([9d7e7d6](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/9d7e7d653f207440acf61cd8fe6437707b48e7d2)), closes [#133](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/133)
+
 ## [4.2.1](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/v4.2.0...v4.2.1) (2026-08-13)
 
 
