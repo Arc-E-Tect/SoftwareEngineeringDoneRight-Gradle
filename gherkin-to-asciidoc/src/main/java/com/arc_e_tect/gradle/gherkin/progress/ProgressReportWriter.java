@@ -15,11 +15,14 @@ import java.math.RoundingMode;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Stream;
 
 /**
@@ -33,6 +36,10 @@ import java.util.stream.Stream;
  * directives - instead of embedding scenario titles verbatim.</p>
  */
 public class ProgressReportWriter {
+
+    /** Renders a {@link ScenarioProgressRecord} timestamp for the {@code Tracked since} row, always in UTC so the report reads the same regardless of where it was generated. */
+    private static final DateTimeFormatter TRACKED_SINCE_FORMATTER =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss 'UTC'").withZone(ZoneOffset.UTC);
 
     private final ScenarioClassifier classifier = new ScenarioClassifier();
     private final SnippetWriter snippetWriter = new SnippetWriter();
@@ -172,8 +179,6 @@ public class ProgressReportWriter {
                 .filter(instant -> instant != null)
                 .min(Comparator.naturalOrder())
                 .orElse(null);
-        long implementedLast7Days = countImplementedWithin(history, now, Duration.ofDays(7));
-        long implementedLast30Days = countImplementedWithin(history, now, Duration.ofDays(30));
         long removedNotSeen = history.values().stream().filter(record -> record.removedAt() != null).count();
 
         writer.println("== Progress Over Time");
@@ -183,24 +188,33 @@ public class ProgressReportWriter {
         writer.println("| Metric | Value");
         writer.println();
         writer.println("| Tracked since");
-        writer.println("| " + (trackedSince != null ? trackedSince : "N/A"));
+        writer.println("| " + (trackedSince != null ? TRACKED_SINCE_FORMATTER.format(trackedSince) : "N/A"));
         writer.println();
-        writer.println("| Implemented in the last 7 days");
-        writer.println("| " + implementedLast7Days);
-        writer.println();
-        writer.println("| Implemented in the last 30 days");
-        writer.println("| " + implementedLast30Days);
-        writer.println();
+        writeWindowedMetric(writer, "Listed", history, now, ScenarioProgressRecord::listedAt);
+        writeWindowedMetric(writer, "Defined", history, now, ScenarioProgressRecord::definedAt);
+        writeWindowedMetric(writer, "Implemented", history, now, ScenarioProgressRecord::implementedAt);
         writer.println("| Removed (no longer seen)");
         writer.println("| " + removedNotSeen);
         writer.println("|===");
         writer.println();
     }
 
-    private long countImplementedWithin(Map<String, ScenarioProgressRecord> history, Instant now, Duration window) {
+    private void writeWindowedMetric(PrintWriter writer, String label, Map<String, ScenarioProgressRecord> history,
+            Instant now, Function<ScenarioProgressRecord, Instant> timestamp) {
+        writer.println("| " + label + " in the last 7 days");
+        writer.println("| " + countWithin(history, now, Duration.ofDays(7), timestamp));
+        writer.println();
+        writer.println("| " + label + " in the last 30 days");
+        writer.println("| " + countWithin(history, now, Duration.ofDays(30), timestamp));
+        writer.println();
+    }
+
+    private long countWithin(Map<String, ScenarioProgressRecord> history, Instant now, Duration window,
+            Function<ScenarioProgressRecord, Instant> timestamp) {
         Instant threshold = now.minus(window);
         return history.values().stream()
-                .filter(record -> record.implementedAt() != null && record.implementedAt().isAfter(threshold))
+                .map(timestamp)
+                .filter(recordedAt -> recordedAt != null && recordedAt.isAfter(threshold))
                 .count();
     }
 
