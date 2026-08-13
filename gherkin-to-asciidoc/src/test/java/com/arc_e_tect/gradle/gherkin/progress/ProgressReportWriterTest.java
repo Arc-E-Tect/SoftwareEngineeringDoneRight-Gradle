@@ -287,7 +287,7 @@ class ProgressReportWriterTest {
                 new ProgressReportOptions(true, tempDir.resolve("snippets").toFile(), null, "1.0.0", history));
 
         String content = Files.readString(outputFile.toPath(), StandardCharsets.UTF_8);
-        assertThat(content).contains("2026-01-14T09:02:11Z");
+        assertThat(content).contains("2026-01-14 09:02:11 UTC");
     }
 
     @Test
@@ -312,6 +312,35 @@ class ProgressReportWriterTest {
 
         String content = Files.readString(outputFile.toPath(), StandardCharsets.UTF_8);
         assertThat(content).contains("| Implemented in the last 7 days" + System.lineSeparator() + "| 1");
+    }
+
+    @Test
+    @DisplayName("counts records listed and defined within the last 7 and 30 days")
+    void countsRecordsListedAndDefinedWithinLast7And30Days(@TempDir Path tempDir) throws IOException {
+        ScenarioInfo implemented = new ScenarioInfo(
+                "Authentication", "Scenario: Fully wired up", List.of("an implemented step"));
+        List<Expression> glueCode = List.of(expression("an implemented step"));
+        Instant recentlyListed = Instant.now().minus(Duration.ofDays(2));
+        Instant recentlyDefined = Instant.now().minus(Duration.ofDays(10));
+        Instant longAgo = Instant.now().minus(Duration.ofDays(40));
+        Map<String, ScenarioProgressRecord> history = Map.of(
+                "fp1", new ScenarioProgressRecord(
+                        "fp1", "A", "Authentication", recentlyListed, recentlyDefined, null,
+                        recentlyListed, null),
+                "fp2", new ScenarioProgressRecord(
+                        "fp2", "B", "Authentication", longAgo, longAgo, null,
+                        longAgo, null));
+
+        File outputFile = tempDir.resolve("features.adoc").toFile();
+        writer.write(outputFile, List.of(implemented), glueCode,
+                new ProgressReportOptions(true, tempDir.resolve("snippets").toFile(), null, "1.0.0", history));
+
+        String content = Files.readString(outputFile.toPath(), StandardCharsets.UTF_8);
+        assertThat(content)
+                .contains("| Listed in the last 7 days" + System.lineSeparator() + "| 1")
+                .contains("| Listed in the last 30 days" + System.lineSeparator() + "| 1")
+                .contains("| Defined in the last 7 days" + System.lineSeparator() + "| 0")
+                .contains("| Defined in the last 30 days" + System.lineSeparator() + "| 1");
     }
 
     @Test

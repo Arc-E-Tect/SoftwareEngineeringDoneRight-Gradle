@@ -1066,7 +1066,7 @@ after a few builds spread over several months, `progressHistoryFile` looks like:
 A missing `progressHistoryFile` is treated as an empty history, not an error - the first run on a fresh checkout simply starts every scenario's history from scratch.
 A line that fails to parse (e.g. hand-edited into something invalid) is skipped with a `WARN`-level log message identifying its line number; it never fails the build.
 
-The generated report reflects the loaded (and possibly just-advanced) history as a `== Progress Over Time` section, directly below `== Progress Summary`, once `trackProgressHistory` finds at least one record: the earliest timestamp across every record ("Tracked since"), how many scenarios were implemented in the last 7 and 30 days, and how many previously tracked scenarios are no longer seen in the current run.
+The generated report reflects the loaded (and possibly just-advanced) history as a `== Progress Over Time` section, directly below `== Progress Summary`, once `trackProgressHistory` finds at least one record: the earliest timestamp across every record ("Tracked since", rendered as `yyyy-MM-dd HH:mm:ss UTC` rather than a raw ISO-8601 instant), how many scenarios were listed, defined, and implemented in the last 7 and 30 days, and how many previously tracked scenarios are no longer seen in the current run.
 
 === Advancing History Only on Certain Branches
 
