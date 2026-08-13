@@ -1,8 +1,12 @@
 package com.arc_e_tect.gradle.doppelganger;
 
+import org.gradle.api.GradleException;
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
+import org.gradle.api.provider.Provider;
 import org.gradle.api.tasks.TaskProvider;
+
+import java.util.Locale;
 
 /**
  * Gradle plugin that registers the {@code detectDoppelgangerApis} task and wires the
@@ -30,6 +34,9 @@ import org.gradle.api.tasks.TaskProvider;
  *   <li>Fail on doppelganger APIs: {@code false}</li>
  *   <li>Report directory: {@code build/reports/doppelganger-api-detector}</li>
  *   <li>Report file name: {@code doppelganger-apis.adoc}</li>
+ *   <li>Track contract history: {@code false}</li>
+ *   <li>Contract history file: {@code doppelganger-api-detector-contract-history.ndjson} (project directory)</li>
+ *   <li>Update contract history: same as track contract history</li>
  * </ul>
  *
  * <p>The task is <strong>not</strong> wired into {@code check} or {@code build} automatically -
@@ -69,6 +76,21 @@ public class DoppelgangerApiDetectorPlugin implements Plugin<Project> {
         ext.getContractsDir().convention(project.getLayout().getProjectDirectory()
                 .dir(DoppelgangerApiDetectorExtension.DEFAULT_CONTRACTS_DIR));
 
+        ext.getTrackContractHistory().convention(false);
+        ext.getContractHistoryFile().convention(project.getLayout().getProjectDirectory()
+                .file(DoppelgangerApiDetectorExtension.DEFAULT_CONTRACT_HISTORY_FILE_NAME));
+        // updateContractHistory defaults to trackContractHistory's own value, tracking it live
+        // rather than snapshotting it at this point.
+        ext.getUpdateContractHistory().convention(ext.getTrackContractHistory());
+
+        // The -PdoppelgangerApiDetector.updateContractHistory=<true|false> project property, when
+        // set, overrides updateContractHistory for every project in the build - regardless of what
+        // any project's own extension configures - typically used to advance the committed history
+        // only from the branch(es) whose CI pipeline should, without touching the build script.
+        Provider<Boolean> updateContractHistoryCliOverride = project.getProviders()
+                .gradleProperty(DoppelgangerApiDetectorExtension.UPDATE_CONTRACT_HISTORY_OVERRIDE_PROPERTY)
+                .map(DoppelgangerApiDetectorPlugin::parseUpdateContractHistory);
+
         TaskProvider<DetectDoppelgangerApisTask> taskProvider =
                 project.getTasks().register(TASK_NAME, DetectDoppelgangerApisTask.class, task -> {
                     task.getControllerDirs().from(ext.getControllerDirs());
@@ -83,6 +105,10 @@ public class DoppelgangerApiDetectorPlugin implements Plugin<Project> {
                     task.getReportDir().set(ext.getReportDir());
                     task.getReportFileName().set(ext.getReportFileName());
                     task.getSystemUnderTestVersion().set(ext.getSystemUnderTestVersion());
+                    task.getTrackContractHistory().set(ext.getTrackContractHistory());
+                    task.getContractHistoryFile().set(ext.getContractHistoryFile());
+                    task.getUpdateContractHistory().set(
+                            updateContractHistoryCliOverride.orElse(ext.getUpdateContractHistory()));
                 });
 
         // Default controllerDirs/testDirs only when the user has not configured them themselves;
@@ -98,5 +124,23 @@ public class DoppelgangerApiDetectorPlugin implements Plugin<Project> {
                         .from(p.file(DoppelgangerApiDetectorExtension.DEFAULT_TEST_DIR)));
             }
         });
+    }
+
+    /**
+     * Parses the {@code -PdoppelgangerApiDetector.updateContractHistory=<value>} project property's
+     * value, accepting {@code true}/{@code false} case-insensitively.
+     */
+    private static boolean parseUpdateContractHistory(String value) {
+        String normalized = value.trim().toLowerCase(Locale.ROOT);
+        if ("true".equals(normalized)) {
+            return true;
+        }
+        if ("false".equals(normalized)) {
+            return false;
+        }
+        throw new GradleException(
+                "doppelgangerApiDetector: invalid value '" + value + "' for -P"
+                + DoppelgangerApiDetectorExtension.UPDATE_CONTRACT_HISTORY_OVERRIDE_PROPERTY
+                + "; expected 'true' or 'false'");
     }
 }

@@ -1,6 +1,8 @@
 package com.arc_e_tect.gradle.doppelganger.report;
 
 import com.arc_e_tect.gradle.detector.core.model.Endpoint;
+import com.arc_e_tect.gradle.detector.core.progress.ContractProgressRecord;
+import com.arc_e_tect.gradle.detector.core.progress.ContractProgressTableWriter;
 
 import java.io.File;
 import java.io.IOException;
@@ -29,11 +31,14 @@ public class DoppelgangerApiReportWriter {
     /** Classpath resource holding the "what is a doppelganger API" preamble, bundled with the plugin. */
     static final String PREAMBLE_RESOURCE = "doppelganger-api-preamble.adoc";
 
+    private final ContractProgressTableWriter progressTableWriter = new ContractProgressTableWriter();
+
     /** Creates a new {@code DoppelgangerApiReportWriter}. */
     public DoppelgangerApiReportWriter() {}
 
     /**
      * Writes the report to {@code outputFile}, creating its parent directory if necessary.
+     * Equivalent to {@link #write(File, int, List, String, Map)} with an empty contract history.
      *
      * @param outputFile             target AsciiDoc file
      * @param totalCandidateCount    total number of endpoints both declared and implemented, i.e.
@@ -45,6 +50,25 @@ public class DoppelgangerApiReportWriter {
     public void write(
             File outputFile, int totalCandidateCount, List<Endpoint> doppelgangers,
             String systemUnderTestVersion) throws IOException {
+        write(outputFile, totalCandidateCount, doppelgangers, systemUnderTestVersion, Map.of());
+    }
+
+    /**
+     * Writes the report to {@code outputFile}, creating its parent directory if necessary.
+     *
+     * @param outputFile             target AsciiDoc file
+     * @param totalCandidateCount    total number of endpoints both declared and implemented, i.e.
+     *                                the candidate pool checked for verification evidence
+     * @param doppelgangers          the candidate endpoints with no verification evidence
+     * @param systemUnderTestVersion version of the system under test that was scanned
+     * @param contractHistory        contract progress history to render as a {@code == Progress Over
+     *                                Time} section, keyed by fingerprint; when empty, no such
+     *                                section is written
+     * @throws IOException if the output file cannot be written
+     */
+    public void write(
+            File outputFile, int totalCandidateCount, List<Endpoint> doppelgangers,
+            String systemUnderTestVersion, Map<String, ContractProgressRecord> contractHistory) throws IOException {
         File parent = outputFile.getParentFile();
         if (parent != null && !parent.exists() && !parent.mkdirs()) {
             throw new IOException("Could not create output directory: " + parent);
@@ -68,6 +92,7 @@ public class DoppelgangerApiReportWriter {
             writer.println();
             writer.print(loadPreamble());
             writer.println();
+            progressTableWriter.write(writer, contractHistory);
             writer.println("== Doppelganger APIs");
             writer.println();
 
