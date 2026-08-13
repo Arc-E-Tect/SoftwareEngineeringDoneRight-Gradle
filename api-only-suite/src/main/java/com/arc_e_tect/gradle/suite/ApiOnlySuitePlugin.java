@@ -1,13 +1,17 @@
 package com.arc_e_tect.gradle.suite;
 
+import com.arc_e_tect.gradle.doppelganger.DetectDoppelgangerApisTask;
 import com.arc_e_tect.gradle.doppelganger.DoppelgangerApiDetectorExtension;
 import com.arc_e_tect.gradle.doppelganger.DoppelgangerApiDetectorPlugin;
+import com.arc_e_tect.gradle.mirage.DetectMirageApisTask;
 import com.arc_e_tect.gradle.mirage.MirageApiDetectorExtension;
 import com.arc_e_tect.gradle.mirage.MirageApiDetectorPlugin;
+import com.arc_e_tect.gradle.shadow.DetectShadowApisTask;
 import com.arc_e_tect.gradle.shadow.ShadowApiDetectorExtension;
 import com.arc_e_tect.gradle.shadow.ShadowApiDetectorPlugin;
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
+import org.gradle.api.tasks.TaskProvider;
 
 /**
  * Gradle plugin that applies the Shadow, Mirage, and Doppelganger API Detector plugins together,
@@ -47,6 +51,16 @@ import org.gradle.api.Project;
  *     dependsOn 'detectAllApiGaps'
  * }
  * </pre>
+ *
+ * <h2>{@code detectAllApiGaps} never fails the build on a detected gap</h2>
+ * <p>{@code detectAllApiGaps} always runs all three detectors to completion and never fails the
+ * build, regardless of {@code failOnShadow}/{@code failOnMirage}/{@code failOnDoppelganger}. It
+ * depends on three dedicated task instances - not {@code detectShadowApis}/{@code detectMirageApis}/
+ * {@code detectDoppelgangerApis} themselves - configured identically except with their own
+ * fail-on-gap property forced to {@code false}, so a shadow API found first can never prevent Mirage
+ * or Doppelganger from running. Run the individual {@code detectShadowApis}/{@code detectMirageApis}/
+ * {@code detectDoppelgangerApis} tasks directly (or wire them into {@code check} individually) when
+ * you want the build to actually fail on a detected gap.</p>
  */
 public class ApiOnlySuitePlugin implements Plugin<Project> {
 
@@ -72,13 +86,104 @@ public class ApiOnlySuitePlugin implements Plugin<Project> {
         project.getPluginManager().apply(MirageApiDetectorPlugin.class);
         project.getPluginManager().apply(DoppelgangerApiDetectorPlugin.class);
 
+        TaskProvider<DetectShadowApisTask> shadowForSuite = registerNonFailingShadowTask(project);
+        TaskProvider<DetectMirageApisTask> mirageForSuite = registerNonFailingMirageTask(project);
+        TaskProvider<DetectDoppelgangerApisTask> doppelgangerForSuite = registerNonFailingDoppelgangerTask(project);
+
         project.getTasks().register(TASK_NAME, task -> {
             task.setGroup("verification");
-            task.setDescription("Runs all three Arc-E-Tect API-Only detectors: Shadow, Mirage, and Doppelganger.");
-            task.dependsOn(
-                    ShadowApiDetectorPlugin.TASK_NAME,
-                    MirageApiDetectorPlugin.TASK_NAME,
-                    DoppelgangerApiDetectorPlugin.TASK_NAME);
+            task.setDescription("Runs all three Arc-E-Tect API-Only detectors: Shadow, Mirage, and Doppelganger. "
+                    + "Never fails the build on a detected gap, regardless of failOnShadow/failOnMirage/"
+                    + "failOnDoppelganger - run the individual tasks directly to enforce failure.");
+            task.dependsOn(shadowForSuite, mirageForSuite, doppelgangerForSuite);
+        });
+    }
+
+    /**
+     * Registers a {@code shadowApiGapsForSuite} task instance, wired identically to
+     * {@code detectShadowApis} except with {@code failOnShadow} forced to {@code false}, so that
+     * {@link #TASK_NAME} can depend on it without ever risking a build failure that would prevent
+     * Mirage and Doppelganger's own tasks from running.
+     *
+     * @param project the project {@link #apply(Project)} was called on
+     * @return the registered non-failing task
+     */
+    private TaskProvider<DetectShadowApisTask> registerNonFailingShadowTask(Project project) {
+        TaskProvider<DetectShadowApisTask> primary =
+                project.getTasks().named(ShadowApiDetectorPlugin.TASK_NAME, DetectShadowApisTask.class);
+        return project.getTasks().register("shadowApiGapsForSuite", DetectShadowApisTask.class, task -> {
+            DetectShadowApisTask source = primary.get();
+            task.getControllerDirs().from(source.getControllerDirs());
+            task.getRootDocument().set(source.getRootDocument());
+            task.getOpenApiDir().set(source.getOpenApiDir());
+            task.getFailOnShadow().set(false);
+            task.getReportDir().set(source.getReportDir());
+            task.getReportFileName().set(source.getReportFileName());
+            task.getSystemUnderTestVersion().set(source.getSystemUnderTestVersion());
+            task.getTrackContractHistory().set(source.getTrackContractHistory());
+            task.getContractHistoryFile().set(source.getContractHistoryFile());
+            task.getUpdateContractHistory().set(source.getUpdateContractHistory());
+        });
+    }
+
+    /**
+     * Registers a {@code mirageApiGapsForSuite} task instance, wired identically to
+     * {@code detectMirageApis} except with {@code failOnMirage} forced to {@code false}, so that
+     * {@link #TASK_NAME} can depend on it without ever risking a build failure that would prevent
+     * Shadow and Doppelganger's own tasks from running.
+     *
+     * @param project the project {@link #apply(Project)} was called on
+     * @return the registered non-failing task
+     */
+    private TaskProvider<DetectMirageApisTask> registerNonFailingMirageTask(Project project) {
+        TaskProvider<DetectMirageApisTask> primary =
+                project.getTasks().named(MirageApiDetectorPlugin.TASK_NAME, DetectMirageApisTask.class);
+        return project.getTasks().register("mirageApiGapsForSuite", DetectMirageApisTask.class, task -> {
+            DetectMirageApisTask source = primary.get();
+            task.getControllerDirs().from(source.getControllerDirs());
+            task.getScanMocks().set(source.getScanMocks());
+            task.getStubDirs().from(source.getStubDirs());
+            task.getRootDocument().set(source.getRootDocument());
+            task.getOpenApiDir().set(source.getOpenApiDir());
+            task.getFailOnMirage().set(false);
+            task.getReportDir().set(source.getReportDir());
+            task.getReportFileName().set(source.getReportFileName());
+            task.getSystemUnderTestVersion().set(source.getSystemUnderTestVersion());
+            task.getTrackContractHistory().set(source.getTrackContractHistory());
+            task.getContractHistoryFile().set(source.getContractHistoryFile());
+            task.getUpdateContractHistory().set(source.getUpdateContractHistory());
+        });
+    }
+
+    /**
+     * Registers a {@code doppelgangerApiGapsForSuite} task instance, wired identically to
+     * {@code detectDoppelgangerApis} except with {@code failOnDoppelganger} forced to {@code false},
+     * so that {@link #TASK_NAME} can depend on it without ever risking a build failure that would
+     * prevent Shadow and Mirage's own tasks from running.
+     *
+     * @param project the project {@link #apply(Project)} was called on
+     * @return the registered non-failing task
+     */
+    private TaskProvider<DetectDoppelgangerApisTask> registerNonFailingDoppelgangerTask(Project project) {
+        TaskProvider<DetectDoppelgangerApisTask> primary = project.getTasks()
+                .named(DoppelgangerApiDetectorPlugin.TASK_NAME, DetectDoppelgangerApisTask.class);
+        return project.getTasks().register("doppelgangerApiGapsForSuite", DetectDoppelgangerApisTask.class, task -> {
+            DetectDoppelgangerApisTask source = primary.get();
+            task.getControllerDirs().from(source.getControllerDirs());
+            task.getTestDirs().from(source.getTestDirs());
+            task.getRootDocument().set(source.getRootDocument());
+            task.getOpenApiDir().set(source.getOpenApiDir());
+            task.getContractsDir().set(source.getContractsDir());
+            task.getUseRestDocs().set(source.getUseRestDocs());
+            task.getUseOpenApiRequestValidator().set(source.getUseOpenApiRequestValidator());
+            task.getUseSpringCloudContract().set(source.getUseSpringCloudContract());
+            task.getFailOnDoppelganger().set(false);
+            task.getReportDir().set(source.getReportDir());
+            task.getReportFileName().set(source.getReportFileName());
+            task.getSystemUnderTestVersion().set(source.getSystemUnderTestVersion());
+            task.getTrackContractHistory().set(source.getTrackContractHistory());
+            task.getContractHistoryFile().set(source.getContractHistoryFile());
+            task.getUpdateContractHistory().set(source.getUpdateContractHistory());
         });
     }
 

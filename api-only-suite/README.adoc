@@ -148,7 +148,17 @@ shadowApiDetector {
 | `detectAllApiGaps`  | verification | Runs all three Arc-E-Tect API-Only detectors: Shadow, Mirage, and Doppelganger.
 |===
 
-`detectAllApiGaps` is a plain aggregate task with no logic of its own - it depends on `detectShadowApis`, `detectMirageApis`, and `detectDoppelgangerApis`, so a consumer who wants everything can run one task instead of three. Running any of the three individual tasks directly (`./gradlew detectShadowApis`, etc.) continues to work exactly as it does without this plugin.
+`detectAllApiGaps` is a plain aggregate task with no detection logic of its own - it lets a consumer who wants everything run one task instead of three. Running any of the three individual tasks directly (`./gradlew detectShadowApis`, etc.) continues to work exactly as it does without this plugin.
+
+[IMPORTANT]
+====
+**`detectAllApiGaps` never fails the build on a detected gap**, regardless of `failOnShadow`/`failOnMirage`/`failOnDoppelganger`.
+It depends on three dedicated task instances - not `detectShadowApis`/`detectMirageApis`/`detectDoppelgangerApis` themselves - wired identically except with their own fail-on-gap property forced to `false`.
+This is deliberate: without it, whichever detector happened to run first and find a gap would abort the whole task graph before the other two ever ran, silently hiding whatever they would have found - exactly the failure mode this task exists to avoid for a "run everything and see the full picture" workflow.
+Each of the three reports is still written normally either way.
+
+Run the individual `detectShadowApis`/`detectMirageApis`/`detectDoppelgangerApis` tasks directly - or wire them into `check` one at a time - when you actually want the build to fail on a detected gap.
+====
 
 The task is **not** wired into `check` or `build` automatically, for the same reason none of the three individual plugins are: teams generating their OpenAPI documentation from code, or migrating their tests onto one of Doppelganger's verification mechanisms gradually, would otherwise see every build fail immediately.
 
@@ -176,6 +186,8 @@ tasks.named("check") {
     dependsOn("detectAllApiGaps")
 }
 ----
+
+Since `detectAllApiGaps` never fails on a detected gap (see above), wiring it into `check` this way makes `check` regenerate all three reports as part of every build, but does *not* make `check` fail when a gap is found - wire the individual tasks into `check` instead if that's what you want.
 
 == Report output
 
