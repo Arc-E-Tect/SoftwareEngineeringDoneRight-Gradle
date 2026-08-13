@@ -1,3 +1,11 @@
+## [0.4.2](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/api-only-suite-v0.4.1...api-only-suite-v0.4.2) (2026-08-13)
+
+
+### 🐛 Bug Fixes
+
+* **ci:** api-only-suite release workflow now fires on sibling-only releases ([#134](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/134)) ([8416a51](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/8416a51d1bce45f735f16e67024a7469f1b16aea)), closes [#134](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/134)
+* renaming the history file path no longer leaves history-tracking tasks UP-TO-DATE ([#133](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/133)) ([9d7e7d6](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/9d7e7d653f207440acf61cd8fe6437707b48e7d2)), closes [#133](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/133)
+
 ## [0.4.1](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/api-only-suite-v0.4.0...api-only-suite-v0.4.1) (2026-08-13)
 
 
