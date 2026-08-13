@@ -255,6 +255,8 @@ Each line is printed once and never overwritten in place, so it plays back clean
 
 == Tracking Contract History
 
+NOTE: For a complete field-by-field reference to `contractHistoryFile` - its exact JSON schema, fingerprint algorithm, lifecycle semantics, and guidance for building tooling (including a visualization UI) around it - see link:docs/contract-history-file-format.adoc[Contract History File Format].
+
 Setting `trackContractHistory = true` persists, across builds, a history of when each endpoint first reached each stage of its contract lifecycle - declared, implemented, verified.
 The history is keyed by a fingerprint of the endpoint's own HTTP verb and path, not by which plugin observed it, so Shadow, Mirage, and Doppelganger API Detector can all advance the *same* record when pointed at the same `contractHistoryFile` - useful if you run more than one of these plugins against the same API.
 Doppelganger API Detector is the only one of the three plugins that always has evidence for all three stages - `declared` from the OpenAPI documentation, `implemented` from the scanned `@RestController` classes, and `verified` from whichever contract verification sources are enabled (an empty list when every source is disabled, still distinct from offering no evidence at all).
