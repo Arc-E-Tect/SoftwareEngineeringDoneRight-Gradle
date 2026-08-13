@@ -1001,6 +1001,8 @@ feature/glue content.
 
 == Tracking Progress History
 
+NOTE: For a complete field-by-field reference to `progressHistoryFile` - its exact JSON schema, fingerprint algorithm, lifecycle semantics, and guidance for building tooling (including a visualization UI) around it - see link:docs/progress-history-file-format.adoc[Progress History File Format].
+
 Setting `trackProgressHistory = true` (in addition to `trackProgress = true`) persists, across builds, a per-scenario history of when each scenario first reached `listed`, `defined`, and `implemented` status.
 The history is keyed by a fingerprint of the scenario's own name, not by which feature file it lives in, so it survives a scenario being moved between feature files.
 The plugin itself has no dependency on git or any other version control system - branch-based control over when to advance the history (e.g. "only on `main`") is entirely a CI concern, expressed through `updateProgressHistory`.
