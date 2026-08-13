@@ -86,9 +86,93 @@ jobs:
     secrets:
       sem_rel_token_token: ${{ secrets.SEMANTIC_RELEASE_TOKEN }}
 
+  Wait-For-Sibling-Releases:
+    name: Wait for sibling detector plugin releases
+    needs: Calculate-Version
+    if: ${{ needs.Calculate-Version.outputs.next_version != '' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0
+
+      - name: Wait for any sibling detector plugin whose own release this push also triggers
+        # api-only-suite pulls shadow/mirage/doppelganger-api-detector in as subprojects and the
+        # Publish job below resolves their real released version from git tags. Each sibling's own
+        # release workflow is triggered by this very same push, in parallel, with no ordering
+        # between the four release workflows - so when a single commit bumps api-only-suite
+        # together with one or more siblings, tag resolution can run before that sibling's own
+        # release has tagged its new version, silently pinning api-only-suite to the sibling's
+        # previous (stale) version. This happened for real: api-only-suite 0.2.0 was published
+        # referencing shadow-api-detector 1.2.0 and mirage-api-detector 0.2.0 instead of the 1.3.0/
+        # 0.3.0 that same push actually released, because this job didn't exist yet.
+        #
+        # Detect - from the files this push actually touched - which sibling release workflows it
+        # also triggered, and block on each of those finishing successfully before Publish resolves
+        # sibling versions from tags. Deliberately coarser than each sibling's own path filters
+        # (any change under `<sibling>/`, not just the specific globs that workflow reacts to): a
+        # false-positive wait costs a little time, a false-negative reintroduces the race.
+        env:
+          GH_TOKEN: ${{ secrets.SEDR_AUTOMATION_TOKEN }}
+        run: |
+          set -euo pipefail
+          BEFORE="${{ github.event.before }}"
+          SHA="${{ github.sha }}"
+          if [[ -z "$BEFORE" || "$BEFORE" =~ ^0+$ ]]; then
+            CHANGED_FILES=$(git diff --name-only "$(git hash-object -t tree /dev/null)" "$SHA")
+          else
+            CHANGED_FILES=$(git diff --name-only "$BEFORE" "$SHA")
+          fi
+
+          declare -A SIBLING_WORKFLOWS=(
+            [shadow-api-detector]="Shadow API Detector Plugin - Release"
+            [mirage-api-detector]="Mirage API Detector Plugin - Release"
+            [doppelganger-api-detector]="Doppelganger API Detector Plugin - Release"
+          )
+
+          TIMEOUT_SECONDS=1200
+          INTERVAL_SECONDS=20
+
+          for DIR in "${!SIBLING_WORKFLOWS[@]}"; do
+            if ! grep -q "^${DIR}/" <<< "$CHANGED_FILES"; then
+              echo "This push did not touch ${DIR}/ - not waiting on its release workflow."
+              continue
+            fi
+
+            WF="${SIBLING_WORKFLOWS[$DIR]}"
+            echo "This push touched ${DIR}/ - waiting for '$WF' to finish for commit $SHA..."
+            ELAPSED=0
+            while :; do
+              RUN_JSON=$(gh run list --workflow "$WF" --json headSha,status,conclusion \
+                -q "[.[] | select(.headSha == \"$SHA\")][0]")
+              STATUS=$(jq -r '.status // empty' <<< "$RUN_JSON")
+              CONCLUSION=$(jq -r '.conclusion // empty' <<< "$RUN_JSON")
+
+              if [[ "$STATUS" == "completed" ]]; then
+                if [[ "$CONCLUSION" != "success" ]]; then
+                  echo "::error::'$WF' finished with conclusion '$CONCLUSION' for $SHA - aborting api-only-suite release rather than resolving a sibling version from a failed or incomplete run."
+                  exit 1
+                fi
+                echo "'$WF' completed successfully."
+                break
+              fi
+
+              if (( ELAPSED >= TIMEOUT_SECONDS )); then
+                echo "::error::Timed out after ${TIMEOUT_SECONDS}s waiting for '$WF' to finish for $SHA (last status: '${STATUS:-not started}'). Re-run this workflow once it has completed."
+                exit 1
+              fi
+
+              echo "'$WF' status: '${STATUS:-not started yet}' - waiting ${INTERVAL_SECONDS}s..."
+              sleep "$INTERVAL_SECONDS"
+              ELAPSED=$((ELAPSED + INTERVAL_SECONDS))
+            done
+          done
+
   Publish:
     name: Publish API-Only Suite Plugin to Gradle Portal
-    needs: [Calculate-Version, Release-Plugin]
+    needs: [Calculate-Version, Release-Plugin, Wait-For-Sibling-Releases]
     if: ${{ needs.Calculate-Version.outputs.next_version != '' }}
     runs-on: ubuntu-latest
 
@@ -166,7 +250,7 @@ jobs:
 
   Workflow-Summary:
     name: Workflow Summary
-    needs: [Build, Publish, Release-Plugin, Determine-Release-Type]
+    needs: [Build, Publish, Release-Plugin, Wait-For-Sibling-Releases, Determine-Release-Type]
     if: always()
     runs-on: ubuntu-latest
     steps:

@@ -20,6 +20,14 @@ import org.gradle.api.Project;
  * plugin's point of view, from a consumer applying it directly. None of the three plugins was
  * modified to support being applied this way.</p>
  *
+ * <p>Applying this plugin pulls in whatever version of each of the three detector plugins was the
+ * latest published one at the time this suite's own version was released - not necessarily each
+ * plugin's current latest, since a consumer only re-resolves it by upgrading the suite itself. The
+ * release pipeline resolves each sibling's real published version from its own release tags
+ * immediately before publishing this plugin, and - since Aug 2026 - waits for any sibling release
+ * this same push also triggers to finish first, so this suite is never published pinned to a
+ * sibling version older than what that same change actually released.</p>
+ *
  * <h2>Usage</h2>
  * <pre>
  * plugins {
