@@ -134,6 +134,41 @@ class DetectShadowApisTaskTest {
     }
 
     @Test
+    @DisplayName("persists contract history to contractHistoryFile and reports it when trackContractHistory is true")
+    void persistsAndReportsContractHistoryWhenTrackContractHistoryIsTrue() throws Exception {
+        File historyFile = new File(tempDir.toFile(), "contract-history.ndjson");
+        DetectShadowApisTask task = configuredTask(openApiFixture("both-endpoints.yaml"), false);
+        task.getTrackContractHistory().set(true);
+        task.getContractHistoryFile().set(historyFile);
+        task.getUpdateContractHistory().set(true);
+
+        task.generate();
+
+        assertThat(historyFile).exists();
+        String historyContent = Files.readString(historyFile.toPath());
+        assertThat(historyContent).contains("\"declaredAt\"").contains("\"implementedAt\"");
+
+        String reportContent = Files.readString(new File(reportDir, "shadow-apis.adoc").toPath());
+        assertThat(reportContent).contains("== Progress Over Time").contains("Tracked since");
+    }
+
+    @Test
+    @DisplayName("reads but does not write contractHistoryFile when updateContractHistory is false")
+    void doesNotWriteContractHistoryFileWhenUpdateContractHistoryIsFalse() throws Exception {
+        File historyFile = new File(tempDir.toFile(), "contract-history.ndjson");
+        DetectShadowApisTask task = configuredTask(openApiFixture("both-endpoints.yaml"), false);
+        task.getTrackContractHistory().set(true);
+        task.getContractHistoryFile().set(historyFile);
+        task.getUpdateContractHistory().set(false);
+
+        task.generate();
+
+        assertThat(historyFile).doesNotExist();
+        String reportContent = Files.readString(new File(reportDir, "shadow-apis.adoc").toPath());
+        assertThat(reportContent).contains("== Progress Over Time");
+    }
+
+    @Test
     @DisplayName("emits at least one progress line while scanning more than one controller file")
     void emitsProgressLineWhileScanningMultipleControllerFiles() throws Exception {
         Files.writeString(controllerDir.toPath().resolve("OrderController.java"), """
@@ -161,6 +196,7 @@ class DetectShadowApisTaskTest {
         task.getReportFileName().set("shadow-apis.adoc");
         task.getFailOnShadow().set(false);
         task.getSystemUnderTestVersion().set("1.0.0");
+        task.getTrackContractHistory().set(false);
 
         task.generate();
 
@@ -198,7 +234,9 @@ class DetectShadowApisTaskTest {
     }
 
     private DetectShadowApisTask newTask() {
-        return project.getTasks().create("detectShadowApisUnderTest", DetectShadowApisTask.class);
+        DetectShadowApisTask task = project.getTasks().create("detectShadowApisUnderTest", DetectShadowApisTask.class);
+        task.getTrackContractHistory().set(false);
+        return task;
     }
 
     private File openApiFixture(String name) throws Exception {

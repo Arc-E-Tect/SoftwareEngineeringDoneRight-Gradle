@@ -2,6 +2,7 @@ package com.arc_e_tect.gradle.mirage.report;
 
 import com.arc_e_tect.gradle.detector.core.model.HttpVerb;
 import com.arc_e_tect.gradle.detector.core.openapi.DescribedEndpoint;
+import com.arc_e_tect.gradle.detector.core.progress.ContractProgressRecord;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -9,7 +10,9 @@ import org.junit.jupiter.api.io.TempDir;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -189,5 +192,33 @@ class MirageApiReportWriterTest {
         }
 
         assertThat(content).contains(preamble);
+    }
+
+    @Test
+    @DisplayName("omits the Progress Over Time section when contract history is empty")
+    void omitsProgressOverTimeSectionWhenHistoryIsEmpty(@TempDir Path tempDir) throws Exception {
+        File output = new File(tempDir.toFile(), "report.adoc");
+
+        writer.write(output, 0, List.of(), "1.0.0", false, Map.of());
+
+        assertThat(Files.readString(output.toPath())).doesNotContain("Progress Over Time");
+    }
+
+    @Test
+    @DisplayName("adds a Progress Over Time section with a human-friendly Tracked since when contract history is non-empty")
+    void addsProgressOverTimeSectionWhenHistoryIsNonEmpty(@TempDir Path tempDir) throws Exception {
+        File output = new File(tempDir.toFile(), "report.adoc");
+        Map<String, ContractProgressRecord> history = Map.of("fp1", new ContractProgressRecord(
+                "fp1", HttpVerb.GET, "/orders/{id}", "com.example.OrderController",
+                Instant.parse("2026-01-14T09:02:11Z"), Instant.parse("2026-02-20T11:15:44Z"), null,
+                Instant.parse("2026-02-20T11:15:44Z"), null));
+
+        writer.write(output, 0, List.of(), "1.0.0", false, history);
+
+        String content = Files.readString(output.toPath());
+        assertThat(content)
+                .contains("== Progress Over Time")
+                .contains("2026-01-14 09:02:11 UTC")
+                .doesNotContain("2026-01-14T09:02:11Z");
     }
 }

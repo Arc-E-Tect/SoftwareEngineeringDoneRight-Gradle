@@ -159,6 +159,21 @@ doppelgangerApiDetector {
     // the top of the generated report (see "System Under Test Version" below).
     // Default: the project's own `version`
     // systemUnderTestVersion = 'v1.0.0'
+
+    // Persists a per-endpoint history of when each endpoint first reached declared/implemented/
+    // verified status (see "Tracking Contract History" below).
+    // Default: false
+    trackContractHistory = false
+
+    // NDJSON file the history is read from/written to. Defaults into the project directory
+    // (not build/), since it's meant to be committed.
+    // Default: file('doppelganger-api-detector-contract-history.ndjson')
+    // contractHistoryFile = file('doppelganger-api-detector-contract-history.ndjson')
+
+    // When true, contractHistoryFile is written back to disk. Only consulted when
+    // trackContractHistory is true; the file is always read either way.
+    // Default: same as trackContractHistory
+    // updateContractHistory = true
 }
 ----
 
@@ -173,6 +188,9 @@ doppelgangerApiDetector {
     reportDir.set(layout.buildDirectory.dir("reports/doppelganger-api-detector"))
     reportFileName.set("doppelganger-apis.adoc")
     // systemUnderTestVersion.set("v1.0.0")
+    trackContractHistory.set(false)
+    // contractHistoryFile.set(file("doppelganger-api-detector-contract-history.ndjson"))
+    // updateContractHistory.set(true)
 }
 ----
 
@@ -234,6 +252,36 @@ The total phase count reflects only the verification sources actually enabled an
 This is plain log output, not an animated progress indicator.
 The plugin deliberately avoids Gradle's internal, unsupported console/progress APIs, since their shape can change between Gradle versions and this plugin is published on the Gradle Plugin Portal for consumers on Gradle versions this project doesn't control.
 Each line is printed once and never overwritten in place, so it plays back cleanly in CI logs as well as an interactive terminal.
+
+== Tracking Contract History
+
+Setting `trackContractHistory = true` persists, across builds, a history of when each endpoint first reached each stage of its contract lifecycle - declared, implemented, verified.
+The history is keyed by a fingerprint of the endpoint's own HTTP verb and path, not by which plugin observed it, so Shadow, Mirage, and Doppelganger API Detector can all advance the *same* record when pointed at the same `contractHistoryFile` - useful if you run more than one of these plugins against the same API.
+Doppelganger API Detector is the only one of the three plugins that always has evidence for all three stages - `declared` from the OpenAPI documentation, `implemented` from the scanned `@RestController` classes, and `verified` from whichever contract verification sources are enabled (an empty list when every source is disabled, still distinct from offering no evidence at all).
+The plugin itself has no dependency on git or any other version control system - branch-based control over when to advance the history (e.g. "only on `main`") is entirely a CI concern, expressed through `updateContractHistory`.
+
+[cols="1,1,1,3",options="header"]
+|===
+| Property                | Type    | Default                                                    | Description
+| `trackContractHistory`  | Boolean | `false`                                                    | When `true`, loads, advances, and reports from a persisted contract progress history file.
+| `contractHistoryFile`   | File    | `doppelganger-api-detector-contract-history.ndjson` (project directory) | The NDJSON file the history is read from and, when `updateContractHistory` is `true`, written back to.
+Deliberately defaults into the project directory, not `build/`, since it's meant to be committed. Only consulted when `trackContractHistory` is `true`.
+| `updateContractHistory` | Boolean | same as `trackContractHistory`                             | When `true`, `contractHistoryFile` is written back to disk after being updated with the current run's endpoints.
+The file is always *read* when `trackContractHistory` is `true`, regardless of this property - so the generated report always reflects the up-to-date history, whether or not this run persists it. Overridable for the whole build via the `-PdoppelgangerApiDetector.updateContractHistory` project property.
+|===
+
+`contractHistoryFile` is newline-delimited JSON (NDJSON) - one line per endpoint - sorted by fingerprint so that git diffs stay minimal and stable:
+
+[source,json]
+----
+{"fingerprint":"a1f3c9d0e21b7f44","verb":"GET","path":"/orders/{id}","declaringClass":"com.example.OrderController","declaredAt":"2026-01-14T09:02:11Z","implementedAt":"2026-02-20T11:15:44Z","verifiedAt":"2026-03-01T10:00:00Z","lastSeenAt":"2026-08-12T07:00:00Z","removedAt":null}
+----
+
+A missing `contractHistoryFile` is treated as an empty history, not an error.
+A line that fails to parse (e.g. hand-edited into something invalid) is skipped with a `WARNING`-level `java.util.logging` message identifying its line number; it never fails the build.
+A previously persisted record whose fingerprint is no longer present in the current scan is *never deleted* - it's kept exactly as it was, except its `removedAt` is stamped the first time it goes missing.
+
+The generated report reflects the loaded (and possibly just-advanced) history as a `== Progress Over Time` section, once `trackContractHistory` finds at least one record: a human-friendly `Tracked since` timestamp, how many endpoints were declared/implemented/verified in the last 7 and 30 days, and how many previously tracked endpoints are no longer seen in the current run.
 
 == System Under Test Version
 

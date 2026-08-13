@@ -150,6 +150,42 @@ class DetectDoppelgangerApisTaskTest {
     }
 
     @Test
+    @DisplayName("persists contract history to contractHistoryFile and reports it when trackContractHistory is true")
+    void persistsAndReportsContractHistoryWhenTrackContractHistoryIsTrue() throws Exception {
+        File historyFile = new File(tempDir.toFile(), "contract-history.ndjson");
+        DetectDoppelgangerApisTask task = configuredTask(openApiFixture("both-endpoints.yaml"), false);
+        task.getTrackContractHistory().set(true);
+        task.getContractHistoryFile().set(historyFile);
+        task.getUpdateContractHistory().set(true);
+
+        task.generate();
+
+        assertThat(historyFile).exists();
+        String historyContent = Files.readString(historyFile.toPath());
+        assertThat(historyContent)
+                .contains("\"declaredAt\"").contains("\"implementedAt\"").contains("\"verifiedAt\"");
+
+        String reportContent = Files.readString(new File(reportDir, "doppelganger-apis.adoc").toPath());
+        assertThat(reportContent).contains("== Progress Over Time").contains("Tracked since");
+    }
+
+    @Test
+    @DisplayName("reads but does not write contractHistoryFile when updateContractHistory is false")
+    void doesNotWriteContractHistoryFileWhenUpdateContractHistoryIsFalse() throws Exception {
+        File historyFile = new File(tempDir.toFile(), "contract-history.ndjson");
+        DetectDoppelgangerApisTask task = configuredTask(openApiFixture("both-endpoints.yaml"), false);
+        task.getTrackContractHistory().set(true);
+        task.getContractHistoryFile().set(historyFile);
+        task.getUpdateContractHistory().set(false);
+
+        task.generate();
+
+        assertThat(historyFile).doesNotExist();
+        String reportContent = Files.readString(new File(reportDir, "doppelganger-apis.adoc").toPath());
+        assertThat(reportContent).contains("== Progress Over Time");
+    }
+
+    @Test
     @DisplayName("runs correctly when a controller source file does not compile")
     void runsCorrectlyAgainstNonCompilingControllerSource() throws Exception {
         Files.writeString(controllerDir.toPath().resolve("BrokenController.java"), "this is not java { {{ }}}}}");
@@ -210,6 +246,7 @@ class DetectDoppelgangerApisTaskTest {
         task.getUseOpenApiRequestValidator().set(false);
         task.getUseSpringCloudContract().set(false);
         task.getSystemUnderTestVersion().set("1.0.0");
+        task.getTrackContractHistory().set(false);
 
         task.generate();
 
@@ -238,7 +275,10 @@ class DetectDoppelgangerApisTaskTest {
     }
 
     private DetectDoppelgangerApisTask newTask() {
-        return project.getTasks().create("detectDoppelgangerApisUnderTest", DetectDoppelgangerApisTask.class);
+        DetectDoppelgangerApisTask task =
+                project.getTasks().create("detectDoppelgangerApisUnderTest", DetectDoppelgangerApisTask.class);
+        task.getTrackContractHistory().set(false);
+        return task;
     }
 
     private File openApiFixture(String name) throws Exception {

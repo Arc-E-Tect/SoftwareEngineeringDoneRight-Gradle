@@ -128,6 +128,41 @@ class DetectMirageApisTaskTest {
     }
 
     @Test
+    @DisplayName("persists contract history to contractHistoryFile and reports it when trackContractHistory is true")
+    void persistsAndReportsContractHistoryWhenTrackContractHistoryIsTrue() throws Exception {
+        File historyFile = new File(tempDir.toFile(), "contract-history.ndjson");
+        DetectMirageApisTask task = configuredTask(openApiFixture("both-endpoints.yaml"), false);
+        task.getTrackContractHistory().set(true);
+        task.getContractHistoryFile().set(historyFile);
+        task.getUpdateContractHistory().set(true);
+
+        task.generate();
+
+        assertThat(historyFile).exists();
+        String historyContent = Files.readString(historyFile.toPath());
+        assertThat(historyContent).contains("\"declaredAt\"").contains("\"implementedAt\"");
+
+        String reportContent = Files.readString(new File(reportDir, "mirage-apis.adoc").toPath());
+        assertThat(reportContent).contains("== Progress Over Time").contains("Tracked since");
+    }
+
+    @Test
+    @DisplayName("reads but does not write contractHistoryFile when updateContractHistory is false")
+    void doesNotWriteContractHistoryFileWhenUpdateContractHistoryIsFalse() throws Exception {
+        File historyFile = new File(tempDir.toFile(), "contract-history.ndjson");
+        DetectMirageApisTask task = configuredTask(openApiFixture("both-endpoints.yaml"), false);
+        task.getTrackContractHistory().set(true);
+        task.getContractHistoryFile().set(historyFile);
+        task.getUpdateContractHistory().set(false);
+
+        task.generate();
+
+        assertThat(historyFile).doesNotExist();
+        String reportContent = Files.readString(new File(reportDir, "mirage-apis.adoc").toPath());
+        assertThat(reportContent).contains("== Progress Over Time");
+    }
+
+    @Test
     @DisplayName("scans WireMock stubs instead of controllers when scanMocks is true")
     void scansStubsInsteadOfControllersWhenScanMocksTrue() throws Exception {
         File stubDir = new File(tempDir.toFile(), "src/test/resources/mappings");
@@ -222,6 +257,7 @@ class DetectMirageApisTaskTest {
         task.getReportFileName().set("mirage-apis.adoc");
         task.getFailOnMirage().set(false);
         task.getSystemUnderTestVersion().set("1.0.0");
+        task.getTrackContractHistory().set(false);
 
         task.generate();
 
@@ -248,7 +284,9 @@ class DetectMirageApisTaskTest {
     }
 
     private DetectMirageApisTask newTask() {
-        return project.getTasks().create("detectMirageApisUnderTest", DetectMirageApisTask.class);
+        DetectMirageApisTask task = project.getTasks().create("detectMirageApisUnderTest", DetectMirageApisTask.class);
+        task.getTrackContractHistory().set(false);
+        return task;
     }
 
     private File openApiFixture(String name) throws Exception {

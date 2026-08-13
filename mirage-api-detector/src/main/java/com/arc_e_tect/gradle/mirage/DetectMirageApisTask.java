@@ -4,6 +4,9 @@ import com.arc_e_tect.gradle.detector.core.console.ScanProgressReporter;
 import com.arc_e_tect.gradle.detector.core.model.Endpoint;
 import com.arc_e_tect.gradle.detector.core.openapi.DescribedEndpoint;
 import com.arc_e_tect.gradle.detector.core.openapi.OpenApiEndpointCollector;
+import com.arc_e_tect.gradle.detector.core.progress.ContractHistoryStore;
+import com.arc_e_tect.gradle.detector.core.progress.ContractHistoryUpdater;
+import com.arc_e_tect.gradle.detector.core.progress.ContractProgressRecord;
 import com.arc_e_tect.gradle.detector.core.scan.ControllerScanner;
 import com.arc_e_tect.gradle.mirage.detect.MirageApiFinder;
 import com.arc_e_tect.gradle.mirage.report.MirageApiReportWriter;
@@ -18,6 +21,7 @@ import org.gradle.api.tasks.Input;
 import org.gradle.api.tasks.InputDirectory;
 import org.gradle.api.tasks.InputFile;
 import org.gradle.api.tasks.InputFiles;
+import org.gradle.api.tasks.Internal;
 import org.gradle.api.tasks.Optional;
 import org.gradle.api.tasks.OutputDirectory;
 import org.gradle.api.tasks.PathSensitive;
@@ -28,8 +32,10 @@ import org.gradle.work.DisableCachingByDefault;
 import javax.inject.Inject;
 import java.io.File;
 import java.io.IOException;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Gradle task that parses the configured OpenAPI documentation, compares the operations it
@@ -127,6 +133,38 @@ public abstract class DetectMirageApisTask extends DefaultTask {
     public abstract Property<String> getSystemUnderTestVersion();
 
     /**
+     * Whether to persist, across builds, a history of when each endpoint first reached each stage
+     * of its contract lifecycle - declared, implemented, verified.
+     *
+     * @return mutable boolean property controlling whether contract progress history is tracked
+     */
+    @Input
+    public abstract Property<Boolean> getTrackContractHistory();
+
+    /**
+     * File that the persisted contract progress history is read from and, when
+     * {@link #getUpdateContractHistory()} is {@code true}, written back to. Deliberately not
+     * declared as an {@code @InputFile}/{@code @OutputFile}: the file legitimately may not exist yet
+     * (treated as an empty history, not an error) and is only conditionally written back, so it's
+     * read and written directly in {@link #generate()} instead of through Gradle's up-to-date
+     * checking.
+     *
+     * @return mutable file property for the contract history file
+     */
+    @Internal
+    public abstract RegularFileProperty getContractHistoryFile();
+
+    /**
+     * Whether {@link #getContractHistoryFile()} is written back to disk after being updated with the
+     * current run's endpoints. Only consulted when {@link #getTrackContractHistory()} is
+     * {@code true}; the history file is always read regardless.
+     *
+     * @return mutable boolean property controlling whether the contract history file is written back
+     */
+    @Input
+    public abstract Property<Boolean> getUpdateContractHistory();
+
+    /**
      * Creates the task. Instantiated by Gradle infrastructure via {@link javax.inject.Inject}.
      */
     @Inject
@@ -160,11 +198,14 @@ public abstract class DetectMirageApisTask extends DefaultTask {
 
         List<DescribedEndpoint> mirages = new MirageApiFinder().findMirages(described, endpoints);
 
+        Map<String, ContractProgressRecord> contractHistory = getTrackContractHistory().get()
+                ? updateContractHistory(endpoints, described) : Map.of();
+
         File outputDir = getReportDir().getAsFile().get();
         File outputFile = new File(outputDir, getReportFileName().get());
         try {
-            new MirageApiReportWriter().write(
-                    outputFile, described.size(), mirages, getSystemUnderTestVersion().get(), scanMocks);
+            new MirageApiReportWriter().write(outputFile, described.size(), mirages,
+                    getSystemUnderTestVersion().get(), scanMocks, contractHistory);
         } catch (IOException e) {
             throw new GradleException("mirageApiDetector: failed to write report to " + outputFile, e);
         }
@@ -180,6 +221,27 @@ public abstract class DetectMirageApisTask extends DefaultTask {
                     + " mirage API(s) described in the OpenAPI documentation but not " + evidenceNoun
                     + ". See " + outputFile);
         }
+    }
+
+    /**
+     * Loads the persisted contract progress history, advances it with the current run's implemented
+     * (controller- or stub-derived) and declared endpoints (Mirage API Detector never has
+     * verification evidence to offer), and - only when {@link #getUpdateContractHistory()} resolves
+     * to {@code true} - saves it back. The history file is always read regardless of
+     * {@link #getUpdateContractHistory()}, so the generated report reflects the up-to-date-in-memory
+     * history even on a run that doesn't persist it.
+     */
+    private Map<String, ContractProgressRecord> updateContractHistory(
+            List<Endpoint> implementedNow, List<DescribedEndpoint> declaredNow) {
+        File historyFile = getContractHistoryFile().getAsFile().get();
+        ContractHistoryStore store = new ContractHistoryStore();
+        Map<String, ContractProgressRecord> previous = store.load(historyFile);
+        Map<String, ContractProgressRecord> updated =
+                new ContractHistoryUpdater().update(previous, implementedNow, declaredNow, null, Instant.now());
+        if (getUpdateContractHistory().get()) {
+            store.save(historyFile, updated.values());
+        }
+        return updated;
     }
 
     private List<Endpoint> scanControllers() {

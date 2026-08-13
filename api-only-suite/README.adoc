@@ -79,21 +79,46 @@ apiOnlySuite {
 }
 ----
 
-**This extension is not a full proxy** for the three underlying plugins - it exists for the common case, not to duplicate every property from `shadowApiDetector`, `mirageApiDetector`, and `doppelgangerApiDetector`. Anything not exposed here - `failOnShadow`/`failOnMirage`/`failOnDoppelganger`, `reportDir`, `reportFileName`, Doppelganger's `testDirs`/`contractsDir`/`useRestDocs`/etc., `systemUnderTestVersion` - must be configured directly on the individual plugin's own extension block:
+**This extension is not a full proxy** for the three underlying plugins - it exists for the common case, not to duplicate every property from `shadowApiDetector`, `mirageApiDetector`, and `doppelgangerApiDetector`. Anything not exposed here - `failOnShadow`/`failOnMirage`/`failOnDoppelganger`, `reportDir`, `reportFileName`, Doppelganger's `testDirs`/`contractsDir`/`useRestDocs`/etc., `systemUnderTestVersion`, and each plugin's own `trackContractHistory`/`contractHistoryFile`/`updateContractHistory` (see each plugin's own "Tracking Contract History" section) - must be configured directly on the individual plugin's own extension block:
 
 [source,groovy]
 ----
 shadowApiDetector {
     failOnShadow = true
+    trackContractHistory = true
 }
 
 mirageApiDetector {
     failOnMirage = true
+    trackContractHistory = true
 }
 
 doppelgangerApiDetector {
     failOnDoppelganger = true
     useSpringCloudContract = false
+    trackContractHistory = true
+}
+----
+
+Since contract history is keyed by a fingerprint of an endpoint's HTTP verb and path rather than by which plugin observed it, pointing all three plugins' `contractHistoryFile` at the *same* file lets them share one unified history - each run fills in whichever stages that particular plugin has evidence for (Shadow/Mirage: declared and implemented; Doppelganger: all three, including verified):
+
+[source,groovy]
+----
+def sharedHistory = file('contract-history.ndjson')
+
+shadowApiDetector {
+    trackContractHistory = true
+    contractHistoryFile = sharedHistory
+}
+
+mirageApiDetector {
+    trackContractHistory = true
+    contractHistoryFile = sharedHistory
+}
+
+doppelgangerApiDetector {
+    trackContractHistory = true
+    contractHistoryFile = sharedHistory
 }
 ----
 

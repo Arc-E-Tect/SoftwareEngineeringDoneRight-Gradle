@@ -17,8 +17,15 @@ import org.gradle.api.provider.Property;
  *     reportDir      = layout.buildDirectory.dir('reports/shadow-api-detector') // default
  *     reportFileName = 'shadow-apis.adoc'                                     // default
  *     // systemUnderTestVersion = 'v1.0.0'          // optional; default: project.version
+ *     trackContractHistory  = false                                           // default
+ *     // contractHistoryFile = file('shadow-api-detector-contract-history.ndjson') // default
+ *     updateContractHistory = trackContractHistory                            // default; see getUpdateContractHistory()
  * }
  * </pre>
+ *
+ * <p>{@code updateContractHistory} can be overridden for the whole build from the command line,
+ * e.g. {@code -PshadowApiDetector.updateContractHistory=true} - see
+ * {@link #getUpdateContractHistory()}.</p>
  */
 public abstract class ShadowApiDetectorExtension {
 
@@ -33,6 +40,17 @@ public abstract class ShadowApiDetectorExtension {
 
     /** Default name of the generated AsciiDoc report file. */
     public static final String DEFAULT_REPORT_FILE_NAME = "shadow-apis.adoc";
+
+    /** Default name of the persisted contract progress history file. */
+    public static final String DEFAULT_CONTRACT_HISTORY_FILE_NAME = "shadow-api-detector-contract-history.ndjson";
+
+    /**
+     * Name of the Gradle project property that overrides {@link #getUpdateContractHistory()} from
+     * the command line for every project in the build, e.g.
+     * {@code -PshadowApiDetector.updateContractHistory=true}. Takes precedence over any project's
+     * own configured {@code updateContractHistory} value. The value is parsed as a boolean.
+     */
+    public static final String UPDATE_CONTRACT_HISTORY_OVERRIDE_PROPERTY = "shadowApiDetector.updateContractHistory";
 
     /**
      * Directories to search recursively for {@code @RestController} classes. One or more
@@ -94,4 +112,47 @@ public abstract class ShadowApiDetectorExtension {
      * @return mutable string property for the system-under-test version
      */
     public abstract Property<String> getSystemUnderTestVersion();
+
+    /**
+     * Whether to persist, across builds, a history of when each endpoint first reached each stage
+     * of its contract lifecycle - declared, implemented, verified - keyed by a fingerprint of its
+     * HTTP verb and path so the history is shared correctly with Mirage and Doppelganger API
+     * Detector when they're pointed at the same {@link #getContractHistoryFile()}. Defaults to
+     * {@code false}.
+     *
+     * <p>The history file configured via {@link #getContractHistoryFile()} is always read when this
+     * property is {@code true}, regardless of {@link #getUpdateContractHistory()}.</p>
+     *
+     * @return mutable boolean property controlling whether contract progress history is tracked
+     */
+    public abstract Property<Boolean> getTrackContractHistory();
+
+    /**
+     * File that the persisted contract progress history is read from and, when
+     * {@link #getUpdateContractHistory()} is {@code true}, written back to. Defaults to
+     * {@value #DEFAULT_CONTRACT_HISTORY_FILE_NAME} directly in the project directory - deliberately
+     * not under {@code build/}, since this file is meant to be committed to version control so the
+     * history survives across checkouts. Only consulted when {@link #getTrackContractHistory()} is
+     * {@code true}.
+     *
+     * @return mutable file property for the contract history file
+     */
+    public abstract RegularFileProperty getContractHistoryFile();
+
+    /**
+     * Whether {@link #getContractHistoryFile()} is written back to disk after being updated with the
+     * current run's endpoints. Defaults to the same value as {@link #getTrackContractHistory()}.
+     * Only consulted when {@link #getTrackContractHistory()} is {@code true}; the history file is
+     * always read regardless of this property's value, so a build with this set to {@code false}
+     * still reports against the up-to-date-in-memory history, it simply doesn't persist it.
+     *
+     * <p>The {@value #UPDATE_CONTRACT_HISTORY_OVERRIDE_PROPERTY} project property, when set (e.g.
+     * {@code -PshadowApiDetector.updateContractHistory=true}), overrides this property for every
+     * project in the build regardless of what any project configures here - typically driven from a
+     * Gradle property set differently per branch in the CI pipeline, since the plugin itself has no
+     * notion of which branch is currently checked out.</p>
+     *
+     * @return mutable boolean property controlling whether the contract history file is written back
+     */
+    public abstract Property<Boolean> getUpdateContractHistory();
 }
