@@ -128,6 +128,21 @@ shadowApiDetector {
     // the top of the generated report (see "System Under Test Version" below).
     // Default: the project's own `version`
     // systemUnderTestVersion = 'v1.0.0'
+
+    // Persists a per-endpoint history of when each endpoint first reached declared/implemented/
+    // verified status (see "Tracking Contract History" below).
+    // Default: false
+    trackContractHistory = false
+
+    // NDJSON file the history is read from/written to. Defaults into the project directory
+    // (not build/), since it's meant to be committed.
+    // Default: file('shadow-api-detector-contract-history.ndjson')
+    // contractHistoryFile = file('shadow-api-detector-contract-history.ndjson')
+
+    // When true, contractHistoryFile is written back to disk. Only consulted when
+    // trackContractHistory is true; the file is always read either way.
+    // Default: same as trackContractHistory
+    // updateContractHistory = true
 }
 ----
 
@@ -141,6 +156,9 @@ shadowApiDetector {
     reportDir.set(layout.buildDirectory.dir("reports/shadow-api-detector"))
     reportFileName.set("shadow-apis.adoc")
     // systemUnderTestVersion.set("v1.0.0")
+    trackContractHistory.set(false)
+    // contractHistoryFile.set(file("shadow-api-detector-contract-history.ndjson"))
+    // updateContractHistory.set(true)
 }
 ----
 
