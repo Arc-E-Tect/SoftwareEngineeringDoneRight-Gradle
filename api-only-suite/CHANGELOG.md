@@ -1,3 +1,15 @@
+# [0.3.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/api-only-suite-v0.2.0...api-only-suite-v0.3.0) (2026-08-13)
+
+
+### ✨ New and updated features
+
+* **gherkin-to-asciidoc:** log LIFECYCLE-level scan progress during feature docs generation ([#128](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/128)) ([1e269bd](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/1e269bdc496508e5083e69ee521fa1da1c26c7df)), closes [#128](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/128) [#56](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/56) [#56](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/56)
+
+
+### 🐛 Bug Fixes
+
+* **api-only-suite:** wait for sibling detector releases before resolving their published version ([#129](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/129)) ([db3d8c9](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/db3d8c9b86e48f522ee1864c3220b746af5f39fa)), closes [#129](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/129)
+
 # [0.2.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/api-only-suite-v0.1.1...api-only-suite-v0.2.0) (2026-08-12)
 
 
