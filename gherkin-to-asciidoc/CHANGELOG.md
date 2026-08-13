@@ -1,3 +1,16 @@
+## [4.3.1](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/v4.3.0...v4.3.1) (2026-08-13)
+
+
+### 🐛 Bug Fixes
+
+* **ci:** api-only-suite release workflow now fires on sibling-only releases ([#134](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/134)) ([8416a51](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/8416a51d1bce45f735f16e67024a7469f1b16aea)), closes [#134](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/134)
+* **ci:** Wait-For-Sibling-Releases passes --repo explicitly to gh run list ([#136](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/136)) ([b84e24e](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/b84e24e3728908e782ee02889ea2be70bcf0349f)), closes [#136](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/136) [#134](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/134)
+
+
+### 📝 Documentation
+
+* add AI/tooling-oriented history file format references to all four plugins ([#135](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/135)) ([e4c88ba](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/e4c88ba1e26b24d3972be2492ce6ec0ce493aa65)), closes [#135](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/135)
+
 # [4.3.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/v4.2.1...v4.3.0) (2026-08-13)
 
 
