@@ -1,0 +1,168 @@
+/*
+ * Built-in "high contrast" lens for the Tracker Lens dashboard, for visually impaired users.
+ *
+ * Design constraints, deliberately:
+ *   - Maximum contrast: pure black background, pure white text/borders (21:1 contrast ratio).
+ *   - No red and no green anywhere in this file, including the chart series and projection
+ *     status colors - a red/green distinction is invisible to the most common forms of color
+ *     blindness (protanopia/deuteranopia), so this lens relies only on blue, yellow, and purple,
+ *     which stay distinguishable across all common color-vision deficiencies.
+ *   - Thicker borders and bolder text than the other built-in lenses, since this lens should never
+ *     rely on subtle color or weight differences to convey structure.
+ *
+ * Selectors here follow the tracker-lens content contract (see ContractRule / DASHBOARD-THEMING.adoc):
+ * class names and data-* attributes are the stable surface to style against. Nothing here selects
+ * on text content.
+ */
+
+:root {
+    --dashboard-bg: #000000;
+    --dashboard-surface: #000000;
+    --dashboard-border: #ffffff;
+    --dashboard-text: #ffffff;
+    --dashboard-muted: #d9d9d9;
+    --dashboard-accent: #ffd60a;
+
+    /* Blue / yellow / purple only - never red or green - so series stay distinguishable for
+       protanopia, deuteranopia, and tritanopia alike. */
+    --dashboard-stage-1: #4db8ff;
+    --dashboard-stage-2: #ffd60a;
+    --dashboard-stage-3: #c77dff;
+}
+
+body {
+    background: var(--dashboard-bg);
+    color: var(--dashboard-text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-weight: 600;
+    margin: 0;
+    padding: 2rem;
+}
+
+.dashboard {
+    max-width: 1100px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+.dashboard header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+    border-bottom: 3px solid var(--dashboard-border);
+    padding-bottom: 1rem;
+}
+
+.lens-switcher select {
+    background: var(--dashboard-bg);
+    color: var(--dashboard-text);
+    border: 3px solid var(--dashboard-border);
+    border-radius: 0.3rem;
+    padding: 0.4rem 0.7rem;
+    font-weight: 700;
+}
+
+.lens-switcher select:focus-visible,
+a:focus-visible,
+button:focus-visible {
+    outline: 3px solid var(--dashboard-accent);
+    outline-offset: 2px;
+}
+
+.tracker {
+    background: var(--dashboard-surface);
+    border: 3px solid var(--dashboard-border);
+    border-radius: 0.4rem;
+    padding: 1.5rem;
+}
+
+.metrics {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin: 1rem 0;
+}
+
+.metric-card {
+    flex: 1 1 8rem;
+    border-radius: 0.3rem;
+    padding: 0.9rem 1rem;
+    background:
+        linear-gradient(var(--dashboard-surface), var(--dashboard-surface)) padding-box,
+        linear-gradient(90deg, var(--dashboard-accent) calc(var(--percent, 0) * 1%), var(--dashboard-border) 0) border-box;
+    border: 4px solid transparent;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.metric-card__stage {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--dashboard-muted);
+    font-weight: 700;
+}
+
+.metric-card__count {
+    font-size: 1.6rem;
+    font-weight: 800;
+}
+
+.metric-card__percent {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--dashboard-muted);
+}
+
+.projection, .projection-unavailable {
+    border: 3px solid var(--dashboard-border);
+    border-left-width: 6px;
+    padding: 0.75rem 1rem;
+    margin: 1rem 0;
+    background: var(--dashboard-bg);
+    border-radius: 0 0.3rem 0.3rem 0;
+    font-weight: 600;
+}
+
+/* Blue / yellow / purple, never red or green, so LOW/MEDIUM/HIGH stay distinguishable regardless
+   of color vision. */
+.projection[data-status="low"] {
+    border-left-color: #ffd60a;
+}
+
+.projection[data-status="medium"] {
+    border-left-color: #4db8ff;
+}
+
+.projection[data-status="high"] {
+    border-left-color: #c77dff;
+}
+
+.chart {
+    height: 220px;
+    margin-top: 1rem;
+}
+
+.stale-items__table {
+    width: 100%;
+    border-collapse: collapse;
+    border: 3px solid var(--dashboard-border);
+}
+
+.stale-items__table th,
+.stale-items__table td {
+    text-align: left;
+    padding: 0.6rem 0.85rem;
+    border-bottom: 2px solid var(--dashboard-border);
+}
+
+.stale-items__table th {
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}

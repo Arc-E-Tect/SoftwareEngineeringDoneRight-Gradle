@@ -1,0 +1,334 @@
+= Tracker Lens Gradle Plugin
+:toc: left
+:toc-title: Contents
+:toclevels: 2
+:icons: font
+:source-highlighter: rouge
+
+image:https://img.shields.io/badge/Java-21%2B-blue[Java 21+,link=https://adoptium.net]
+image:https://img.shields.io/badge/Gradle-8.x%2B-02303A?logo=gradle[Gradle 8+,link=https://gradle.org]
+
+The Tracker Lens plugin generates a themeable, standalone HTML dashboard from Gherkin scenario and API contract lifecycle history.
+It reads the NDJSON progress-history files written by `gherkin-to-asciidoc` and the API-detector plugins directly - there is no code dependency on either.
+The dashboard's look is fully swappable at runtime through a multi-lens style-pack system: pick from the three built-in lenses, publish your own, or point the plugin at a single custom stylesheet.
+
+== Plugin ID
+
+[source]
+----
+com.arc-e-tect.tracker-lens
+----
+
+== Requirements
+
+[cols="1,1",options="header"]
+|===
+| Requirement | Version
+| Gradle | 8.x +
+| Java | 21 +
+|===
+
+== Applying the Plugin
+
+=== Using the `plugins` block
+
+.Groovy DSL (`build.gradle`)
+[source,groovy]
+----
+plugins {
+    id 'com.arc-e-tect.tracker-lens' version '<version>'
+}
+----
+
+.Kotlin DSL (`build.gradle.kts`)
+[source,kotlin]
+----
+plugins {
+    id("com.arc-e-tect.tracker-lens") version "<version>"
+}
+----
+
+== Configuration
+
+The plugin registers the `trackerLens` extension and a `lensStyle` resolvable configuration that external style packs are declared against.
+All properties are lazy Gradle properties so they work with configuration cache and multi-module builds.
+
+.Groovy DSL
+[source,groovy]
+----
+trackerLens {
+    trackers {
+        // At least one tracker must be registered, or the build fails immediately with a clear
+        // error naming the missing configuration.
+        register("bdd-scenarios") {
+            // NDJSON history file(s) to read: one or more individual files, and/or a directory
+            // containing them (every *.ndjson file directly within it). A configured entry that
+            // doesn't exist yet at task-run time is skipped with a LIFECYCLE warning, not a build
+            // failure - the producing plugin may simply not have run yet. The tracker still
+            // appears on the dashboard, showing zero progress, once history starts being written.
+            historyFiles.from(file('gherkin-progress-history.ndjson'))
+
+            // Which built-in reader knows this file's shape: GHERKIN_SCENARIO or API_CONTRACT
+            // (see "Registering Trackers" below for what each one reads and its stages).
+            source = TrackerSourceKind.GHERKIN_SCENARIO
+        }
+        register("api-contracts") {
+            // Split across one file per detector plugin instead of all three sharing one - see
+            // "Splitting a tracker's history across files" below. Records sharing the same id
+            // across files are merged into a single item, never rendered as duplicates.
+            historyFiles.from(
+                file('shadow-api-detector-contract-history.ndjson'),
+                file('mirage-api-detector-contract-history.ndjson'),
+                file('doppelganger-api-detector-contract-history.ndjson'))
+            source = TrackerSourceKind.API_CONTRACT
+        }
+    }
+
+    // Optional single CSS file contributing a lens called "custom-lens" to the switcher, always
+    // resolved with the highest precedence for that one id.
+    // Default: unset
+    // lensStylesheet = file('my-theme.css')
+
+    // Optional Maven coordinate ('group:artifact') restricting the switcher to one external
+    // lensStyle pack's lenses, for suppressing a transitively-pulled-in pack you don't want
+    // offered. Unrelated to id-collision handling, which never needs this property to resolve.
+    // Default: unset (every resolved pack's lenses are offered)
+    // preferredLensPack = 'com.example:midnight-theme'
+
+    // Lens id active on first load. When unset: the lens literally called "light-lens" if
+    // discovered, otherwise the first lens id in alphabetical order - deterministic, no silent
+    // randomness.
+    // Default: unset
+    // defaultLens = 'dark-lens'
+
+    // Optional Mustache template overriding the bundled default for dashboard.html's static
+    // structure and wording - see "Customizing the Dashboard with a Template" below.
+    // Default: unset (this plugin's own bundled template)
+    // template = file('dashboard-template.html')
+
+    // Where dashboard.html and its lens CSS files are written.
+    // Default: layout.buildDirectory.dir('reports/tracker-lens')
+    outputDir = layout.buildDirectory.dir('reports/tracker-lens')
+}
+
+dependencies {
+    // External style packs contributing additional lenses (see "Publishing an external style
+    // pack" below), resolved against the lensStyle configuration this plugin registers.
+    lensStyle('com.example:midnight-theme:1.2.0')
+}
+----
+
+.Kotlin DSL
+[source,kotlin]
+----
+trackerLens {
+    trackers {
+        register("bdd-scenarios") {
+            historyFiles.from(file("gherkin-progress-history.ndjson"))
+            source.set(TrackerSourceKind.GHERKIN_SCENARIO)
+        }
+        register("api-contracts") {
+            historyFiles.from(
+                file("shadow-api-detector-contract-history.ndjson"),
+                file("mirage-api-detector-contract-history.ndjson"),
+                file("doppelganger-api-detector-contract-history.ndjson"))
+            source.set(TrackerSourceKind.API_CONTRACT)
+        }
+    }
+    // lensStylesheet.set(file("my-theme.css"))
+    // preferredLensPack.set("com.example:midnight-theme")
+    // defaultLens.set("dark-lens")
+    // template.set(file("dashboard-template.html"))
+    outputDir.set(layout.buildDirectory.dir("reports/tracker-lens"))
+}
+
+dependencies {
+    "lensStyle"("com.example:midnight-theme:1.2.0")
+}
+----
+
+=== Extension Properties
+
+[cols="1,1,3",options="header"]
+|===
+| Property | Default | Purpose
+| `trackers` | none - at least one required | The registered trackers, each pairing `historyFiles` (one or more files and/or directories) with a `TrackerSourceKind` (see "Registering Trackers" below).
+| `lensStylesheet` | unset | Optional single CSS file contributing a `custom-lens` lens with the highest precedence for that id.
+| `preferredLensPack` | unset | Optional `group:artifact` coordinate restricting which one external pack's lenses are offered.
+| `defaultLens` | unset (`light-lens` if discovered, else alphabetically first) | Lens id active on first load.
+| `template` | unset (bundled default) | Optional Mustache template overriding `dashboard.html`'s static structure and wording.
+| `outputDir` | `layout.buildDirectory.dir('reports/tracker-lens')` | Where `dashboard.html` and its lens CSS files are written.
+|===
+
+== Registering Trackers
+
+A *tracker* pairs one or more NDJSON history files with the built-in reader that knows their shape.
+Two `TrackerSourceKind` values are built in.
+
+[cols="1,2,2",options="header"]
+|===
+| Kind | Producing plugin | Stages
+| `GHERKIN_SCENARIO` | `gherkin-to-asciidoc` (`trackProgress` history file) | `listed`, `defined`, `implemented`
+| `API_CONTRACT` | The Shadow/Mirage/Doppelganger API detectors' contract history file(s) | `declared`, `implemented`, `verified`
+|===
+
+=== Splitting a tracker's history across files
+
+`historyFiles` accepts more than one entry, and any entry may be a directory instead of a file - every `*.ndjson` file directly within it (non-recursive) is picked up.
+This matters most for `API_CONTRACT` trackers: Shadow, Mirage, and Doppelganger each have their own `contractHistoryFile` property, and nothing requires a consumer to point all three at the same file.
+If they're left pointed at separate files - one written by each detector, from its own partial view of an endpoint's lifecycle - register them all on the same tracker rather than picking just one.
+
+[source,groovy]
+----
+register("api-contracts") {
+    historyFiles.from(
+        file('shadow-api-detector-contract-history.ndjson'),
+        file('mirage-api-detector-contract-history.ndjson'),
+        file('doppelganger-api-detector-contract-history.ndjson'))
+    // Equivalently, if all three are written into one directory:
+    // historyFiles.from(file('contract-histories'))
+    source = TrackerSourceKind.API_CONTRACT
+}
+----
+
+An endpoint (or scenario) observed in more than one file is never rendered as a duplicate: records sharing the same id are merged into a single item, taking the earliest timestamp per stage, the most recent `lastSeenAt`, and treating the item as removed only when every file that mentions it agrees it's gone.
+
+Run the generator with:
+
+[source]
+----
+./gradlew generateTrackerLensDashboard
+----
+
+== Tasks
+
+[cols="2,1,3",options="header"]
+|===
+| Task name                      | Group     | Description
+| `generateTrackerLensDashboard` | reporting | Reads every registered tracker, resolves the merged lens set, and writes `dashboard.html` plus one CSS file per discovered lens.
+| `listTrackerLensStyles`        | reporting | Lists every lens style that `generateTrackerLensDashboard` would offer in the switcher - built-in, external `lensStyle` packs, and `lensStylesheet` when configured - without generating a dashboard.
+|===
+
+Neither task is wired into `check` or `build` automatically - the dashboard is a report, not a verification gate.
+
+`listTrackerLensStyles` needs no tracker to be registered; it only resolves lenses.
+
+[source]
+----
+$ ./gradlew listTrackerLensStyles
+
+Tracker Lens styles available (5):
+
+Built-in:
+  light-lens
+  dark-lens
+  high-contrast-lens
+
+midnight-theme:
+  midnight
+  dark-lens (midnight-theme)
+----
+
+The example above shows what a collision looks like in the listing: `midnight-theme` also ships a lens called `dark-lens`, and since the built-in `dark-lens` resolves first, the pack's own gets auto-namespaced to `dark-lens (midnight-theme)` (see "Id collisions across packs" below) - exactly the id that would appear in the switcher.
+
+== The Lens System
+
+A *lens* is a single CSS file that styles the dashboard.
+The dashboard always embeds every discovered lens and renders a runtime switcher: pick a lens from the `<select>`, and the choice is remembered in the browser's `localStorage` for next time.
+This is a real, standalone HTML file you open directly in a browser, not a sandboxed preview, so `localStorage` works as expected.
+
+=== Built-in lenses
+
+Three lenses ship with the plugin: `light-lens`, `dark-lens`, and `high-contrast-lens`.
+`high-contrast-lens` is aimed at visually impaired users: maximum-contrast black/white with thick borders and bold text, and it deliberately never uses red or green anywhere (including its chart series and projection-status colors) since that distinction is invisible to the most common forms of color blindness - it relies only on blue, yellow, and purple instead.
+
+=== Publishing an external style pack
+
+A style pack is any jar (or, during development, any directory on the classpath) that ships one or more lens CSS files under a fixed resource path.
+
+[source]
+----
+META-INF/arc-e-tect/tracker-lens/lenses/<lens-id>.css
+----
+
+Each file's base name, lower-cased, becomes its lens id.
+A pack can contribute as many lenses as it likes; there's nothing special about a "single-lens" pack versus a pack with several.
+
+.Worked example: a minimal external style pack
+[source,groovy]
+----
+// midnight-theme/build.gradle
+plugins {
+    id 'java-library'
+}
+----
+
+[source]
+----
+// midnight-theme/src/main/resources/META-INF/arc-e-tect/tracker-lens/lenses/midnight.css
+:root {
+    --dashboard-bg: #05050a;
+    --dashboard-stage-1: #6a5acd;
+    --dashboard-stage-2: #20b2aa;
+    --dashboard-stage-3: #daa520;
+}
+body { background: var(--dashboard-bg); }
+----
+
+Publish that jar however you publish any other artifact, then consume it from the project applying `tracker-lens` (see the `dependencies { lensStyle(...) }` block under "Configuration" above).
+The pack's lens (`midnight`, in this example) now appears in the switcher alongside the three built-in lenses.
+
+TIP: Naming a built-in-style lens with a `-lens` suffix (as `light-lens` and `dark-lens` do) is a recommendation, not a rule - it makes an accidental id collision with another pack unlikely, but a pack author naming a lens `midnight` or `corporate-brand` is completely valid and nothing enforces the suffix.
+
+=== Id collisions across packs
+
+Within one pack, lens ids are inherently unique - it's one directory, one namespace.
+Across different packs - built-in vs. external, or external vs. external, no distinction is made - a colliding id is auto-namespaced transparently rather than failing the build: the first-resolved pack keeps the clean id, and every later pack contributing the same id gets it suffixed with its source in parentheses, e.g. `dark-lens (midnight-theme)`.
+No configuration is needed to resolve a collision; it just works, and the `-lens` suffix convention above is the first line of defense against it happening at all.
+
+== The Dashboard Content Contract
+
+Every data-bound element on the dashboard - metric cards, the projection block, chart canvases, the stale-items table, the lens switcher - follows a fixed, enforced structural contract: stable class names and `data-*` attributes that a lens's CSS can rely on across versions.
+Generation always validates its own output against this contract as the last step of `generateTrackerLensDashboard`, failing the build if the two have drifted apart.
+
+See link:DASHBOARD-THEMING.adoc[DASHBOARD-THEMING.adoc] for the full contract and for how to write a lens against it.
+
+== Customizing the Dashboard with a Template
+
+`generateTrackerLensDashboard` fully overwrites `dashboard.html` on every run - the whole file is regenerated from scratch, every time, so hand-editing its wording (to translate a heading, say) is lost on the next run.
+The `template` property solves this the same way `gherkin-to-asciidoc`'s own `template` option does: point it at your own Mustache template, and that template's literal text - not the plugin's - is what gets regenerated on every run.
+
+[source,groovy]
+----
+trackerLens {
+    template = file('dashboard-template.html')
+}
+----
+
+Start from the bundled default template and edit its static text directly - headings, captions, column labels are all literal text in the template, not a separate variable you look up and override.
+The dynamic parts stay as Mustache variables and sections, resolved from the data collected on each run.
+
+[cols="1,3",options="header"]
+|===
+| Variable | Meaning
+| `defaultLensCssFile` | The CSS file name for the lens active on first load; goes in the stylesheet `<link>`'s `href`.
+| `lensCount` | Number of discovered lenses.
+| `lenses` | List of `{id, selected}` - one `<option>` per lens.
+| `trackers` | List of trackers, each `{id, metrics, projection}`.
+| `trackers.metrics` | List of `{stage, count, totalCount, percent}` - one per stage.
+| `trackers.projection` | `{status, projectedDate, currentCount, totalCount, velocityPerDay, disclaimer}`, present only when at least 7 days of history is available - use `{{#projection}}...{{/projection}}` / `{{^projection}}...{{/projection}}` to branch on it.
+| `hasStaleItems` | `true` when at least one tracker has a stale item - gate the whole stale-items table on this, not on `staleItems` directly (a Mustache list section repeats its contents once per item, which would duplicate the table itself).
+| `staleItems` | List of `{trackerId, label, group, lastSeen}`.
+| `dashboardDataScript` | The fixed `<script type="application/json" id="dashboard-data">...</script>` tag Chart.js reads from. Insert with triple mustaches - `{{{dashboardDataScript}}}` - so it isn't HTML-escaped.
+| `bootstrapScript` | The fixed `<script>` that builds the charts and drives the lens switcher. Also needs triple mustaches: `{{{bootstrapScript}}}`.
+|===
+
+Every other value is HTML-escaped automatically by `{{variable}}`, including inside attributes (`data-tracker="{{id}}"` is safe even if an id ever contained a quote).
+
+Your template's output is validated against `ContractRule` exactly like the bundled default's - the same `LensContractValidator`, the same unconditional last step, no special-casing for a user-supplied template versus this plugin's own.
+Get a class name or `data-*` attribute wrong and the build fails with the same violation list it would report against a broken built-in template, not a silent, half-working dashboard.
+
+== License
+
+This plugin is part of the _Software Engineering Done Right_ project.
+See link:../LICENSE[LICENSE] for details.
