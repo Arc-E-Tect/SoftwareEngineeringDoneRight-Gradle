@@ -141,6 +141,49 @@ class ShadowApiDetectorPluginTest {
     }
 
     @Test
+    @DisplayName("extension default: trackContractHistory is false")
+    void extensionDefaultTrackContractHistoryIsFalse() {
+        Project project = projectWithPlugin();
+
+        assertThat(extension(project).getTrackContractHistory().get()).isFalse();
+    }
+
+    @Test
+    @DisplayName("extension default: contractHistoryFile is shadow-api-detector-contract-history.ndjson in the project directory")
+    void extensionDefaultContractHistoryFile() {
+        Project project = projectWithPlugin();
+
+        assertThat(extension(project).getContractHistoryFile().get().getAsFile())
+                .isEqualTo(new File(project.getProjectDir(), "shadow-api-detector-contract-history.ndjson"));
+    }
+
+    @Test
+    @DisplayName("extension default: updateContractHistory follows trackContractHistory")
+    void extensionDefaultUpdateContractHistoryFollowsTrackContractHistory() {
+        Project project = projectWithPlugin();
+
+        extension(project).getTrackContractHistory().set(true);
+
+        assertThat(extension(project).getUpdateContractHistory().get()).isTrue();
+    }
+
+    @Test
+    @DisplayName("wires the task's contract history properties from the extension")
+    void wiresTaskContractHistoryPropertiesFromExtension() {
+        Project project = projectWithPlugin();
+        extension(project).getTrackContractHistory().set(true);
+
+        ((ProjectInternal) project).evaluate();
+
+        DetectShadowApisTask task = (DetectShadowApisTask)
+                project.getTasks().getByName(ShadowApiDetectorPlugin.TASK_NAME);
+        assertThat(task.getTrackContractHistory().get()).isTrue();
+        assertThat(task.getUpdateContractHistory().get()).isTrue();
+        assertThat(task.getContractHistoryFile().get().getAsFile())
+                .isEqualTo(new File(project.getProjectDir(), "shadow-api-detector-contract-history.ndjson"));
+    }
+
+    @Test
     @DisplayName("can be wired into check explicitly via dependsOn")
     void canBeWiredIntoCheckExplicitly() {
         Project project = ProjectBuilder.builder().withProjectDir(tempDir.toFile()).build();
