@@ -29,8 +29,11 @@ import org.gradle.api.tasks.TaskProvider;
  * plugin's current latest, since a consumer only re-resolves it by upgrading the suite itself. The
  * release pipeline resolves each sibling's real published version from its own release tags
  * immediately before publishing this plugin, and - since Aug 2026 - waits for any sibling release
- * this same push also triggers to finish first, so this suite is never published pinned to a
- * sibling version older than what that same change actually released.</p>
+ * still in flight to finish first, so this suite is never published pinned to a sibling version
+ * older than what that same change actually released. This suite's own release workflow fires both
+ * when this plugin's own files change and whenever any sibling's release workflow completes, so a
+ * sibling-only change (no file under this module touched at all) still reaches a new release of
+ * this suite - not just changes to this module's own source.</p>
  *
  * <h2>Usage</h2>
  * <pre>
