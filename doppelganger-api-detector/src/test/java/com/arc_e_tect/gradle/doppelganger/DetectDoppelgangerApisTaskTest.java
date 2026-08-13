@@ -186,6 +186,32 @@ class DetectDoppelgangerApisTaskTest {
     }
 
     @Test
+    @DisplayName("contractHistoryFilePath reflects the configured contractHistoryFile's absolute path")
+    void contractHistoryFilePathReflectsConfiguredFile() {
+        File historyFile = new File(tempDir.toFile(), "contract-history.ndjson");
+        DetectDoppelgangerApisTask task = newTask();
+        task.getContractHistoryFile().set(historyFile);
+
+        assertThat(task.getContractHistoryFilePath()).isEqualTo(historyFile.getAbsolutePath());
+    }
+
+    @Test
+    @DisplayName("contractHistoryFilePath is null when contractHistoryFile is unset")
+    void contractHistoryFilePathIsNullWhenUnset() {
+        DetectDoppelgangerApisTask task = newTask();
+
+        assertThat(task.getContractHistoryFilePath()).isNull();
+    }
+
+    @Test
+    @DisplayName("getContractHistoryFilePath is annotated with @Input so a changed path invalidates up-to-date state")
+    void contractHistoryFilePathIsAnnotatedAsInput() throws NoSuchMethodException {
+        var method = DetectDoppelgangerApisTask.class.getMethod("getContractHistoryFilePath");
+
+        assertThat(method.isAnnotationPresent(org.gradle.api.tasks.Input.class)).isTrue();
+    }
+
+    @Test
     @DisplayName("runs correctly when a controller source file does not compile")
     void runsCorrectlyAgainstNonCompilingControllerSource() throws Exception {
         Files.writeString(controllerDir.toPath().resolve("BrokenController.java"), "this is not java { {{ }}}}}");

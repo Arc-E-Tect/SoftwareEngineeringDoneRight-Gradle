@@ -215,13 +215,31 @@ public abstract class GenerateFeatureDocsTask extends DefaultTask {
      * {@link #getUpdateProgressHistory()} is {@code true}, written back to. Deliberately not
      * declared as an {@code @InputFile}/{@code @OutputFile}: the file legitimately may not exist yet
      * (treated as an empty history, not an error) and is only conditionally written back, so it's
-     * read and written directly in {@link #generate()} instead of through Gradle's up-to-date
-     * checking.
+     * read and written directly in {@link #generate()} instead of through Gradle's file-content-based
+     * up-to-date checking. Its configured <em>path</em> - as opposed to the file's content - is still
+     * tracked as a plain input via {@link #getProgressHistoryFilePath()}, so that renaming or
+     * relocating it is itself enough to invalidate this task's up-to-date state.
      *
      * @return mutable file property for the progress history file
      */
     @Internal
     public abstract RegularFileProperty getProgressHistoryFile();
+
+    /**
+     * The absolute path of {@link #getProgressHistoryFile()}, tracked as a plain {@code @Input}
+     * value - not the file's content, which {@link #getProgressHistoryFile()} itself is deliberately
+     * excluded from up-to-date checking for. Without this, renaming or relocating
+     * {@code progressHistoryFile} in the build script - with no other configured input having
+     * changed - would leave this task {@code UP-TO-DATE} and silently skip writing history to the
+     * newly configured location.
+     *
+     * @return the progress history file's absolute path, or {@code null} if unset
+     */
+    @Input
+    @Optional
+    public String getProgressHistoryFilePath() {
+        return getProgressHistoryFile().map(file -> file.getAsFile().getAbsolutePath()).getOrNull();
+    }
 
     /**
      * Whether {@link #getProgressHistoryFile()} is written back to disk after being updated with the

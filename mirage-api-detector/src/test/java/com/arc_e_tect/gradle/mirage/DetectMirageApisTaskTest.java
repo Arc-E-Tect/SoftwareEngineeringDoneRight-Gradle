@@ -163,6 +163,32 @@ class DetectMirageApisTaskTest {
     }
 
     @Test
+    @DisplayName("contractHistoryFilePath reflects the configured contractHistoryFile's absolute path")
+    void contractHistoryFilePathReflectsConfiguredFile() {
+        File historyFile = new File(tempDir.toFile(), "contract-history.ndjson");
+        DetectMirageApisTask task = newTask();
+        task.getContractHistoryFile().set(historyFile);
+
+        assertThat(task.getContractHistoryFilePath()).isEqualTo(historyFile.getAbsolutePath());
+    }
+
+    @Test
+    @DisplayName("contractHistoryFilePath is null when contractHistoryFile is unset")
+    void contractHistoryFilePathIsNullWhenUnset() {
+        DetectMirageApisTask task = newTask();
+
+        assertThat(task.getContractHistoryFilePath()).isNull();
+    }
+
+    @Test
+    @DisplayName("getContractHistoryFilePath is annotated with @Input so a changed path invalidates up-to-date state")
+    void contractHistoryFilePathIsAnnotatedAsInput() throws NoSuchMethodException {
+        var method = DetectMirageApisTask.class.getMethod("getContractHistoryFilePath");
+
+        assertThat(method.isAnnotationPresent(org.gradle.api.tasks.Input.class)).isTrue();
+    }
+
+    @Test
     @DisplayName("scans WireMock stubs instead of controllers when scanMocks is true")
     void scansStubsInsteadOfControllersWhenScanMocksTrue() throws Exception {
         File stubDir = new File(tempDir.toFile(), "src/test/resources/mappings");

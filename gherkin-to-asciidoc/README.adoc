@@ -1024,6 +1024,15 @@ Enabling `trackProgressHistory` while `trackProgress` is `false` fails `generate
 The `-PgherkinToAsciidoc.updateProgressHistory=<true|false>` project property, when set, overrides `updateProgressHistory` for every project in the build regardless of what any project's own `gherkinToAsciidoc { }` block configures - see "Advancing History Only on Certain Branches" below. An unrecognised value fails `generateFeatureDocs` with a descriptive error too.
 ====
 
+Like any other Gradle task, `generateFeatureDocs` is skipped as `UP-TO-DATE` when none of its declared inputs have changed since the last run.
+`progressHistoryFile`'s configured *path* (not its content, which the task itself manages) is one of those tracked inputs, so renaming or relocating it in the build script is, on its own, enough to make the task run again and write history to the newly configured location.
+If a run is skipped for some other reason and you need to force it regardless (e.g. after manually editing `progressHistoryFile`), pass `--rerun`:
+
+[source,shell]
+----
+./gradlew generateFeatureDocs --rerun
+----
+
 === How Scenarios Are Matched Across Runs
 
 Every scenario is identified by a fingerprint computed from its own name alone: the `Scenario:`/`Scenario Outline:` keyword and any existing index prefix (see "Numbering Features and Scenarios" above) are stripped, the remainder is trimmed and lower-cased, and the result is hashed with SHA-256, truncated to its first 16 hex characters.

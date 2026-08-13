@@ -296,6 +296,15 @@ A previously persisted record whose fingerprint is no longer present in the curr
 
 The generated report reflects the loaded (and possibly just-advanced) history as a `== Progress Over Time` section, once `trackContractHistory` finds at least one record: a human-friendly `Tracked since` timestamp, how many endpoints were declared/implemented/verified in the last 7 and 30 days, and how many previously tracked endpoints are no longer seen in the current run.
 
+Like any other Gradle task, `detectMirageApis` is skipped as `UP-TO-DATE` when none of its declared inputs have changed since the last run.
+`contractHistoryFile`'s configured *path* (not its content, which the task itself manages) is one of those tracked inputs, so renaming or relocating it in the build script is, on its own, enough to make the task run again and write history to the newly configured location.
+If a run is skipped for some other reason and you need to force it regardless (e.g. after manually editing `contractHistoryFile`), pass `--rerun`:
+
+[source,shell]
+----
+./gradlew detectMirageApis --rerun
+----
+
 == System Under Test Version
 
 Every generated report includes a line just below the title identifying the version of the system under test that was scanned:
