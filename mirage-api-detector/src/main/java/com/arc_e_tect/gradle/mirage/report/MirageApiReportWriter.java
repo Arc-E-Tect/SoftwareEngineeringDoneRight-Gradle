@@ -1,6 +1,8 @@
 package com.arc_e_tect.gradle.mirage.report;
 
 import com.arc_e_tect.gradle.detector.core.openapi.DescribedEndpoint;
+import com.arc_e_tect.gradle.detector.core.progress.ContractProgressRecord;
+import com.arc_e_tect.gradle.detector.core.progress.ContractProgressTableWriter;
 
 import java.io.File;
 import java.io.IOException;
@@ -31,6 +33,8 @@ public class MirageApiReportWriter {
     /** Group heading used for mirage APIs whose OpenAPI operation declares no tags. */
     static final String UNTAGGED_GROUP = "(untagged)";
 
+    private final ContractProgressTableWriter progressTableWriter = new ContractProgressTableWriter();
+
     /** Creates a new {@code MirageApiReportWriter}. */
     public MirageApiReportWriter() {}
 
@@ -53,6 +57,8 @@ public class MirageApiReportWriter {
 
     /**
      * Writes the report to {@code outputFile}, creating its parent directory if necessary.
+     * Equivalent to calling {@link #write(File, int, List, String, boolean, Map)} with an empty
+     * contract history.
      *
      * @param outputFile             target AsciiDoc file
      * @param totalDescribedCount    total number of endpoints described by the OpenAPI documentation
@@ -66,6 +72,28 @@ public class MirageApiReportWriter {
     public void write(
             File outputFile, int totalDescribedCount, List<DescribedEndpoint> mirages,
             String systemUnderTestVersion, boolean scanMocks) throws IOException {
+        write(outputFile, totalDescribedCount, mirages, systemUnderTestVersion, scanMocks, Map.of());
+    }
+
+    /**
+     * Writes the report to {@code outputFile}, creating its parent directory if necessary.
+     *
+     * @param outputFile             target AsciiDoc file
+     * @param totalDescribedCount    total number of endpoints described by the OpenAPI documentation
+     * @param mirages                the described endpoints with no matching implementation evidence
+     * @param systemUnderTestVersion version of the system under test that was scanned
+     * @param scanMocks              whether implemented endpoints were determined from WireMock
+     *                               stubs rather than {@code @RestController} classes - only
+     *                               affects report wording, not its structure
+     * @param contractHistory        contract progress history to render as a {@code == Progress Over
+     *                                Time} section, keyed by fingerprint; when empty, no such
+     *                                section is written
+     * @throws IOException if the output file cannot be written
+     */
+    public void write(
+            File outputFile, int totalDescribedCount, List<DescribedEndpoint> mirages,
+            String systemUnderTestVersion, boolean scanMocks, Map<String, ContractProgressRecord> contractHistory)
+            throws IOException {
         File parent = outputFile.getParentFile();
         if (parent != null && !parent.exists() && !parent.mkdirs()) {
             throw new IOException("Could not create output directory: " + parent);
@@ -95,6 +123,7 @@ public class MirageApiReportWriter {
             writer.println();
             writer.print(loadPreamble());
             writer.println();
+            progressTableWriter.write(writer, contractHistory);
             writer.println("== Mirage APIs");
             writer.println();
 
