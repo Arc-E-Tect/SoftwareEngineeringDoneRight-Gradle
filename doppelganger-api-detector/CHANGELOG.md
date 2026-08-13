@@ -1,3 +1,15 @@
+## [0.3.2](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/doppelganger-api-detector-v0.3.1...doppelganger-api-detector-v0.3.2) (2026-08-13)
+
+
+### 🐛 Bug Fixes
+
+* **ci:** api-only-suite release workflow now fires on sibling-only releases ([#134](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/134)) ([8416a51](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/8416a51d1bce45f735f16e67024a7469f1b16aea)), closes [#134](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/134)
+
+
+### 📝 Documentation
+
+* add AI/tooling-oriented history file format references to all four plugins ([#135](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/135)) ([e4c88ba](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/e4c88ba1e26b24d3972be2492ce6ec0ce493aa65)), closes [#135](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/135)
+
 ## [0.3.1](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/doppelganger-api-detector-v0.3.0...doppelganger-api-detector-v0.3.1) (2026-08-13)
 
 
