@@ -1,3 +1,11 @@
+## [4.2.1](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/v4.2.0...v4.2.1) (2026-08-13)
+
+
+### 🐛 Bug Fixes
+
+* **gherkin-to-asciidoc:** render Tracked since as a human-friendly timestamp ([#130](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/130)) ([96b50cd](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/96b50cd231a02e973be091e57d005373c52eb2be)), closes [#130](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/130)
+* **api-only-suite:** wait for sibling detector releases before resolving their published version ([#129](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/129)) ([db3d8c9](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/db3d8c9b86e48f522ee1864c3220b746af5f39fa)), closes [#129](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/129)
+
 # [4.2.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/v4.1.0...v4.2.0) (2026-08-12)
 
 
