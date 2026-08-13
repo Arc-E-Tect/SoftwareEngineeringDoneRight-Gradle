@@ -1,3 +1,17 @@
+# [1.4.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/shadow-api-detector-v1.3.0...shadow-api-detector-v1.4.0) (2026-08-13)
+
+
+### ✨ New and updated features
+
+* **gherkin-to-asciidoc:** log LIFECYCLE-level scan progress during feature docs generation ([#128](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/128)) ([1e269bd](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/1e269bdc496508e5083e69ee521fa1da1c26c7df)), closes [#128](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/128) [#56](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/56) [#56](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/56)
+* track contract progress history and report it over time in all three API detector plugins ([#131](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/131)) ([e65f7bf](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/e65f7bf72557402f4078dcfa7abc0a10436103db)), closes [#131](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/131) [#59](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/59) [#59](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/59)
+
+
+### 🐛 Bug Fixes
+
+* **gherkin-to-asciidoc:** render Tracked since as a human-friendly timestamp ([#130](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/130)) ([96b50cd](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/96b50cd231a02e973be091e57d005373c52eb2be)), closes [#130](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/130)
+* **api-only-suite:** wait for sibling detector releases before resolving their published version ([#129](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/129)) ([db3d8c9](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/db3d8c9b86e48f522ee1864c3220b746af5f39fa)), closes [#129](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/129)
+
 # [1.3.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/shadow-api-detector-v1.2.0...shadow-api-detector-v1.3.0) (2026-08-12)
 
 
