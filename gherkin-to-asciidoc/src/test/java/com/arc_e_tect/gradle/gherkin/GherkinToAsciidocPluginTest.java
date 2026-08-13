@@ -1259,6 +1259,25 @@ class GherkinToAsciidocPluginTest {
     }
 
     @Test
+    @DisplayName("progressHistoryFilePath reflects the configured progressHistoryFile's absolute path")
+    void progressHistoryFilePathReflectsConfiguredFile() {
+        Project project = projectWithPlugin();
+        File historyFile = new File(tempDir.toFile(), "history.ndjson");
+        GenerateFeatureDocsTask task = task(project);
+        task.getProgressHistoryFile().set(historyFile);
+
+        assertThat(task.getProgressHistoryFilePath()).isEqualTo(historyFile.getAbsolutePath());
+    }
+
+    @Test
+    @DisplayName("getProgressHistoryFilePath is annotated with @Input so a changed path invalidates up-to-date state")
+    void progressHistoryFilePathIsAnnotatedAsInput() throws NoSuchMethodException {
+        var method = GenerateFeatureDocsTask.class.getMethod("getProgressHistoryFilePath");
+
+        assertThat(method.isAnnotationPresent(org.gradle.api.tasks.Input.class)).isTrue();
+    }
+
+    @Test
     @DisplayName("still renders a Progress Over Time section from the in-memory history "
             + "even when updateProgressHistory is false")
     void rendersProgressOverTimeSectionEvenWhenNotPersisted() throws IOException {
