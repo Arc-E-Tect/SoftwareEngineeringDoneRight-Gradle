@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Tracker Lens Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<link rel="stylesheet" id="lens-stylesheet" href="{{defaultLensCssFile}}">
+</head>
+<body>
+<div class="dashboard">
+<header>
+<h1>Tracker Lens Dashboard</h1>
+<div class="lens-switcher" data-lens-count="{{lensCount}}">
+<label for="lens-select">Lens</label>
+<select id="lens-select">
+{{#lenses}}
+<option value="{{id}}"{{#selected}} selected{{/selected}}>{{id}}</option>
+{{/lenses}}
+</select>
+</div>
+</header>
+{{#trackers}}
+<section class="tracker" data-tracker="{{id}}">
+<h2>{{id}}</h2>
+<div class="metrics">
+{{#metrics}}
+<div class="metric-card" data-stage="{{stage}}" style="--percent: {{percent}}">
+<span class="metric-card__stage">{{stage}}</span>
+<span class="metric-card__count">{{count}} / {{totalCount}}</span>
+<span class="metric-card__percent">{{percent}}%</span>
+</div>
+{{/metrics}}
+</div>
+{{#projection}}
+<div class="projection" data-status="{{status}}">
+<p class="projection__date">Projected completion: {{projectedDate}}</p>
+<p class="projection__progress">{{currentCount}} of {{totalCount}} complete (velocity: {{velocityPerDay}}/day)</p>
+<p class="projection__disclaimer">{{disclaimer}}</p>
+</div>
+{{/projection}}
+{{^projection}}
+<p class="projection-unavailable">Not enough history yet - check back once at least a week of data has been captured.</p>
+{{/projection}}
+<div class="chart"><canvas></canvas></div>
+</section>
+{{/trackers}}
+{{#hasStaleItems}}
+<section class="stale-items">
+<h2>Stale Items</h2>
+<table class="stale-items__table">
+<thead><tr><th>Tracker</th><th>Item</th><th>Group</th><th>Last Seen</th></tr></thead>
+<tbody>
+{{#staleItems}}
+<tr><td>{{trackerId}}</td><td>{{label}}</td><td>{{group}}</td><td>{{lastSeen}}</td></tr>
+{{/staleItems}}
+</tbody>
+</table>
+</section>
+{{/hasStaleItems}}
+</div>
+{{{dashboardDataScript}}}
+{{{bootstrapScript}}}
+</body>
+</html>

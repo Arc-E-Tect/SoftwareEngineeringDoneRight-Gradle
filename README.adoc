@@ -38,6 +38,9 @@ The companion Spring rule pack is maintained in the SoftwareEngineeringDoneRight
 |link:api-only-suite/README.adoc[Arc-E-Tect API-Only Suite]
 |Gradle plugin that applies Shadow, Mirage, and Doppelganger API Detector together in one step, so declared, implemented, and verified are all checked for every endpoint.
 
+|link:tracker-lens/README.adoc[Tracker Lens]
+|Gradle plugin that generates a themeable, standalone HTML dashboard from Gherkin scenario and API contract lifecycle history, with a pluggable multi-lens style-pack system and an optional Mustache template for customizing the dashboard's own structure and wording.
+
 |link:examples/README.adoc[Examples]
 |Runnable example projects for the plugins in this repository, each documented with intent, build and run instructions, and expected outcomes.
 |===
@@ -61,4 +64,6 @@ include::mirage-api-detector/README.adoc[leveloffset=+1]
 include::doppelganger-api-detector/README.adoc[leveloffset=+1]
 
 include::api-only-suite/README.adoc[leveloffset=+1]
+
+include::tracker-lens/README.adoc[leveloffset=+1]
 

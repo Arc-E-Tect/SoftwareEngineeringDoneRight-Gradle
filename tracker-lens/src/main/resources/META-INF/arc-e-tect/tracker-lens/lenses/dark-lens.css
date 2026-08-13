@@ -1,0 +1,133 @@
+/*
+ * Built-in "dark" lens for the Tracker Lens dashboard.
+ *
+ * Selectors here follow the tracker-lens content contract (see ContractRule / DASHBOARD-THEMING.adoc):
+ * class names and data-* attributes are the stable surface to style against. Nothing here selects
+ * on text content.
+ */
+
+:root {
+    --dashboard-bg: #14171c;
+    --dashboard-surface: #1c2027;
+    --dashboard-border: #2c313a;
+    --dashboard-text: #e7eaee;
+    --dashboard-muted: #9aa4b2;
+    --dashboard-accent: #7c9bff;
+
+    --dashboard-stage-1: #7c9bff;
+    --dashboard-stage-2: #34d19a;
+    --dashboard-stage-3: #ffc857;
+}
+
+body {
+    background: var(--dashboard-bg);
+    color: var(--dashboard-text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    margin: 0;
+    padding: 2rem;
+}
+
+.dashboard {
+    max-width: 1100px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+.dashboard header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.lens-switcher select {
+    background: var(--dashboard-surface);
+    color: var(--dashboard-text);
+    border: 1px solid var(--dashboard-border);
+    border-radius: 0.4rem;
+    padding: 0.35rem 0.6rem;
+}
+
+.tracker {
+    background: var(--dashboard-surface);
+    border: 1px solid var(--dashboard-border);
+    border-radius: 0.6rem;
+    padding: 1.5rem;
+}
+
+.metrics {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin: 1rem 0;
+}
+
+.metric-card {
+    flex: 1 1 8rem;
+    border-radius: 0.5rem;
+    padding: 0.9rem 1rem;
+    background:
+        linear-gradient(var(--dashboard-surface), var(--dashboard-surface)) padding-box,
+        linear-gradient(90deg, var(--dashboard-accent) calc(var(--percent, 0) * 1%), var(--dashboard-border) 0) border-box;
+    border: 3px solid transparent;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.metric-card__stage {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--dashboard-muted);
+}
+
+.metric-card__count {
+    font-size: 1.4rem;
+    font-weight: 600;
+}
+
+.metric-card__percent {
+    font-size: 0.85rem;
+    color: var(--dashboard-muted);
+}
+
+.projection, .projection-unavailable {
+    border-left: 3px solid var(--dashboard-accent);
+    padding: 0.75rem 1rem;
+    margin: 1rem 0;
+    background: var(--dashboard-bg);
+    border-radius: 0 0.4rem 0.4rem 0;
+}
+
+.projection[data-status="low"] {
+    border-left-color: #ffc857;
+}
+
+.projection[data-status="medium"] {
+    border-left-color: #7c9bff;
+}
+
+.projection[data-status="high"] {
+    border-left-color: #34d19a;
+}
+
+.chart {
+    height: 220px;
+    margin-top: 1rem;
+}
+
+.stale-items__table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.stale-items__table th,
+.stale-items__table td {
+    text-align: left;
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid var(--dashboard-border);
+}
