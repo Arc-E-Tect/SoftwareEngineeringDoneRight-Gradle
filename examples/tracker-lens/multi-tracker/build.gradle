@@ -1,0 +1,20 @@
+plugins {
+    alias(libs.plugins.tracker.lens)
+}
+
+trackerLens {
+    trackers {
+        register('bdd-scenarios') {
+            historyFiles.from(file('gherkin-progress-history.ndjson'))
+            source = com.arc_e_tect.gradle.trackerlens.TrackerSourceKind.GHERKIN_SCENARIO
+        }
+        register('shadow-api-contracts') {
+            historyFiles.from(file('shadow-api-contract-history.ndjson'))
+            source = com.arc_e_tect.gradle.trackerlens.TrackerSourceKind.API_CONTRACT
+        }
+        register('mirage-api-contracts') {
+            historyFiles.from(file('mirage-api-contract-history.ndjson'))
+            source = com.arc_e_tect.gradle.trackerlens.TrackerSourceKind.API_CONTRACT
+        }
+    }
+}

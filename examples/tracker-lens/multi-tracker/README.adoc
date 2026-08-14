@@ -1,0 +1,66 @@
+= Tracker Lens — Multi-Tracker Example
+:toc: left
+
+== Description
+
+Three independent trackers on one dashboard: `bdd-scenarios` (Gherkin scenarios, nearly complete),
+`shadow-api-contracts` (API contracts, mid-progress), and `mirage-api-contracts` (API contracts,
+just started). Each tracker reads its own history file and gets its own section, regardless of
+which `TrackerSourceKind` it uses.
+
+== Intent
+
+This example shows that `trackers { register(...) { ... } }` can be repeated as many times as
+needed, that trackers of different `source` kinds (`GHERKIN_SCENARIO` and `API_CONTRACT`, with
+different stage names — `listed`/`defined`/`implemented` versus `declared`/`implemented`/`verified`)
+can sit side by side on the same dashboard, and that each tracker's progress is entirely
+independent of the others.
+
+== The History Files
+
+Three separate files, one per tracker — deliberately not merged, unlike `../multi-file-history`
+which demonstrates the opposite case (one tracker, several files):
+
+* `gherkin-progress-history.ndjson` — five `Checkout` scenarios, four `implemented`.
+* `shadow-api-contract-history.ndjson` — five `/api/orders` endpoints, two `verified`, one
+  `implemented` only, two still just `declared`.
+* `mirage-api-contract-history.ndjson` — four `/api/shipments` endpoints, only one past `declared`.
+
+== Configuration
+
+[source,groovy]
+----
+trackerLens {
+    trackers {
+        register('bdd-scenarios') {
+            historyFiles.from(file('gherkin-progress-history.ndjson'))
+            source = com.arc_e_tect.gradle.trackerlens.TrackerSourceKind.GHERKIN_SCENARIO
+        }
+        register('shadow-api-contracts') {
+            historyFiles.from(file('shadow-api-contract-history.ndjson'))
+            source = com.arc_e_tect.gradle.trackerlens.TrackerSourceKind.API_CONTRACT
+        }
+        register('mirage-api-contracts') {
+            historyFiles.from(file('mirage-api-contract-history.ndjson'))
+            source = com.arc_e_tect.gradle.trackerlens.TrackerSourceKind.API_CONTRACT
+        }
+    }
+}
+----
+
+== Build And Run
+
+[source,bash]
+----
+cd examples/tracker-lens/multi-tracker
+./gradlew generateTrackerLensDashboard
+----
+
+== What To Expect
+
+The build is expected to pass. `build/reports/tracker-lens/dashboard.html` contains three
+`.tracker[data-tracker]` sections in registration order — `bdd-scenarios`, `shadow-api-contracts`,
+`mirage-api-contracts` — each with its own metric cards, its own projection (or "not enough history" message, for
+`mirage-api-contracts`, which has no endpoint that has reached `verified` yet — a projection needs
+at least one item at the final stage to extrapolate from), and its own chart. Nothing from one
+tracker's history ever affects another's counts.

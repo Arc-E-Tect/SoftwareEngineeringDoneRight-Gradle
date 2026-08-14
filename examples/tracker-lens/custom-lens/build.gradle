@@ -1,0 +1,16 @@
+plugins {
+    alias(libs.plugins.tracker.lens)
+}
+
+trackerLens {
+    // Contributes a lens with the fixed id "custom-lens", always resolved with the highest
+    // precedence for that id - no plugin dependency needed for a single project-local lens.
+    lensStylesheet = file('sunset-lens.css')
+
+    trackers {
+        register('bdd-scenarios') {
+            historyFiles.from(file('gherkin-progress-history.ndjson'))
+            source = com.arc_e_tect.gradle.trackerlens.TrackerSourceKind.GHERKIN_SCENARIO
+        }
+    }
+}

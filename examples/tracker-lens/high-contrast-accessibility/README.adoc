@@ -1,0 +1,50 @@
+= Tracker Lens — High-Contrast Accessibility Example
+:toc: left
+
+== Description
+
+The same single-tracker setup as `../plain`, with `defaultLens` set to the plugin's built-in
+`high-contrast-lens` instead of leaving it to fall back to `light-lens`.
+
+== Intent
+
+This example shows how to make a dashboard's accessible presentation the one every visitor sees
+first, rather than something they have to discover in the lens switcher. `high-contrast-lens` is
+built into the plugin specifically for visually impaired users: a pure black background with pure
+white text and borders (21:1 contrast ratio), and — deliberately — no red or green anywhere,
+including its chart series and projection status colors, since a red/green distinction is invisible
+to the most common forms of color blindness. It relies only on blue, yellow, and purple instead,
+which stay distinguishable across protanopia, deuteranopia, and tritanopia alike.
+
+Any project can do the same for its own dashboard with one line, without needing a custom lens or
+an external pack at all.
+
+== Configuration
+
+[source,groovy]
+----
+trackerLens {
+    defaultLens = 'high-contrast-lens'
+
+    trackers {
+        register('bdd-scenarios') {
+            historyFiles.from(file('gherkin-progress-history.ndjson'))
+            source = com.arc_e_tect.gradle.trackerlens.TrackerSourceKind.GHERKIN_SCENARIO
+        }
+    }
+}
+----
+
+== Build And Run
+
+[source,bash]
+----
+cd examples/tracker-lens/high-contrast-accessibility
+./gradlew generateTrackerLensDashboard
+----
+
+== What To Expect
+
+The build is expected to pass. Opening `build/reports/tracker-lens/dashboard.html` loads with
+`high-contrast-lens` already selected in the switcher — `dark-lens` and `light-lens` are still
+available as alternatives, but nobody has to find and pick the accessible option manually.

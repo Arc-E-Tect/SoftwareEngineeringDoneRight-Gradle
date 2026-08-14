@@ -1,0 +1,18 @@
+plugins {
+    alias(libs.plugins.tracker.lens)
+}
+
+trackerLens {
+    // Overrides the bundled dashboard.html Mustache template's structure and wording. Every
+    // data-bound element ContractRule governs is still available to the template as context - and
+    // the output is still validated against the same content contract regardless of which
+    // template rendered it.
+    template = file('dashboard-template.html')
+
+    trackers {
+        register('bdd-scenarios') {
+            historyFiles.from(file('gherkin-progress-history.ndjson'))
+            source = com.arc_e_tect.gradle.trackerlens.TrackerSourceKind.GHERKIN_SCENARIO
+        }
+    }
+}
