@@ -33,9 +33,10 @@ its own markup and its own script to derive additional views the plugin itself n
   plugin that finds it - plus a fourth, appended card for `Compliant`, the endpoints none of the
   three checks flagged. Each card carries a hover-over "?" badge explaining the full compound
   condition it checks.
-* Beside `api-contracts`' line chart, four small *pie charts* using the exact same four names and
-  counts as the metric cards above them: total APIs vs. Undefined, total vs. Unimplemented, total
-  vs. Unverified, total vs. Compliant.
+* Beside `api-contracts`' line chart, one *pie chart* with the same four names and counts as the
+  metric cards above it - Undefined, Unimplemented, Unverified, Compliant - as absolute counts, not
+  four separate "this check's share of the whole" percentages: since the four states are a genuine
+  partition, one pie whose slices sum to the total says it more plainly than four would.
 
 === Why the Gherkin pie reads `stageBreakdown`, not `series`
 
@@ -66,13 +67,14 @@ checks on the same 20 endpoints - not stages of one pipeline the way `bdd-scenar
 independently, so nothing says their percentages (20%, 35%, 25%) have to sum to 100%, and they
 don't.
 
-That's easy to misread as "the numbers don't add up" in the bad sense, so the fourth card and pie -
+That's easy to misread as "the numbers don't add up" in the bad sense, so a fourth card -
 `Compliant`, the endpoints none of the three checks flagged - exists specifically so a reader can
-check them for themselves: `Undefined + Unimplemented + Unverified + Compliant` *does* always equal
+check for themselves: `Undefined + Unimplemented + Unverified + Compliant` *does* always equal
 `totalCount` (4 + 7 + 5 + 4 = 20 here), because those four states are a complete, non-overlapping
 partition, even though the three *checks'* own percentages aren't. `Compliant`'s count is exactly
-`verifiedCount` - the plugin's own `verified` metric, already computed, just relabeled and given the
-same "share of the whole" pie treatment as the other three.
+`verifiedCount` - the plugin's own `verified` metric, already computed, just relabeled. The pie
+beside the line chart makes the same point visually: one chart, four slices, summing to the whole -
+not four separate pies each needing its own "and the rest" complement explained.
 
 The relationship between all four counts, and the two raw totals (`declared`/`implemented`) the
 plugin itself reports, is fully determined - see
@@ -109,7 +111,7 @@ The plugin always renders api-contracts' metric cards as `declared`/`implemented
 that's `MetricCardView`'s fixed output, not something a template's Mustache markup can change. This
 template's script rewrites those three cards' label, count, percentage, and `--percent` fill-bar
 style in place after the page loads, using the exact same `Undefined`/`Unimplemented`/`Unverified`
-names and counts the pies below use - computed once and shared by both, so the two can never drift
+names and counts the pie below uses - computed once and shared by both, so the two can never drift
 apart - then appends a fourth `.metric-card` for `Compliant`, since the plugin never renders one
 itself (there's no fourth canonical stage to render it from):
 
@@ -202,9 +204,9 @@ through regardless of which template rendered it. Open `build/reports/tracker-le
   "listed: 1 / 6", "defined: 1 / 6", "implemented: 4 / 6".
 * `api-contracts` shows four metric cards - `UNDEFINED 4 / 20 (20%)`, `UNIMPLEMENTED 7 / 20 (35%)`,
   `UNVERIFIED 5 / 20 (25%)`, and `COMPLIANT 4 / 20 (20%)` - each with a `?` badge; its usual line
-  chart (still labeled declared/implemented/verified - the raw history, unchanged); and four pies
-  beside it with the same four names and counts, each caption on two lines - the count on the first
-  line, the percentage alone on the second. The four counts sum to 20, the tracker's total.
+  chart (still labeled declared/implemented/verified - the raw history, unchanged); and one pie
+  beside it with four slices sized 4, 7, 5, 4 - summing visibly to 20, the tracker's total. Hovering
+  a slice shows "Undefined: 4 / 20", and so on for the other three.
 
 Switching lenses still works exactly as in `../plain`, since the lens switcher and every
 contract-bound element are untouched - only the two added charts and their surrounding layout are

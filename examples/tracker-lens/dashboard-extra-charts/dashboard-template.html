@@ -28,32 +28,6 @@ height: 260px;
 width: 100%;
 height: 100%;
 }
-/* Three side-by-side "this detector's share of all APIs" pies, replacing the single extra chart
-   the other trackers get - wider than the default .chart-extra box, set inline where it's built
-   below, since only this tracker's extra chart needs the extra room. */
-.detector-pies {
-display: flex;
-gap: 0.75rem;
-height: 100%;
-}
-.detector-pies__pie {
-flex: 1 1 0;
-min-width: 0;
-display: flex;
-flex-direction: column;
-}
-.detector-pies__pie canvas {
-flex: 1 1 auto;
-min-height: 0;
-}
-.detector-pies__caption {
-font-size: 0.7rem;
-text-align: center;
-margin: 0.2rem 0 0;
-}
-.detector-pies__caption--percent {
-font-weight: 600;
-}
 /* The hover-over "?" badge itself, used next to the DECLARED/IMPLEMENTED/VERIFIED metric card
    labels - see the script below for where it's attached and what it says. */
 .info-badge {
@@ -297,61 +271,45 @@ vertical-align: middle;
     }
   }
 
-  // Four small pies beside the line chart - Total vs Undefined, Total vs Unimplemented, Total vs
-  // Unverified, Total vs Compliant - each just two slices of the same 20-endpoint whole. Every pie
-  // is internally consistent by construction (a slice and its complement always sum to 100%); what
-  // the four of them add, side by side, is a concrete look at how much of the whole each specific
-  // check is currently failing - and, with Compliant included, a check that the four counts really
-  // do add up to the total, unlike declared/implemented/verified's own percentages.
-  function renderDetectorSharePies(breakdown, container, totalCount) {
+  // One pie, four mutually-exclusive slices - Undefined, Unimplemented, Unverified, Compliant -
+  // absolute counts, not percentages of a shared total the way four separate "this check's share"
+  // pies would each need repeating. Since these four states are a genuine partition (every endpoint
+  // is in exactly one), a single pie is both simpler and more honest here than api-contracts' own
+  // declared/implemented/verified would be as a pie - those three are independent checks, not
+  // mutually-exclusive slices, which is exactly why they get separate metric cards instead of a
+  // pie of their own. This one mirrors bdd-scenarios' own pie above: one chart, slices that sum to
+  // the tracker's total.
+  function renderApiContractBreakdownPie(breakdown, container, totalCount) {
     if (typeof Chart === 'undefined') {
       return;
     }
-
-    // Wider than the default .chart-extra box (set on this container only, via the CSS class
-    // above) so four pies stay legible side by side rather than cramped into one tracker's usual
-    // single-extra-chart width.
-    container.style.flexBasis = '560px';
-    container.style.width = '560px';
-
-    var row = document.createElement('div');
-    row.className = 'detector-pies';
-
-    breakdown.forEach(function (pie) {
-      var wrapper = document.createElement('div');
-      wrapper.className = 'detector-pies__pie';
-
-      var canvas = document.createElement('canvas');
-      wrapper.appendChild(canvas);
-
-      var percent = totalCount ? Math.round((100 * pie.count) / totalCount) : 0;
-
-      var captionLabel = document.createElement('p');
-      captionLabel.className = 'detector-pies__caption';
-      captionLabel.textContent = pie.label + ': ' + pie.count + ' / ' + totalCount;
-      wrapper.appendChild(captionLabel);
-
-      var captionPercent = document.createElement('p');
-      captionPercent.className = 'detector-pies__caption detector-pies__caption--percent';
-      captionPercent.textContent = percent + '%';
-      wrapper.appendChild(captionPercent);
-
-      row.appendChild(wrapper);
-
-      new Chart(canvas.getContext('2d'), {
-        type: 'pie',
-        data: {
-          labels: [pie.label, 'Rest'],
-          datasets: [{
-            data: [pie.count, totalCount - pie.count],
-            backgroundColor: [pie.color, '#d9d9de']
-          }]
-        },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
-      });
+    var canvas = document.createElement('canvas');
+    container.appendChild(canvas);
+    new Chart(canvas.getContext('2d'), {
+      type: 'pie',
+      data: {
+        labels: breakdown.map(function (entry) { return entry.label; }),
+        datasets: [{
+          data: breakdown.map(function (entry) { return entry.count; }),
+          backgroundColor: breakdown.map(function (entry) { return entry.color; })
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: true, position: 'bottom' },
+          tooltip: {
+            callbacks: {
+              label: function (context) {
+                var entry = breakdown[context.dataIndex];
+                return entry.label + ': ' + entry.count + ' / ' + totalCount;
+              }
+            }
+          }
+        }
+      }
     });
-
-    container.appendChild(row);
   }
 
   // totalCount isn't in #dashboard-data (only per-stage counts are) - it's already in the
@@ -373,7 +331,7 @@ vertical-align: middle;
     var totalCount = totalCountFor('api-contracts', 'declared');
     var breakdown = computeApiContractBreakdown(apiContractTracker, totalCount);
     relabelApiContractMetricCards(breakdown, totalCount);
-    renderDetectorSharePies(breakdown, apiContractContainer, totalCount);
+    renderApiContractBreakdownPie(breakdown, apiContractContainer, totalCount);
   }
 })();
 </script>
