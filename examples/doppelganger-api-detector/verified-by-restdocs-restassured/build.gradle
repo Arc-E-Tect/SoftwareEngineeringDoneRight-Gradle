@@ -1,0 +1,45 @@
+plugins {
+    id 'java'
+    alias(libs.plugins.spring.boot)
+    alias(libs.plugins.spring.dependency.management)
+    alias(libs.plugins.doppelganger.api.detector)
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.restdocs:spring-restdocs-restassured'
+    testImplementation 'io.rest-assured:rest-assured'
+}
+
+test {
+    useJUnitPlatform()
+}
+
+doppelgangerApiDetector {
+    rootDocument = file('src/main/resources/openapi/openapi.yaml')
+
+    // The plugin's default testDirs is src/testContract/java; this example's test lives in the
+    // standard src/test/java source set so Gradle actually compiles and runs it.
+    testDirs.from('src/test/java')
+
+    // Fail the build if anything is still unverified. getItem is exercised by a real, passing
+    // spring-restdocs-restassured test - see src/test/java - so this is expected to pass.
+    failOnDoppelganger = true
+}
+
+// detectDoppelgangerApis is not wired into check/build automatically - opt in explicitly.
+tasks.named('check') {
+    dependsOn 'detectDoppelgangerApis'
+}
