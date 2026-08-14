@@ -1,13 +1,6 @@
 = Tracker Lens — Dashboard Extra Charts Example
 :toc: left
 
-== IMPORTANT: Version Dependency
-
-This example needs `tracker-lens` `stageBreakdown` support, added to `#dashboard-data` to fix the
-Gherkin pie chart described below - not yet in the currently published `0.1.0`. `gradle/libs.versions.toml`
-pins `0.2.0`, the predicted next release; until that ships, this example's own build will fail to
-resolve the plugin.
-
 == Description
 
 Two trackers - `bdd-scenarios` (Gherkin scenarios) and `api-contracts` (API contracts) - rendered by
