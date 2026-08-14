@@ -55,6 +55,8 @@ public class TrackerLensPlugin implements Plugin<Project> {
     public void apply(Project project) {
         TrackerLensExtension extension = project.getExtensions().create(TrackerLensExtension.NAME, TrackerLensExtension.class);
         extension.getOutputDir().convention(project.getLayout().getBuildDirectory().dir("reports/tracker-lens"));
+        extension.getDashboardName().convention(project.provider(() -> project.getName() + " Lens"));
+        extension.getVersion().convention(project.provider(() -> String.valueOf(project.getVersion())));
 
         Configuration lensStyle = project.getConfigurations().create(TrackerLensExtension.LENS_STYLE_CONFIGURATION_NAME, c -> {
             c.setCanBeConsumed(false);
@@ -69,6 +71,8 @@ public class TrackerLensPlugin implements Plugin<Project> {
                     task.getPreferredLensPack().set(extension.getPreferredLensPack());
                     task.getDefaultLens().set(extension.getDefaultLens());
                     task.getTemplate().set(extension.getTemplate());
+                    task.getDashboardName().set(extension.getDashboardName());
+                    task.getVersion().set(extension.getVersion());
                     task.getLensStyleClasspath().from(lensStyle);
                 });
 

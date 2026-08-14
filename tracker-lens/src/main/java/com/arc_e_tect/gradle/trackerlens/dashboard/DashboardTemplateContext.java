@@ -34,6 +34,8 @@ final class DashboardTemplateContext {
 
     static Map<String, Object> build(DashboardView view) {
         Map<String, Object> context = new LinkedHashMap<>();
+        context.put("dashboardName", view.dashboardName());
+        context.put("version", view.version());
         context.put("defaultLensCssFile", LensNaming.cssFileName(view.defaultLensId()));
         context.put("lensCount", view.lenses().size());
         context.put("lenses", view.lenses().stream().map(lens -> lensContext(lens, view.defaultLensId())).toList());

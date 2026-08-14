@@ -57,6 +57,18 @@ body {
     padding-bottom: 1rem;
 }
 
+.dashboard-heading {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.dashboard-version {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--dashboard-muted);
+}
+
 .lens-switcher select {
     background: var(--dashboard-bg);
     color: var(--dashboard-text);

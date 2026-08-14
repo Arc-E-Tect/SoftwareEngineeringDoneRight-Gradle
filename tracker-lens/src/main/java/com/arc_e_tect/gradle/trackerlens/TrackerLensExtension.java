@@ -23,6 +23,8 @@ import javax.inject.Inject;
  *     defaultLens = "dark-lens"                        // optional
  *     template = file("dashboard-template.html")       // optional: override the bundled dashboard.html Mustache template
  *     outputDir = layout.buildDirectory.dir("reports/tracker-lens")  // default shown
+ *     dashboardName = "Checkout Service Lens"          // optional; default: "${project.name} Lens"
+ *     version = "2.3.0"                                // optional; default: project.version
  * }
  *
  * dependencies {
@@ -115,4 +117,24 @@ public abstract class TrackerLensExtension {
      * @return mutable file property for the custom dashboard template
      */
     public abstract RegularFileProperty getTemplate();
+
+    /**
+     * The dashboard's displayed name, shown in the browser tab title and the page heading.
+     * Defaults to {@code "<project.name> Lens"}; set this to use a different name verbatim -
+     * whatever it's set to is used exactly as given, with no {@code " Lens"} suffix added.
+     *
+     * @return mutable property for the dashboard's displayed name
+     */
+    public abstract Property<String> getDashboardName();
+
+    /**
+     * Version shown alongside the dashboard's name, the same way {@code systemUnderTestVersion}
+     * works on the API-detector plugins (e.g. {@code shadow-api-detector}): defaults to the
+     * project's own {@code version} (as set in the build file or a properties file); set this
+     * property to show a different version instead, e.g. when the trackers registered here reflect
+     * a different artifact than the one being built.
+     *
+     * @return mutable property for the displayed version
+     */
+    public abstract Property<String> getVersion();
 }

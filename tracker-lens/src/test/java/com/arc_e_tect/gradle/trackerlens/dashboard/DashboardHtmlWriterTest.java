@@ -50,6 +50,19 @@ class DashboardHtmlWriterTest {
     }
 
     @Test
+    @DisplayName("writeShouldRenderDashboardNameAndVersionInTitleAndHeading")
+    void writeShouldRenderDashboardNameAndVersionInTitleAndHeading() throws IOException {
+        DashboardView view = twoTrackerView();
+
+        File dashboardFile = writer.write(tempDir.toFile(), view, null);
+
+        Document document = Jsoup.parse(dashboardFile, "UTF-8");
+        assertThat(document.title()).isEqualTo("my-app Lens");
+        assertThat(document.select("h1").text()).isEqualTo("my-app Lens");
+        assertThat(document.select(".dashboard-version").text()).contains("1.2.3");
+    }
+
+    @Test
     @DisplayName("writeShouldWriteOneCssFilePerLensWithNamespacedFileName")
     void writeShouldWriteOneCssFilePerLensWithNamespacedFileName() {
         DashboardView view = twoTrackerView();
@@ -85,7 +98,7 @@ class DashboardHtmlWriterTest {
         File dashboardFile = writer.write(tempDir.toFile(), new DashboardView(
                 List.of(trackerWithStale),
                 List.of(new ResolvedLens("light-lens", "built-in", "body{}".getBytes(StandardCharsets.UTF_8))),
-                "light-lens"), null);
+                "light-lens", "my-app Lens", "1.2.3"), null);
 
         Document document = Jsoup.parse(dashboardFile, "UTF-8");
         assertThat(document.select(".stale-items__table tbody tr")).hasSize(2);
@@ -100,7 +113,7 @@ class DashboardHtmlWriterTest {
         File dashboardFile = writer.write(tempDir.toFile(), new DashboardView(
                 List.of(medium, high),
                 List.of(new ResolvedLens("light-lens", "built-in", "body{}".getBytes(StandardCharsets.UTF_8))),
-                "light-lens"), null);
+                "light-lens", "my-app Lens", "1.2.3"), null);
 
         Document document = Jsoup.parse(dashboardFile, "UTF-8");
         assertThat(document.select(".tracker[data-tracker=\"t-medium\"] .projection__disclaimer").text())
@@ -222,6 +235,6 @@ class DashboardHtmlWriterTest {
                 new ResolvedLens("dark-lens (midnight-theme)", "midnight-theme",
                         "body{background:#000}".getBytes(StandardCharsets.UTF_8)));
 
-        return new DashboardView(List.of(gherkinView, apiView), lenses, "light-lens");
+        return new DashboardView(List.of(gherkinView, apiView), lenses, "light-lens", "my-app Lens", "1.2.3");
     }
 }

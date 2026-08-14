@@ -2,14 +2,17 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Tracker Lens Dashboard</title>
+<title>{{dashboardName}}</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <link rel="stylesheet" id="lens-stylesheet" href="{{defaultLensCssFile}}">
 </head>
 <body>
 <div class="dashboard">
 <header>
-<h1>Tracker Lens Dashboard</h1>
+<div class="dashboard-heading">
+<h1>{{dashboardName}}</h1>
+<p class="dashboard-version">Version {{version}}</p>
+</div>
 <div class="lens-switcher" data-lens-count="{{lensCount}}">
 <label for="lens-select">Lens</label>
 <select id="lens-select">

@@ -43,6 +43,18 @@ body {
     gap: 1rem;
 }
 
+.dashboard-heading {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.dashboard-version {
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--dashboard-muted);
+}
+
 .lens-switcher select {
     background: var(--dashboard-surface);
     color: var(--dashboard-text);

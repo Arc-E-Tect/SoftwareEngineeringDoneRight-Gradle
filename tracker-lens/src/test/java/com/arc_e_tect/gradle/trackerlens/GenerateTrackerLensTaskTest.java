@@ -284,11 +284,17 @@ class GenerateTrackerLensTaskTest {
     }
 
     private GenerateTrackerLensTask newTask() {
-        return ProjectBuilder.builder()
+        GenerateTrackerLensTask task = ProjectBuilder.builder()
                 .withProjectDir(tempDir.toFile())
                 .build()
                 .getTasks()
                 .create("generateTrackerLensDashboard", GenerateTrackerLensTask.class);
+        // Real builds always have a value here, via TrackerLensExtension's own conventions
+        // (TrackerLensPluginTest covers those); tests in this file construct the task directly, so
+        // they need to set these two non-optional properties themselves.
+        task.getDashboardName().set("my-app Lens");
+        task.getVersion().set("1.2.3");
+        return task;
     }
 
     private void writeGherkinHistory(Path file) throws Exception {
