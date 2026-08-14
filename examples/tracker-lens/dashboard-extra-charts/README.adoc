@@ -26,15 +26,16 @@ its own markup and its own script to derive additional views the plugin itself n
 * Beside `bdd-scenarios`' line chart, a *pie chart* of which stage each scenario is *currently* at -
   `listed`, `defined`, or `implemented` - read directly from `#dashboard-data`'s `stageBreakdown`
   field.
-* `api-contracts`' own metric cards - rewritten in place, client-side, from the plugin's own
+* `api-contracts`' own metric cards - rewritten in place, client-side, from the plugin's own three
   `declared`/`implemented`/`verified` labels and counts to `Undefined`/`Unimplemented`/`Unverified`
   - the same three checks this repository's `shadow-api-detector`, `mirage-api-detector`, and
   `doppelganger-api-detector` plugins run, named after what's *missing* rather than after the
-  plugin that finds it - each with a hover-over "?" badge explaining the full compound condition it
-  checks.
-* Beside `api-contracts`' line chart, three small *pie charts* using the exact same three names and
+  plugin that finds it - plus a fourth, appended card for `Compliant`, the endpoints none of the
+  three checks flagged. Each card carries a hover-over "?" badge explaining the full compound
+  condition it checks.
+* Beside `api-contracts`' line chart, four small *pie charts* using the exact same four names and
   counts as the metric cards above them: total APIs vs. Undefined, total vs. Unimplemented, total
-  vs. Unverified.
+  vs. Unverified, total vs. Compliant.
 
 === Why the Gherkin pie reads `stageBreakdown`, not `series`
 
@@ -55,7 +56,7 @@ this case - `process-a-return`, listed on 2026-06-10 and observed already-implem
 with no `definedAt` ever recorded - to prove it: the pie correctly counts it under `implemented`
 (4 of 6), not `listed`.
 
-=== Why Undefined/Unimplemented/Unverified don't sum to 100%
+=== Why Undefined/Unimplemented/Unverified don't sum to 100% (but all four states do)
 
 Undefined (implemented, no OpenAPI description - what `shadow-api-detector` calls a "Shadow API"),
 Unimplemented (described, no implementation - a "Mirage API"), and Unverified (described and
@@ -63,11 +64,17 @@ implemented, no test confirming the two agree - a "Doppelganger API") are three 
 checks on the same 20 endpoints - not stages of one pipeline the way `bdd-scenarios`'
 `listed`/`defined`/`implemented` are. An endpoint can fail zero, one, two, or three of them
 independently, so nothing says their percentages (20%, 35%, 25%) have to sum to 100%, and they
-don't - visible directly on the metric cards themselves, and repeated on the pies beside the line
-chart, each internally consistent on its own (a slice and its complement always sum to 100%) but
-concretely showing how much of the 20 endpoints each specific check is currently failing.
+don't.
 
-The relationship between these four counts, and the two raw totals (`declared`/`implemented`) the
+That's easy to misread as "the numbers don't add up" in the bad sense, so the fourth card and pie -
+`Compliant`, the endpoints none of the three checks flagged - exists specifically so a reader can
+check them for themselves: `Undefined + Unimplemented + Unverified + Compliant` *does* always equal
+`totalCount` (4 + 7 + 5 + 4 = 20 here), because those four states are a complete, non-overlapping
+partition, even though the three *checks'* own percentages aren't. `Compliant`'s count is exactly
+`verifiedCount` - the plugin's own `verified` metric, already computed, just relabeled and given the
+same "share of the whole" pie treatment as the other three.
+
+The relationship between all four counts, and the two raw totals (`declared`/`implemented`) the
 plugin itself reports, is fully determined - see
 link:../../../tracker-lens/DASHBOARD-THEMING.adoc#shadow-mirage-doppelganger-compliant-math[the
 tracker-lens documentation] for the worked formula.
@@ -96,18 +103,19 @@ alongside a second, empty `.chart-extra` div the template's own script fills in:
 </div>
 ----
 
-=== Relabeling The Metric Cards
+=== Relabeling The Metric Cards, And Adding A Fourth
 
 The plugin always renders api-contracts' metric cards as `declared`/`implemented`/`verified` -
 that's `MetricCardView`'s fixed output, not something a template's Mustache markup can change. This
 template's script rewrites those three cards' label, count, percentage, and `--percent` fill-bar
 style in place after the page loads, using the exact same `Undefined`/`Unimplemented`/`Unverified`
 names and counts the pies below use - computed once and shared by both, so the two can never drift
-apart:
+apart - then appends a fourth `.metric-card` for `Compliant`, since the plugin never renders one
+itself (there's no fourth canonical stage to render it from):
 
 [source,javascript]
 ----
-function computeApiContractProblems(tracker, totalCount) {
+function computeApiContractBreakdown(tracker, totalCount) {
   var counts = latestCounts(tracker);
   var declared = counts.declared || 0;
   var implemented = counts.implemented || 0;
@@ -115,24 +123,32 @@ function computeApiContractProblems(tracker, totalCount) {
   return [
     { label: 'Undefined', count: totalCount - declared, color: stageColors[0] },
     { label: 'Unimplemented', count: totalCount - implemented, color: stageColors[1] },
-    { label: 'Unverified', count: declared + implemented - totalCount - verified, color: stageColors[2] }
+    { label: 'Unverified', count: declared + implemented - totalCount - verified, color: stageColors[2] },
+    { label: 'Compliant', count: verified, color: COMPLIANT_COLOR }
   ];
 }
 ----
 
+The appended card gets its own fixed color (`COMPLIANT_COLOR`, a plain green), not one of the three
+`--dashboard-stage-*` custom properties a lens defines - `Compliant` isn't one of the plugin's own
+canonical stages the way `Undefined`/`Unimplemented`/`Unverified` are, so there's no stage index for
+a lens to color it by.
+
 === The Hover-Over Definitions
 
-A small circled `?`, appended next to each relabeled card's name, carries the check's full
-definition as a plain HTML `title` attribute, so hovering it shows the browser's native tooltip
-with no extra library:
+A small circled `?`, appended next to each card's name - the three relabeled ones and the appended
+`Compliant` one alike - carries the check's full definition as a plain HTML `title` attribute, so
+hovering it shows the browser's native tooltip with no extra library:
 
 [source,javascript]
 ----
-var PROBLEM_DEFINITIONS = {
+var CHECK_DEFINITIONS = {
   Undefined: 'Endpoint is implemented using Spring RestController, but there is no OpenAPI description.',
   Unimplemented: 'An OpenAPI description exists, but no implementation.',
   Unverified: 'An OpenAPI description exists, the endpoint is implemented using Spring RestController, '
-      + 'but no test exists confirming the implementation still matches the OpenAPI description.'
+      + 'but no test exists confirming the implementation still matches the OpenAPI description.',
+  Compliant: 'An OpenAPI description exists, the endpoint is implemented using Spring RestController, '
+      + 'and at least one test exists confirming the implementation matches the OpenAPI description.'
 };
 ----
 
@@ -184,11 +200,11 @@ through regardless of which template rendered it. Open `build/reports/tracker-le
   (`listed` only), 1 (`defined` only), 4 (`implemented`, including the skip-scenario) - `implemented`
   is correctly the largest slice, since most scenarios really are done. Hovering a slice shows
   "listed: 1 / 6", "defined: 1 / 6", "implemented: 4 / 6".
-* `api-contracts`' three metric cards read `UNDEFINED 4 / 20 (20%)`, `UNIMPLEMENTED 7 / 20 (35%)`,
-  `UNVERIFIED 5 / 20 (25%)`, each with a `?` badge; its usual line chart (still labeled
-  declared/implemented/verified - the raw history, unchanged); and three pies beside it with the
-  same three names and counts, each caption on two lines - the count on the first line, the
-  percentage alone on the second.
+* `api-contracts` shows four metric cards - `UNDEFINED 4 / 20 (20%)`, `UNIMPLEMENTED 7 / 20 (35%)`,
+  `UNVERIFIED 5 / 20 (25%)`, and `COMPLIANT 4 / 20 (20%)` - each with a `?` badge; its usual line
+  chart (still labeled declared/implemented/verified - the raw history, unchanged); and four pies
+  beside it with the same four names and counts, each caption on two lines - the count on the first
+  line, the percentage alone on the second. The four counts sum to 20, the tracker's total.
 
 Switching lenses still works exactly as in `../plain`, since the lens switcher and every
 contract-bound element are untouched - only the two added charts and their surrounding layout are

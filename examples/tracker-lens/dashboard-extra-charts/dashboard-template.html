@@ -206,25 +206,33 @@ vertical-align: middle;
     });
   }
 
-  // Full, correct definitions for the three "un-X" checks api-contracts reports - both on its own
-  // metric cards and on the pies beside its line chart, using the same names and the same counts
-  // in both places rather than the cards showing positive per-stage totals while the pies show
-  // each one's complement. Each is a compound condition, not just "this one thing happened", which
-  // is exactly why an endpoint can satisfy zero, one, two, or three of them independently rather
-  // than moving through them as stages of one pipeline.
-  var PROBLEM_DEFINITIONS = {
+  // Full, correct definitions for api-contracts' three "un-X" checks, plus Compliant - the fourth
+  // state that rounds the other three out to a full partition (every endpoint is in exactly one of
+  // the four). Shown alongside the problem counts specifically so a reader can check the four
+  // numbers against the total themselves, rather than being left to wonder what the "other"
+  // endpoints - the ones none of the three checks flagged - actually look like.
+  var CHECK_DEFINITIONS = {
     Undefined: 'Endpoint is implemented using Spring RestController, but there is no OpenAPI description.',
     Unimplemented: 'An OpenAPI description exists, but no implementation.',
     Unverified: 'An OpenAPI description exists, the endpoint is implemented using Spring RestController, '
-        + 'but no test exists confirming the implementation still matches the OpenAPI description.'
+        + 'but no test exists confirming the implementation still matches the OpenAPI description.',
+    Compliant: 'An OpenAPI description exists, the endpoint is implemented using Spring RestController, '
+        + 'and at least one test exists confirming the implementation matches the OpenAPI description.'
   };
 
-  // Derives the three "un-X" bucket sizes from the same per-stage counts the line chart already
-  // uses - declaredCount excludes only Undefined, implementedCount excludes only Unimplemented,
-  // and Unverified is what's left once those two and Compliant (verifiedCount) are accounted for -
-  // so no new plugin data is needed. Computed once and shared by both the metric cards and the
-  // pies below, so the two can never drift apart.
-  function computeApiContractProblems(tracker, totalCount) {
+  // A fixed color for Compliant, distinct from the three lens-driven --dashboard-stage-* colors:
+  // Compliant isn't one of the plugin's own canonical stages the way declared/implemented/verified
+  // are, it's a derived "none of the three checks failed" category this template adds - so unlike
+  // Undefined/Unimplemented/Unverified, there's no stage index for a lens to color it by.
+  var COMPLIANT_COLOR = '#2f9e44';
+
+  // Derives all four state sizes from the same per-stage counts the line chart already uses -
+  // declaredCount excludes only Undefined, implementedCount excludes only Unimplemented,
+  // verifiedCount *is* Compliant, and Unverified is what's left of the declared-and-implemented
+  // overlap once Compliant is accounted for - so no new plugin data is needed. Computed once and
+  // shared by both the metric cards and the pies below, so the two can never drift apart. The four
+  // counts always sum to totalCount, since every endpoint is in exactly one of them.
+  function computeApiContractBreakdown(tracker, totalCount) {
     var counts = latestCounts(tracker);
     var declared = counts.declared || 0;
     var implemented = counts.implemented || 0;
@@ -232,63 +240,84 @@ vertical-align: middle;
     return [
       { label: 'Undefined', count: totalCount - declared, color: stageColors[0] },
       { label: 'Unimplemented', count: totalCount - implemented, color: stageColors[1] },
-      { label: 'Unverified', count: declared + implemented - totalCount - verified, color: stageColors[2] }
+      { label: 'Unverified', count: declared + implemented - totalCount - verified, color: stageColors[2] },
+      { label: 'Compliant', count: verified, color: COMPLIANT_COLOR }
     ];
   }
 
   // Rewrites api-contracts' own DECLARED / IMPLEMENTED / VERIFIED metric cards in place as
   // Undefined / Unimplemented / Unverified, in that order (the cards' own DOM order already
-  // matches: declared, implemented, verified) - the same three problem categories, the same
-  // counts, and the same names the pies beside the line chart use. Also attaches a hover-over "?"
+  // matches: declared, implemented, verified), then appends a fourth card for Compliant - there's
+  // no fourth native metric card to relabel, since the plugin only ever renders one per canonical
+  // stage. Same names and counts the pies beside the line chart use. Also attaches a hover-over "?"
   // badge to each, carrying its full definition as a plain HTML title attribute.
-  function relabelApiContractMetricCards(problems, totalCount) {
+  function relabelApiContractMetricCards(breakdown, totalCount) {
     var section = document.querySelector('.tracker[data-tracker="api-contracts"]');
     if (!section) {
       return;
     }
+    var metrics = section.querySelector('.metrics');
     var cards = section.querySelectorAll('.metric-card');
-    problems.forEach(function (problem, index) {
-      var card = cards[index];
-      if (!card) {
-        return;
-      }
-      var percent = totalCount ? Math.round((100 * problem.count) / totalCount) : 0;
+
+    function fillCard(card, entry) {
+      var percent = totalCount ? Math.round((100 * entry.count) / totalCount) : 0;
       card.style.setProperty('--percent', percent);
 
       var stageLabel = card.querySelector('.metric-card__stage');
-      stageLabel.textContent = problem.label;
+      stageLabel.textContent = entry.label;
 
       var badge = document.createElement('span');
       badge.className = 'info-badge';
       badge.textContent = '?';
-      badge.title = PROBLEM_DEFINITIONS[problem.label] || '';
+      badge.title = CHECK_DEFINITIONS[entry.label] || '';
       stageLabel.appendChild(badge);
 
-      card.querySelector('.metric-card__count').textContent = problem.count + ' / ' + totalCount;
+      card.querySelector('.metric-card__count').textContent = entry.count + ' / ' + totalCount;
       card.querySelector('.metric-card__percent').textContent = percent + '%';
+    }
+
+    breakdown.slice(0, 3).forEach(function (entry, index) {
+      var card = cards[index];
+      if (card) {
+        fillCard(card, entry);
+      }
     });
+
+    var compliant = breakdown[3];
+    if (compliant && metrics) {
+      var extraCard = document.createElement('div');
+      extraCard.className = 'metric-card';
+      extraCard.setAttribute('data-stage', 'compliant');
+      extraCard.innerHTML =
+          '<span class="metric-card__stage"></span>'
+          + '<span class="metric-card__count"></span>'
+          + '<span class="metric-card__percent"></span>';
+      metrics.appendChild(extraCard);
+      fillCard(extraCard, compliant);
+    }
   }
 
-  // Three small "this detector's share of all APIs" pies - Total vs Undefined, Total vs
-  // Unimplemented, Total vs Unverified - one per detector, each just two slices of the same
-  // 12-endpoint whole. Each pie is internally consistent by construction (a slice and its
-  // complement always sum to 100%); what the three of them add, side by side, is a concrete look
-  // at how much of the whole each specific check is currently failing.
-  function renderDetectorSharePies(problems, container, totalCount) {
+  // Four small pies beside the line chart - Total vs Undefined, Total vs Unimplemented, Total vs
+  // Unverified, Total vs Compliant - each just two slices of the same 20-endpoint whole. Every pie
+  // is internally consistent by construction (a slice and its complement always sum to 100%); what
+  // the four of them add, side by side, is a concrete look at how much of the whole each specific
+  // check is currently failing - and, with Compliant included, a check that the four counts really
+  // do add up to the total, unlike declared/implemented/verified's own percentages.
+  function renderDetectorSharePies(breakdown, container, totalCount) {
     if (typeof Chart === 'undefined') {
       return;
     }
 
     // Wider than the default .chart-extra box (set on this container only, via the CSS class
-    // above) so three pies stay legible side by side rather than cramped into one tracker's usual
+    // above) so four pies stay legible side by side rather than cramped into one tracker's usual
     // single-extra-chart width.
-    container.style.flexBasis = '420px';
-    container.style.width = '420px';
+    container.style.flexBasis = '560px';
+    container.style.width = '560px';
 
     var row = document.createElement('div');
     row.className = 'detector-pies';
 
-    problems.forEach(function (pie) {
+    breakdown.forEach(function (pie) {
       var wrapper = document.createElement('div');
       wrapper.className = 'detector-pies__pie';
 
@@ -342,9 +371,9 @@ vertical-align: middle;
   var apiContractContainer = apiContractTracker ? extraChartContainer('api-contracts') : null;
   if (apiContractTracker && apiContractContainer) {
     var totalCount = totalCountFor('api-contracts', 'declared');
-    var problems = computeApiContractProblems(apiContractTracker, totalCount);
-    relabelApiContractMetricCards(problems, totalCount);
-    renderDetectorSharePies(problems, apiContractContainer, totalCount);
+    var breakdown = computeApiContractBreakdown(apiContractTracker, totalCount);
+    relabelApiContractMetricCards(breakdown, totalCount);
+    renderDetectorSharePies(breakdown, apiContractContainer, totalCount);
   }
 })();
 </script>
