@@ -6,6 +6,8 @@ plugins {
     alias(libs.plugins.owasp.dependency.check)
 }
 
+def pluginVersionForResources = project.version.toString()
+
 java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(21)
@@ -39,6 +41,7 @@ dependencies {
     implementation libs.jsoup
     implementation libs.mustache
 
+    testImplementation gradleTestKit()
     testImplementation libs.junit.jupiter
     testImplementation libs.assertj.core
     testRuntimeOnly    libs.junit.platform.launcher
@@ -60,6 +63,13 @@ gradlePlugin {
                 }
             }
         }
+    }
+}
+
+processResources {
+    inputs.property('pluginVersion', pluginVersionForResources)
+    filesMatching('tracker-lens.properties') {
+        expand(pluginVersion: pluginVersionForResources)
     }
 }
 

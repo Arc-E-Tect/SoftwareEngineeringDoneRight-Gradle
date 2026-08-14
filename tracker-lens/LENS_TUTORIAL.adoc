@@ -16,6 +16,8 @@ The dashboard contract itself is documented in link:DASHBOARD-THEMING.adoc[DASHB
 The plugin entry point, configuration, and external style-pack overview live in link:README.adoc[README.adoc].
 A lens is just CSS that matches that contract.
 
+TIP: Every step below can be generated for you. `./gradlew initTrackerLens` writes the boilerplate lens file from Step 1 alone; `./gradlew bootstrapTrackerLensProject` writes everything through Step 3 - the lens file, the lens-pack project, and a sample project already wired to consume it - in one go. This tutorial stays useful either way: read on to understand what got generated, or to build it up by hand instead.
+
 == What a lens file must contain
 
 A lens contributes a CSS file under the fixed resource path:
