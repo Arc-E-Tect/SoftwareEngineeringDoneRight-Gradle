@@ -1,0 +1,204 @@
+= Writing your first external lens pack
+:toc: left
+:toc-title: Contents
+:toclevels: 2
+:icons: font
+:source-highlighter: rouge
+
+This tutorial is for someone who has never built a Tracker Lens before. The goal is the smallest complete path:
+
+1. create a lens CSS file,
+2. package it as a jar,
+3. publish it to localMaven,
+4. consume it from a sample project.
+
+The dashboard contract itself is documented in link:DASHBOARD-THEMING.adoc[DASHBOARD-THEMING.adoc].
+The plugin entry point, configuration, and external style-pack overview live in link:README.adoc[README.adoc].
+A lens is just CSS that matches that contract.
+
+== What a lens file must contain
+
+A lens contributes a CSS file under the fixed resource path:
+
+[source]
+----
+src/main/resources/META-INF/arc-e-tect/tracker-lens/lenses/
+----
+
+The file name becomes the lens id. For example, `jungle-lens.css` becomes the lens `jungle-lens`.
+
+The fixed dashboard contract expects at least the color variables below, plus the dashboard selectors and `data-*` attributes described in link:DASHBOARD-THEMING.adoc[DASHBOARD-THEMING.adoc]:
+
+[source,css]
+----
+:root {
+    --dashboard-bg: #071a10;
+    --dashboard-surface: #103224;
+    --dashboard-text: #edf8ee;
+    --dashboard-stage-1: #4caf50;
+    --dashboard-stage-2: #7cb342;
+    --dashboard-stage-3: #c0ca33;
+}
+
+.dashboard {
+    background: var(--dashboard-bg);
+    color: var(--dashboard-text);
+}
+----
+
+== Step 1: create a minimal library project
+
+Use a plain Java-library build and publish a jar to `localMaven`:
+
+[source,groovy]
+----
+plugins {
+    id 'java-library'
+    id 'maven-publish'
+}
+
+group = 'com.arc-e-tect'
+version = '0.1.0'
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+            groupId = 'com.arc-e-tect'
+            artifactId = 'geo-tracker-lens-pack'
+            version = project.version
+        }
+    }
+    repositories {
+        maven {
+            name = 'localMaven'
+            url = uri(layout.buildDirectory.dir('localMaven'))
+        }
+    }
+}
+----
+
+Then create a file like this:
+
+[source,css]
+----
+:root {
+    --dashboard-bg: #071a10;
+    --dashboard-surface: #103224;
+    --dashboard-text: #edf8ee;
+    --dashboard-stage-1: #4caf50;
+    --dashboard-stage-2: #7cb342;
+    --dashboard-stage-3: #c0ca33;
+}
+
+.dashboard {
+    background: var(--dashboard-bg);
+    color: var(--dashboard-text);
+}
+
+.metric-card {
+    background: linear-gradient(135deg, rgba(18, 54, 38, 0.95), rgba(11, 36, 22, 0.95));
+}
+----
+
+Save it as:
+
+[source]
+----
+src/main/resources/META-INF/arc-e-tect/tracker-lens/lenses/jungle-lens.css
+----
+
+That file is the first lens.
+
+== Step 2: publish it to localMaven
+
+Run:
+
+[source,bash]
+----
+./gradlew publish
+----
+
+The resulting jar and metadata are written under:
+
+[source]
+----
+build/localMaven/
+----
+
+This is enough to verify the real packaging flow without publishing to Maven Central.
+
+== Step 3: consume it from a sample project
+
+Create a second Gradle project and add the local repository:
+
+[source,groovy]
+----
+plugins {
+    id 'java-library'
+    id 'com.arc-e-tect.tracker-lens' version '0.0.1'
+}
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+    maven {
+        url = uri('/path/to/geo-tracker-lens-pack/build/localMaven')
+    }
+}
+
+trackerLens {
+    trackers.register('bdd-scenarios') {
+        historyFiles.from(file('src/main/resources/gherkin-progress-history.ndjson'))
+        source = com.arc_e_tect.gradle.trackerlens.TrackerSourceKind.GHERKIN_SCENARIO
+    }
+}
+
+dependencies {
+    lensStyle 'com.arc-e-tect:geo-tracker-lens-pack:0.1.0'
+}
+----
+
+Then run:
+
+[source,bash]
+----
+./gradlew generateTrackerLensDashboard
+----
+
+If the pack was discovered correctly, the dashboard switcher includes the lens id `jungle-lens`.
+
+== Step 4: validate the look
+
+Open the generated dashboard and check that:
+
+- the page uses the jungle palette,
+- the metric cards match the chosen colors,
+- the chart colors remain readable,
+- the `--dashboard-stage-*` variables are present,
+- the lens selector includes the lens without crashing.
+
+If it looks good, the lens is ready for the next iteration.
+
+== Step 5: grow the pack
+
+Once the first lens works, add more lenses with the same pattern:
+
+- `desert-lens` for warm sand and amber tones,
+- `ocean-lens` for blue and teal shades,
+- `arctic-lens` for pale blue and white surfaces.
+
+Each lens is just one more CSS file in the same directory. No plugin code change is necessary for additional lenses.
+
+This tutorial intentionally validates the simplest path first: one lens, one package, one localMaven publication, one consumer project, and one generated dashboard.
+
+== Id collisions across packs
+
+Within one pack, lens ids are inherently unique - it's one directory, one namespace.
+Across different packs - built-in vs. external, or external vs. external, no distinction is made - a colliding id is auto-namespaced transparently rather than failing the build: the first-resolved pack keeps the clean id, and every later pack contributing the same id gets it suffixed with its source in parentheses, e.g. `dark-lens (midnight-theme)`.
+No configuration is needed to resolve a collision; it just works, and the `-lens` suffix convention above is the first line of defense against it happening at all.
+
+== Related documentation
+
+* link:README.adoc[Tracker Lens plugin README]
+* link:DASHBOARD-THEMING.adoc[Dashboard content contract]

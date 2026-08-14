@@ -280,11 +280,9 @@ The pack's lens (`midnight`, in this example) now appears in the switcher alongs
 
 TIP: Naming a built-in-style lens with a `-lens` suffix (as `light-lens` and `dark-lens` do) is a recommendation, not a rule - it makes an accidental id collision with another pack unlikely, but a pack author naming a lens `midnight` or `corporate-brand` is completely valid and nothing enforces the suffix.
 
-=== Id collisions across packs
+== Writing your first external lens pack
 
-Within one pack, lens ids are inherently unique - it's one directory, one namespace.
-Across different packs - built-in vs. external, or external vs. external, no distinction is made - a colliding id is auto-namespaced transparently rather than failing the build: the first-resolved pack keeps the clean id, and every later pack contributing the same id gets it suffixed with its source in parentheses, e.g. `dark-lens (midnight-theme)`.
-No configuration is needed to resolve a collision; it just works, and the `-lens` suffix convention above is the first line of defense against it happening at all.
+See link:LENS_TUTORIAL.adoc[LENS_TUTORIAL.adoc] for the novice-friendly, step-by-step guide to building and publishing an external lens pack.
 
 == The Dashboard Content Contract
 
