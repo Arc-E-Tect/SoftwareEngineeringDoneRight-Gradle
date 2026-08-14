@@ -1,3 +1,16 @@
+# [0.3.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/tracker-lens-v0.2.0...tracker-lens-v0.3.0) (2026-08-14)
+
+
+### ✨ New and updated features
+
+* **tracker-lens:** add dashboardName and version DSL properties ([#148](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/148)) ([8c0083a](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/8c0083a6caaa99f15f682cadb55a05cddfcb8a7f)), closes [#148](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/148)
+
+
+### 🐛 Bug Fixes
+
+* **tracker-lens:** correct dashboard-extra-charts' Gherkin pie and api-contracts numbers ([#145](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/145)) ([39a3bcc](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/39a3bcc182202fd740002a536dc1aa6e38d82ceb)), closes [#145](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/145) [#2f9e44](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/2f9e44) [#7048e8](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/7048e8)
+* **tracker-lens:** rewrite bdd-scenarios' metric cards to match its own pie ([#147](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/147)) ([03a9c95](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/03a9c9506f0765e3a535991a61afa37a4c428d75)), closes [#147](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/147)
+
 # [0.2.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/tracker-lens-v0.1.0...tracker-lens-v0.2.0) (2026-08-14)
 
 
