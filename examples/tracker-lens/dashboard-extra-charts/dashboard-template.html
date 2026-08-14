@@ -20,13 +20,29 @@ flex: 1 1 auto;
 min-width: 0;
 }
 .chart-extra {
-flex: 0 0 220px;
-height: 220px;
+flex: 0 0 260px;
+height: 260px;
 }
 .chart-extra canvas,
 .chart-extra svg {
 width: 100%;
 height: 100%;
+}
+/* The hover-over "?" badge itself, used next to the DECLARED/IMPLEMENTED/VERIFIED metric card
+   labels - see the script below for where it's attached and what it says. */
+.info-badge {
+display: inline-flex;
+align-items: center;
+justify-content: center;
+width: 1rem;
+height: 1rem;
+margin-left: 0.35rem;
+border-radius: 50%;
+border: 1px solid currentColor;
+font-size: 0.65rem;
+line-height: 1;
+cursor: help;
+vertical-align: middle;
 }
 </style>
 </head>
@@ -48,7 +64,7 @@ height: 100%;
 <h2>{{id}}</h2>
 <div class="metrics">
 {{#metrics}}
-<div class="metric-card" data-stage="{{stage}}" style="--percent: {{percent}}">
+<div class="metric-card" data-stage="{{stage}}" data-total="{{totalCount}}" style="--percent: {{percent}}">
 <span class="metric-card__stage">{{stage}}</span>
 <span class="metric-card__count">{{count}} / {{totalCount}}</span>
 <span class="metric-card__percent">{{percent}}%</span>
@@ -121,89 +137,219 @@ height: 100%;
     return document.querySelector('.chart-extra[data-extra-chart-for="' + trackerId + '"]');
   }
 
-  // Each stage's count is cumulative - "reached at least this stage" - so consecutive stages are
-  // nested subsets, not independent buckets. A pie chart needs mutually-exclusive slices, so each
-  // stage's slice here is "reached this stage but not the next one" (the final stage's slice is
-  // just its own count, having no next stage to subtract).
-  function renderStagePie(tracker, container) {
+  // A pie chart needs mutually-exclusive slices - "what stage is each scenario at right now" -
+  // which is exactly what stageBreakdown is: the number of scenarios whose *furthest* reached
+  // stage is each one, computed server-side from each scenario's full history. This is
+  // deliberately not derived here from series' cumulative "reached at least this stage" counts
+  // via subtraction (series[stage] - series[nextStage]): that approximation silently misattributes
+  // any scenario gherkin-to-asciidoc's own scanner first observed already at a later stage - it
+  // never backfills the stages such a scenario jumped past, so a naive subtraction here would
+  // wrongly count it under an earlier stage than the one it's actually at. stageBreakdown has
+  // already done this correctly, from the real per-scenario data, not an aggregate approximation.
+  function renderStagePie(tracker, container, totalCount) {
     if (typeof Chart === 'undefined') {
       return;
     }
-    var counts = latestCounts(tracker);
-    var slices = tracker.stages.map(function (stage, index) {
-      var next = tracker.stages[index + 1];
-      var exclusive = counts[stage] - (next ? counts[next] : 0);
-      return { stage: stage, count: Math.max(exclusive, 0) };
-    });
+    var breakdown = tracker.stageBreakdown || {};
     var canvas = document.createElement('canvas');
     container.appendChild(canvas);
     new Chart(canvas.getContext('2d'), {
       type: 'pie',
       data: {
-        labels: slices.map(function (slice) { return slice.stage; }),
+        labels: tracker.stages,
         datasets: [{
-          data: slices.map(function (slice) { return slice.count; }),
+          data: tracker.stages.map(function (stage) { return breakdown[stage] || 0; }),
           backgroundColor: tracker.stages.map(function (stage, index) { return stageColors[index % stageColors.length]; })
         }]
       },
-      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: true, position: 'bottom' } } }
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: true, position: 'left' },
+          tooltip: {
+            callbacks: {
+              label: function (context) {
+                var stage = tracker.stages[context.dataIndex];
+                return stage + ': ' + (breakdown[stage] || 0) + ' / ' + totalCount;
+              }
+            }
+          }
+        }
+      }
     });
   }
 
-  // Since verified is a subset of implemented is a subset of declared, the honest picture is
-  // three concentric circles - a Venn/Euler diagram for perfectly nested sets - each circle's
-  // area proportional to its stage's count, rather than a classic three-way overlap that would
-  // suggest combinations (e.g. "verified but not implemented") this data can't actually have.
-  function renderNestedVenn(tracker, container) {
+  // Full, correct definitions for api-contracts' three "un-X" checks, plus Compliant - the fourth
+  // state that rounds the other three out to a full partition (every endpoint is in exactly one of
+  // the four). Shown alongside the problem counts specifically so a reader can check the four
+  // numbers against the total themselves, rather than being left to wonder what the "other"
+  // endpoints - the ones none of the three checks flagged - actually look like.
+  var CHECK_DEFINITIONS = {
+    Undefined: 'Endpoint is implemented using Spring RestController, but there is no OpenAPI description.',
+    Unimplemented: 'An OpenAPI description exists, but no implementation.',
+    Unverified: 'An OpenAPI description exists, the endpoint is implemented using Spring RestController, '
+        + 'but no test exists confirming the implementation still matches the OpenAPI description.',
+    Compliant: 'An OpenAPI description exists, the endpoint is implemented using Spring RestController, '
+        + 'and at least one test exists confirming the implementation matches the OpenAPI description.'
+  };
+
+  // A fixed color for Compliant, distinct from the three lens-driven --dashboard-stage-* colors
+  // *and* chosen to not collide with any of them - Compliant isn't one of the plugin's own
+  // canonical stages the way declared/implemented/verified are, it's a derived "none of the three
+  // checks failed" category this template adds, so there's no stage index for a lens to color it
+  // by, and no guarantee a lens's own --dashboard-stage-2 (frequently a green) won't otherwise
+  // clash with it.
+  var COMPLIANT_COLOR = '#7048e8';
+
+  // Derives all four state sizes from the same per-stage counts the line chart already uses -
+  // declaredCount excludes only Undefined, implementedCount excludes only Unimplemented,
+  // verifiedCount *is* Compliant, and Unverified is what's left of the declared-and-implemented
+  // overlap once Compliant is accounted for - so no new plugin data is needed. Computed once and
+  // shared by both the metric cards and the pie below, so the two can never drift apart. The four
+  // counts always sum to totalCount, since every endpoint is in exactly one of them.
+  //
+  // Each entry also carries cardTotal - the denominator the metric card (not the pie) divides by.
+  // Undefined and Unimplemented use a narrower, more informative denominator than totalCount:
+  // Undefined (Shadow) is by definition a subset of the *implemented* endpoints (implemented, just
+  // not declared), so "X of every implemented endpoint has no OpenAPI description" is a more
+  // useful ratio than "X of every endpoint" would be; symmetrically, Unimplemented (Mirage) is a
+  // subset of the *declared* endpoints. Unverified and Compliant are both subsets of the
+  // declared-and-implemented overlap rather than of one single other metric, so they keep
+  // totalCount as their denominator.
+  function computeApiContractBreakdown(tracker, totalCount) {
     var counts = latestCounts(tracker);
-    var maxCount = counts[tracker.stages[0]] || 1;
-    var size = 220;
-    var center = size / 2;
-    var svgNS = 'http://www.w3.org/2000/svg';
-    var svg = document.createElementNS(svgNS, 'svg');
-    svg.setAttribute('viewBox', '0 0 ' + size + ' ' + size);
-    svg.setAttribute('role', 'img');
-    svg.setAttribute('aria-label', tracker.id + ' category breakdown');
+    var declared = counts.declared || 0;
+    var implemented = counts.implemented || 0;
+    var verified = counts.verified || 0;
+    return [
+      { label: 'Undefined', count: totalCount - declared, cardTotal: implemented, color: stageColors[0] },
+      { label: 'Unimplemented', count: totalCount - implemented, cardTotal: declared, color: stageColors[1] },
+      { label: 'Unverified', count: declared + implemented - totalCount - verified, cardTotal: totalCount, color: stageColors[2] },
+      { label: 'Compliant', count: verified, cardTotal: totalCount, color: COMPLIANT_COLOR }
+    ];
+  }
 
-    tracker.stages.forEach(function (stage, index) {
-      var count = counts[stage] || 0;
-      var radius = Math.max((size / 2 - 12) * Math.sqrt(count / maxCount), 16);
-      var color = stageColors[index % stageColors.length];
-      var circle = document.createElementNS(svgNS, 'circle');
-      circle.setAttribute('cx', center);
-      circle.setAttribute('cy', center);
-      circle.setAttribute('r', radius);
-      circle.setAttribute('fill', color);
-      circle.setAttribute('fill-opacity', '0.3');
-      circle.setAttribute('stroke', color);
-      circle.setAttribute('stroke-width', '2');
-      svg.appendChild(circle);
+  // Rewrites api-contracts' own DECLARED / IMPLEMENTED / VERIFIED metric cards in place as
+  // Undefined / Unimplemented / Unverified, in that order (the cards' own DOM order already
+  // matches: declared, implemented, verified), then appends a fourth card for Compliant - there's
+  // no fourth native metric card to relabel, since the plugin only ever renders one per canonical
+  // stage. Same names and counts the pie beside the line chart uses, though each card divides by
+  // its own entry.cardTotal rather than the tracker's totalCount - see computeApiContractBreakdown.
+  // Also attaches a hover-over "?" badge to each, carrying its full definition as a plain HTML
+  // title attribute.
+  function relabelApiContractMetricCards(breakdown) {
+    var section = document.querySelector('.tracker[data-tracker="api-contracts"]');
+    if (!section) {
+      return;
+    }
+    var metrics = section.querySelector('.metrics');
+    var cards = section.querySelectorAll('.metric-card');
+
+    function fillCard(card, entry) {
+      var percent = entry.cardTotal ? Math.round((100 * entry.count) / entry.cardTotal) : 0;
+      card.style.setProperty('--percent', percent);
+
+      var stageLabel = card.querySelector('.metric-card__stage');
+      stageLabel.textContent = entry.label;
+
+      var badge = document.createElement('span');
+      badge.className = 'info-badge';
+      badge.textContent = '?';
+      badge.title = CHECK_DEFINITIONS[entry.label] || '';
+      stageLabel.appendChild(badge);
+
+      card.querySelector('.metric-card__count').textContent = entry.count + ' / ' + entry.cardTotal;
+      card.querySelector('.metric-card__percent').textContent = percent + '%';
+    }
+
+    breakdown.slice(0, 3).forEach(function (entry, index) {
+      var card = cards[index];
+      if (card) {
+        fillCard(card, entry);
+      }
     });
 
-    tracker.stages.forEach(function (stage, index) {
-      var label = document.createElementNS(svgNS, 'text');
-      label.setAttribute('x', center);
-      label.setAttribute('y', 16 + index * 16);
-      label.setAttribute('text-anchor', 'middle');
-      label.setAttribute('font-size', '11');
-      label.setAttribute('fill', stageColors[index % stageColors.length]);
-      label.textContent = stage + ': ' + (counts[stage] || 0);
-      svg.appendChild(label);
-    });
+    var compliant = breakdown[3];
+    if (compliant && metrics) {
+      var extraCard = document.createElement('div');
+      extraCard.className = 'metric-card';
+      extraCard.setAttribute('data-stage', 'compliant');
+      extraCard.innerHTML =
+          '<span class="metric-card__stage"></span>'
+          + '<span class="metric-card__count"></span>'
+          + '<span class="metric-card__percent"></span>';
+      metrics.appendChild(extraCard);
+      fillCard(extraCard, compliant);
+    }
+  }
 
-    container.appendChild(svg);
+  // One pie, four mutually-exclusive slices - Undefined, Unimplemented, Unverified, Compliant -
+  // absolute counts, not percentages of a shared total the way four separate "this check's share"
+  // pies would each need repeating. Since these four states are a genuine partition (every endpoint
+  // is in exactly one), a single pie is both simpler and more honest here than api-contracts' own
+  // declared/implemented/verified would be as a pie - those three are independent checks, not
+  // mutually-exclusive slices, which is exactly why they get separate metric cards instead of a
+  // pie of their own. This one mirrors bdd-scenarios' own pie above: one chart, slices that sum to
+  // the tracker's total.
+  function renderApiContractBreakdownPie(breakdown, container, totalCount) {
+    if (typeof Chart === 'undefined') {
+      return;
+    }
+    // A touch wider than the default .chart-extra box: "Unimplemented" is long enough that the
+    // left-side legend Chart.js lays out by default would otherwise truncate it.
+    container.style.flexBasis = '320px';
+    container.style.width = '320px';
+
+    var canvas = document.createElement('canvas');
+    container.appendChild(canvas);
+    new Chart(canvas.getContext('2d'), {
+      type: 'pie',
+      data: {
+        labels: breakdown.map(function (entry) { return entry.label; }),
+        datasets: [{
+          data: breakdown.map(function (entry) { return entry.count; }),
+          backgroundColor: breakdown.map(function (entry) { return entry.color; })
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: true, position: 'left' },
+          tooltip: {
+            callbacks: {
+              label: function (context) {
+                var entry = breakdown[context.dataIndex];
+                return entry.label + ': ' + entry.count + ' / ' + totalCount;
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+
+  // totalCount isn't in #dashboard-data (only per-stage counts are) - it's already in the
+  // rendered markup via the data-total attribute this template adds to every metric card.
+  function totalCountFor(trackerId, anyStage) {
+    var el = document.querySelector('.tracker[data-tracker="' + trackerId + '"] .metric-card[data-stage="' + anyStage + '"]');
+    return el ? parseInt(el.dataset.total, 10) : 0;
   }
 
   var bddTracker = trackersById['bdd-scenarios'];
   var bddContainer = bddTracker ? extraChartContainer('bdd-scenarios') : null;
   if (bddTracker && bddContainer) {
-    renderStagePie(bddTracker, bddContainer);
+    renderStagePie(bddTracker, bddContainer, totalCountFor('bdd-scenarios', 'listed'));
   }
 
   var apiContractTracker = trackersById['api-contracts'];
   var apiContractContainer = apiContractTracker ? extraChartContainer('api-contracts') : null;
   if (apiContractTracker && apiContractContainer) {
-    renderNestedVenn(apiContractTracker, apiContractContainer);
+    var totalCount = totalCountFor('api-contracts', 'declared');
+    var breakdown = computeApiContractBreakdown(apiContractTracker, totalCount);
+    relabelApiContractMetricCards(breakdown);
+    renderApiContractBreakdownPie(breakdown, apiContractContainer, totalCount);
   }
 })();
 </script>
