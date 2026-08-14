@@ -1,3 +1,21 @@
+# [0.5.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/api-only-suite-v0.4.3...api-only-suite-v0.5.0) (2026-08-14)
+
+
+### ✨ New and updated features
+
+* **tracker-lens:** add initTrackerLens and bootstrapTrackerLensProject scaffolding tasks ([#138](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/138)) ([60fc170](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/60fc1707ce066bb26b112d74ee658fdcab5d9592)), closes [#138](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/138)
+* **tracker-lens:** add Tracker Lens dashboard plugin ([#137](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/137)) ([3389c79](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/3389c79ad7f35e8d7f80f9da701d8fd77df63224)), closes [#137](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/137)
+
+
+### 🐛 Bug Fixes
+
+* **doppelganger-api-detector:** recognize spring-restdocs-restassured and strip OpenAPI server base path ([#140](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/140)) ([b71ef3b](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/b71ef3b00ad81447a0b8246b27c2d503c0fc8fd0)), closes [#140](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/140)
+
+
+### 📝 Documentation
+
+* **tracker-lens:** add eight runnable examples and fix example TOC nesting ([#139](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/139)) ([92f6a2d](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/92f6a2d9fc85fa94bc0c5e9cab11a814c0db08d9)), closes [#139](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/139)
+
 ## [0.4.3](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/api-only-suite-v0.4.2...api-only-suite-v0.4.3) (2026-08-13)
 
 
