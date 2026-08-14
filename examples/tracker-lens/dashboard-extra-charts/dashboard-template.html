@@ -137,6 +137,31 @@ vertical-align: middle;
     return document.querySelector('.chart-extra[data-extra-chart-for="' + trackerId + '"]');
   }
 
+  // The plugin's own metric cards report series' cumulative "reached at least this stage" counts
+  // (LISTED 6/6, DEFINED 4/6, IMPLEMENTED 4/6 for this example's data) - correct on their own
+  // terms, but placed right above a pie built from stageBreakdown's "currently at this stage"
+  // counts (1, 1, 4), the two disagree enough to read as a mistake rather than two different
+  // metrics. This rewrites the cards in place to match the pie - same stageBreakdown numbers, same
+  // totalCount denominator - so the boxes and the pie never contradict each other.
+  function applyStageBreakdownToMetricCards(trackerId, tracker, totalCount) {
+    var section = document.querySelector('.tracker[data-tracker="' + trackerId + '"]');
+    if (!section) {
+      return;
+    }
+    var breakdown = tracker.stageBreakdown || {};
+    tracker.stages.forEach(function (stage) {
+      var card = section.querySelector('.metric-card[data-stage="' + stage + '"]');
+      if (!card) {
+        return;
+      }
+      var count = breakdown[stage] || 0;
+      var percent = totalCount ? Math.round((100 * count) / totalCount) : 0;
+      card.style.setProperty('--percent', percent);
+      card.querySelector('.metric-card__count').textContent = count + ' / ' + totalCount;
+      card.querySelector('.metric-card__percent').textContent = percent + '%';
+    });
+  }
+
   // A pie chart needs mutually-exclusive slices - "what stage is each scenario at right now" -
   // which is exactly what stageBreakdown is: the number of scenarios whose *furthest* reached
   // stage is each one, computed server-side from each scenario's full history. This is
@@ -340,7 +365,9 @@ vertical-align: middle;
   var bddTracker = trackersById['bdd-scenarios'];
   var bddContainer = bddTracker ? extraChartContainer('bdd-scenarios') : null;
   if (bddTracker && bddContainer) {
-    renderStagePie(bddTracker, bddContainer, totalCountFor('bdd-scenarios', 'listed'));
+    var bddTotalCount = totalCountFor('bdd-scenarios', 'listed');
+    applyStageBreakdownToMetricCards('bdd-scenarios', bddTracker, bddTotalCount);
+    renderStagePie(bddTracker, bddContainer, bddTotalCount);
   }
 
   var apiContractTracker = trackersById['api-contracts'];

@@ -1,13 +1,6 @@
 = Tracker Lens — Dashboard Extra Charts Example
 :toc: left
 
-== IMPORTANT: Version Dependency
-
-This example needs `tracker-lens` `stageBreakdown` support, added to `#dashboard-data` to fix the
-Gherkin pie chart described below - not yet in the currently published `0.1.0`. `gradle/libs.versions.toml`
-pins `0.2.0`, the predicted next release; until that ships, this example's own build will fail to
-resolve the plugin.
-
 == Description
 
 Two trackers - `bdd-scenarios` (Gherkin scenarios) and `api-contracts` (API contracts) - rendered by
@@ -25,7 +18,10 @@ its own markup and its own script to derive additional views the plugin itself n
 
 * Beside `bdd-scenarios`' line chart, a *pie chart* of which stage each scenario is *currently* at -
   `listed`, `defined`, or `implemented` - read directly from `#dashboard-data`'s `stageBreakdown`
-  field.
+  field. `bdd-scenarios`' own metric cards are rewritten in place to match: the plugin's default
+  cumulative counts (`LISTED 6/6`, `DEFINED 4/6`, `IMPLEMENTED 4/6`) become the same
+  `stageBreakdown` numbers the pie plots (`1/6`, `1/6`, `4/6`), so the boxes and the pie never
+  disagree.
 * `api-contracts`' own metric cards - rewritten in place, client-side, from the plugin's own three
   `declared`/`implemented`/`verified` labels and counts to `Undefined`/`Unimplemented`/`Unverified`
   - the same three checks this repository's `shadow-api-detector`, `mirage-api-detector`, and
@@ -56,6 +52,37 @@ each scenario has actually reached, gaps and all. `gherkin-progress-history.ndjs
 this case - `process-a-return`, listed on 2026-06-10 and observed already-implemented on 2026-08-01,
 with no `definedAt` ever recorded - to prove it: the pie correctly counts it under `implemented`
 (4 of 6), not `listed`.
+
+=== Why the metric cards also get rewritten
+
+Left alone, `bdd-scenarios`' own metric cards would still show the plugin's default cumulative
+numbers - `LISTED 6/6`, `DEFINED 4/6`, `IMPLEMENTED 4/6` - each correct on its own terms (six
+scenarios have been listed at some point, four have been defined at some point, four have been
+implemented at some point), but placed right above a pie built from a *different* metric
+(`stageBreakdown`'s 1, 1, 4), the two numbers disagree enough to read as a bug rather than two
+legitimately different things being counted. `applyStageBreakdownToMetricCards` rewrites the
+cards' count, percentage, and `--percent` fill-bar in place to the same `stageBreakdown` numbers
+the pie already uses, so the boxes and the chart beside them always tell the same story:
+
+[source,javascript]
+----
+function applyStageBreakdownToMetricCards(trackerId, tracker, totalCount) {
+  var section = document.querySelector('.tracker[data-tracker="' + trackerId + '"]');
+  var breakdown = tracker.stageBreakdown || {};
+  tracker.stages.forEach(function (stage) {
+    var card = section.querySelector('.metric-card[data-stage="' + stage + '"]');
+    var count = breakdown[stage] || 0;
+    var percent = totalCount ? Math.round((100 * count) / totalCount) : 0;
+    card.style.setProperty('--percent', percent);
+    card.querySelector('.metric-card__count').textContent = count + ' / ' + totalCount;
+    card.querySelector('.metric-card__percent').textContent = percent + '%';
+  });
+}
+----
+
+Unlike `api-contracts`' cards (below), the stage *names* here stay exactly as the plugin renders
+them (`listed`/`defined`/`implemented`) - only the numbers change, since these three genuinely are
+the tracker's own canonical stages, just reported a different way.
 
 === Why Undefined/Unimplemented/Unverified don't sum to 100% (but all four states do)
 
@@ -209,10 +236,12 @@ cd examples/tracker-lens/dashboard-extra-charts
 The build is expected to pass, including the same `ContractRule` validation every dashboard goes
 through regardless of which template rendered it. Open `build/reports/tracker-lens/dashboard.html`:
 
-* `bdd-scenarios` (6 scenarios total) shows its usual line chart plus a pie chart, legend to its
-  left, with slices 1 (`listed` only), 1 (`defined` only), 4 (`implemented`, including the
-  skip-scenario) - `implemented` is correctly the largest slice, since most scenarios really are
-  done. Hovering a slice shows "listed: 1 / 6", "defined: 1 / 6", "implemented: 4 / 6".
+* `bdd-scenarios` (6 scenarios total) shows three metric cards reading `LISTED 1 / 6 (17%)`,
+  `DEFINED 1 / 6 (17%)`, `IMPLEMENTED 4 / 6 (67%)` - `stageBreakdown` numbers, not the plugin's
+  default cumulative ones - plus its usual line chart and a pie chart, legend to its left, with the
+  same three slices: 1 (`listed` only), 1 (`defined` only), 4 (`implemented`, including the
+  skip-scenario) - correctly the largest slice, since most scenarios really are done. Hovering a
+  slice shows "listed: 1 / 6", "defined: 1 / 6", "implemented: 4 / 6".
 * `api-contracts` shows four metric cards - `UNDEFINED 4 / 13 (31%)`, `UNIMPLEMENTED 7 / 16 (44%)`,
   `UNVERIFIED 5 / 20 (25%)`, and `COMPLIANT 4 / 20 (20%)` - each with a `?` badge; its usual line
   chart (still labeled declared/implemented/verified - the raw history, unchanged); and one pie
