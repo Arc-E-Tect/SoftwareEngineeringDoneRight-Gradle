@@ -28,52 +28,44 @@ height: 260px;
 width: 100%;
 height: 100%;
 }
-.check-bar-panel {
+/* Three side-by-side "this detector's share of all APIs" pies, replacing the single extra chart
+   the other trackers get - wider than the default .chart-extra box, set inline where it's built
+   below, since only this tracker's extra chart needs the extra room. */
+.detector-pies {
 display: flex;
-flex-direction: column;
-gap: 0.4rem;
+gap: 0.75rem;
 height: 100%;
 }
-.check-bar-panel canvas {
+.detector-pies__pie {
+flex: 1 1 0;
+min-width: 0;
+display: flex;
+flex-direction: column;
+}
+.detector-pies__pie canvas {
 flex: 1 1 auto;
 min-height: 0;
-height: auto;
 }
-.stage-legend {
-display: flex;
-flex-wrap: wrap;
-gap: 0.6rem;
+.detector-pies__caption {
 font-size: 0.7rem;
-flex: 0 0 auto;
+text-align: center;
+margin: 0.25rem 0 0;
 }
-.stage-legend__item {
-display: inline-flex;
-align-items: center;
-gap: 0.3rem;
-text-transform: capitalize;
-}
-.stage-legend__swatch {
-width: 0.6rem;
-height: 0.6rem;
-border-radius: 50%;
-display: inline-block;
-}
+/* The hover-over "?" badge itself, used next to the DECLARED/IMPLEMENTED/VERIFIED metric card
+   labels - see the script below for where it's attached and what it says. */
 .info-badge {
 display: inline-flex;
 align-items: center;
 justify-content: center;
 width: 1rem;
 height: 1rem;
+margin-left: 0.35rem;
 border-radius: 50%;
 border: 1px solid currentColor;
 font-size: 0.65rem;
 line-height: 1;
 cursor: help;
-}
-.stage-sum-note {
-font-size: 0.7rem;
-margin: 0;
-flex: 0 0 auto;
+vertical-align: middle;
 }
 </style>
 </head>
@@ -197,85 +189,106 @@ flex: 0 0 auto;
     });
   }
 
-  // Declared, implemented, and verified are three independent yes/no checks on the same 12
-  // endpoints - not stages of one pipeline the way bdd-scenarios' listed/defined/implemented are -
-  // so, unlike that pie chart, there is no reason their percentages should sum to 100%: an
-  // endpoint can fail zero, one, two, or three of these checks independently. A bar chart makes
-  // that legible without needing any set-theory geometry to read - three separate bars, each its
-  // own percentage of the same total - with the (non-100%) sum spelled out underneath, and a
-  // hover-over "?" badge on each term for anyone who hasn't read the metric cards' own labels.
+  // Full definitions for the three checks api-contracts' metric cards report - each is a
+  // compound condition, not just "this one thing happened", which is exactly why an endpoint can
+  // satisfy zero, one, two, or three of them independently rather than moving through them as
+  // stages of one pipeline.
   var STAGE_DEFINITIONS = {
-    declared: 'Found in the OpenAPI / contract documentation.',
-    implemented: 'Exposed by a @RestController method in code.',
-    verified: 'A test exists confirming the implementation still matches the documented contract.'
+    declared: 'An OpenAPI description exists, but no implementation.',
+    implemented: 'Endpoint is implemented using Spring RestController, but there is no OpenAPI description.',
+    verified: 'An OpenAPI description exists, the endpoint is implemented using Spring RestController, '
+        + 'and at least one test exists that validates the implementation matches the OpenAPI description.'
   };
 
-  function renderCheckBarChart(tracker, container, totalCount) {
+  // Attaches a hover-over "?" badge, with the definition above as its native title tooltip, next
+  // to api-contracts' own DECLARED / IMPLEMENTED / VERIFIED metric cards - directly where a reader
+  // is already looking when the term needs explaining, rather than off in a chart's own legend.
+  // Scoped to api-contracts specifically, not every ".metric-card__stage" on the page: bdd-scenarios
+  // has its own, unrelated "implemented" stage (Gherkin scenarios, not API endpoints), and STAGE_
+  // DEFINITIONS' text is specific to what these terms mean for api-contracts.
+  function attachStageDefinitionBadges(trackerId) {
+    var section = document.querySelector('.tracker[data-tracker="' + trackerId + '"]');
+    if (!section) {
+      return;
+    }
+    section.querySelectorAll('.metric-card__stage').forEach(function (label) {
+      var definition = STAGE_DEFINITIONS[label.textContent.trim()];
+      if (!definition) {
+        return;
+      }
+      var badge = document.createElement('span');
+      badge.className = 'info-badge';
+      badge.textContent = '?';
+      badge.title = definition;
+      label.appendChild(badge);
+    });
+  }
+
+  // Three small "this detector's share of all APIs" pies - Total vs Undefined (Shadow APIs:
+  // implemented, no OpenAPI description), Total vs Unimplemented (Mirage APIs: described, no
+  // implementation), Total vs Unverified (Doppelganger APIs: described and implemented, no test
+  // confirming the two agree) - one per detector, each just two slices of the same 12-endpoint
+  // whole. Unlike the metric cards' declared/implemented/verified percentages (which don't sum to
+  // 100%, since they're three independent checks - see the badges above), each pie here is
+  // internally consistent by construction (a slice and its complement always sum to 100%); what it
+  // adds is a concrete look at how much of the whole each specific detector is currently flagging.
+  // All three counts are derived algebraically from the same per-stage counts the line chart
+  // already uses - declaredCount excludes only Undefined, implementedCount excludes only
+  // Unimplemented, and Unverified is what's left once those two and Compliant (verifiedCount) are
+  // accounted for - so no new plugin data is needed.
+  function renderDetectorSharePies(tracker, container, totalCount) {
     if (typeof Chart === 'undefined') {
       return;
     }
     var counts = latestCounts(tracker);
-    var percents = tracker.stages.map(function (stage) {
-      return totalCount ? Math.round((100 * (counts[stage] || 0)) / totalCount) : 0;
+    var declared = counts.declared || 0;
+    var implemented = counts.implemented || 0;
+    var verified = counts.verified || 0;
+
+    var pies = [
+      { label: 'Undefined', count: totalCount - declared, color: stageColors[0] },
+      { label: 'Unimplemented', count: totalCount - implemented, color: stageColors[1] },
+      { label: 'Unverified', count: declared + implemented - totalCount - verified, color: stageColors[2] }
+    ];
+
+    // Wider than the default .chart-extra box (set on this container only, via the CSS class
+    // above) so three pies stay legible side by side rather than cramped into one tracker's usual
+    // single-extra-chart width.
+    container.style.flexBasis = '420px';
+    container.style.width = '420px';
+
+    var row = document.createElement('div');
+    row.className = 'detector-pies';
+
+    pies.forEach(function (pie) {
+      var wrapper = document.createElement('div');
+      wrapper.className = 'detector-pies__pie';
+
+      var canvas = document.createElement('canvas');
+      wrapper.appendChild(canvas);
+
+      var percent = totalCount ? Math.round((100 * pie.count) / totalCount) : 0;
+      var caption = document.createElement('p');
+      caption.className = 'detector-pies__caption';
+      caption.textContent = pie.label + ': ' + pie.count + ' / ' + totalCount + ' (' + percent + '%)';
+      wrapper.appendChild(caption);
+
+      row.appendChild(wrapper);
+
+      new Chart(canvas.getContext('2d'), {
+        type: 'pie',
+        data: {
+          labels: [pie.label, 'Rest'],
+          datasets: [{
+            data: [pie.count, totalCount - pie.count],
+            backgroundColor: [pie.color, '#d9d9de']
+          }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+      });
     });
-    var sum = percents.reduce(function (a, b) { return a + b; }, 0);
 
-    var panel = document.createElement('div');
-    panel.className = 'check-bar-panel';
-
-    var canvas = document.createElement('canvas');
-    panel.appendChild(canvas);
-    new Chart(canvas.getContext('2d'), {
-      type: 'bar',
-      data: {
-        labels: tracker.stages,
-        datasets: [{
-          data: percents,
-          backgroundColor: tracker.stages.map(function (stage, index) { return stageColors[index % stageColors.length]; })
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
-        scales: {
-          y: { beginAtZero: true, max: 100, ticks: { callback: function (value) { return value + '%'; } } }
-        }
-      }
-    });
-
-    var legend = document.createElement('div');
-    legend.className = 'stage-legend';
-    tracker.stages.forEach(function (stage, index) {
-      var item = document.createElement('span');
-      item.className = 'stage-legend__item';
-
-      var swatch = document.createElement('span');
-      swatch.className = 'stage-legend__swatch';
-      swatch.style.background = stageColors[index % stageColors.length];
-
-      var label = document.createElement('span');
-      label.textContent = stage;
-
-      var badge = document.createElement('span');
-      badge.className = 'info-badge';
-      badge.textContent = '?';
-      badge.title = STAGE_DEFINITIONS[stage] || '';
-
-      item.appendChild(swatch);
-      item.appendChild(label);
-      item.appendChild(badge);
-      legend.appendChild(item);
-    });
-    panel.appendChild(legend);
-
-    var sumNote = document.createElement('p');
-    sumNote.className = 'stage-sum-note';
-    sumNote.textContent = percents.map(function (p) { return p + '%'; }).join(' + ')
-        + ' = ' + sum + '% - not 100%, since these are three independent checks, not pipeline stages.';
-    panel.appendChild(sumNote);
-
-    container.appendChild(panel);
+    container.appendChild(row);
   }
 
   var bddTracker = trackersById['bdd-scenarios'];
@@ -291,7 +304,8 @@ flex: 0 0 auto;
     // rendered markup via the data-total attribute this template adds to every metric card.
     var totalCardElement = document.querySelector('.metric-card[data-stage="declared"]');
     var totalCount = totalCardElement ? parseInt(totalCardElement.dataset.total, 10) : 0;
-    renderCheckBarChart(apiContractTracker, apiContractContainer, totalCount);
+    renderDetectorSharePies(apiContractTracker, apiContractContainer, totalCount);
+    attachStageDefinitionBadges('api-contracts');
   }
 })();
 </script>
