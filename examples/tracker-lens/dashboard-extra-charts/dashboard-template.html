@@ -28,6 +28,53 @@ height: 260px;
 width: 100%;
 height: 100%;
 }
+.check-bar-panel {
+display: flex;
+flex-direction: column;
+gap: 0.4rem;
+height: 100%;
+}
+.check-bar-panel canvas {
+flex: 1 1 auto;
+min-height: 0;
+height: auto;
+}
+.stage-legend {
+display: flex;
+flex-wrap: wrap;
+gap: 0.6rem;
+font-size: 0.7rem;
+flex: 0 0 auto;
+}
+.stage-legend__item {
+display: inline-flex;
+align-items: center;
+gap: 0.3rem;
+text-transform: capitalize;
+}
+.stage-legend__swatch {
+width: 0.6rem;
+height: 0.6rem;
+border-radius: 50%;
+display: inline-block;
+}
+.info-badge {
+display: inline-flex;
+align-items: center;
+justify-content: center;
+width: 1rem;
+height: 1rem;
+border-radius: 50%;
+border: 1px solid currentColor;
+font-size: 0.65rem;
+line-height: 1;
+cursor: help;
+}
+.stage-sum-note {
+font-size: 0.7rem;
+margin: 0;
+flex: 0 0 auto;
+}
 </style>
 </head>
 <body>
@@ -150,86 +197,85 @@ height: 100%;
     });
   }
 
-  // Shadow (implemented, not declared), Mirage (declared, not implemented), and Doppelganger
-  // (declared and implemented, not verified) are mutually exclusive by this repo's own detector
-  // definitions - together with Compliant (all three), they partition every endpoint into exactly
-  // one of four buckets. A Venn diagram of the *detected* sets themselves would be pointless (all
-  // three circles would never overlap). Instead, each circle here is the *complement* of one
-  // detector - "not Shadow", "not Mirage", "not Doppelganger" - which do genuinely overlap:
-  // clearing exactly two of the three checks always means failing the third, so each detector's
-  // flagged set reappears as a two-circle-only overlap region, and the center (clearing all three)
-  // is exactly the Compliant set. All four bucket sizes are derived algebraically from the same
-  // per-stage counts the line chart already uses - declaredCount excludes only Shadow,
-  // implementedCount excludes only Mirage, and verifiedCount *is* the Compliant count - so no new
-  // plugin data is needed, only the reasoning connecting them.
-  function renderDetectorVenn(tracker, container, totalCount) {
+  // Declared, implemented, and verified are three independent yes/no checks on the same 12
+  // endpoints - not stages of one pipeline the way bdd-scenarios' listed/defined/implemented are -
+  // so, unlike that pie chart, there is no reason their percentages should sum to 100%: an
+  // endpoint can fail zero, one, two, or three of these checks independently. A bar chart makes
+  // that legible without needing any set-theory geometry to read - three separate bars, each its
+  // own percentage of the same total - with the (non-100%) sum spelled out underneath, and a
+  // hover-over "?" badge on each term for anyone who hasn't read the metric cards' own labels.
+  var STAGE_DEFINITIONS = {
+    declared: 'Found in the OpenAPI / contract documentation.',
+    implemented: 'Exposed by a @RestController method in code.',
+    verified: 'A test exists confirming the implementation still matches the documented contract.'
+  };
+
+  function renderCheckBarChart(tracker, container, totalCount) {
+    if (typeof Chart === 'undefined') {
+      return;
+    }
     var counts = latestCounts(tracker);
-    var declared = counts.declared || 0;
-    var implemented = counts.implemented || 0;
-    var verified = counts.verified || 0;
+    var percents = tracker.stages.map(function (stage) {
+      return totalCount ? Math.round((100 * (counts[stage] || 0)) / totalCount) : 0;
+    });
+    var sum = percents.reduce(function (a, b) { return a + b; }, 0);
 
-    var compliant = verified;
-    var doppelganger = declared + implemented - totalCount - verified;
-    var mirage = totalCount - implemented;
-    var shadow = totalCount - declared;
+    var panel = document.createElement('div');
+    panel.className = 'check-bar-panel';
 
-    var notShadowPct = totalCount ? Math.round((100 * declared) / totalCount) : 0;
-    var notMiragePct = totalCount ? Math.round((100 * implemented) / totalCount) : 0;
-    var notDoppelgangerPct = totalCount
-        ? Math.round((100 * (2 * totalCount - declared - implemented + verified)) / totalCount) : 0;
-
-    var size = 300;
-    var svgNS = 'http://www.w3.org/2000/svg';
-    var svg = document.createElementNS(svgNS, 'svg');
-    svg.setAttribute('viewBox', '0 0 ' + size + ' ' + size);
-    svg.setAttribute('role', 'img');
-    svg.setAttribute('aria-label', 'Shadow, Mirage, and Doppelganger API overlap');
-
-    var circles = [
-      { cx: 110, cy: 110, color: stageColors[0] },
-      { cx: 190, cy: 110, color: stageColors[1] },
-      { cx: 150, cy: 170, color: stageColors[2] }
-    ];
-    circles.forEach(function (c) {
-      var circle = document.createElementNS(svgNS, 'circle');
-      circle.setAttribute('cx', c.cx);
-      circle.setAttribute('cy', c.cy);
-      circle.setAttribute('r', 90);
-      circle.setAttribute('fill', c.color);
-      circle.setAttribute('fill-opacity', '0.28');
-      circle.setAttribute('stroke', c.color);
-      circle.setAttribute('stroke-width', '2');
-      svg.appendChild(circle);
+    var canvas = document.createElement('canvas');
+    panel.appendChild(canvas);
+    new Chart(canvas.getContext('2d'), {
+      type: 'bar',
+      data: {
+        labels: tracker.stages,
+        datasets: [{
+          data: percents,
+          backgroundColor: tracker.stages.map(function (stage, index) { return stageColors[index % stageColors.length]; })
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          y: { beginAtZero: true, max: 100, ticks: { callback: function (value) { return value + '%'; } } }
+        }
+      }
     });
 
-    function addText(x, y, text, size, weight) {
-      var label = document.createElementNS(svgNS, 'text');
-      label.setAttribute('x', x);
-      label.setAttribute('y', y);
-      label.setAttribute('text-anchor', 'middle');
-      label.setAttribute('font-size', size || 13);
-      if (weight) {
-        label.setAttribute('font-weight', weight);
-      }
-      label.textContent = text;
-      svg.appendChild(label);
-    }
+    var legend = document.createElement('div');
+    legend.className = 'stage-legend';
+    tracker.stages.forEach(function (stage, index) {
+      var item = document.createElement('span');
+      item.className = 'stage-legend__item';
 
-    addText(150, 14, 'each circle = passed that one check', 10);
-    // The three single-circle-only regions and the region outside all three circles are always
-    // empty - failing exactly one check is impossible when the checks are jointly exhaustive over
-    // four mutually exclusive states - left unlabeled so the diagram doesn't clutter itself
-    // asserting zeroes everywhere nothing can ever be.
-    addText(150, 90, 'Compliant: ' + compliant, 14, 'bold');
-    addText(150, 128, 'Doppelganger: ' + doppelganger, 12);
-    addText(95, 165, 'Mirage: ' + mirage, 12);
-    addText(205, 165, 'Shadow: ' + shadow, 12);
-    addText(70, 200, 'not Shadow: ' + declared + ' (' + notShadowPct + '%)', 10);
-    addText(230, 200, 'not Mirage: ' + implemented + ' (' + notMiragePct + '%)', 10);
-    addText(150, 290, 'not Doppelganger: ' + (2 * totalCount - declared - implemented + verified)
-        + ' (' + notDoppelgangerPct + '%)', 10);
+      var swatch = document.createElement('span');
+      swatch.className = 'stage-legend__swatch';
+      swatch.style.background = stageColors[index % stageColors.length];
 
-    container.appendChild(svg);
+      var label = document.createElement('span');
+      label.textContent = stage;
+
+      var badge = document.createElement('span');
+      badge.className = 'info-badge';
+      badge.textContent = '?';
+      badge.title = STAGE_DEFINITIONS[stage] || '';
+
+      item.appendChild(swatch);
+      item.appendChild(label);
+      item.appendChild(badge);
+      legend.appendChild(item);
+    });
+    panel.appendChild(legend);
+
+    var sumNote = document.createElement('p');
+    sumNote.className = 'stage-sum-note';
+    sumNote.textContent = percents.map(function (p) { return p + '%'; }).join(' + ')
+        + ' = ' + sum + '% - not 100%, since these are three independent checks, not pipeline stages.';
+    panel.appendChild(sumNote);
+
+    container.appendChild(panel);
   }
 
   var bddTracker = trackersById['bdd-scenarios'];
@@ -245,7 +291,7 @@ height: 100%;
     // rendered markup via the data-total attribute this template adds to every metric card.
     var totalCardElement = document.querySelector('.metric-card[data-stage="declared"]');
     var totalCount = totalCardElement ? parseInt(totalCardElement.dataset.total, 10) : 0;
-    renderDetectorVenn(apiContractTracker, apiContractContainer, totalCount);
+    renderCheckBarChart(apiContractTracker, apiContractContainer, totalCount);
   }
 })();
 </script>
