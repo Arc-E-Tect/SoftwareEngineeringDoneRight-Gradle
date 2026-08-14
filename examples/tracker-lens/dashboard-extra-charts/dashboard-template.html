@@ -163,31 +163,28 @@ vertical-align: middle;
     return document.querySelector('.chart-extra[data-extra-chart-for="' + trackerId + '"]');
   }
 
-  // Each stage's count is cumulative - "reached at least this stage" - so consecutive stages are
-  // nested subsets, not independent buckets. A pie chart needs mutually-exclusive slices, so each
-  // stage's slice here is "reached this stage but not the next one" (the final stage's slice is
-  // just its own count, having no next stage to subtract) - 1, 1, 3 for this example's data, which
-  // is exactly "some scenarios are only listed, some are defined, and the rest are implemented",
-  // and does sum to the tracker's total (unlike api-contracts' declared/implemented/verified,
-  // which don't - see the metric cards below).
+  // A pie chart needs mutually-exclusive slices - "what stage is each scenario at right now" -
+  // which is exactly what stageBreakdown is: the number of scenarios whose *furthest* reached
+  // stage is each one, computed server-side from each scenario's full history. This is
+  // deliberately not derived here from series' cumulative "reached at least this stage" counts
+  // via subtraction (series[stage] - series[nextStage]): that approximation silently misattributes
+  // any scenario gherkin-to-asciidoc's own scanner first observed already at a later stage - it
+  // never backfills the stages such a scenario jumped past, so a naive subtraction here would
+  // wrongly count it under an earlier stage than the one it's actually at. stageBreakdown has
+  // already done this correctly, from the real per-scenario data, not an aggregate approximation.
   function renderStagePie(tracker, container, totalCount) {
     if (typeof Chart === 'undefined') {
       return;
     }
-    var counts = latestCounts(tracker);
-    var slices = tracker.stages.map(function (stage, index) {
-      var next = tracker.stages[index + 1];
-      var exclusive = counts[stage] - (next ? counts[next] : 0);
-      return { stage: stage, count: Math.max(exclusive, 0) };
-    });
+    var breakdown = tracker.stageBreakdown || {};
     var canvas = document.createElement('canvas');
     container.appendChild(canvas);
     new Chart(canvas.getContext('2d'), {
       type: 'pie',
       data: {
-        labels: slices.map(function (slice) { return slice.stage; }),
+        labels: tracker.stages,
         datasets: [{
-          data: slices.map(function (slice) { return slice.count; }),
+          data: tracker.stages.map(function (stage) { return breakdown[stage] || 0; }),
           backgroundColor: tracker.stages.map(function (stage, index) { return stageColors[index % stageColors.length]; })
         }]
       },
@@ -198,14 +195,9 @@ vertical-align: middle;
           legend: { display: true, position: 'bottom' },
           tooltip: {
             callbacks: {
-              // The pie's own slices are the mutually-exclusive bucket sizes (1, 1, 3) - the
-              // right thing to plot, so the slices' areas stay honest - but the more familiar
-              // number for a reader hovering "listed" is the cumulative count the metric card
-              // above already shows ("5 of 5 reached listed", not "1 reached listed and no
-              // further stage"), so the tooltip reports that instead of the raw slice value.
               label: function (context) {
                 var stage = tracker.stages[context.dataIndex];
-                return stage + ': ' + counts[stage] + ' / ' + totalCount;
+                return stage + ': ' + (breakdown[stage] || 0) + ' / ' + totalCount;
               }
             }
           }

@@ -1,6 +1,13 @@
 = Tracker Lens — Dashboard Extra Charts Example
 :toc: left
 
+== IMPORTANT: Version Dependency
+
+This example needs `tracker-lens` `stageBreakdown` support, added to `#dashboard-data` to fix the
+Gherkin pie chart described below - not yet in the currently published `0.1.0`. `gradle/libs.versions.toml`
+pins `0.2.0`, the predicted next release; until that ships, this example's own build will fail to
+resolve the plugin.
+
 == Description
 
 Two trackers - `bdd-scenarios` (Gherkin scenarios) and `api-contracts` (API contracts) - rendered by
@@ -16,10 +23,9 @@ This example shows that a project-supplied template isn't limited to what `Track
 `MetricCardView` hand it via Mustache (`{{#metrics}}`, `{{#projection}}`, and so on) - it can add
 its own markup and its own script to derive additional views the plugin itself never computes:
 
-* Beside `bdd-scenarios`'s line chart, a *pie chart* of the three Gherkin stages
-  (`listed`/`defined`/`implemented`). Each stage's count from `#dashboard-data` is cumulative -
-  "reached at least this stage" - so the pie's slices are each stage's count *minus* the next
-  stage's count, giving three mutually-exclusive buckets that sum to the tracker's total.
+* Beside `bdd-scenarios`' line chart, a *pie chart* of which stage each scenario is *currently* at -
+  `listed`, `defined`, or `implemented` - read directly from `#dashboard-data`'s `stageBreakdown`
+  field.
 * `api-contracts`' own metric cards - rewritten in place, client-side, from the plugin's own
   `declared`/`implemented`/`verified` labels and counts to `Undefined`/`Unimplemented`/`Unverified`
   - the same three checks this repository's `shadow-api-detector`, `mirage-api-detector`, and
@@ -30,26 +36,49 @@ its own markup and its own script to derive additional views the plugin itself n
   counts as the metric cards above them: total APIs vs. Undefined, total vs. Unimplemented, total
   vs. Unverified.
 
+=== Why the Gherkin pie reads `stageBreakdown`, not `series`
+
+A scenario's three stages are a real dependency chain - it can't be `implemented` without first
+being `defined`, and can't be `defined` without first being `listed` - so it's tempting to derive
+"how many scenarios are currently at each stage" from `series` (each stage's cumulative "reached at
+least this stage" count) by subtracting consecutive stages: `series.listed - series.defined`, and so
+on. That arithmetic is wrong in a specific, real case: `gherkin-to-asciidoc` stamps only the one
+stage matching a scenario's status the *first time it's observed*, and never backfills earlier ones
+- so a scenario the scanner first catches already fully implemented never gains a `defined` entry at
+all (see that plugin's own `ProgressHistoryUpdater` javadoc). Subtracting `series` values silently
+attributes that scenario to `listed` instead of `implemented`.
+
+`stageBreakdown` doesn't have this problem: it's computed server-side, once, directly from each
+scenario's own history (`LifecycleRecord.latestStage`), so it always reports the furthest stage
+each scenario has actually reached, gaps and all. `gherkin-progress-history.ndjson` includes exactly
+this case - `process-a-return`, listed on 2026-06-10 and observed already-implemented on 2026-08-01,
+with no `definedAt` ever recorded - to prove it: the pie correctly counts it under `implemented`
+(4 of 6), not `listed`.
+
 === Why Undefined/Unimplemented/Unverified don't sum to 100%
 
 Undefined (implemented, no OpenAPI description - what `shadow-api-detector` calls a "Shadow API"),
 Unimplemented (described, no implementation - a "Mirage API"), and Unverified (described and
 implemented, no test confirming the two agree - a "Doppelganger API") are three *independent*
-checks on the same 12 endpoints - not stages of one pipeline the way `bdd-scenarios`'
+checks on the same 20 endpoints - not stages of one pipeline the way `bdd-scenarios`'
 `listed`/`defined`/`implemented` are. An endpoint can fail zero, one, two, or three of them
-independently, so nothing says their percentages (25%, 17%, 25%) have to sum to 100%, and they
+independently, so nothing says their percentages (20%, 35%, 25%) have to sum to 100%, and they
 don't - visible directly on the metric cards themselves, and repeated on the pies beside the line
 chart, each internally consistent on its own (a slice and its complement always sum to 100%) but
-concretely showing how much of the 12 endpoints each specific check is currently failing.
+concretely showing how much of the 20 endpoints each specific check is currently failing.
+
+The relationship between these four counts, and the two raw totals (`declared`/`implemented`) the
+plugin itself reports, is fully determined - see
+link:../../../tracker-lens/DASHBOARD-THEMING.adoc#shadow-mirage-doppelganger-compliant-math[the
+tracker-lens documentation] for the worked formula.
 
 == The Template
 
 `dashboard-template.html` keeps the bundled template's `<section class="tracker">`, `<h2>{{id}}</h2>`,
 `.metrics` grid of `.metric-card` divs, and `.projection` markup exactly as-is, plus one small
 addition - a `data-total="{{totalCount}}"` attribute on each metric card, since `totalCount` is
-rendered into the static markup but never included in the `#dashboard-data` JSON blob, which
-carries only per-stage counts, and the three pies' script needs it to compute each detector's
-share:
+rendered into the static markup but never included in the `#dashboard-data` JSON blob, and the
+script needs it to compute each check's share:
 
 [source,html]
 ----
@@ -109,11 +138,14 @@ var PROBLEM_DEFINITIONS = {
 
 == The Sample Data
 
-`api-contract-history.ndjson` has 12 endpoints: 3 Shadow, 2 Mirage, 3 Doppelganger, and 4 Compliant
-- e.g. `GET /api/internal/debug-info` (implemented, never declared: Shadow),
-`DELETE /api/orders/{id}/archive` (declared, never implemented: Mirage),
-`PATCH /api/customers/{id}` (declared and implemented in June, still not verified: Doppelganger),
-and `GET /api/orders/{id}` (declared, implemented, and verified: Compliant).
+`gherkin-progress-history.ndjson` has 6 scenarios: 3 fully `implemented`, 1 `defined` only, 1
+`listed` only, and 1 - `process-a-return` - that skipped `defined` entirely (see above).
+
+`api-contract-history.ndjson` has 20 endpoints: 4 Undefined/Shadow, 7 Unimplemented/Mirage, 5
+Unverified/Doppelganger, and 4 Compliant - e.g. `GET /api/internal/debug-info` (implemented, never
+declared: Undefined), `DELETE /api/orders/{id}/archive` (declared, never implemented:
+Unimplemented), `PATCH /api/customers/{id}` (declared and implemented in June, still not verified:
+Unverified), and `GET /api/orders/{id}` (declared, implemented, and verified: Compliant).
 
 == Configuration
 
@@ -148,12 +180,12 @@ cd examples/tracker-lens/dashboard-extra-charts
 The build is expected to pass, including the same `ContractRule` validation every dashboard goes
 through regardless of which template rendered it. Open `build/reports/tracker-lens/dashboard.html`:
 
-* `bdd-scenarios` (5 scenarios total: `listed` 5, `defined` 4, `implemented` 3) shows its usual line
-  chart plus a pie chart with slices 1 (`listed` only), 1 (`defined` only), 3 (`implemented`) -
-  hovering a slice shows the cumulative count instead of the slice's own value: "listed: 5 / 5",
-  "defined: 4 / 5", "implemented: 3 / 5".
-* `api-contracts`' three metric cards read `UNDEFINED 3 / 12 (25%)`, `UNIMPLEMENTED 2 / 12 (17%)`,
-  `UNVERIFIED 3 / 12 (25%)`, each with a `?` badge; its usual line chart (still labeled
+* `bdd-scenarios` (6 scenarios total) shows its usual line chart plus a pie chart with slices 1
+  (`listed` only), 1 (`defined` only), 4 (`implemented`, including the skip-scenario) - `implemented`
+  is correctly the largest slice, since most scenarios really are done. Hovering a slice shows
+  "listed: 1 / 6", "defined: 1 / 6", "implemented: 4 / 6".
+* `api-contracts`' three metric cards read `UNDEFINED 4 / 20 (20%)`, `UNIMPLEMENTED 7 / 20 (35%)`,
+  `UNVERIFIED 5 / 20 (25%)`, each with a `?` badge; its usual line chart (still labeled
   declared/implemented/verified - the raw history, unchanged); and three pies beside it with the
   same three names and counts, each caption on two lines - the count on the first line, the
   percentage alone on the second.
