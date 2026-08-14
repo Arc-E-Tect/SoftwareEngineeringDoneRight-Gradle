@@ -3,45 +3,50 @@
 
 == Description
 
-The same single-tracker setup as `../plain`, plus a project-supplied Mustache template,
-`dashboard-template.html`, overriding the plugin's own bundled `dashboard.html` structure and
-wording via `trackerLens.template`.
+Two trackers - `bdd-scenarios` (Gherkin scenarios) and `api-contracts` (API contracts) - rendered by
+a project-supplied Mustache template, `dashboard-template.html`, overriding the plugin's own
+bundled `dashboard.html` structure via `trackerLens.template`. The template's structure and wording
+are identical to the bundled one; the only difference is two extra, non-contract charts it adds
+beside each tracker's built-in line chart.
 
 == Intent
 
-This example shows that the dashboard's *content contract* (`DASHBOARD-THEMING.adoc`,
-`ContractRule` — the `.dashboard`, `.tracker[data-tracker]`, `.metric-card[data-stage]`, and so on
-selectors every lens styles against) is independent of its *document structure and wording*. The
-bundled template's headings, captions, and markup nesting are just that template's own choices —
-a project can supply a completely different layout, in a different language, with different
-headings, and the generated dashboard is still validated against exactly the same contract and
-still works with any lens, built-in or custom.
+This example shows that a project-supplied template isn't limited to what `TrackerView` and
+`MetricCardView` hand it via Mustache (`{{#metrics}}`, `{{#projection}}`, and so on) - it can add
+its own markup and its own script, reading the same `#dashboard-data` JSON blob the plugin's fixed
+bootstrap script already uses, to derive additional views the plugin itself never computes:
+
+* Beside `bdd-scenarios`'s line chart, a *pie chart* of the three Gherkin stages
+  (`listed`/`defined`/`implemented`). Each stage's count from `#dashboard-data` is cumulative -
+  "reached at least this stage" - so the pie's slices are each stage's count *minus* the next
+  stage's count, giving three mutually-exclusive buckets that sum to the tracker's total.
+* Beside `api-contracts`'s line chart, a *Venn/Euler diagram* of its three stages
+  (`declared`/`implemented`/`verified`). Because `verified` is always a subset of `implemented`,
+  which is always a subset of `declared`, the honest picture is three concentric circles - not a
+  classic three-way overlap, which would suggest combinations (like "verified but not implemented")
+  this data can't have - each circle's area proportional to its stage's current count.
+
+Both charts are computed entirely in the template's own inline `<script>`, added after
+`{{{bootstrapScript}}}`; no plugin code changes were needed, since every stage's latest count is
+already present as that stage's last value in `#dashboard-data`'s chart series. The generated
+dashboard is still validated against exactly the same `ContractRule` content contract as any other
+template's output - these two charts are extra markup outside that contract, the same way the
+plugin's own line chart is.
 
 == The Template
 
-`dashboard-template.html` renders every tracker as an `<article>` instead of a `<section>`, metrics
-as a `<ul>` instead of a grid of `<div>`s, and reworded headings ("Weekly Progress Report", "Tracker:
-{{id}}", "Needs A Look" instead of "Stale Items") - but keeps every contract-bound class and
-attribute untouched:
+`dashboard-template.html` keeps the bundled template's `<section class="tracker">`, `<h2>{{id}}</h2>`,
+`.metrics` grid of `.metric-card` divs, and `.projection` markup exactly as-is. The only structural
+addition is wrapping each tracker's `.chart` div in a flex row alongside a second, empty
+`.chart-extra` div the template's own script fills in:
 
 [source,html]
 ----
-<article class="tracker" data-tracker="{{id}}">
-<h2>Tracker: {{id}}</h2>
-<ul class="metrics">
-{{#metrics}}
-<li class="metric-card" data-stage="{{stage}}" style="--percent: {{percent}}">
-{{stage}}: {{count}} of {{totalCount}} ({{percent}}%)
-</li>
-{{/metrics}}
-</ul>
-...
-</article>
+<div class="charts-row">
+<div class="chart"><canvas></canvas></div>
+<div class="chart-extra" data-extra-chart-for="{{id}}"></div>
+</div>
 ----
-
-The `id="lens-select"` and `id="lens-stylesheet"` elements are also kept exactly as the bundled
-template names them - those two ids are what the dashboard's own bootstrap script looks up at
-runtime to wire up the lens switcher, independent of the content contract.
 
 == Configuration
 
@@ -54,6 +59,10 @@ trackerLens {
         register('bdd-scenarios') {
             historyFiles.from(file('gherkin-progress-history.ndjson'))
             source = com.arc_e_tect.gradle.trackerlens.TrackerSourceKind.GHERKIN_SCENARIO
+        }
+        register('api-contracts') {
+            historyFiles.from(file('api-contract-history.ndjson'))
+            source = com.arc_e_tect.gradle.trackerlens.TrackerSourceKind.API_CONTRACT
         }
     }
 }
@@ -70,6 +79,13 @@ cd examples/tracker-lens/custom-dashboard-template
 == What To Expect
 
 The build is expected to pass, including the same `ContractRule` validation every dashboard goes
-through regardless of which template rendered it. Open
-`build/reports/tracker-lens/dashboard.html` and compare it to `../plain`'s output: different
-headings and markup, same working lens switcher and chart, same metric counts for the same data.
+through regardless of which template rendered it. Open `build/reports/tracker-lens/dashboard.html`:
+
+* `bdd-scenarios` (5 scenarios total: `listed` 5, `defined` 4, `implemented` 3) shows its usual line
+  chart plus a pie chart with slices 1 (`listed` only), 1 (`defined` only), 3 (`implemented`).
+* `api-contracts` (5 endpoints total: `declared` 5, `implemented` 3, `verified` 1) shows its usual
+  line chart plus three concentric circles, sized 5:3:1, one per stage.
+
+Switching lenses still works exactly as in `../plain`, since the lens switcher and every
+contract-bound element are untouched - only the two added charts and their surrounding layout are
+this template's own, unlensed CSS.
