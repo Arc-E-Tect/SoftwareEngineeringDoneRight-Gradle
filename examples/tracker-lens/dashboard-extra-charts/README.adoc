@@ -20,27 +20,27 @@ its own markup and its own script to derive additional views the plugin itself n
   (`listed`/`defined`/`implemented`). Each stage's count from `#dashboard-data` is cumulative -
   "reached at least this stage" - so the pie's slices are each stage's count *minus* the next
   stage's count, giving three mutually-exclusive buckets that sum to the tracker's total.
-* On `api-contracts`' own metric cards - `declared`, `implemented`, `verified` - a hover-over "?"
-  badge on each term, explaining the full compound condition it actually checks.
-* Beside `api-contracts`' line chart, three small *pie charts*: total APIs vs. Undefined, total
-  vs. Unimplemented, total vs. Unverified - named after what's missing rather than after the
-  detector plugin that finds it, though they're the same three problem endpoints this repository's
-  own `shadow-api-detector` (Undefined - implemented, no OpenAPI description), `mirage-api-detector`
-  (Unimplemented - described, no implementation), and `doppelganger-api-detector` (Unverified -
-  described and implemented, no test confirming the two agree) look for.
+* `api-contracts`' own metric cards - rewritten in place, client-side, from the plugin's own
+  `declared`/`implemented`/`verified` labels and counts to `Undefined`/`Unimplemented`/`Unverified`
+  - the same three checks this repository's `shadow-api-detector`, `mirage-api-detector`, and
+  `doppelganger-api-detector` plugins run, named after what's *missing* rather than after the
+  plugin that finds it - each with a hover-over "?" badge explaining the full compound condition it
+  checks.
+* Beside `api-contracts`' line chart, three small *pie charts* using the exact same three names and
+  counts as the metric cards above them: total APIs vs. Undefined, total vs. Unimplemented, total
+  vs. Unverified.
 
-=== Why declared/implemented/verified don't sum to 100%
+=== Why Undefined/Unimplemented/Unverified don't sum to 100%
 
-`declared`, `implemented`, and `verified` are three *independent* checks on the same 12 endpoints -
-not stages of one pipeline the way `bdd-scenarios`' `listed`/`defined`/`implemented` are. An
-endpoint can satisfy zero, one, two, or three of them independently, so nothing says their
-percentages (75%, 83%, 33%) have to sum to 100%, and they don't - visible directly on the metric
-cards themselves.
-
-The three pies beside the line chart show a related but different thing: each one is internally
-consistent on its own (a slice and its complement always sum to 100%) - what they add is a
-concrete look at how much of the 12 endpoints each specific check is currently failing, side by
-side: Undefined 3 (25%), Unimplemented 2 (17%), Unverified 3 (25%).
+Undefined (implemented, no OpenAPI description - what `shadow-api-detector` calls a "Shadow API"),
+Unimplemented (described, no implementation - a "Mirage API"), and Unverified (described and
+implemented, no test confirming the two agree - a "Doppelganger API") are three *independent*
+checks on the same 12 endpoints - not stages of one pipeline the way `bdd-scenarios`'
+`listed`/`defined`/`implemented` are. An endpoint can fail zero, one, two, or three of them
+independently, so nothing says their percentages (25%, 17%, 25%) have to sum to 100%, and they
+don't - visible directly on the metric cards themselves, and repeated on the pies beside the line
+chart, each internally consistent on its own (a slice and its complement always sum to 100%) but
+concretely showing how much of the 12 endpoints each specific check is currently failing.
 
 == The Template
 
@@ -67,22 +67,43 @@ alongside a second, empty `.chart-extra` div the template's own script fills in:
 </div>
 ----
 
-=== The Hover-Over Definitions
+=== Relabeling The Metric Cards
 
-A small circled `?`, appended next to `declared`/`implemented`/`verified` on api-contracts' own
-metric cards (not on the pies - those are a separate concern below), carries the term's full
-definition as a plain HTML `title` attribute, so hovering it shows the browser's native tooltip
-with no extra library. It's attached only within `.tracker[data-tracker="api-contracts"]`, since
-`bdd-scenarios` has its own, unrelated `implemented` stage (Gherkin scenarios, not API endpoints)
-that these definitions don't describe:
+The plugin always renders api-contracts' metric cards as `declared`/`implemented`/`verified` -
+that's `MetricCardView`'s fixed output, not something a template's Mustache markup can change. This
+template's script rewrites those three cards' label, count, percentage, and `--percent` fill-bar
+style in place after the page loads, using the exact same `Undefined`/`Unimplemented`/`Unverified`
+names and counts the pies below use - computed once and shared by both, so the two can never drift
+apart:
 
 [source,javascript]
 ----
-var STAGE_DEFINITIONS = {
-  declared: 'An OpenAPI description exists, but no implementation.',
-  implemented: 'Endpoint is implemented using Spring RestController, but there is no OpenAPI description.',
-  verified: 'An OpenAPI description exists, the endpoint is implemented using Spring RestController, '
-      + 'and at least one test exists that validates the implementation matches the OpenAPI description.'
+function computeApiContractProblems(tracker, totalCount) {
+  var counts = latestCounts(tracker);
+  var declared = counts.declared || 0;
+  var implemented = counts.implemented || 0;
+  var verified = counts.verified || 0;
+  return [
+    { label: 'Undefined', count: totalCount - declared, color: stageColors[0] },
+    { label: 'Unimplemented', count: totalCount - implemented, color: stageColors[1] },
+    { label: 'Unverified', count: declared + implemented - totalCount - verified, color: stageColors[2] }
+  ];
+}
+----
+
+=== The Hover-Over Definitions
+
+A small circled `?`, appended next to each relabeled card's name, carries the check's full
+definition as a plain HTML `title` attribute, so hovering it shows the browser's native tooltip
+with no extra library:
+
+[source,javascript]
+----
+var PROBLEM_DEFINITIONS = {
+  Undefined: 'Endpoint is implemented using Spring RestController, but there is no OpenAPI description.',
+  Unimplemented: 'An OpenAPI description exists, but no implementation.',
+  Unverified: 'An OpenAPI description exists, the endpoint is implemented using Spring RestController, '
+      + 'but no test exists confirming the implementation still matches the OpenAPI description.'
 };
 ----
 
@@ -128,10 +149,14 @@ The build is expected to pass, including the same `ContractRule` validation ever
 through regardless of which template rendered it. Open `build/reports/tracker-lens/dashboard.html`:
 
 * `bdd-scenarios` (5 scenarios total: `listed` 5, `defined` 4, `implemented` 3) shows its usual line
-  chart plus a pie chart with slices 1 (`listed` only), 1 (`defined` only), 3 (`implemented`).
-* `api-contracts` (12 endpoints total: `declared` 9, `implemented` 10, `verified` 4) shows a `?`
-  badge on each of its three metric cards, its usual line chart, and three pies beside it:
-  Undefined 3/12 (25%), Unimplemented 2/12 (17%), Unverified 3/12 (25%).
+  chart plus a pie chart with slices 1 (`listed` only), 1 (`defined` only), 3 (`implemented`) -
+  hovering a slice shows the cumulative count instead of the slice's own value: "listed: 5 / 5",
+  "defined: 4 / 5", "implemented: 3 / 5".
+* `api-contracts`' three metric cards read `UNDEFINED 3 / 12 (25%)`, `UNIMPLEMENTED 2 / 12 (17%)`,
+  `UNVERIFIED 3 / 12 (25%)`, each with a `?` badge; its usual line chart (still labeled
+  declared/implemented/verified - the raw history, unchanged); and three pies beside it with the
+  same three names and counts, each caption on two lines - the count on the first line, the
+  percentage alone on the second.
 
 Switching lenses still works exactly as in `../plain`, since the lens switcher and every
 contract-bound element are untouched - only the two added charts and their surrounding layout are

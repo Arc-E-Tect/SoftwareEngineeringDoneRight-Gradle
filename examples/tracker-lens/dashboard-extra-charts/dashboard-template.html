@@ -49,7 +49,10 @@ min-height: 0;
 .detector-pies__caption {
 font-size: 0.7rem;
 text-align: center;
-margin: 0.25rem 0 0;
+margin: 0.2rem 0 0;
+}
+.detector-pies__caption--percent {
+font-weight: 600;
 }
 /* The hover-over "?" badge itself, used next to the DECLARED/IMPLEMENTED/VERIFIED metric card
    labels - see the script below for where it's attached and what it says. */
@@ -163,8 +166,11 @@ vertical-align: middle;
   // Each stage's count is cumulative - "reached at least this stage" - so consecutive stages are
   // nested subsets, not independent buckets. A pie chart needs mutually-exclusive slices, so each
   // stage's slice here is "reached this stage but not the next one" (the final stage's slice is
-  // just its own count, having no next stage to subtract).
-  function renderStagePie(tracker, container) {
+  // just its own count, having no next stage to subtract) - 1, 1, 3 for this example's data, which
+  // is exactly "some scenarios are only listed, some are defined, and the rest are implemented",
+  // and does sum to the tracker's total (unlike api-contracts' declared/implemented/verified,
+  // which don't - see the metric cards below).
+  function renderStagePie(tracker, container, totalCount) {
     if (typeof Chart === 'undefined') {
       return;
     }
@@ -185,71 +191,101 @@ vertical-align: middle;
           backgroundColor: tracker.stages.map(function (stage, index) { return stageColors[index % stageColors.length]; })
         }]
       },
-      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: true, position: 'bottom' } } }
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: true, position: 'bottom' },
+          tooltip: {
+            callbacks: {
+              // The pie's own slices are the mutually-exclusive bucket sizes (1, 1, 3) - the
+              // right thing to plot, so the slices' areas stay honest - but the more familiar
+              // number for a reader hovering "listed" is the cumulative count the metric card
+              // above already shows ("5 of 5 reached listed", not "1 reached listed and no
+              // further stage"), so the tooltip reports that instead of the raw slice value.
+              label: function (context) {
+                var stage = tracker.stages[context.dataIndex];
+                return stage + ': ' + counts[stage] + ' / ' + totalCount;
+              }
+            }
+          }
+        }
+      }
     });
   }
 
-  // Full definitions for the three checks api-contracts' metric cards report - each is a
-  // compound condition, not just "this one thing happened", which is exactly why an endpoint can
-  // satisfy zero, one, two, or three of them independently rather than moving through them as
-  // stages of one pipeline.
-  var STAGE_DEFINITIONS = {
-    declared: 'An OpenAPI description exists, but no implementation.',
-    implemented: 'Endpoint is implemented using Spring RestController, but there is no OpenAPI description.',
-    verified: 'An OpenAPI description exists, the endpoint is implemented using Spring RestController, '
-        + 'and at least one test exists that validates the implementation matches the OpenAPI description.'
+  // Full, correct definitions for the three "un-X" checks api-contracts reports - both on its own
+  // metric cards and on the pies beside its line chart, using the same names and the same counts
+  // in both places rather than the cards showing positive per-stage totals while the pies show
+  // each one's complement. Each is a compound condition, not just "this one thing happened", which
+  // is exactly why an endpoint can satisfy zero, one, two, or three of them independently rather
+  // than moving through them as stages of one pipeline.
+  var PROBLEM_DEFINITIONS = {
+    Undefined: 'Endpoint is implemented using Spring RestController, but there is no OpenAPI description.',
+    Unimplemented: 'An OpenAPI description exists, but no implementation.',
+    Unverified: 'An OpenAPI description exists, the endpoint is implemented using Spring RestController, '
+        + 'but no test exists confirming the implementation still matches the OpenAPI description.'
   };
 
-  // Attaches a hover-over "?" badge, with the definition above as its native title tooltip, next
-  // to api-contracts' own DECLARED / IMPLEMENTED / VERIFIED metric cards - directly where a reader
-  // is already looking when the term needs explaining, rather than off in a chart's own legend.
-  // Scoped to api-contracts specifically, not every ".metric-card__stage" on the page: bdd-scenarios
-  // has its own, unrelated "implemented" stage (Gherkin scenarios, not API endpoints), and STAGE_
-  // DEFINITIONS' text is specific to what these terms mean for api-contracts.
-  function attachStageDefinitionBadges(trackerId) {
-    var section = document.querySelector('.tracker[data-tracker="' + trackerId + '"]');
-    if (!section) {
-      return;
-    }
-    section.querySelectorAll('.metric-card__stage').forEach(function (label) {
-      var definition = STAGE_DEFINITIONS[label.textContent.trim()];
-      if (!definition) {
-        return;
-      }
-      var badge = document.createElement('span');
-      badge.className = 'info-badge';
-      badge.textContent = '?';
-      badge.title = definition;
-      label.appendChild(badge);
-    });
-  }
-
-  // Three small "this detector's share of all APIs" pies - Total vs Undefined (Shadow APIs:
-  // implemented, no OpenAPI description), Total vs Unimplemented (Mirage APIs: described, no
-  // implementation), Total vs Unverified (Doppelganger APIs: described and implemented, no test
-  // confirming the two agree) - one per detector, each just two slices of the same 12-endpoint
-  // whole. Unlike the metric cards' declared/implemented/verified percentages (which don't sum to
-  // 100%, since they're three independent checks - see the badges above), each pie here is
-  // internally consistent by construction (a slice and its complement always sum to 100%); what it
-  // adds is a concrete look at how much of the whole each specific detector is currently flagging.
-  // All three counts are derived algebraically from the same per-stage counts the line chart
-  // already uses - declaredCount excludes only Undefined, implementedCount excludes only
-  // Unimplemented, and Unverified is what's left once those two and Compliant (verifiedCount) are
-  // accounted for - so no new plugin data is needed.
-  function renderDetectorSharePies(tracker, container, totalCount) {
-    if (typeof Chart === 'undefined') {
-      return;
-    }
+  // Derives the three "un-X" bucket sizes from the same per-stage counts the line chart already
+  // uses - declaredCount excludes only Undefined, implementedCount excludes only Unimplemented,
+  // and Unverified is what's left once those two and Compliant (verifiedCount) are accounted for -
+  // so no new plugin data is needed. Computed once and shared by both the metric cards and the
+  // pies below, so the two can never drift apart.
+  function computeApiContractProblems(tracker, totalCount) {
     var counts = latestCounts(tracker);
     var declared = counts.declared || 0;
     var implemented = counts.implemented || 0;
     var verified = counts.verified || 0;
-
-    var pies = [
+    return [
       { label: 'Undefined', count: totalCount - declared, color: stageColors[0] },
       { label: 'Unimplemented', count: totalCount - implemented, color: stageColors[1] },
       { label: 'Unverified', count: declared + implemented - totalCount - verified, color: stageColors[2] }
     ];
+  }
+
+  // Rewrites api-contracts' own DECLARED / IMPLEMENTED / VERIFIED metric cards in place as
+  // Undefined / Unimplemented / Unverified, in that order (the cards' own DOM order already
+  // matches: declared, implemented, verified) - the same three problem categories, the same
+  // counts, and the same names the pies beside the line chart use. Also attaches a hover-over "?"
+  // badge to each, carrying its full definition as a plain HTML title attribute.
+  function relabelApiContractMetricCards(problems, totalCount) {
+    var section = document.querySelector('.tracker[data-tracker="api-contracts"]');
+    if (!section) {
+      return;
+    }
+    var cards = section.querySelectorAll('.metric-card');
+    problems.forEach(function (problem, index) {
+      var card = cards[index];
+      if (!card) {
+        return;
+      }
+      var percent = totalCount ? Math.round((100 * problem.count) / totalCount) : 0;
+      card.style.setProperty('--percent', percent);
+
+      var stageLabel = card.querySelector('.metric-card__stage');
+      stageLabel.textContent = problem.label;
+
+      var badge = document.createElement('span');
+      badge.className = 'info-badge';
+      badge.textContent = '?';
+      badge.title = PROBLEM_DEFINITIONS[problem.label] || '';
+      stageLabel.appendChild(badge);
+
+      card.querySelector('.metric-card__count').textContent = problem.count + ' / ' + totalCount;
+      card.querySelector('.metric-card__percent').textContent = percent + '%';
+    });
+  }
+
+  // Three small "this detector's share of all APIs" pies - Total vs Undefined, Total vs
+  // Unimplemented, Total vs Unverified - one per detector, each just two slices of the same
+  // 12-endpoint whole. Each pie is internally consistent by construction (a slice and its
+  // complement always sum to 100%); what the three of them add, side by side, is a concrete look
+  // at how much of the whole each specific check is currently failing.
+  function renderDetectorSharePies(problems, container, totalCount) {
+    if (typeof Chart === 'undefined') {
+      return;
+    }
 
     // Wider than the default .chart-extra box (set on this container only, via the CSS class
     // above) so three pies stay legible side by side rather than cramped into one tracker's usual
@@ -260,7 +296,7 @@ vertical-align: middle;
     var row = document.createElement('div');
     row.className = 'detector-pies';
 
-    pies.forEach(function (pie) {
+    problems.forEach(function (pie) {
       var wrapper = document.createElement('div');
       wrapper.className = 'detector-pies__pie';
 
@@ -268,10 +304,16 @@ vertical-align: middle;
       wrapper.appendChild(canvas);
 
       var percent = totalCount ? Math.round((100 * pie.count) / totalCount) : 0;
-      var caption = document.createElement('p');
-      caption.className = 'detector-pies__caption';
-      caption.textContent = pie.label + ': ' + pie.count + ' / ' + totalCount + ' (' + percent + '%)';
-      wrapper.appendChild(caption);
+
+      var captionLabel = document.createElement('p');
+      captionLabel.className = 'detector-pies__caption';
+      captionLabel.textContent = pie.label + ': ' + pie.count + ' / ' + totalCount;
+      wrapper.appendChild(captionLabel);
+
+      var captionPercent = document.createElement('p');
+      captionPercent.className = 'detector-pies__caption detector-pies__caption--percent';
+      captionPercent.textContent = percent + '%';
+      wrapper.appendChild(captionPercent);
 
       row.appendChild(wrapper);
 
@@ -291,21 +333,26 @@ vertical-align: middle;
     container.appendChild(row);
   }
 
+  // totalCount isn't in #dashboard-data (only per-stage counts are) - it's already in the
+  // rendered markup via the data-total attribute this template adds to every metric card.
+  function totalCountFor(trackerId, anyStage) {
+    var el = document.querySelector('.tracker[data-tracker="' + trackerId + '"] .metric-card[data-stage="' + anyStage + '"]');
+    return el ? parseInt(el.dataset.total, 10) : 0;
+  }
+
   var bddTracker = trackersById['bdd-scenarios'];
   var bddContainer = bddTracker ? extraChartContainer('bdd-scenarios') : null;
   if (bddTracker && bddContainer) {
-    renderStagePie(bddTracker, bddContainer);
+    renderStagePie(bddTracker, bddContainer, totalCountFor('bdd-scenarios', 'listed'));
   }
 
   var apiContractTracker = trackersById['api-contracts'];
   var apiContractContainer = apiContractTracker ? extraChartContainer('api-contracts') : null;
   if (apiContractTracker && apiContractContainer) {
-    // totalCount isn't in #dashboard-data (only per-stage counts are) - it's already in the
-    // rendered markup via the data-total attribute this template adds to every metric card.
-    var totalCardElement = document.querySelector('.metric-card[data-stage="declared"]');
-    var totalCount = totalCardElement ? parseInt(totalCardElement.dataset.total, 10) : 0;
-    renderDetectorSharePies(apiContractTracker, apiContractContainer, totalCount);
-    attachStageDefinitionBadges('api-contracts');
+    var totalCount = totalCountFor('api-contracts', 'declared');
+    var problems = computeApiContractProblems(apiContractTracker, totalCount);
+    relabelApiContractMetricCards(problems, totalCount);
+    renderDetectorSharePies(problems, apiContractContainer, totalCount);
   }
 })();
 </script>
