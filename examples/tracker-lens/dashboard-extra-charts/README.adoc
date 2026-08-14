@@ -123,18 +123,29 @@ function computeApiContractBreakdown(tracker, totalCount) {
   var implemented = counts.implemented || 0;
   var verified = counts.verified || 0;
   return [
-    { label: 'Undefined', count: totalCount - declared, color: stageColors[0] },
-    { label: 'Unimplemented', count: totalCount - implemented, color: stageColors[1] },
-    { label: 'Unverified', count: declared + implemented - totalCount - verified, color: stageColors[2] },
-    { label: 'Compliant', count: verified, color: COMPLIANT_COLOR }
+    { label: 'Undefined', count: totalCount - declared, cardTotal: implemented, color: stageColors[0] },
+    { label: 'Unimplemented', count: totalCount - implemented, cardTotal: declared, color: stageColors[1] },
+    { label: 'Unverified', count: declared + implemented - totalCount - verified, cardTotal: totalCount, color: stageColors[2] },
+    { label: 'Compliant', count: verified, cardTotal: totalCount, color: COMPLIANT_COLOR }
   ];
 }
 ----
 
-The appended card gets its own fixed color (`COMPLIANT_COLOR`, a plain green), not one of the three
-`--dashboard-stage-*` custom properties a lens defines - `Compliant` isn't one of the plugin's own
-canonical stages the way `Undefined`/`Unimplemented`/`Unverified` are, so there's no stage index for
-a lens to color it by.
+Each entry carries its own `cardTotal` - the denominator *the card* divides by, which for two of the
+four is deliberately narrower than `totalCount`. `Undefined` (Shadow) is by definition a subset of
+the *implemented* endpoints - implemented, just never declared - so "4 of the 13 implemented
+endpoints have no OpenAPI description" is a more useful ratio than "4 of 20 endpoints" would be;
+symmetrically, `Unimplemented` (Mirage) is a subset of the *declared* endpoints, so it divides by
+`declared` instead. `Unverified` and `Compliant` are both subsets of the declared-and-implemented
+overlap rather than of one single other metric, so they keep `totalCount`. The pie beside the line
+chart is unaffected by this - its slices are still sized and its tooltip still labeled against the
+one shared `totalCount`, since a pie's slices only mean anything as shares of the same whole.
+
+The appended card gets its own fixed color (`COMPLIANT_COLOR`, a violet, picked to stay visually
+distinct from all three `--dashboard-stage-*` colors a lens might define) rather than reusing one of
+them - `Compliant` isn't one of the plugin's own canonical stages the way
+`Undefined`/`Unimplemented`/`Unverified` are, so there's no stage index for a lens to color it by,
+and nothing stops a lens's own `--dashboard-stage-2` from also being some shade of green.
 
 === The Hover-Over Definitions
 
@@ -198,15 +209,17 @@ cd examples/tracker-lens/dashboard-extra-charts
 The build is expected to pass, including the same `ContractRule` validation every dashboard goes
 through regardless of which template rendered it. Open `build/reports/tracker-lens/dashboard.html`:
 
-* `bdd-scenarios` (6 scenarios total) shows its usual line chart plus a pie chart with slices 1
-  (`listed` only), 1 (`defined` only), 4 (`implemented`, including the skip-scenario) - `implemented`
-  is correctly the largest slice, since most scenarios really are done. Hovering a slice shows
-  "listed: 1 / 6", "defined: 1 / 6", "implemented: 4 / 6".
-* `api-contracts` shows four metric cards - `UNDEFINED 4 / 20 (20%)`, `UNIMPLEMENTED 7 / 20 (35%)`,
+* `bdd-scenarios` (6 scenarios total) shows its usual line chart plus a pie chart, legend to its
+  left, with slices 1 (`listed` only), 1 (`defined` only), 4 (`implemented`, including the
+  skip-scenario) - `implemented` is correctly the largest slice, since most scenarios really are
+  done. Hovering a slice shows "listed: 1 / 6", "defined: 1 / 6", "implemented: 4 / 6".
+* `api-contracts` shows four metric cards - `UNDEFINED 4 / 13 (31%)`, `UNIMPLEMENTED 7 / 16 (44%)`,
   `UNVERIFIED 5 / 20 (25%)`, and `COMPLIANT 4 / 20 (20%)` - each with a `?` badge; its usual line
   chart (still labeled declared/implemented/verified - the raw history, unchanged); and one pie
-  beside it with four slices sized 4, 7, 5, 4 - summing visibly to 20, the tracker's total. Hovering
-  a slice shows "Undefined: 4 / 20", and so on for the other three.
+  beside it, legend to its left, with four slices sized 4, 7, 5, 4 - summing visibly to 20, the
+  tracker's total, each a distinct color including `Compliant`'s violet. Hovering a slice shows
+  "Undefined: 4 / 20", and so on for the other three - the pie's own tooltip always divides by the
+  shared total, even where the card above it divides by something narrower.
 
 Switching lenses still works exactly as in `../plain`, since the lens switcher and every
 contract-bound element are untouched - only the two added charts and their surrounding layout are

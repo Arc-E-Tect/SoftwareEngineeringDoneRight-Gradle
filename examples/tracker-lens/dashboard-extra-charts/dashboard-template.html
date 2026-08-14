@@ -166,7 +166,7 @@ vertical-align: middle;
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
-          legend: { display: true, position: 'bottom' },
+          legend: { display: true, position: 'left' },
           tooltip: {
             callbacks: {
               label: function (context) {
@@ -194,28 +194,39 @@ vertical-align: middle;
         + 'and at least one test exists confirming the implementation matches the OpenAPI description.'
   };
 
-  // A fixed color for Compliant, distinct from the three lens-driven --dashboard-stage-* colors:
-  // Compliant isn't one of the plugin's own canonical stages the way declared/implemented/verified
-  // are, it's a derived "none of the three checks failed" category this template adds - so unlike
-  // Undefined/Unimplemented/Unverified, there's no stage index for a lens to color it by.
-  var COMPLIANT_COLOR = '#2f9e44';
+  // A fixed color for Compliant, distinct from the three lens-driven --dashboard-stage-* colors
+  // *and* chosen to not collide with any of them - Compliant isn't one of the plugin's own
+  // canonical stages the way declared/implemented/verified are, it's a derived "none of the three
+  // checks failed" category this template adds, so there's no stage index for a lens to color it
+  // by, and no guarantee a lens's own --dashboard-stage-2 (frequently a green) won't otherwise
+  // clash with it.
+  var COMPLIANT_COLOR = '#7048e8';
 
   // Derives all four state sizes from the same per-stage counts the line chart already uses -
   // declaredCount excludes only Undefined, implementedCount excludes only Unimplemented,
   // verifiedCount *is* Compliant, and Unverified is what's left of the declared-and-implemented
   // overlap once Compliant is accounted for - so no new plugin data is needed. Computed once and
-  // shared by both the metric cards and the pies below, so the two can never drift apart. The four
+  // shared by both the metric cards and the pie below, so the two can never drift apart. The four
   // counts always sum to totalCount, since every endpoint is in exactly one of them.
+  //
+  // Each entry also carries cardTotal - the denominator the metric card (not the pie) divides by.
+  // Undefined and Unimplemented use a narrower, more informative denominator than totalCount:
+  // Undefined (Shadow) is by definition a subset of the *implemented* endpoints (implemented, just
+  // not declared), so "X of every implemented endpoint has no OpenAPI description" is a more
+  // useful ratio than "X of every endpoint" would be; symmetrically, Unimplemented (Mirage) is a
+  // subset of the *declared* endpoints. Unverified and Compliant are both subsets of the
+  // declared-and-implemented overlap rather than of one single other metric, so they keep
+  // totalCount as their denominator.
   function computeApiContractBreakdown(tracker, totalCount) {
     var counts = latestCounts(tracker);
     var declared = counts.declared || 0;
     var implemented = counts.implemented || 0;
     var verified = counts.verified || 0;
     return [
-      { label: 'Undefined', count: totalCount - declared, color: stageColors[0] },
-      { label: 'Unimplemented', count: totalCount - implemented, color: stageColors[1] },
-      { label: 'Unverified', count: declared + implemented - totalCount - verified, color: stageColors[2] },
-      { label: 'Compliant', count: verified, color: COMPLIANT_COLOR }
+      { label: 'Undefined', count: totalCount - declared, cardTotal: implemented, color: stageColors[0] },
+      { label: 'Unimplemented', count: totalCount - implemented, cardTotal: declared, color: stageColors[1] },
+      { label: 'Unverified', count: declared + implemented - totalCount - verified, cardTotal: totalCount, color: stageColors[2] },
+      { label: 'Compliant', count: verified, cardTotal: totalCount, color: COMPLIANT_COLOR }
     ];
   }
 
@@ -223,9 +234,11 @@ vertical-align: middle;
   // Undefined / Unimplemented / Unverified, in that order (the cards' own DOM order already
   // matches: declared, implemented, verified), then appends a fourth card for Compliant - there's
   // no fourth native metric card to relabel, since the plugin only ever renders one per canonical
-  // stage. Same names and counts the pies beside the line chart use. Also attaches a hover-over "?"
-  // badge to each, carrying its full definition as a plain HTML title attribute.
-  function relabelApiContractMetricCards(breakdown, totalCount) {
+  // stage. Same names and counts the pie beside the line chart uses, though each card divides by
+  // its own entry.cardTotal rather than the tracker's totalCount - see computeApiContractBreakdown.
+  // Also attaches a hover-over "?" badge to each, carrying its full definition as a plain HTML
+  // title attribute.
+  function relabelApiContractMetricCards(breakdown) {
     var section = document.querySelector('.tracker[data-tracker="api-contracts"]');
     if (!section) {
       return;
@@ -234,7 +247,7 @@ vertical-align: middle;
     var cards = section.querySelectorAll('.metric-card');
 
     function fillCard(card, entry) {
-      var percent = totalCount ? Math.round((100 * entry.count) / totalCount) : 0;
+      var percent = entry.cardTotal ? Math.round((100 * entry.count) / entry.cardTotal) : 0;
       card.style.setProperty('--percent', percent);
 
       var stageLabel = card.querySelector('.metric-card__stage');
@@ -246,7 +259,7 @@ vertical-align: middle;
       badge.title = CHECK_DEFINITIONS[entry.label] || '';
       stageLabel.appendChild(badge);
 
-      card.querySelector('.metric-card__count').textContent = entry.count + ' / ' + totalCount;
+      card.querySelector('.metric-card__count').textContent = entry.count + ' / ' + entry.cardTotal;
       card.querySelector('.metric-card__percent').textContent = percent + '%';
     }
 
@@ -283,6 +296,11 @@ vertical-align: middle;
     if (typeof Chart === 'undefined') {
       return;
     }
+    // A touch wider than the default .chart-extra box: "Unimplemented" is long enough that the
+    // left-side legend Chart.js lays out by default would otherwise truncate it.
+    container.style.flexBasis = '320px';
+    container.style.width = '320px';
+
     var canvas = document.createElement('canvas');
     container.appendChild(canvas);
     new Chart(canvas.getContext('2d'), {
@@ -298,7 +316,7 @@ vertical-align: middle;
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
-          legend: { display: true, position: 'bottom' },
+          legend: { display: true, position: 'left' },
           tooltip: {
             callbacks: {
               label: function (context) {
@@ -330,7 +348,7 @@ vertical-align: middle;
   if (apiContractTracker && apiContractContainer) {
     var totalCount = totalCountFor('api-contracts', 'declared');
     var breakdown = computeApiContractBreakdown(apiContractTracker, totalCount);
-    relabelApiContractMetricCards(breakdown, totalCount);
+    relabelApiContractMetricCards(breakdown);
     renderApiContractBreakdownPie(breakdown, apiContractContainer, totalCount);
   }
 })();
