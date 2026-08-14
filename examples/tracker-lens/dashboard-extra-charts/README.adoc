@@ -1,0 +1,92 @@
+= Tracker Lens — Dashboard Extra Charts Example
+:toc: left
+
+== Description
+
+Two trackers - `bdd-scenarios` (Gherkin scenarios) and `api-contracts` (API contracts) - rendered by
+a project-supplied Mustache template, `dashboard-template.html`, overriding the plugin's own
+bundled `dashboard.html` via `trackerLens.template`. The template's structure and wording are
+identical to the bundled one (see `../custom-dashboard-template` for an example that changes those
+instead); the only difference here is two extra, non-contract charts it adds beside each tracker's
+built-in line chart.
+
+== Intent
+
+This example shows that a project-supplied template isn't limited to what `TrackerView` and
+`MetricCardView` hand it via Mustache (`{{#metrics}}`, `{{#projection}}`, and so on) - it can add
+its own markup and its own script, reading the same `#dashboard-data` JSON blob the plugin's fixed
+bootstrap script already uses, to derive additional views the plugin itself never computes:
+
+* Beside `bdd-scenarios`'s line chart, a *pie chart* of the three Gherkin stages
+  (`listed`/`defined`/`implemented`). Each stage's count from `#dashboard-data` is cumulative -
+  "reached at least this stage" - so the pie's slices are each stage's count *minus* the next
+  stage's count, giving three mutually-exclusive buckets that sum to the tracker's total.
+* Beside `api-contracts`'s line chart, a *Venn/Euler diagram* of its three stages
+  (`declared`/`implemented`/`verified`). Because `verified` is always a subset of `implemented`,
+  which is always a subset of `declared`, the honest picture is three concentric circles - not a
+  classic three-way overlap, which would suggest combinations (like "verified but not implemented")
+  this data can't have - each circle's area proportional to its stage's current count.
+
+Both charts are computed entirely in the template's own inline `<script>`, added after
+`{{{bootstrapScript}}}`; no plugin code changes were needed, since every stage's latest count is
+already present as that stage's last value in `#dashboard-data`'s chart series. The generated
+dashboard is still validated against exactly the same `ContractRule` content contract as any other
+template's output - these two charts are extra markup outside that contract, the same way the
+plugin's own line chart is.
+
+== The Template
+
+`dashboard-template.html` keeps the bundled template's `<section class="tracker">`, `<h2>{{id}}</h2>`,
+`.metrics` grid of `.metric-card` divs, and `.projection` markup exactly as-is. The only structural
+addition is wrapping each tracker's `.chart` div in a flex row alongside a second, empty
+`.chart-extra` div the template's own script fills in:
+
+[source,html]
+----
+<div class="charts-row">
+<div class="chart"><canvas></canvas></div>
+<div class="chart-extra" data-extra-chart-for="{{id}}"></div>
+</div>
+----
+
+== Configuration
+
+[source,groovy]
+----
+trackerLens {
+    template = file('dashboard-template.html')
+
+    trackers {
+        register('bdd-scenarios') {
+            historyFiles.from(file('gherkin-progress-history.ndjson'))
+            source = com.arc_e_tect.gradle.trackerlens.TrackerSourceKind.GHERKIN_SCENARIO
+        }
+        register('api-contracts') {
+            historyFiles.from(file('api-contract-history.ndjson'))
+            source = com.arc_e_tect.gradle.trackerlens.TrackerSourceKind.API_CONTRACT
+        }
+    }
+}
+----
+
+== Build And Run
+
+[source,bash]
+----
+cd examples/tracker-lens/dashboard-extra-charts
+./gradlew generateTrackerLensDashboard
+----
+
+== What To Expect
+
+The build is expected to pass, including the same `ContractRule` validation every dashboard goes
+through regardless of which template rendered it. Open `build/reports/tracker-lens/dashboard.html`:
+
+* `bdd-scenarios` (5 scenarios total: `listed` 5, `defined` 4, `implemented` 3) shows its usual line
+  chart plus a pie chart with slices 1 (`listed` only), 1 (`defined` only), 3 (`implemented`).
+* `api-contracts` (5 endpoints total: `declared` 5, `implemented` 3, `verified` 1) shows its usual
+  line chart plus three concentric circles, sized 5:3:1, one per stage.
+
+Switching lenses still works exactly as in `../plain`, since the lens switcher and every
+contract-bound element are untouched - only the two added charts and their surrounding layout are
+this template's own, unlensed CSS.

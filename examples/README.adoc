@@ -76,6 +76,8 @@ include::tracker-lens/external-lens-pack/README.adoc[leveloffset=+2]
 
 include::tracker-lens/custom-dashboard-template/README.adoc[leveloffset=+2]
 
+include::tracker-lens/dashboard-extra-charts/README.adoc[leveloffset=+2]
+
 include::tracker-lens/scaffolded-lens-pack/README.adoc[leveloffset=+2]
 
 include::tracker-lens/high-contrast-accessibility/README.adoc[leveloffset=+2]

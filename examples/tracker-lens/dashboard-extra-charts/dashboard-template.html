@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Tracker Lens Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<link rel="stylesheet" id="lens-stylesheet" href="{{defaultLensCssFile}}">
+<style>
+/* Layout for this template's own additions only - .chart itself, and everything to its left,
+   stays governed by the lens the visitor picks; these rules just seat the extra chart beside it. */
+.charts-row {
+margin-top: 1rem;
+display: flex;
+gap: 1.5rem;
+align-items: flex-start;
+}
+.charts-row .chart {
+margin-top: 0;
+flex: 1 1 auto;
+min-width: 0;
+}
+.chart-extra {
+flex: 0 0 220px;
+height: 220px;
+}
+.chart-extra canvas,
+.chart-extra svg {
+width: 100%;
+height: 100%;
+}
+</style>
+</head>
+<body>
+<div class="dashboard">
+<header>
+<h1>Tracker Lens Dashboard</h1>
+<div class="lens-switcher" data-lens-count="{{lensCount}}">
+<label for="lens-select">Lens</label>
+<select id="lens-select">
+{{#lenses}}
+<option value="{{id}}"{{#selected}} selected{{/selected}}>{{id}}</option>
+{{/lenses}}
+</select>
+</div>
+</header>
+{{#trackers}}
+<section class="tracker" data-tracker="{{id}}">
+<h2>{{id}}</h2>
+<div class="metrics">
+{{#metrics}}
+<div class="metric-card" data-stage="{{stage}}" style="--percent: {{percent}}">
+<span class="metric-card__stage">{{stage}}</span>
+<span class="metric-card__count">{{count}} / {{totalCount}}</span>
+<span class="metric-card__percent">{{percent}}%</span>
+</div>
+{{/metrics}}
+</div>
+{{#projection}}
+<div class="projection" data-status="{{status}}">
+<p class="projection__date">Projected completion: {{projectedDate}}</p>
+<p class="projection__progress">{{currentCount}} of {{totalCount}} complete (velocity: {{velocityPerDay}}/day)</p>
+<p class="projection__disclaimer">{{disclaimer}}</p>
+</div>
+{{/projection}}
+{{^projection}}
+<p class="projection-unavailable">Not enough history yet - check back once at least a week of data has been captured.</p>
+{{/projection}}
+<div class="charts-row">
+<div class="chart"><canvas></canvas></div>
+<div class="chart-extra" data-extra-chart-for="{{id}}"></div>
+</div>
+</section>
+{{/trackers}}
+{{#hasStaleItems}}
+<section class="stale-items">
+<h2>Stale Items</h2>
+<table class="stale-items__table">
+<thead><tr><th>Tracker</th><th>Item</th><th>Group</th><th>Last Seen</th></tr></thead>
+<tbody>
+{{#staleItems}}
+<tr><td>{{trackerId}}</td><td>{{label}}</td><td>{{group}}</td><td>{{lastSeen}}</td></tr>
+{{/staleItems}}
+</tbody>
+</table>
+</section>
+{{/hasStaleItems}}
+</div>
+{{{dashboardDataScript}}}
+{{{bootstrapScript}}}
+<script>
+(function () {
+  // This template's own addition, on top of the fixed bootstrap script above: a snapshot pie
+  // chart beside the "bdd-scenarios" tracker's line chart, and a snapshot Venn/Euler diagram
+  // beside the "api-contracts" tracker's line chart. Both read the same #dashboard-data JSON the
+  // bootstrap script already uses - no plugin change needed, since every stage's latest count is
+  // just that stage's last chart-series value.
+  var dataElement = document.getElementById('dashboard-data');
+  var data = dataElement ? JSON.parse(dataElement.textContent) : { trackers: [] };
+  var trackersById = {};
+  (data.trackers || []).forEach(function (tracker) {
+    trackersById[tracker.id] = tracker;
+  });
+
+  var rootStyle = getComputedStyle(document.documentElement);
+  var stageColors = [
+    rootStyle.getPropertyValue('--dashboard-stage-1').trim() || '#4c6ef5',
+    rootStyle.getPropertyValue('--dashboard-stage-2').trim() || '#12b886',
+    rootStyle.getPropertyValue('--dashboard-stage-3').trim() || '#f59f00'
+  ];
+
+  function latestCounts(tracker) {
+    var counts = {};
+    tracker.stages.forEach(function (stage) {
+      var series = tracker.series[stage] || [];
+      counts[stage] = series.length ? series[series.length - 1] : 0;
+    });
+    return counts;
+  }
+
+  function extraChartContainer(trackerId) {
+    return document.querySelector('.chart-extra[data-extra-chart-for="' + trackerId + '"]');
+  }
+
+  // Each stage's count is cumulative - "reached at least this stage" - so consecutive stages are
+  // nested subsets, not independent buckets. A pie chart needs mutually-exclusive slices, so each
+  // stage's slice here is "reached this stage but not the next one" (the final stage's slice is
+  // just its own count, having no next stage to subtract).
+  function renderStagePie(tracker, container) {
+    if (typeof Chart === 'undefined') {
+      return;
+    }
+    var counts = latestCounts(tracker);
+    var slices = tracker.stages.map(function (stage, index) {
+      var next = tracker.stages[index + 1];
+      var exclusive = counts[stage] - (next ? counts[next] : 0);
+      return { stage: stage, count: Math.max(exclusive, 0) };
+    });
+    var canvas = document.createElement('canvas');
+    container.appendChild(canvas);
+    new Chart(canvas.getContext('2d'), {
+      type: 'pie',
+      data: {
+        labels: slices.map(function (slice) { return slice.stage; }),
+        datasets: [{
+          data: slices.map(function (slice) { return slice.count; }),
+          backgroundColor: tracker.stages.map(function (stage, index) { return stageColors[index % stageColors.length]; })
+        }]
+      },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: true, position: 'bottom' } } }
+    });
+  }
+
+  // Since verified is a subset of implemented is a subset of declared, the honest picture is
+  // three concentric circles - a Venn/Euler diagram for perfectly nested sets - each circle's
+  // area proportional to its stage's count, rather than a classic three-way overlap that would
+  // suggest combinations (e.g. "verified but not implemented") this data can't actually have.
+  function renderNestedVenn(tracker, container) {
+    var counts = latestCounts(tracker);
+    var maxCount = counts[tracker.stages[0]] || 1;
+    var size = 220;
+    var center = size / 2;
+    var svgNS = 'http://www.w3.org/2000/svg';
+    var svg = document.createElementNS(svgNS, 'svg');
+    svg.setAttribute('viewBox', '0 0 ' + size + ' ' + size);
+    svg.setAttribute('role', 'img');
+    svg.setAttribute('aria-label', tracker.id + ' category breakdown');
+
+    tracker.stages.forEach(function (stage, index) {
+      var count = counts[stage] || 0;
+      var radius = Math.max((size / 2 - 12) * Math.sqrt(count / maxCount), 16);
+      var color = stageColors[index % stageColors.length];
+      var circle = document.createElementNS(svgNS, 'circle');
+      circle.setAttribute('cx', center);
+      circle.setAttribute('cy', center);
+      circle.setAttribute('r', radius);
+      circle.setAttribute('fill', color);
+      circle.setAttribute('fill-opacity', '0.3');
+      circle.setAttribute('stroke', color);
+      circle.setAttribute('stroke-width', '2');
+      svg.appendChild(circle);
+    });
+
+    tracker.stages.forEach(function (stage, index) {
+      var label = document.createElementNS(svgNS, 'text');
+      label.setAttribute('x', center);
+      label.setAttribute('y', 16 + index * 16);
+      label.setAttribute('text-anchor', 'middle');
+      label.setAttribute('font-size', '11');
+      label.setAttribute('fill', stageColors[index % stageColors.length]);
+      label.textContent = stage + ': ' + (counts[stage] || 0);
+      svg.appendChild(label);
+    });
+
+    container.appendChild(svg);
+  }
+
+  var bddTracker = trackersById['bdd-scenarios'];
+  var bddContainer = bddTracker ? extraChartContainer('bdd-scenarios') : null;
+  if (bddTracker && bddContainer) {
+    renderStagePie(bddTracker, bddContainer);
+  }
+
+  var apiContractTracker = trackersById['api-contracts'];
+  var apiContractContainer = apiContractTracker ? extraChartContainer('api-contracts') : null;
+  if (apiContractTracker && apiContractContainer) {
+    renderNestedVenn(apiContractTracker, apiContractContainer);
+  }
+})();
+</script>
+</body>
+</html>
