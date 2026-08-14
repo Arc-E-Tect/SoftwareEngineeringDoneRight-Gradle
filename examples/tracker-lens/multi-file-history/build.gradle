@@ -1,0 +1,15 @@
+plugins {
+    alias(libs.plugins.tracker.lens)
+}
+
+trackerLens {
+    trackers {
+        // A directory, not individual files: historyFiles.from() expands a directory entry to
+        // every *.ndjson file directly within it (non-recursive), then merges records sharing the
+        // same fingerprint across whichever of those files mention it.
+        register('api-contracts') {
+            historyFiles.from(file('api-contract-history'))
+            source = com.arc_e_tect.gradle.trackerlens.TrackerSourceKind.API_CONTRACT
+        }
+    }
+}

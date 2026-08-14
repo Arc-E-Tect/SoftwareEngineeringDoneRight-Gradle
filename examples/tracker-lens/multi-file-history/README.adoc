@@ -1,0 +1,88 @@
+= Tracker Lens — Multi-File History Example
+:toc: left
+
+== Description
+
+One tracker, `api-contracts`, fed from a *directory* of three separate history files —
+`shadow.ndjson`, `mirage.ndjson`, `doppelganger.ndjson` — one per API-detector plugin, rather than
+one shared file. Two endpoint fingerprints appear in more than one file; the rest appear in exactly
+one.
+
+== Intent
+
+This example demonstrates two things `HistoryFileResolver` and `LifecycleRecordMerger` make
+possible together:
+
+* `historyFiles.from(file('api-contract-history'))` accepts a directory, not just individual files
+  — every `*.ndjson` file directly inside it is read (not recursively).
+* Records sharing the same `fingerprint`, found across different files, are merged into one row
+  rather than rendered as duplicates — useful when each API-detector plugin writes its own contract
+  history file instead of all three sharing one.
+
+== The History Files
+
+`get-products` (`GET /api/products`) appears in all three files, each contributing a different
+partial view of its lifecycle:
+
+[cols="1,3,3,3",options="header"]
+|===
+| File | declaredAt | implementedAt | verifiedAt
+
+| `shadow.ndjson`
+| 2026-06-25
+| 2026-07-10
+| _(absent)_
+
+| `mirage.ndjson`
+| 2026-06-27
+| _(absent)_
+| _(absent)_
+
+| `doppelganger.ndjson`
+| _(absent)_
+| _(absent)_
+| 2026-07-25
+|===
+
+Merged, `get-products` ends up `declared` 2026-06-25 (the earliest of the two dates reported),
+`implemented` 2026-07-10 (the only file that reports it), and `verified` 2026-07-25 (also only
+reported once) — one complete lifecycle assembled from three partial ones.
+
+`discontinued-endpoint` (`GET /api/products/discontinued`) demonstrates the merge's removal rule:
+`shadow.ndjson` marks it `removedAt`, but `mirage.ndjson` still sees it as present. The merged
+record is *not* removed — an item only merges to removed once every file that mentions it agrees
+it's gone; a detector that has simply stopped writing about an item must never make it look removed
+everywhere.
+
+The remaining fingerprints — `post-products`, `get-product-by-id`, `delete-product-by-id` — each
+appear in exactly one file and pass through unmerged, same as any single-file tracker.
+
+== Configuration
+
+[source,groovy]
+----
+trackerLens {
+    trackers {
+        register('api-contracts') {
+            historyFiles.from(file('api-contract-history'))
+            source = com.arc_e_tect.gradle.trackerlens.TrackerSourceKind.API_CONTRACT
+        }
+    }
+}
+----
+
+== Build And Run
+
+[source,bash]
+----
+cd examples/tracker-lens/multi-file-history
+./gradlew generateTrackerLensDashboard
+----
+
+== What To Expect
+
+The build is expected to pass. `build/reports/tracker-lens/dashboard.html` shows one
+`.tracker[data-tracker="api-contracts"]` section with three `.metric-card` elements (`declared`,
+`implemented`, `verified`), each counted out of a total of *five* distinct endpoints — not seven —
+because `get-products` and `discontinued-endpoint` are each counted once despite appearing in
+multiple files.

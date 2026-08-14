@@ -1,0 +1,17 @@
+plugins {
+    alias(libs.plugins.tracker.lens)
+}
+
+trackerLens {
+    // The built-in high-contrast-lens never uses red or green, so it stays usable for viewers with
+    // red-green color blindness - setting it as the default means every first-time visitor to this
+    // dashboard gets the accessible presentation without needing to know to switch to it.
+    defaultLens = 'high-contrast-lens'
+
+    trackers {
+        register('bdd-scenarios') {
+            historyFiles.from(file('gherkin-progress-history.ndjson'))
+            source = com.arc_e_tect.gradle.trackerlens.TrackerSourceKind.GHERKIN_SCENARIO
+        }
+    }
+}

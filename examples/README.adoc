@@ -6,58 +6,76 @@ Each example has its own README with description, intent, run instructions, and 
 
 == Architecture Validator Examples
 
-include::architecture-validator/single-module-vanilla/README.adoc[leveloffset=+1]
+include::architecture-validator/single-module-vanilla/README.adoc[leveloffset=+2]
 
-include::architecture-validator/single-module-hybrid/README.adoc[leveloffset=+1]
+include::architecture-validator/single-module-hybrid/README.adoc[leveloffset=+2]
 
-include::architecture-validator/single-module-scope-split/README.adoc[leveloffset=+1]
+include::architecture-validator/single-module-scope-split/README.adoc[leveloffset=+2]
 
-include::architecture-validator/library-based-rules/README.adoc[leveloffset=+1]
+include::architecture-validator/library-based-rules/README.adoc[leveloffset=+2]
 
-include::architecture-validator/single-module-spring/README.adoc[leveloffset=+1]
+include::architecture-validator/single-module-spring/README.adoc[leveloffset=+2]
 
-include::architecture-validator/multi-module/README.adoc[leveloffset=+1]
+include::architecture-validator/multi-module/README.adoc[leveloffset=+2]
 
-include::architecture-validator/hexagonal-violations/README.adoc[leveloffset=+1]
+include::architecture-validator/hexagonal-violations/README.adoc[leveloffset=+2]
 
 == JaCoCo Exclusion Report Examples
 
-include::jacoco-exclusion-report/standard/README.adoc[leveloffset=+1]
+include::jacoco-exclusion-report/standard/README.adoc[leveloffset=+2]
 
-include::jacoco-exclusion-report/custom-annotation/README.adoc[leveloffset=+1]
+include::jacoco-exclusion-report/custom-annotation/README.adoc[leveloffset=+2]
 
-include::jacoco-exclusion-report/dsl/README.adoc[leveloffset=+1]
+include::jacoco-exclusion-report/dsl/README.adoc[leveloffset=+2]
 
 == Gherkin to AsciiDoc Examples
 
-include::gherkin-to-asciidoc/plain/README.adoc[leveloffset=+1]
+include::gherkin-to-asciidoc/plain/README.adoc[leveloffset=+2]
 
-include::gherkin-to-asciidoc/progress-tracking/README.adoc[leveloffset=+1]
+include::gherkin-to-asciidoc/progress-tracking/README.adoc[leveloffset=+2]
 
-include::gherkin-to-asciidoc/snippet-templates/README.adoc[leveloffset=+1]
+include::gherkin-to-asciidoc/snippet-templates/README.adoc[leveloffset=+2]
 
 == Shadow API Detector Examples
 
-include::shadow-api-detector/clean/README.adoc[leveloffset=+1]
+include::shadow-api-detector/clean/README.adoc[leveloffset=+2]
 
-include::shadow-api-detector/with-shadow-apis/README.adoc[leveloffset=+1]
+include::shadow-api-detector/with-shadow-apis/README.adoc[leveloffset=+2]
 
-include::shadow-api-detector/multi-file-openapi/README.adoc[leveloffset=+1]
+include::shadow-api-detector/multi-file-openapi/README.adoc[leveloffset=+2]
 
-include::shadow-api-detector/openapi-3-2/README.adoc[leveloffset=+1]
+include::shadow-api-detector/openapi-3-2/README.adoc[leveloffset=+2]
 
-include::shadow-api-detector/request-mapping-composed/README.adoc[leveloffset=+1]
+include::shadow-api-detector/request-mapping-composed/README.adoc[leveloffset=+2]
 
 == Mirage API Detector Examples
 
-include::mirage-api-detector/clean/README.adoc[leveloffset=+1]
+include::mirage-api-detector/clean/README.adoc[leveloffset=+2]
 
-include::mirage-api-detector/with-mirage-apis/README.adoc[leveloffset=+1]
+include::mirage-api-detector/with-mirage-apis/README.adoc[leveloffset=+2]
 
-include::mirage-api-detector/scan-mocks/README.adoc[leveloffset=+1]
+include::mirage-api-detector/scan-mocks/README.adoc[leveloffset=+2]
 
-include::mirage-api-detector/multi-file-openapi/README.adoc[leveloffset=+1]
+include::mirage-api-detector/multi-file-openapi/README.adoc[leveloffset=+2]
 
-include::mirage-api-detector/openapi-3-2/README.adoc[leveloffset=+1]
+include::mirage-api-detector/openapi-3-2/README.adoc[leveloffset=+2]
 
-include::mirage-api-detector/request-mapping-composed/README.adoc[leveloffset=+1]
+include::mirage-api-detector/request-mapping-composed/README.adoc[leveloffset=+2]
+
+== Tracker Lens Examples
+
+include::tracker-lens/plain/README.adoc[leveloffset=+2]
+
+include::tracker-lens/multi-tracker/README.adoc[leveloffset=+2]
+
+include::tracker-lens/multi-file-history/README.adoc[leveloffset=+2]
+
+include::tracker-lens/custom-lens/README.adoc[leveloffset=+2]
+
+include::tracker-lens/external-lens-pack/README.adoc[leveloffset=+2]
+
+include::tracker-lens/custom-dashboard-template/README.adoc[leveloffset=+2]
+
+include::tracker-lens/scaffolded-lens-pack/README.adoc[leveloffset=+2]
+
+include::tracker-lens/high-contrast-accessibility/README.adoc[leveloffset=+2]

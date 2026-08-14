@@ -1,0 +1,2 @@
+{"fingerprint":"get-products","verb":"GET","path":"/api/products","declaringClass":"com.example.ProductController","declaredAt":null,"implementedAt":null,"verifiedAt":"2026-07-25T00:00:00Z","lastSeenAt":"2026-08-14T00:00:00Z","removedAt":null}
+{"fingerprint":"delete-product-by-id","verb":"DELETE","path":"/api/products/{id}","declaringClass":"com.example.ProductController","declaredAt":"2026-08-09T00:00:00Z","implementedAt":null,"verifiedAt":"2026-08-13T00:00:00Z","lastSeenAt":"2026-08-14T00:00:00Z","removedAt":null}

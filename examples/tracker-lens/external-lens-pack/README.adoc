@@ -1,0 +1,85 @@
+= Tracker Lens — External Lens Pack Example
+:toc: left
+
+== Description
+
+The same single-tracker setup as `../plain`, plus a real, published external style pack —
+`com.arc-e-tect:geo-tracker-lens-pack:1.0.0` — declared against the `lensStyle` configuration and
+resolved from Maven Central, with `defaultLens` pointed at one of the pack's own lenses.
+
+== Intent
+
+This example shows how to consume a lens pack someone else published, rather than styling a
+dashboard yourself (`../custom-lens`) or generating a pack of your own to publish
+(`../scaffolded-lens-pack`). It also shows `listTrackerLensStyles`, the task for discovering what a
+pack actually contributes before deciding which lens to default to.
+
+== Configuration
+
+[source,groovy]
+----
+repositories {
+    mavenCentral()
+}
+
+trackerLens {
+    defaultLens = 'ocean-lens'
+
+    trackers {
+        register('bdd-scenarios') {
+            historyFiles.from(file('gherkin-progress-history.ndjson'))
+            source = com.arc_e_tect.gradle.trackerlens.TrackerSourceKind.GHERKIN_SCENARIO
+        }
+    }
+}
+
+dependencies {
+    lensStyle 'com.arc-e-tect:geo-tracker-lens-pack:1.0.0'
+}
+----
+
+== Discovering What A Pack Contributes
+
+[source,bash]
+----
+./gradlew listTrackerLensStyles
+----
+
+[source]
+----
+Tracker Lens styles available (7):
+
+Built-in:
+  dark-lens
+  high-contrast-lens
+  light-lens
+
+geo-tracker-lens-pack:
+  arctic-lens
+  desert-lens
+  jungle-lens
+  ocean-lens
+----
+
+`defaultLens = 'ocean-lens'` above was chosen by running this task first and picking one of the
+four lenses `geo-tracker-lens-pack` turned out to contribute — there's no other way to know a
+pack's lens ids ahead of time than to resolve and list it, since a pack's own lens file names
+(and therefore ids) are entirely up to whoever published it.
+
+`preferredLensPack` (not used here) exists for the case where more than one resolved `lensStyle`
+pack is on the classpath and only one's lenses should be offered — not needed here, since one
+pack alone never collides with anything.
+
+== Build And Run
+
+[source,bash]
+----
+cd examples/tracker-lens/external-lens-pack
+./gradlew generateTrackerLensDashboard
+----
+
+== What To Expect
+
+The build is expected to pass. The lens switcher in `build/reports/tracker-lens/dashboard.html`
+offers all seven lenses — the three built-ins plus `geo-tracker-lens-pack`'s four — with
+`ocean-lens` selected on load.

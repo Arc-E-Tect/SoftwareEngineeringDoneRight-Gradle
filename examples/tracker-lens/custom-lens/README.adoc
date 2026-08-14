@@ -1,0 +1,67 @@
+= Tracker Lens — Custom Lens Example
+:toc: left
+
+== Description
+
+The same single-tracker setup as `../plain`, plus one project-local custom lens, `sunset-lens.css`,
+contributed via `trackerLens.lensStylesheet` — no external dependency, no lens-pack project, just
+one CSS file styled against the dashboard's content contract.
+
+== Intent
+
+This example shows the simplest way to theme a dashboard without publishing anything: point
+`lensStylesheet` at a CSS file in the same project, and it appears in the lens switcher alongside
+the built-ins, always under the fixed id `custom-lens`, always with the highest precedence for that
+id (a `lensStyle` pack could never push it out of the way, even if one also happened to define a
+lens called `custom-lens`).
+
+== The Lens
+
+.`sunset-lens.css`
+[source,css]
+----
+:root {
+    --dashboard-stage-1: #f2994a;
+    --dashboard-stage-2: #eb5757;
+    --dashboard-stage-3: #9b51e0;
+    --dashboard-accent: #eb5757;
+    ...
+}
+----
+
+Every selector this file uses is one `DASHBOARD-THEMING.adoc` (in the `tracker-lens` module itself)
+documents as guaranteed to exist — `.dashboard`, `.tracker[data-tracker]`,
+`.metric-card[data-stage]`, `.lens-switcher`, `.projection[data-status]`, `.chart canvas`,
+`.stale-items__table`. Compare this file to what `./gradlew initTrackerLens` generates: the
+selectors and structure are identical, only the placeholder `TODO` colors have been replaced with a
+finished palette.
+
+== Configuration
+
+[source,groovy]
+----
+trackerLens {
+    lensStylesheet = file('sunset-lens.css')
+
+    trackers {
+        register('bdd-scenarios') {
+            historyFiles.from(file('gherkin-progress-history.ndjson'))
+            source = com.arc_e_tect.gradle.trackerlens.TrackerSourceKind.GHERKIN_SCENARIO
+        }
+    }
+}
+----
+
+== Build And Run
+
+[source,bash]
+----
+cd examples/tracker-lens/custom-lens
+./gradlew generateTrackerLensDashboard
+----
+
+== What To Expect
+
+The build is expected to pass. The lens switcher in `build/reports/tracker-lens/dashboard.html`
+now offers four options — `custom-lens`, `dark-lens`, `high-contrast-lens`, `light-lens` — and
+`build/reports/tracker-lens/custom-lens.css` is a copy of `sunset-lens.css`.

@@ -1,0 +1,66 @@
+= Tracker Lens — Plain Example
+:toc: left
+
+== Description
+
+The minimal possible `tracker-lens` setup: one tracker, `bdd-scenarios`, reading a single Gherkin
+scenario progress-history file, with no custom lens, no external style pack, and no custom
+template — just the plugin's built-in `dark-lens`, `light-lens`, and `high-contrast-lens`.
+
+== Intent
+
+This example is the starting point for everyone else in `examples/tracker-lens/`. It shows the
+smallest possible `trackerLens { trackers { ... } }` block and what the generated dashboard looks
+like with nothing else configured: a single tracker section with a metric card per stage, a
+projection block once enough history is available, and a lens switcher offering only the built-ins.
+
+== The History File
+
+.`gherkin-progress-history.ndjson`
+[source,json]
+----
+{"fingerprint":"place-an-order","scenarioName":"Place an order","featureTitle":"Ordering", ...}
+----
+
+Five scenarios across two features (`Ordering`, `Fulfillment`), spread across all three stages:
+three `implemented`, one `defined`, one only `listed` — enough spread to populate every metric card
+and, since the three `implemented` scenarios reach that stage across more than a week of history, a
+projection block.
+
+== Configuration
+
+[source,groovy]
+----
+trackerLens {
+    trackers {
+        register('bdd-scenarios') {
+            historyFiles.from(file('gherkin-progress-history.ndjson'))
+            source = com.arc_e_tect.gradle.trackerlens.TrackerSourceKind.GHERKIN_SCENARIO
+        }
+    }
+}
+----
+
+== Build And Run
+
+[source,bash]
+----
+cd examples/tracker-lens/plain
+./gradlew generateTrackerLensDashboard
+----
+
+== What To Expect
+
+The build is expected to pass. The plugin writes `build/reports/tracker-lens/dashboard.html`,
+containing:
+
+* One `.tracker[data-tracker="bdd-scenarios"]` section.
+* Three `.metric-card` elements — `listed` (5/5), `defined` (4/5), `implemented` (3/5).
+* A `.projection` block projecting when the remaining two scenarios will reach `implemented`, based
+  on the historical rate at which the first three did (this fades back to "not enough history yet"
+  once the bundled timestamps age past the plugin's 90-day lookback window — the dashboard still
+  generates fine either way).
+* A `.lens-switcher` offering `dark-lens`, `high-contrast-lens`, and `light-lens`.
+
+No `lensStyle` dependency and no `lensStylesheet` are configured, so no `custom-lens` or external
+pack lens appears — see `../custom-lens` and `../external-lens-pack` for those.
