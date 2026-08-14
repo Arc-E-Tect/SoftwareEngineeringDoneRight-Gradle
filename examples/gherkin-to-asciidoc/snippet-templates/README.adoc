@@ -94,11 +94,11 @@ Scenarios whose every step has matching glue code.
 
 === User authentication
 
-include::features/snippets/userAuthentication/implemented.adoc[]
+\include::features/snippets/userAuthentication/implemented.adoc[]
 
 === Invoice payment
 
-include::features/snippets/invoicePayment/implemented.adoc[]
+\include::features/snippets/invoicePayment/implemented.adoc[]
 ----
 
 Everything above `== Listed` (the intro, status legend, and progress summary table) is byte-for-byte identical
@@ -119,7 +119,7 @@ Same as above, but every status is one flat bullet list with no `=== <Feature>` 
 
 Scenarios whose every step has matching glue code.
 
-include::features/snippets/implemented.adoc[]
+\include::features/snippets/implemented.adoc[]
 ----
 
 One flat `include::` per status, referencing `flat-with-template/features/snippets/implemented.adoc`, which
