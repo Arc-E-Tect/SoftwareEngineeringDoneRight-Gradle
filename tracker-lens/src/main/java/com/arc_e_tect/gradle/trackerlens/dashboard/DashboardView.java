@@ -12,6 +12,11 @@ import java.util.List;
  * @param lenses     every discovered lens, merged and auto-namespaced by
  *                   {@code com.arc_e_tect.gradle.trackerlens.lens.LensResolver}
  * @param defaultLensId the lens id active on first load
+ * @param dashboardName the dashboard's displayed name, shown in the browser tab title and page
+ *                      heading
+ * @param version    version shown alongside {@code dashboardName}
  */
-public record DashboardView(List<TrackerView> trackers, List<ResolvedLens> lenses, String defaultLensId) {
+public record DashboardView(
+        List<TrackerView> trackers, List<ResolvedLens> lenses, String defaultLensId,
+        String dashboardName, String version) {
 }

@@ -64,6 +64,22 @@ body {
     gap: 1rem;
 }
 
+/* .dashboard-heading / .dashboard-version - not part of the contract (there's no cardinality rule
+   for them in ContractRule), but the bundled template always renders them: dashboardName in the
+   <h1>, version just below it. Safe to style, and safe to ignore if you'd rather the lens leave
+   them unstyled. */
+.dashboard-heading {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.dashboard-version {
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--dashboard-muted); /* TODO: replace - see :root above */
+}
+
 /* .lens-switcher[data-lens-count] - at most one: the runtime lens switcher. data-lens-count holds
    the number of discovered lenses; style the wrapper and/or the <select> inside it however you
    like, this lens included. */

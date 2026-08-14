@@ -29,7 +29,7 @@ class DashboardJsonTest {
         DashboardView view = new DashboardView(
                 List.of(tracker),
                 List.of(new ResolvedLens("dark-lens (midnight-theme)", "midnight-theme", new byte[0])),
-                "dark-lens (midnight-theme)");
+                "dark-lens (midnight-theme)", "my-app Lens", "1.2.3");
 
         String json = DashboardJson.write(view);
 

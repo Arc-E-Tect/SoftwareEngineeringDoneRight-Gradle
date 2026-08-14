@@ -126,6 +126,27 @@ public abstract class GenerateTrackerLensTask extends DefaultTask {
     public abstract RegularFileProperty getTemplate();
 
     /**
+     * The dashboard's displayed name, shown in the browser tab title and the page heading. Always
+     * present by the time this task runs - {@code TrackerLensExtension} gives it a
+     * {@code "<project.name> Lens"} convention, so there is nothing for this property to fall back
+     * to on its own.
+     *
+     * @return mutable property for the dashboard's displayed name
+     */
+    @Input
+    public abstract Property<String> getDashboardName();
+
+    /**
+     * Version shown alongside the dashboard's name. Always present by the time this task runs -
+     * {@code TrackerLensExtension} gives it a {@code project.version} convention, so there is
+     * nothing for this property to fall back to on its own.
+     *
+     * @return mutable property for the displayed version
+     */
+    @Input
+    public abstract Property<String> getVersion();
+
+    /**
      * Generates the dashboard: reads every registered tracker, resolves lenses, writes the output,
      * and validates it against {@code ContractRule}.
      */
@@ -145,7 +166,8 @@ public abstract class GenerateTrackerLensTask extends DefaultTask {
         List<ResolvedLens> lenses = resolveLenses();
         String defaultLensId = resolveDefaultLensId(lenses);
 
-        DashboardView view = new DashboardView(trackerViews, lenses, defaultLensId);
+        DashboardView view = new DashboardView(
+                trackerViews, lenses, defaultLensId, getDashboardName().get(), getVersion().get());
         File customTemplate = getTemplate().isPresent() ? getTemplate().get().getAsFile() : null;
         File dashboardFile = dashboardHtmlWriter.write(getOutputDirectory().get().getAsFile(), view, customTemplate);
 

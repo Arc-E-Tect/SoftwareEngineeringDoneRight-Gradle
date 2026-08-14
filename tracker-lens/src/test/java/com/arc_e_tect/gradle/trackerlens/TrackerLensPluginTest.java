@@ -126,6 +126,46 @@ class TrackerLensPluginTest {
     }
 
     @Test
+    @DisplayName("applyShouldDefaultDashboardNameToProjectNameSuffixedWithLens")
+    void applyShouldDefaultDashboardNameToProjectNameSuffixedWithLens() {
+        Project project = ProjectBuilder.builder().withName("checkout-service").withProjectDir(tempDir.toFile()).build();
+        project.getPluginManager().apply(TrackerLensPlugin.class);
+        TrackerLensExtension extension = project.getExtensions().getByType(TrackerLensExtension.class);
+
+        assertThat(extension.getDashboardName().get()).isEqualTo("checkout-service Lens");
+    }
+
+    @Test
+    @DisplayName("applyShouldDefaultVersionToProjectVersion")
+    void applyShouldDefaultVersionToProjectVersion() {
+        Project project = newProject();
+        project.setVersion("2.3.0");
+        TrackerLensExtension extension = project.getExtensions().getByType(TrackerLensExtension.class);
+
+        assertThat(extension.getVersion().get()).isEqualTo("2.3.0");
+    }
+
+    @Test
+    @DisplayName("evaluateShouldPassDashboardNameAndVersionThroughToTheGenerateTask")
+    void evaluateShouldPassDashboardNameAndVersionThroughToTheGenerateTask() {
+        Project project = newProject();
+        TrackerLensExtension extension = project.getExtensions().getByType(TrackerLensExtension.class);
+        extension.getDashboardName().set("Checkout Service Lens");
+        extension.getVersion().set("9.9.9");
+        extension.trackers(trackers -> trackers.register("bdd-scenarios", registration -> {
+            registration.getHistoryFiles().from(tempDir.resolve("history.ndjson").toFile());
+            registration.getSource().set(TrackerSourceKind.GHERKIN_SCENARIO);
+        }));
+
+        ((ProjectInternal) project).evaluate();
+
+        GenerateTrackerLensTask task =
+                (GenerateTrackerLensTask) project.getTasks().getByName(TrackerLensPlugin.TASK_NAME);
+        assertThat(task.getDashboardName().get()).isEqualTo("Checkout Service Lens");
+        assertThat(task.getVersion().get()).isEqualTo("9.9.9");
+    }
+
+    @Test
     @DisplayName("evaluateShouldFailWhenTrackerHasNoHistoryFilesConfigured")
     void evaluateShouldFailWhenTrackerHasNoHistoryFilesConfigured() {
         Project project = newProject();
