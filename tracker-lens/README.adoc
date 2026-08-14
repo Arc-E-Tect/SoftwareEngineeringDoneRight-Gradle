@@ -70,7 +70,9 @@ trackerLens {
 
             // Which built-in reader knows this file's shape: GHERKIN_SCENARIO or API_CONTRACT
             // (see "Registering Trackers" below for what each one reads and its stages).
-            source = TrackerSourceKind.GHERKIN_SCENARIO
+            // Fully qualified because Gradle's Groovy DSL does not auto-import a plugin's own
+            // classes into the build script - see the TIP below.
+            source = com.arc_e_tect.gradle.trackerlens.TrackerSourceKind.GHERKIN_SCENARIO
         }
         register("api-contracts") {
             // Split across one file per detector plugin instead of all three sharing one - see
@@ -80,7 +82,7 @@ trackerLens {
                 file('shadow-api-detector-contract-history.ndjson'),
                 file('mirage-api-detector-contract-history.ndjson'),
                 file('doppelganger-api-detector-contract-history.ndjson'))
-            source = TrackerSourceKind.API_CONTRACT
+            source = com.arc_e_tect.gradle.trackerlens.TrackerSourceKind.API_CONTRACT
         }
     }
 
@@ -118,9 +120,13 @@ dependencies {
 }
 ----
 
+TIP: `TrackerSourceKind` is not one of Gradle's own DSL types, so it is never auto-imported into a build script the way `Project` or `file(...)` are - reference it fully qualified as `com.arc_e_tect.gradle.trackerlens.TrackerSourceKind`, as above, or add a real `import` at the top of a Kotlin DSL script (`.kts` files support imports; Groovy build scripts do not).
+
 .Kotlin DSL
 [source,kotlin]
 ----
+import com.arc_e_tect.gradle.trackerlens.TrackerSourceKind
+
 trackerLens {
     trackers {
         register("bdd-scenarios") {
@@ -187,7 +193,7 @@ register("api-contracts") {
         file('doppelganger-api-detector-contract-history.ndjson'))
     // Equivalently, if all three are written into one directory:
     // historyFiles.from(file('contract-histories'))
-    source = TrackerSourceKind.API_CONTRACT
+    source = com.arc_e_tect.gradle.trackerlens.TrackerSourceKind.API_CONTRACT
 }
 ----
 
@@ -204,12 +210,14 @@ Run the generator with:
 
 [cols="2,1,3",options="header"]
 |===
-| Task name                      | Group     | Description
-| `generateTrackerLensDashboard` | reporting | Reads every registered tracker, resolves the merged lens set, and writes `dashboard.html` plus one CSS file per discovered lens.
-| `listTrackerLensStyles`        | reporting | Lists every lens style that `generateTrackerLensDashboard` would offer in the switcher - built-in, external `lensStyle` packs, and `lensStylesheet` when configured - without generating a dashboard.
+| Task name                      | Group        | Description
+| `generateTrackerLensDashboard` | reporting    | Reads every registered tracker, resolves the merged lens set, and writes `dashboard.html` plus one CSS file per discovered lens.
+| `listTrackerLensStyles`        | reporting    | Lists every lens style that `generateTrackerLensDashboard` would offer in the switcher - built-in, external `lensStyle` packs, and `lensStylesheet` when configured - without generating a dashboard.
+| `initTrackerLens`              | tracker lens | Generates a complete, heavily-commented boilerplate lens CSS file to start a new lens from.
+| `bootstrapTrackerLensProject`  | tracker lens | Generates a boilerplate lens-pack project and a sample consumer project, for developing and testing a new lens end-to-end.
 |===
 
-Neither task is wired into `check` or `build` automatically - the dashboard is a report, not a verification gate.
+None of these tasks is wired into `check` or `build` automatically - the dashboard is a report, not a verification gate, and the last two are one-time developer conveniences, not part of the ordinary build.
 
 `listTrackerLensStyles` needs no tracker to be registered; it only resolves lenses.
 
@@ -230,6 +238,28 @@ midnight-theme:
 ----
 
 The example above shows what a collision looks like in the listing: `midnight-theme` also ships a lens called `dark-lens`, and since the built-in `dark-lens` resolves first, the pack's own gets auto-namespaced to `dark-lens (midnight-theme)` (see "Id collisions across packs" below) - exactly the id that would appear in the switcher.
+
+=== Scaffolding a new lens
+
+`initTrackerLens` and `bootstrapTrackerLensProject` generate the boilerplate `LENS_TUTORIAL.adoc` otherwise has you write by hand.
+
+[source]
+----
+./gradlew initTrackerLens
+----
+
+Writes a single, complete lens CSS file - `src/main/resources/META-INF/arc-e-tect/tracker-lens/lenses/my-lens.css` by default - covering every selector the dashboard contract defines, each with an inline comment explaining what it's for, and clearly-fake placeholder colors ready to replace.
+Refuses to overwrite a file that's already there, so re-running it never discards work in progress.
+
+[source]
+----
+./gradlew bootstrapTrackerLensProject
+----
+
+Generates the full path from `LENS_TUTORIAL.adoc`: a `tracker-lens-bootstrap/` directory containing a `lens-pack/` project (the same boilerplate lens, wired up to publish to a local Maven repository) and a `sample-project/` project (applying `tracker-lens` itself - pinned to the exact plugin version that generated it - already configured to consume `lens-pack` and pre-loaded with a small sample history file, so `generateTrackerLensDashboard` has something to render immediately).
+Also refuses to run into a non-empty output directory.
+
+Both tasks need no tracker to be registered - they're available as soon as the plugin is applied, whether or not `trackerLens { trackers { ... } }` has been configured yet.
 
 == The Lens System
 
@@ -280,11 +310,9 @@ The pack's lens (`midnight`, in this example) now appears in the switcher alongs
 
 TIP: Naming a built-in-style lens with a `-lens` suffix (as `light-lens` and `dark-lens` do) is a recommendation, not a rule - it makes an accidental id collision with another pack unlikely, but a pack author naming a lens `midnight` or `corporate-brand` is completely valid and nothing enforces the suffix.
 
-=== Id collisions across packs
+== Writing your first external lens pack
 
-Within one pack, lens ids are inherently unique - it's one directory, one namespace.
-Across different packs - built-in vs. external, or external vs. external, no distinction is made - a colliding id is auto-namespaced transparently rather than failing the build: the first-resolved pack keeps the clean id, and every later pack contributing the same id gets it suffixed with its source in parentheses, e.g. `dark-lens (midnight-theme)`.
-No configuration is needed to resolve a collision; it just works, and the `-lens` suffix convention above is the first line of defense against it happening at all.
+See link:LENS_TUTORIAL.adoc[LENS_TUTORIAL.adoc] for the novice-friendly, step-by-step guide to building and publishing an external lens pack.
 
 == The Dashboard Content Contract
 

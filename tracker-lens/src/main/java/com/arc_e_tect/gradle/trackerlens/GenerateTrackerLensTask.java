@@ -131,6 +131,15 @@ public abstract class GenerateTrackerLensTask extends DefaultTask {
      */
     @TaskAction
     public void generate() {
+        if (getTrackerSpecs().get().isEmpty()) {
+            // Enforced here, at task-execution time, rather than eagerly for the whole project in
+            // TrackerLensPlugin's afterEvaluate: that would fail project configuration - and
+            // therefore every task, including the ones that need no tracker at all - the moment
+            // zero trackers are registered, rather than failing only when this task itself runs.
+            throw new GradleException(
+                    "trackerLens: at least one tracker must be registered under trackers { register(\"...\") { ... } }");
+        }
+
         Instant now = Instant.now();
         List<TrackerView> trackerViews = buildTrackerViews(now);
         List<ResolvedLens> lenses = resolveLenses();

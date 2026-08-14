@@ -37,14 +37,37 @@ class TrackerLensPluginTest {
     }
 
     @Test
-    @DisplayName("applyShouldRegisterTheListTrackerLensStylesTaskWithoutRequiringAnyTracker")
-    void applyShouldRegisterTheListTrackerLensStylesTaskWithoutRequiringAnyTracker() {
-        // Deliberately does not evaluate the project or register a tracker: listTrackerLensStyles
-        // must be usable even when no tracker has been configured yet, since it only touches lens
-        // resolution.
+    @DisplayName("applyShouldRegisterTheListTrackerLensStylesTaskAndSurviveEvaluationWithoutAnyTracker")
+    void applyShouldRegisterTheListTrackerLensStylesTaskAndSurviveEvaluationWithoutAnyTracker() {
+        // listTrackerLensStyles must stay usable even when no tracker has been configured yet,
+        // since it only touches lens resolution - proven here by evaluating the project (not just
+        // checking the task is registered), since project evaluation is exactly what a real build
+        // was found to fail at (see GenerateTrackerLensTaskTest for where the requirement moved).
         Project project = newProject();
 
+        ((ProjectInternal) project).evaluate();
+
         assertThat(project.getTasks().findByName(TrackerLensPlugin.LIST_STYLES_TASK_NAME)).isNotNull();
+    }
+
+    @Test
+    @DisplayName("applyShouldRegisterTheInitTrackerLensTaskAndSurviveEvaluationWithoutAnyTracker")
+    void applyShouldRegisterTheInitTrackerLensTaskAndSurviveEvaluationWithoutAnyTracker() {
+        Project project = newProject();
+
+        ((ProjectInternal) project).evaluate();
+
+        assertThat(project.getTasks().findByName(TrackerLensPlugin.INIT_LENS_TASK_NAME)).isNotNull();
+    }
+
+    @Test
+    @DisplayName("applyShouldRegisterTheBootstrapTrackerLensProjectTaskAndSurviveEvaluationWithoutAnyTracker")
+    void applyShouldRegisterTheBootstrapTrackerLensProjectTaskAndSurviveEvaluationWithoutAnyTracker() {
+        Project project = newProject();
+
+        ((ProjectInternal) project).evaluate();
+
+        assertThat(project.getTasks().findByName(TrackerLensPlugin.BOOTSTRAP_PROJECT_TASK_NAME)).isNotNull();
     }
 
     @Test
@@ -57,14 +80,18 @@ class TrackerLensPluginTest {
     }
 
     @Test
-    @DisplayName("evaluateShouldFailWhenNoTrackerIsRegistered")
-    void evaluateShouldFailWhenNoTrackerIsRegistered() {
+    @DisplayName("evaluateShouldSucceedWhenNoTrackerIsRegistered")
+    void evaluateShouldSucceedWhenNoTrackerIsRegistered() {
+        // The "at least one tracker" requirement is enforced by GenerateTrackerLensTask itself at
+        // task-execution time (see GenerateTrackerLensTaskTest), not during project configuration -
+        // configuration must always succeed regardless, so that listTrackerLensStyles,
+        // initTrackerLens, and bootstrapTrackerLensProject stay usable in a project that hasn't
+        // registered a tracker yet.
         Project project = newProject();
 
-        assertThatThrownBy(() -> ((ProjectInternal) project).evaluate())
-                .rootCause()
-                .isInstanceOf(GradleException.class)
-                .hasMessageContaining("at least one tracker must be registered");
+        ((ProjectInternal) project).evaluate();
+
+        assertThat(project.getTasks().findByName(TrackerLensPlugin.TASK_NAME)).isNotNull();
     }
 
     @Test

@@ -104,6 +104,18 @@ class GenerateTrackerLensTaskTest {
     }
 
     @Test
+    @DisplayName("generateShouldFailWhenNoTrackerIsRegistered")
+    void generateShouldFailWhenNoTrackerIsRegistered() {
+        GenerateTrackerLensTask task = newTask();
+        task.getTrackerSpecs().set(List.of());
+        task.getOutputDirectory().set(tempDir.resolve("out-no-trackers").toFile());
+
+        assertThatThrownBy(task::generate)
+                .isInstanceOf(GradleException.class)
+                .hasMessageContaining("at least one tracker must be registered");
+    }
+
+    @Test
     @DisplayName("generateShouldGiveLensStylesheetHighestPrecedenceForCustomLensId")
     void generateShouldGiveLensStylesheetHighestPrecedenceForCustomLensId() throws Exception {
         GenerateTrackerLensTask task = newTask();
