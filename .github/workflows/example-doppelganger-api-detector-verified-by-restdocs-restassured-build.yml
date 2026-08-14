@@ -1,0 +1,54 @@
+name: Example - Doppelganger API Detector Verified By RestDocs (REST Assured) Build
+on:
+  push:
+    paths:
+      - 'examples/doppelganger-api-detector/verified-by-restdocs-restassured/**/*.java'
+      - 'examples/doppelganger-api-detector/verified-by-restdocs-restassured/**/*.yaml'
+      - 'examples/doppelganger-api-detector/verified-by-restdocs-restassured/**/*.yml'
+      - 'examples/doppelganger-api-detector/verified-by-restdocs-restassured/**/*.gradle'
+      - 'examples/doppelganger-api-detector/verified-by-restdocs-restassured/**/*.properties'
+      - 'examples/doppelganger-api-detector/verified-by-restdocs-restassured/**/libs.versions.toml'
+      - '.github/workflows/example-doppelganger-api-detector-verified-by-restdocs-restassured-build.yml'
+
+jobs:
+  Build-Example:
+    name: Build Example
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Setup Java
+        uses: actions/setup-java@ad2b38190b15e4d6bdf0c97fb4fca8412226d287 # v5.3.0
+        with:
+          distribution: 'temurin'
+          java-version: 21
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6.2.0
+
+      - name: Verify the real REST Assured RestDocs test passes on its own
+        run: |
+          cd examples/doppelganger-api-detector/verified-by-restdocs-restassured
+          chmod +x ./gradlew
+          ./gradlew test --no-daemon
+
+      - name: Build example (expected to fail on the unverified listItems endpoint)
+        run: |
+          cd examples/doppelganger-api-detector/verified-by-restdocs-restassured
+
+          set +e
+          ./gradlew build --no-daemon
+          EXIT_CODE=$?
+          set -e
+
+          if [ "$EXIT_CODE" -eq 0 ]; then
+            echo "::error::Expected the verified-by-restdocs-restassured example build to fail on the unverified listItems endpoint, but it succeeded."
+            exit 1
+          fi
+
+          echo "::notice::Build failed as expected: getItem verified by spring-restdocs-restassured (with the OpenAPI server base path stripped), listItems caught as a doppelganger."

@@ -1,0 +1,128 @@
+= Doppelganger API Detector — Verified By RestDocs (REST Assured) Example
+:toc: left
+
+== Description
+
+This example applies the Doppelganger API Detector plugin to an `ItemController` with two endpoints,
+verified with `spring-restdocs-restassured` instead of `spring-restdocs-mockmvc` (see the sibling
+`verified-by-restdocs` example for the MockMvc variant):
+
+[cols="1,3",options="header"]
+|===
+| Endpoint      | Verified by
+| `GET /items/{id}` (`getItem`) | A real, passing `spring-restdocs-restassured` test (`ItemControllerRestAssuredDocsTest`), run against a genuinely running server (`webEnvironment = RANDOM_PORT`), not a structural stand-in.
+| `GET /items` (`listItems`)    | **Nothing.** No test at all - deliberately left unverified.
+|===
+
+`failOnDoppelganger` is enabled; the build is expected to **fail**, on exactly `listItems`.
+
+== Intent
+
+`spring-restdocs-restassured` tests don't call `mockMvc.perform(...)`; they build a request with
+`given(...).filter(document(...))...when().get(...)/post(...)/...` against a real, running server.
+That server has a servlet context path (`catalog-service`, see `application.yml`) matching
+`openapi.yaml`'s declared `servers[0].url` - so the literal path this test captures is
+`catalog-service/items/{id}`, one segment longer than both `ItemController`'s own `@GetMapping("/{id}")`
+mapping and `openapi.yaml`'s `/items/{id}` path key, neither of which ever declares that prefix.
+
+This example proves three things at once:
+
+1. A real `given(...).filter(document(...)).when().get(...)` call chain - the
+   `spring-restdocs-restassured` shape, not `spring-restdocs-mockmvc` - is recognised as verification
+   evidence for `getItem` (it does *not* appear in the failure below).
+2. The detector resolves `catalog-service` from `openapi.yaml`'s own `servers[0].url` and strips it
+   from the path `ItemControllerRestAssuredDocsTest` captured, before matching it against `getItem`'s
+   template - no extra configuration needed.
+3. The detector genuinely still catches `listItems`, which has no evidence anywhere. A build that
+   always succeeds proves nothing about whether detection actually works - this example is designed
+   to fail on exactly one endpoint, so the failure itself is the demonstration.
+
+== The Controller, Document, And Test
+
+[source,java]
+----
+@RestController
+@RequestMapping("/items")
+public class ItemController {
+
+    @GetMapping("/{id}")
+    public String getItem(@PathVariable Long id) { return "{}"; }
+
+    @GetMapping
+    public String listItems() { return "[]"; }
+}
+----
+
+[source,java]
+----
+@ExtendWith(RestDocumentationExtension.class)
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+class ItemControllerRestAssuredDocsTest {
+
+    @LocalServerPort
+    private int port;
+
+    private RequestSpecification spec;
+
+    @BeforeEach
+    void setUp(RestDocumentationContextProvider restDocumentation) {
+        RestAssured.port = port;
+        spec = new RequestSpecBuilder()
+                .addFilter(documentationConfiguration(restDocumentation))
+                .build();
+    }
+
+    @Test
+    void getItem() {
+        given(spec)
+                .filter(document("get-item"))
+                .basePath("")
+                .when()
+                .get("catalog-service/items/{id}", 1)
+                .then()
+                .statusCode(200);
+    }
+}
+----
+
+`openapi.yaml` declares both `GET /items/{id}` and `GET /items`, matching the controller, and a
+`servers[0].url` of `http://localhost:8080/catalog-service` matching `application.yml`'s
+`server.servlet.context-path`. Only `getItem` has a test.
+
+== Build And Run
+
+[source,bash]
+----
+cd examples/doppelganger-api-detector/verified-by-restdocs-restassured
+./gradlew build
+----
+
+`detectDoppelgangerApis` runs before the test suite in this build's task graph and fails first, so
+`./gradlew build` stops there without reaching `test`. To confirm the real RestDocs test genuinely
+passes on its own - against a real, running server, context path and all - run:
+
+[source,bash]
+----
+./gradlew test
+----
+
+== What To Expect
+
+`./gradlew build` fails on exactly `listItems`:
+
+[source]
+----
+> Task :detectDoppelgangerApis FAILED
+Doppelganger API Detector: scanned 2 declared-and-implemented endpoint(s), found 1 doppelganger API(s).
+doppelgangerApiDetector: found 1 doppelganger API(s) declared and implemented but not verified by any configured contract verification source.
+----
+
+`build/reports/doppelganger-api-detector/doppelganger-apis.adoc` lists exactly `GET /items`
+(`listItems`) - `getItem` does not appear, since it has real verification evidence.
+
+`./gradlew test` succeeds independently, confirming the RestDocs test is genuinely working code.
+
+== Suggested Fix
+
+Add a RestDocs test for `listItems`, or remove it from `openapi.yaml` if it was never meant to be
+covered by this mechanism.
