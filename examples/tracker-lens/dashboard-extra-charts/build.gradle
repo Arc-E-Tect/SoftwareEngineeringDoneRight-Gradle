@@ -1,0 +1,20 @@
+plugins {
+    alias(libs.plugins.tracker.lens)
+}
+
+trackerLens {
+    // Same structure and wording as the plugin's own bundled dashboard.html template - this
+    // project-supplied copy only adds two extra, non-contract charts (see dashboard-template.html).
+    template = file('dashboard-template.html')
+
+    trackers {
+        register('bdd-scenarios') {
+            historyFiles.from(file('gherkin-progress-history.ndjson'))
+            source = com.arc_e_tect.gradle.trackerlens.TrackerSourceKind.GHERKIN_SCENARIO
+        }
+        register('api-contracts') {
+            historyFiles.from(file('api-contract-history.ndjson'))
+            source = com.arc_e_tect.gradle.trackerlens.TrackerSourceKind.API_CONTRACT
+        }
+    }
+}
