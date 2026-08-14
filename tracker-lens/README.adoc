@@ -354,6 +354,20 @@ The dynamic parts stay as Mustache variables and sections, resolved from the dat
 | `bootstrapScript` | The fixed `<script>` that builds the charts and drives the lens switcher. Also needs triple mustaches: `{{{bootstrapScript}}}`.
 |===
 
+A custom template's own `<script>` can read the `#dashboard-data` JSON `dashboardDataScript` embeds
+directly (`JSON.parse(document.getElementById('dashboard-data').textContent)`) to compute views
+neither `trackers.metrics` nor `trackers.projection` covers - see
+`examples/tracker-lens/dashboard-extra-charts` for a worked example. Per tracker, it carries:
+
+[cols="1,3",options="header"]
+|===
+| Field | Meaning
+| `stages` | The tracker's canonical stage names, in order.
+| `dates` | The 30 chart dates plotted, ascending.
+| `series` | `{stage: [count, ...]}` - cumulative "reached at least this stage" count per date, aligned index-for-index with `dates`. Two stages can both include the same item, so these do not sum to the tracker's total.
+| `stageBreakdown` | `{stage: count}` - the number of currently-active items whose *furthest* reached stage is each one, in `stages` order. Unlike `series`, these are mutually exclusive and always sum to the tracker's total - this is the field to read for a pie chart of "what stage is each item at right now", since naively subtracting consecutive `series` values back into exclusive buckets silently misattributes any item whose source skipped a stage (see `GherkinScenarioTrackerSource`'s "jumps straight from listed to implemented" case) - `stageBreakdown` is computed once, server-side, from each item's full history, and is never wrong the way that subtraction can be.
+|===
+
 Every other value is HTML-escaped automatically by `{{variable}}`, including inside attributes (`data-tracker="{{id}}"` is safe even if an id ever contained a quote).
 
 Your template's output is validated against `ContractRule` exactly like the bundled default's - the same `LensContractValidator`, the same unconditional last step, no special-casing for a user-supplied template versus this plugin's own.

@@ -3,8 +3,10 @@ package com.arc_e_tect.gradle.trackerlens.tracker;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * A single tracked item's lifecycle, as read from a {@link TrackerSource}.
@@ -47,5 +49,29 @@ public record LifecycleRecord(
      */
     public boolean hasReached(String stage) {
         return stageReachedAt.containsKey(stage);
+    }
+
+    /**
+     * The furthest stage this item has reached, per {@code canonicalStages}' own order.
+     *
+     * <p>Not simply "the highest-index key present in {@link #stageReachedAt()}", since some
+     * {@link TrackerSource}s stamp only the single stage matching an item's current status rather
+     * than backfilling every earlier stage it must logically have passed through - the Gherkin
+     * scenario source, for one, never gains a {@code defined} entry for a scenario first observed
+     * already {@code implemented}. This walks {@code canonicalStages} from the end instead, so it
+     * always reports the furthest reached stage regardless of which earlier ones were skipped.</p>
+     *
+     * @param canonicalStages the tracker's canonical stage names, in order
+     * @return the furthest reached stage, or empty if none of {@code canonicalStages} has been
+     *         reached
+     */
+    public Optional<String> latestStage(List<String> canonicalStages) {
+        for (int i = canonicalStages.size() - 1; i >= 0; i--) {
+            String stage = canonicalStages.get(i);
+            if (stageReachedAt.containsKey(stage)) {
+                return Optional.of(stage);
+            }
+        }
+        return Optional.empty();
     }
 }

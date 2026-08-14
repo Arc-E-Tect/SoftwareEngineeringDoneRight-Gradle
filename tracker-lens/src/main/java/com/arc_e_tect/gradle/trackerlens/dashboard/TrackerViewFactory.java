@@ -64,7 +64,17 @@ public class TrackerViewFactory {
                 .filter(record -> mostRecentActivity(record).isBefore(now.minus(STALE_THRESHOLD)))
                 .toList();
 
-        return new TrackerView(trackerId, stages, metrics, totalCount, projection, chartDates, chartSeries, staleItems);
+        Map<String, Integer> stageBreakdown = new LinkedHashMap<>();
+        for (String stage : stages) {
+            stageBreakdown.put(stage, 0);
+        }
+        for (LifecycleRecord record : active) {
+            record.latestStage(stages).ifPresent(stage -> stageBreakdown.merge(stage, 1, Integer::sum));
+        }
+
+        return new TrackerView(
+                trackerId, stages, metrics, totalCount, projection, chartDates, chartSeries, staleItems,
+                stageBreakdown);
     }
 
     private List<LocalDate> chartDates(Instant now) {

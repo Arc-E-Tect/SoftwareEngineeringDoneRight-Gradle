@@ -58,6 +58,15 @@ final class DashboardJson {
                     .append(entry.getValue().stream().map(String::valueOf).collect(Collectors.joining(",")))
                     .append(']');
         }
+        json.append("},\"stageBreakdown\":{");
+        first = true;
+        for (Map.Entry<String, Integer> entry : tracker.stageBreakdown().entrySet()) {
+            if (!first) {
+                json.append(',');
+            }
+            first = false;
+            json.append(quote(entry.getKey())).append(':').append(entry.getValue());
+        }
         json.append("}}");
     }
 

@@ -78,4 +78,51 @@ class TrackerViewFactoryTest {
 
         assertThat(view.chartDates()).hasSize(30);
     }
+
+    @Test
+    @DisplayName("buildShouldBucketEachActiveItemUnderItsFurthestReachedStageExactlyOnce")
+    void buildShouldBucketEachActiveItemUnderItsFurthestReachedStageExactlyOnce() {
+        List<LifecycleRecord> records = List.of(
+                new LifecycleRecord("1", "listed-only", null, Map.of("listed", NOW), NOW, null),
+                new LifecycleRecord("2", "defined-only", null,
+                        Map.of("listed", NOW, "defined", NOW), NOW, null),
+                new LifecycleRecord("3", "implemented", null,
+                        Map.of("listed", NOW, "defined", NOW, "implemented", NOW), NOW, null));
+
+        TrackerView view = factory.build("t", STAGES, records, Optional.empty(), NOW);
+
+        assertThat(view.stageBreakdown()).containsExactly(
+                Map.entry("listed", 1), Map.entry("defined", 1), Map.entry("implemented", 1));
+    }
+
+    @Test
+    @DisplayName("buildShouldBucketAnItemThatSkippedAnIntermediateStageUnderItsFurthestReachedStage")
+    void buildShouldBucketAnItemThatSkippedAnIntermediateStageUnderItsFurthestReachedStage() {
+        // A scenario gherkin-to-asciidoc first observes already-implemented never gains a
+        // "defined" entry (see ProgressHistoryUpdater's own javadoc) - stageBreakdown must still
+        // count it under "implemented", not "listed", even though "defined" is absent from its
+        // stageReachedAt map entirely. This is exactly the case the naive
+        // cumulativeCount(stage) - cumulativeCount(nextStage) subtraction a template might
+        // otherwise try gets wrong: it would attribute this item to "listed" instead.
+        List<LifecycleRecord> records = List.of(
+                new LifecycleRecord("1", "skipped-defined", null,
+                        Map.of("listed", NOW, "implemented", NOW), NOW, null));
+
+        TrackerView view = factory.build("t", STAGES, records, Optional.empty(), NOW);
+
+        assertThat(view.stageBreakdown()).containsExactly(
+                Map.entry("listed", 0), Map.entry("defined", 0), Map.entry("implemented", 1));
+    }
+
+    @Test
+    @DisplayName("buildShouldExcludeRemovedItemsFromStageBreakdown")
+    void buildShouldExcludeRemovedItemsFromStageBreakdown() {
+        List<LifecycleRecord> records = List.of(
+                new LifecycleRecord("1", "removed", null, Map.of("listed", NOW), NOW, NOW));
+
+        TrackerView view = factory.build("t", STAGES, records, Optional.empty(), NOW);
+
+        assertThat(view.stageBreakdown()).containsExactly(
+                Map.entry("listed", 0), Map.entry("defined", 0), Map.entry("implemented", 0));
+    }
 }

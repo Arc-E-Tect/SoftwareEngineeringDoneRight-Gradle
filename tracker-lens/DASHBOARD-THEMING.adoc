@@ -91,3 +91,68 @@ in your copy.
 
 See `README.adoc`'s "Customizing the Dashboard with a Template" section for the full list of
 Mustache variables a template can use.
+
+[[shadow-mirage-doppelganger-compliant-math]]
+== Shadow / Mirage / Doppelganger / Compliant math
+
+A template built against an `API_CONTRACT` tracker (see `examples/tracker-lens/dashboard-extra-charts`
+for a worked example) often wants to talk about the same four states this repository's
+`shadow-api-detector`, `mirage-api-detector`, and `doppelganger-api-detector` plugins classify an
+endpoint into, rather than the plugin's own raw `declared`/`implemented`/`verified` stage counts.
+The four states are a strict partition - every endpoint is in exactly one:
+
+[cols="1,3",options="header"]
+|===
+| State | Meaning
+
+| Shadow
+| Implemented, *not* declared - exists in code but not in the OpenAPI description.
+
+| Mirage
+| Declared, *not* implemented - exists in the OpenAPI description but not in code.
+
+| Doppelganger
+| Declared *and* implemented, but *not* verified - no test confirms the two still agree.
+
+| Compliant
+| Declared, implemented, *and* verified.
+|===
+
+Only two independent totals are available from `#dashboard-data` (or the metric cards) for an
+`API_CONTRACT` tracker: `declaredCount` and `implementedCount` (each a count of endpoints
+independently satisfying that one condition, regardless of the others), plus the tracker's
+`totalCount` and `verifiedCount`. `declaredCount` includes every state except Shadow (Shadow is
+specifically the *not declared* endpoints); `implementedCount` includes every state except Mirage;
+`verifiedCount` includes only Compliant (verified always implies declared and implemented). That's
+enough to derive all four state sizes:
+
+[source]
+----
+overlap        = declaredCount + implementedCount - totalCount   // declared AND implemented
+Shadow         = totalCount - declaredCount
+Mirage         = totalCount - implementedCount
+Compliant      = verifiedCount
+Doppelganger   = overlap - Compliant
+             = declaredCount + implementedCount - totalCount - verifiedCount
+----
+
+`overlap` (declared-and-implemented, regardless of verified) splits entirely between Doppelganger
+and Compliant, so `Doppelganger <= overlap` is the only constraint on choosing example or test data
+- picking `declaredCount`/`implementedCount`/`totalCount`/`verifiedCount` values first and deriving
+the rest from them (rather than picking Shadow/Mirage/Doppelganger/Compliant directly and hoping
+they're consistent) is the reliable way to avoid contradicting yourself, since the four states are
+not four independent numbers - fixing any two of {declaredCount, implementedCount, totalCount,
+verifiedCount} pins the other two.
+
+Worked example, from `dashboard-extra-charts`' own sample data: `declaredCount=16`,
+`implementedCount=13`, `totalCount=20`, `verifiedCount=4`.
+
+----
+overlap      = 16 + 13 - 20 = 9
+Shadow       = 20 - 16      = 4
+Mirage       = 20 - 13      = 7
+Compliant    = 4
+Doppelganger = 9 - 4        = 5
+
+Shadow + Mirage + Doppelganger + Compliant = 4 + 7 + 5 + 4 = 20 = totalCount ✓
+----

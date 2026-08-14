@@ -79,7 +79,8 @@ class DashboardHtmlWriterTest {
                 Map.of("listed", NOW.minus(Duration.ofDays(40))), null, null);
         TrackerView trackerWithStale = new TrackerView(
                 "bdd-scenarios", List.of("listed"), List.of(new MetricCardView("listed", 2, 100)), 2,
-                Optional.empty(), List.of(), Map.of(), List.of(staleWithLastSeen, staleWithoutLastSeen));
+                Optional.empty(), List.of(), Map.of(), List.of(staleWithLastSeen, staleWithoutLastSeen),
+                Map.of("listed", 2));
 
         File dashboardFile = writer.write(tempDir.toFile(), new DashboardView(
                 List.of(trackerWithStale),
@@ -192,7 +193,7 @@ class DashboardHtmlWriterTest {
     private TrackerView trackerWithProjection(String trackerId, Confidence confidence) {
         Projection projection = new Projection(NOW.plus(Duration.ofDays(10)), 5, 10, 0.5, confidence);
         return new TrackerView(trackerId, List.of("listed"), List.of(new MetricCardView("listed", 5, 50)), 10,
-                Optional.of(projection), List.of(), Map.of(), List.of());
+                Optional.of(projection), List.of(), Map.of(), List.of(), Map.of("listed", 5));
     }
 
     private DashboardView twoTrackerView() {
