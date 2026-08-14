@@ -201,6 +201,57 @@ This plugin produces no report of its own - it is pure composition, with no dete
 | Doppelganger API Detector | `build/reports/doppelganger-api-detector/doppelganger-apis.adoc` - see link:../doppelganger-api-detector/README.adoc#_report_output[its own "Report output" section]
 |===
 
+== The Shadow / Mirage / Doppelganger / Compliant relationship
+
+Every endpoint the three composed plugins look at falls into exactly one of four states:
+
+[cols="1,3",options="header"]
+|===
+| State | Meaning
+
+| Shadow
+| Implemented, *not* declared - link:../shadow-api-detector/README.adoc[Shadow API Detector]'s finding: exists in code but not in the OpenAPI description.
+
+| Mirage
+| Declared, *not* implemented - link:../mirage-api-detector/README.adoc[Mirage API Detector]'s finding: exists in the OpenAPI description but not in code.
+
+| Doppelganger
+| Declared *and* implemented, but *not* verified - link:../doppelganger-api-detector/README.adoc[Doppelganger API Detector]'s finding: no test confirms the two still agree.
+
+| Compliant
+| Declared, implemented, *and* verified - what none of the three plugins flags.
+|===
+
+These four states are a strict partition, not four independently-chosen numbers: fixing how many
+endpoints are declared, how many are implemented, how many are verified, and the total endpoint
+count pins all four state sizes at once. Concretely, given `declaredCount` (endpoints with an
+OpenAPI description), `implementedCount` (endpoints with a matching `@RestController` method),
+`verifiedCount` (endpoints with a passing contract test), and `totalCount` (the union of all
+endpoints seen by any of the three):
+
+[source]
+----
+overlap        = declaredCount + implementedCount - totalCount   // declared AND implemented
+Shadow         = totalCount - declaredCount
+Mirage         = totalCount - implementedCount
+Compliant      = verifiedCount
+Doppelganger   = overlap - Compliant
+             = declaredCount + implementedCount - totalCount - verifiedCount
+----
+
+`overlap` (declared-and-implemented, regardless of verified) splits entirely between Doppelganger
+and Compliant, so `Doppelganger <= overlap` is the only extra constraint - the other three states
+are already fully determined once `declaredCount`, `implementedCount`, `verifiedCount`, and
+`totalCount` are fixed.
+
+This is the same relationship the
+link:../tracker-lens/DASHBOARD-THEMING.adoc#shadow-mirage-doppelganger-compliant-math[tracker-lens
+plugin documents], for anyone building a dashboard or report that visualizes all four states
+together rather than reading each detector's own report in isolation - see
+link:../tracker-lens/README.adoc#_the_lens_system[tracker-lens] and its
+`examples/tracker-lens/dashboard-extra-charts` example for a worked visualization built on exactly
+this math.
+
 == Full example
 
 [source,groovy]

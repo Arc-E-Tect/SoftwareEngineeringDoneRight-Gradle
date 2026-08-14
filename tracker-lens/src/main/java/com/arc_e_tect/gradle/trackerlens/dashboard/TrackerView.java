@@ -19,6 +19,11 @@ import java.util.Optional;
  * @param chartDates the dates plotted on this tracker's chart, ascending
  * @param chartSeries cumulative reached-count per stage, aligned index-for-index with {@code chartDates}
  * @param staleItems  active items that have not reached the final stage and have seen no recent activity
+ * @param stageBreakdown number of active items whose {@link LifecycleRecord#latestStage(List)} is
+ *                       each stage, keyed and ordered exactly like {@code stages} - unlike
+ *                       {@code metrics}' cumulative "reached at least this stage" counts, these are
+ *                       mutually exclusive and always sum to {@code totalCount}, since every active
+ *                       item has exactly one furthest-reached stage
  */
 public record TrackerView(
         String id,
@@ -28,5 +33,6 @@ public record TrackerView(
         Optional<Projection> projection,
         List<LocalDate> chartDates,
         Map<String, List<Integer>> chartSeries,
-        List<LifecycleRecord> staleItems) {
+        List<LifecycleRecord> staleItems,
+        Map<String, Integer> stageBreakdown) {
 }
