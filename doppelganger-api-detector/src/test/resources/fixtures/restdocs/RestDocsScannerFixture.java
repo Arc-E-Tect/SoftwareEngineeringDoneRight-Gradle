@@ -28,4 +28,43 @@ public class RestDocsScannerFixture {
         String path = get("/not/a/request/builder/call");
         andDo(document("irrelevant"));
     }
+
+    void getItemRestAssured() {
+        given(documentationSpec)
+                .filter(document("get-item-rest-assured"))
+                .when()
+                .get("/items/{id}");
+    }
+
+    void createItemRestAssured() {
+        given(documentationSpec)
+                .filter(document("create-item-rest-assured"))
+                .when()
+                .post("/items");
+    }
+
+    void listItemsUndocumentedRestAssured() {
+        given(documentationSpec)
+                .when()
+                .get("/items");
+    }
+
+    void deleteItemDynamicPathRestAssured() {
+        given(documentationSpec)
+                .filter(document("delete-item-rest-assured"))
+                .when()
+                .delete(buildPath());
+    }
+
+    void getCallOutsideWhenRestAssured() {
+        String path = get("/not/a/request/builder/call");
+        filter(document("irrelevant"));
+    }
+
+    void getItemWithServerBasePathRestAssured() {
+        given(documentationSpec)
+                .filter(document("get-item-base-path-rest-assured"))
+                .when()
+                .get("crm-service/items/{id}");
+    }
 }

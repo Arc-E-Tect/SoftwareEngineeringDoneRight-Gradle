@@ -13,6 +13,7 @@ import com.arc_e_tect.gradle.doppelganger.detect.ContractVerificationSource;
 import com.arc_e_tect.gradle.doppelganger.detect.DoppelgangerApiFinder;
 import com.arc_e_tect.gradle.doppelganger.report.DoppelgangerApiReportWriter;
 import com.arc_e_tect.gradle.doppelganger.scan.OpenApiRequestValidatorScanner;
+import com.arc_e_tect.gradle.doppelganger.scan.OpenApiServerBasePath;
 import com.arc_e_tect.gradle.doppelganger.scan.RestDocsScanner;
 import com.arc_e_tect.gradle.doppelganger.scan.SpringCloudContractScanner;
 import org.gradle.api.DefaultTask;
@@ -272,7 +273,7 @@ public abstract class DetectDoppelgangerApisTask extends DefaultTask {
 
         List<Endpoint> declaredAndImplemented = ContractSetOperations.intersection(implemented, described);
 
-        List<Endpoint> verified = collectVerifiedEndpoints(phase, totalPhases);
+        List<Endpoint> verified = collectVerifiedEndpoints(phase, totalPhases, rootDocument);
 
         List<Endpoint> doppelgangers = new DoppelgangerApiFinder()
                 .findDoppelgangers(declaredAndImplemented, verified);
@@ -323,12 +324,13 @@ public abstract class DetectDoppelgangerApisTask extends DefaultTask {
         return updated;
     }
 
-    private List<Endpoint> collectVerifiedEndpoints(int phase, int totalPhases) {
+    private List<Endpoint> collectVerifiedEndpoints(int phase, int totalPhases, File rootDocument) {
         List<Endpoint> verified = new ArrayList<>();
         try {
             if (getUseRestDocs().get()) {
                 phase = announcePhase(phase, totalPhases, "Scanning Spring RestDocs verification evidence...");
-                verified.addAll(scanTestDirs(new RestDocsScanner()));
+                String serverBasePath = OpenApiServerBasePath.resolve(rootDocument);
+                verified.addAll(scanTestDirs(new RestDocsScanner(serverBasePath)));
             }
             if (getUseOpenApiRequestValidator().get()) {
                 phase = announcePhase(phase, totalPhases,

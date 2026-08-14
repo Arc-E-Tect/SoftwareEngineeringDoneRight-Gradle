@@ -96,6 +96,91 @@ class RestDocsScannerTest {
         assertThat(scanner.scan(tempDir.toFile())).isEmpty();
     }
 
+    @Test
+    @DisplayName("recognises a documented REST Assured when().get(...) call")
+    void recognisesDocumentedRestAssuredGet() throws Exception {
+        List<Endpoint> endpoints = scanner.scan(fixtureDir());
+
+        assertThat(endpoints)
+                .filteredOn(e -> e.methodSignature().startsWith("getItemRestAssured"))
+                .extracting(Endpoint::verb, Endpoint::path)
+                .containsExactly(tuple(HttpVerb.GET, "/items/{id}"));
+    }
+
+    @Test
+    @DisplayName("recognises a documented REST Assured when().post(...) call")
+    void recognisesDocumentedRestAssuredPost() throws Exception {
+        List<Endpoint> endpoints = scanner.scan(fixtureDir());
+
+        assertThat(endpoints)
+                .filteredOn(e -> e.methodSignature().startsWith("createItemRestAssured"))
+                .extracting(Endpoint::verb, Endpoint::path)
+                .containsExactly(tuple(HttpVerb.POST, "/items"));
+    }
+
+    @Test
+    @DisplayName("ignores a REST Assured when().get(...) call with no filter(document(...)) in the same method")
+    void ignoresUndocumentedRestAssured() throws Exception {
+        List<Endpoint> endpoints = scanner.scan(fixtureDir());
+
+        assertThat(endpoints).noneMatch(e -> e.methodSignature().startsWith("listItemsUndocumentedRestAssured"));
+    }
+
+    @Test
+    @DisplayName("ignores a documented REST Assured method whose path argument is not a string literal")
+    void ignoresRestAssuredDynamicPath() throws Exception {
+        List<Endpoint> endpoints = scanner.scan(fixtureDir());
+
+        assertThat(endpoints).noneMatch(e -> e.methodSignature().startsWith("deleteItemDynamicPathRestAssured"));
+    }
+
+    @Test
+    @DisplayName("ignores a get(...) call that is not scoped on when(...)")
+    void ignoresGetCallOutsideWhen() throws Exception {
+        List<Endpoint> endpoints = scanner.scan(fixtureDir());
+
+        assertThat(endpoints).noneMatch(e -> e.methodSignature().startsWith("getCallOutsideWhenRestAssured"));
+    }
+
+    @Test
+    @DisplayName("strips a configured base path from a captured REST Assured path")
+    void stripsConfiguredBasePath() throws Exception {
+        RestDocsScanner prefixedScanner = new RestDocsScanner("/crm-service");
+
+        List<Endpoint> endpoints = prefixedScanner.scan(fixtureDir());
+
+        assertThat(endpoints)
+                .filteredOn(e -> e.methodSignature().startsWith("getItemWithServerBasePathRestAssured"))
+                .extracting(Endpoint::path)
+                .containsExactly("/items/{id}");
+    }
+
+    @Test
+    @DisplayName("leaves a captured path unchanged when it does not start with the configured base path")
+    void leavesPathUnchangedWhenBasePathDoesNotMatch() throws Exception {
+        RestDocsScanner prefixedScanner = new RestDocsScanner("/other-service");
+
+        List<Endpoint> endpoints = prefixedScanner.scan(fixtureDir());
+
+        assertThat(endpoints)
+                .filteredOn(e -> e.methodSignature().startsWith("getItemWithServerBasePathRestAssured"))
+                .extracting(Endpoint::path)
+                .containsExactly("/crm-service/items/{id}");
+    }
+
+    @Test
+    @DisplayName("leaves an unprefixed captured path unchanged when a base path is configured")
+    void leavesUnprefixedPathUnchangedWhenBasePathConfigured() throws Exception {
+        RestDocsScanner prefixedScanner = new RestDocsScanner("/crm-service");
+
+        List<Endpoint> endpoints = prefixedScanner.scan(fixtureDir());
+
+        assertThat(endpoints)
+                .filteredOn(e -> e.methodSignature().startsWith("getItemRestAssured"))
+                .extracting(Endpoint::path)
+                .containsExactly("/items/{id}");
+    }
+
     private static File fixtureDir() {
         URL url = RestDocsScannerTest.class.getClassLoader().getResource("fixtures/restdocs");
         if (url == null) {

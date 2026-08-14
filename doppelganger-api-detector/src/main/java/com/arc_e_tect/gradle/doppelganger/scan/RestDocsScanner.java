@@ -20,13 +20,21 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * {@link ContractVerificationSource} for Spring RestDocs: a test method whose call chain contains
- * a {@code mockMvc.perform(get(...)/post(...)/put(...)/delete(...)/patch(...))} call and also
- * includes {@code .andDo(document(...))} somewhere in the same method body.
+ * {@link ContractVerificationSource} for Spring RestDocs, recognising two independent call-chain
+ * shapes for the same underlying convention - a request-builder call paired with a
+ * {@code document(...)} call somewhere in the same method body:
+ *
+ * <ul>
+ *     <li>{@code spring-restdocs-mockmvc}: {@code mockMvc.perform(get(...)/post(...)/put(...)/
+ *     delete(...)/patch(...))} together with {@code .andDo(document(...))}.</li>
+ *     <li>{@code spring-restdocs-restassured}: {@code given(...).filter(document(...))...
+ *     when().get(...)/post(...)/put(...)/delete(...)/patch(...)} - the verb call directly scoped
+ *     on a call named {@code when}.</li>
+ * </ul>
  *
  * <p>Matches by simple method name only, the same way {@code ControllerScanner} matches mapping
- * annotations by simple name, so this scanner needs neither Spring MVC Test nor Spring RestDocs
- * on its own classpath.</p>
+ * annotations by simple name, so this scanner needs neither Spring MVC Test, Spring RestDocs, nor
+ * REST Assured on its own classpath.</p>
  */
 public class RestDocsScanner implements ContractVerificationSource {
 
@@ -37,8 +45,28 @@ public class RestDocsScanner implements ContractVerificationSource {
             "delete", HttpVerb.DELETE,
             "patch", HttpVerb.PATCH);
 
-    /** Creates a new {@code RestDocsScanner}. */
-    public RestDocsScanner() {}
+    private final String basePathToStrip;
+
+    /** Creates a new {@code RestDocsScanner} that strips no base path from captured paths. */
+    public RestDocsScanner() {
+        this("");
+    }
+
+    /**
+     * Creates a new {@code RestDocsScanner} that strips {@code basePathToStrip} - typically
+     * resolved via {@link OpenApiServerBasePath#resolve(java.io.File)} - from the leading segments
+     * of every path it captures, when present. A REST Assured request built against a running
+     * server naturally includes this server-url path (e.g. a servlet context path) in the literal
+     * path it captures, even though neither the OpenAPI documentation nor the
+     * {@code @RestController} mapping it verifies ever declares it.
+     *
+     * @param basePathToStrip the base path to strip, e.g. {@code "/crm-service"}; blank or
+     *                         {@code null} disables stripping
+     */
+    public RestDocsScanner(String basePathToStrip) {
+        this.basePathToStrip = basePathToStrip == null || basePathToStrip.isBlank()
+                ? "" : PathTemplates.normalize(basePathToStrip);
+    }
 
     /** {@inheritDoc} */
     @Override
@@ -79,31 +107,54 @@ public class RestDocsScanner implements ContractVerificationSource {
     private Endpoint endpointForMethod(MethodDeclaration method, String declaringClass, String fileName) {
         List<MethodCallExpr> calls = method.findAll(MethodCallExpr.class);
 
-        boolean documented = calls.stream().anyMatch(this::isAndDoDocument);
+        boolean documented = calls.stream().anyMatch(call -> isAndDoDocument(call) || isFilterDocument(call));
         if (!documented) {
             return null;
         }
 
         for (MethodCallExpr call : calls) {
-            if (!isPerformArgument(call)) {
+            if (!isPerformArgument(call) && !isWhenScoped(call)) {
                 continue;
             }
             VerbAndPath verbAndPath = asVerbAndPath(call);
             if (verbAndPath != null) {
                 String signature = method.getNameAsString() + "()";
                 int line = method.getBegin().map(p -> p.line).orElse(0);
-                return new Endpoint(
-                        verbAndPath.verb(), verbAndPath.path(), declaringClass, signature, fileName, line);
+                return new Endpoint(verbAndPath.verb(), stripBasePath(verbAndPath.path()), declaringClass,
+                        signature, fileName, line);
             }
         }
         return null;
     }
 
+    private String stripBasePath(String normalizedPath) {
+        if (basePathToStrip.isEmpty()) {
+            return normalizedPath;
+        }
+        if (normalizedPath.equals(basePathToStrip)) {
+            return "/";
+        }
+        if (normalizedPath.startsWith(basePathToStrip + "/")) {
+            return normalizedPath.substring(basePathToStrip.length());
+        }
+        return normalizedPath;
+    }
+
+    /** {@code mockMvc.perform(get(...)/post(...)/...)} - the verb call is {@code perform}'s argument. */
     private boolean isPerformArgument(MethodCallExpr call) {
         return call.getParentNode()
                 .filter(MethodCallExpr.class::isInstance)
                 .map(MethodCallExpr.class::cast)
                 .filter(parent -> parent.getNameAsString().equals("perform"))
+                .isPresent();
+    }
+
+    /** {@code ....when().get(...)/post(...)/...} - the verb call is scoped on a call named {@code when}. */
+    private boolean isWhenScoped(MethodCallExpr call) {
+        return call.getScope()
+                .filter(MethodCallExpr.class::isInstance)
+                .map(MethodCallExpr.class::cast)
+                .filter(scope -> scope.getNameAsString().equals("when"))
                 .isPresent();
     }
 
@@ -113,6 +164,15 @@ public class RestDocsScanner implements ContractVerificationSource {
         }
         Expression arg = call.getArgument(0);
         return arg.isMethodCallExpr() && arg.asMethodCallExpr().getNameAsString().equals("document");
+    }
+
+    /** {@code .filter(document(...))} - the {@code spring-restdocs-restassured} counterpart of {@code andDo}. */
+    private boolean isFilterDocument(MethodCallExpr call) {
+        if (!call.getNameAsString().equals("filter")) {
+            return false;
+        }
+        return call.getArguments().stream()
+                .anyMatch(arg -> arg.isMethodCallExpr() && arg.asMethodCallExpr().getNameAsString().equals("document"));
     }
 
     private VerbAndPath asVerbAndPath(MethodCallExpr call) {
