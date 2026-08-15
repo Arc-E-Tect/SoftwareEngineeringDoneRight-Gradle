@@ -55,7 +55,10 @@ The build is expected to pass. The plugin writes `build/reports/tracker-lens/das
 containing:
 
 * One `.tracker[data-tracker="bdd-scenarios"]` section.
-* Three `.metric-card` elements — `listed` (5/5), `defined` (4/5), `implemented` (3/5).
+* Three `.metric-card` elements — `listed` (1/5), `defined` (1/5), `implemented` (3/5). These are
+  each scenario's *current* stage (mutually exclusive, summing to 5), not a cumulative "reached at
+  least this stage" count — a scenario that's already `implemented` no longer counts toward `listed`
+  or `defined`.
 * A `.projection` block projecting when the remaining two scenarios will reach `implemented`, based
   on the historical rate at which the first three did (this fades back to "not enough history yet"
   once the bundled timestamps age past the plugin's 90-day lookback window — the dashboard still
