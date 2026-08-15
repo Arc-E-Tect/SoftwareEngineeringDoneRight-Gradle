@@ -1,3 +1,10 @@
+# [0.5.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/tracker-lens-v0.4.0...tracker-lens-v0.5.0) (2026-08-15)
+
+
+### ✨ New and updated features
+
+* **tracker-lens:** let lens packs ship selectable dashboard templates ([#155](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/155)) ([fa06b2a](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/fa06b2a5838c65fc0b675cb7e949d3f76c851fe0)), closes [#155](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/155)
+
 # [0.4.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/tracker-lens-v0.3.2...tracker-lens-v0.4.0) (2026-08-15)
 
 
