@@ -6,21 +6,23 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <link rel="stylesheet" id="lens-stylesheet" href="{{defaultLensCssFile}}">
 <style>
-/* Layout for this template's own additions only - .chart itself, and everything to its left,
-   stays governed by the lens the visitor picks; these rules just seat the extra chart beside it. */
+/* Layout for this template's own additions only - .chart itself stays governed by the lens the
+   visitor picks. The trend line gets the section's full width (it's the primary chart, and now
+   spans from the metrics window's start out through the forecast - see the script below); the
+   snapshot pie sits in its own row underneath instead of squeezed beside it. */
 .charts-row {
 margin-top: 1rem;
 display: flex;
+flex-direction: column;
 gap: 1.5rem;
-align-items: flex-start;
 }
 .charts-row .chart {
 margin-top: 0;
-flex: 1 1 auto;
-min-width: 0;
+width: 100%;
 }
 .chart-extra {
-flex: 0 0 260px;
+align-self: flex-start;
+width: 260px;
 height: 260px;
 }
 .chart-extra canvas,
@@ -77,6 +79,11 @@ vertical-align: middle;
 <p class="projection__progress">{{currentCount}} of {{totalCount}} complete (velocity: {{velocityPerDay}}/day)</p>
 <p class="projection__disclaimer">{{disclaimer}}</p>
 </div>
+<!-- The mustache-rendered block above is prose for a reader; this is the same projection as plain
+     numbers, for the script below to extend the trend line's x-axis and draw its forecast segment
+     from. {{projectedDate}} is already workday-aware (see ProgressProjector) - the script only adds
+     3 more calendar days on top of it, not business-day math of its own. -->
+<script type="application/json" class="projection-data" data-tracker="{{id}}">{"projectedDate":"{{projectedDate}}","currentCount":{{currentCount}},"totalCount":{{totalCount}},"velocityPerDay":{{velocityPerDay}}}</script>
 {{/projection}}
 {{^projection}}
 <p class="projection-unavailable">Not enough history yet - check back once at least a week of data has been captured.</p>
@@ -137,29 +144,63 @@ vertical-align: middle;
     return document.querySelector('.chart-extra[data-extra-chart-for="' + trackerId + '"]');
   }
 
-  // The plugin's own metric cards report series' cumulative "reached at least this stage" counts
-  // (LISTED 6/6, DEFINED 4/6, IMPLEMENTED 4/6 for this example's data) - correct on their own
-  // terms, but placed right above a pie built from stageBreakdown's "currently at this stage"
-  // counts (1, 1, 4), the two disagree enough to read as a mistake rather than two different
-  // metrics. This rewrites the cards in place to match the pie - same stageBreakdown numbers, same
-  // totalCount denominator - so the boxes and the pie never contradict each other.
-  function applyStageBreakdownToMetricCards(trackerId, tracker, totalCount) {
-    var section = document.querySelector('.tracker[data-tracker="' + trackerId + '"]');
-    if (!section) {
-      return;
-    }
-    var breakdown = tracker.stageBreakdown || {};
-    tracker.stages.forEach(function (stage) {
-      var card = section.querySelector('.metric-card[data-stage="' + stage + '"]');
-      if (!card) {
-        return;
+  function readProjection(trackerId) {
+    var el = document.querySelector('.projection-data[data-tracker="' + trackerId + '"]');
+    return el ? JSON.parse(el.textContent) : null;
+  }
+
+  // Frame-color bands for lens-colored (see its own header comment) - each array is ascending by
+  // percent, first entry whose "upTo" the value doesn't exceed wins. Shared by Shadow, Mirage, and
+  // Doppelganger, whose bands are identical; Compliant's are the same five cut points with the
+  // color order reversed, since a high Compliant percent is the good outcome the other three don't
+  // share. bdd-scenarios' own single "how much is implemented" band is unrelated to either.
+  var SEVERITY_COLORS = { green: '#2f9e44', yellow: '#f6c000', amber: '#f59f00', orange: '#e8590c', red: '#e03131' };
+  var PROBLEM_BANDS = [
+    { upTo: 10, color: SEVERITY_COLORS.green },
+    { upTo: 25, color: SEVERITY_COLORS.yellow },
+    { upTo: 60, color: SEVERITY_COLORS.amber },
+    { upTo: 90, color: SEVERITY_COLORS.orange },
+    { upTo: 100, color: SEVERITY_COLORS.red }
+  ];
+  var COMPLIANT_BANDS = [
+    { upTo: 10, color: SEVERITY_COLORS.red },
+    { upTo: 25, color: SEVERITY_COLORS.orange },
+    { upTo: 60, color: SEVERITY_COLORS.amber },
+    { upTo: 90, color: SEVERITY_COLORS.yellow },
+    { upTo: 100, color: SEVERITY_COLORS.green }
+  ];
+  var SCENARIO_BANDS = [
+    { upTo: 33, color: SEVERITY_COLORS.red },
+    { upTo: 66, color: SEVERITY_COLORS.amber },
+    { upTo: 100, color: SEVERITY_COLORS.green }
+  ];
+
+  function bandColor(percent, bands) {
+    for (var i = 0; i < bands.length; i++) {
+      if (percent <= bands[i].upTo) {
+        return bands[i].color;
       }
-      var count = breakdown[stage] || 0;
-      var percent = totalCount ? Math.round((100 * count) / totalCount) : 0;
-      card.style.setProperty('--percent', percent);
-      card.querySelector('.metric-card__count').textContent = count + ' / ' + totalCount;
-      card.querySelector('.metric-card__percent').textContent = percent + '%';
-    });
+    }
+    return bands[bands.length - 1].color;
+  }
+
+  // GHERKIN_SCENARIO trackers' own metric cards already report stageBreakdown's mutually-exclusive
+  // "currently at this stage" counts by default (tracker-lens 0.3.1+) - the same numbers the pie
+  // below uses, so the boxes and the pie already agree without any rewriting here. This just reads
+  // the "implemented" card's own already-correct percent back out, to drive lens-colored's whole-box
+  // frame color (see its own header comment for why bdd-scenarios gets one color for the whole
+  // tracker rather than a color per card the way api-contracts does).
+  function scenarioImplementedPercent(trackerId) {
+    var card = document.querySelector(
+        '.tracker[data-tracker="' + trackerId + '"] .metric-card[data-stage="implemented"]');
+    return card ? Number(getComputedStyle(card).getPropertyValue('--percent')) || 0 : 0;
+  }
+
+  function colorTrackerFrame(trackerId, percent, bands) {
+    var section = document.querySelector('.tracker[data-tracker="' + trackerId + '"]');
+    if (section) {
+      section.style.setProperty('--frame-color', bandColor(percent, bands));
+    }
   }
 
   // A pie chart needs mutually-exclusive slices - "what stage is each scenario at right now" -
@@ -274,6 +315,9 @@ vertical-align: middle;
     function fillCard(card, entry) {
       var percent = entry.cardTotal ? Math.round((100 * entry.count) / entry.cardTotal) : 0;
       card.style.setProperty('--percent', percent);
+      // lens-colored reads this back for its frame color (see its own header comment); harmless
+      // custom property on any other lens, which simply never references it.
+      card.style.setProperty('--frame-color', bandColor(percent, entry.label === 'Compliant' ? COMPLIANT_BANDS : PROBLEM_BANDS));
 
       var stageLabel = card.querySelector('.metric-card__stage');
       stageLabel.textContent = entry.label;
@@ -362,11 +406,99 @@ vertical-align: middle;
     return el ? parseInt(el.dataset.total, 10) : 0;
   }
 
+  var MUTED_COLOR = rootStyle.getPropertyValue('--dashboard-muted').trim() || '#5b6570';
+  var MS_PER_DAY = 24 * 60 * 60 * 1000;
+
+  function isoDate(date) {
+    return date.toISOString().slice(0, 10);
+  }
+
+  // The trend line's per-stage forecast: a straight-line continuation from each stage's own recent
+  // trend, run out to 3 calendar days past the tracker's (already workday-aware) projected
+  // completion date - not the plugin's own single final-stage velocity, since every stage on this
+  // chart needs its own line extended, not just the one the projection is computed from. The trend
+  // is each stage's average daily change over its trailing 14 measured days (or however many are
+  // available, down to 2), clamped so a plateaued or shrinking series never forecasts backwards past
+  // its last real value, and clamped at totalCount so no line forecasts past "everything is done".
+  function extrapolateSeries(dates, series, forecastDates, totalCount) {
+    var window = Math.min(14, dates.length - 1);
+    var last = series[series.length - 1];
+    var earlier = series[series.length - 1 - window];
+    var dailyRate = window > 0 ? Math.max(0, (last - earlier) / window) : 0;
+    return forecastDates.map(function (date, index) {
+      var value = last + dailyRate * (index + 1);
+      return Math.round(Math.min(totalCount, value));
+    });
+  }
+
+  // Replaces the fixed bootstrap script's line chart for one tracker with the same per-stage lines,
+  // extended past "today" through a muted, dashed forecast segment - the trend line's x-axis runs
+  // from the metrics window's start out to 3 days past the projected completion date, per stage,
+  // extrapolated from that stage's own recent trend (see extrapolateSeries). Trackers without a
+  // projection yet (not enough history) keep the bootstrap script's chart exactly as rendered - no
+  // forecast to draw.
+  function addForecastSegment(trackerId, tracker, totalCount) {
+    var projection = readProjection(trackerId);
+    if (!projection) {
+      return;
+    }
+    var section = document.querySelector('.tracker[data-tracker="' + trackerId + '"]');
+    var canvas = section ? section.querySelector('.chart canvas') : null;
+    var existingChart = canvas && typeof Chart !== 'undefined' ? Chart.getChart(canvas) : null;
+    if (!canvas || !existingChart) {
+      return;
+    }
+
+    var lastRealDate = new Date(tracker.dates[tracker.dates.length - 1] + 'T00:00:00Z');
+    var forecastEndDate = new Date(projection.projectedDate + 'T00:00:00Z');
+    forecastEndDate.setTime(forecastEndDate.getTime() + 3 * MS_PER_DAY);
+
+    var forecastDates = [];
+    for (var t = lastRealDate.getTime() + MS_PER_DAY; t <= forecastEndDate.getTime(); t += MS_PER_DAY) {
+      forecastDates.push(isoDate(new Date(t)));
+    }
+    if (forecastDates.length === 0) {
+      return;
+    }
+
+    var lastRealIndex = tracker.dates.length - 1;
+    var labels = tracker.dates.concat(forecastDates);
+    var datasets = tracker.stages.map(function (stage, index) {
+      var color = stageColors[index % stageColors.length];
+      var realValues = tracker.series[stage];
+      var forecastValues = extrapolateSeries(tracker.dates, realValues, forecastDates, totalCount);
+      return {
+        label: stage,
+        data: realValues.concat(forecastValues),
+        borderColor: color,
+        backgroundColor: color,
+        fill: false,
+        tension: 0.2,
+        segment: {
+          borderColor: function (ctx) {
+            return ctx.p0DataIndex >= lastRealIndex ? MUTED_COLOR : undefined;
+          },
+          borderDash: function (ctx) {
+            return ctx.p0DataIndex >= lastRealIndex ? [5, 5] : undefined;
+          }
+        }
+      };
+    });
+
+    existingChart.destroy();
+    new Chart(canvas.getContext('2d'), {
+      type: 'line',
+      data: { labels: labels, datasets: datasets },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: true } } }
+    });
+  }
+
   var bddTracker = trackersById['bdd-scenarios'];
   var bddContainer = bddTracker ? extraChartContainer('bdd-scenarios') : null;
   if (bddTracker && bddContainer) {
     var bddTotalCount = totalCountFor('bdd-scenarios', 'listed');
-    applyStageBreakdownToMetricCards('bdd-scenarios', bddTracker, bddTotalCount);
+    colorTrackerFrame('bdd-scenarios', scenarioImplementedPercent('bdd-scenarios'), SCENARIO_BANDS);
+    addForecastSegment('bdd-scenarios', bddTracker, bddTotalCount);
     renderStagePie(bddTracker, bddContainer, bddTotalCount);
   }
 
@@ -376,6 +508,7 @@ vertical-align: middle;
     var totalCount = totalCountFor('api-contracts', 'declared');
     var breakdown = computeApiContractBreakdown(apiContractTracker, totalCount);
     relabelApiContractMetricCards(breakdown);
+    addForecastSegment('api-contracts', apiContractTracker, totalCount);
     renderApiContractBreakdownPie(breakdown, apiContractContainer, totalCount);
   }
 })();

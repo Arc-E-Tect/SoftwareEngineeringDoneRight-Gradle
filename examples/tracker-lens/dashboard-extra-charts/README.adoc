@@ -7,8 +7,11 @@ Two trackers - `bdd-scenarios` (Gherkin scenarios) and `api-contracts` (API cont
 a project-supplied Mustache template, `dashboard-template.html`, overriding the plugin's own
 bundled `dashboard.html` via `trackerLens.template`. The template's structure and wording are
 identical to the bundled one (see `../custom-dashboard-template` for an example that changes those
-instead); the only difference here is two extra, non-contract charts it adds beside each tracker's
-built-in line chart.
+instead); the differences here are three additions built entirely from data the plugin already
+computes: an extra, non-contract chart under each tracker's built-in line chart; a muted, dashed
+forecast segment extending that line chart out to the tracker's projected completion date; and a
+fourth lens, `lens-colored`, that frames each tracker's numbers in a color reflecting how healthy
+they are.
 
 == Intent
 
@@ -33,6 +36,12 @@ its own markup and its own script to derive additional views the plugin itself n
   metric cards above it - Undefined, Unimplemented, Unverified, Compliant - as absolute counts, not
   four separate "this check's share of the whole" percentages: since the four states are a genuine
   partition, one pie whose slices sum to the total says it more plainly than four would.
+* Each line chart now runs the full width of its tracker's section (previously squeezed to make
+  room for the pie beside it, which now sits in its own row underneath instead), and its x-axis
+  extends 3 days past the tracker's projected completion date whenever one is available - see
+  "Why The Trend Chart Extends Past Today" below.
+* A fourth lens, registered via `trackerLens.lensStylesheet` (so the switcher lists it under the
+  plugin's fixed `custom-lens` id) - see "The lens-colored Lens" below.
 
 === Why the Gherkin pie reads `stageBreakdown`, not `series`
 
@@ -53,36 +62,22 @@ this case - `process-a-return`, listed on 2026-06-10 and observed already-implem
 with no `definedAt` ever recorded - to prove it: the pie correctly counts it under `implemented`
 (4 of 6), not `listed`.
 
-=== Why the metric cards also get rewritten
+=== Why bdd-scenarios' metric cards no longer need rewriting
 
-Left alone, `bdd-scenarios`' own metric cards would still show the plugin's default cumulative
-numbers - `LISTED 6/6`, `DEFINED 4/6`, `IMPLEMENTED 4/6` - each correct on its own terms (six
-scenarios have been listed at some point, four have been defined at some point, four have been
-implemented at some point), but placed right above a pie built from a *different* metric
-(`stageBreakdown`'s 1, 1, 4), the two numbers disagree enough to read as a bug rather than two
-legitimately different things being counted. `applyStageBreakdownToMetricCards` rewrites the
-cards' count, percentage, and `--percent` fill-bar in place to the same `stageBreakdown` numbers
-the pie already uses, so the boxes and the chart beside them always tell the same story:
-
-[source,javascript]
-----
-function applyStageBreakdownToMetricCards(trackerId, tracker, totalCount) {
-  var section = document.querySelector('.tracker[data-tracker="' + trackerId + '"]');
-  var breakdown = tracker.stageBreakdown || {};
-  tracker.stages.forEach(function (stage) {
-    var card = section.querySelector('.metric-card[data-stage="' + stage + '"]');
-    var count = breakdown[stage] || 0;
-    var percent = totalCount ? Math.round((100 * count) / totalCount) : 0;
-    card.style.setProperty('--percent', percent);
-    card.querySelector('.metric-card__count').textContent = count + ' / ' + totalCount;
-    card.querySelector('.metric-card__percent').textContent = percent + '%';
-  });
-}
-----
+Earlier versions of this example rewrote `bdd-scenarios`' own metric cards client-side, because the
+plugin's default cards showed cumulative "reached at least this stage" counts (`LISTED 6/6`,
+`DEFINED 4/6`, `IMPLEMENTED 4/6`) that disagreed with the pie beside them, built from
+`stageBreakdown`'s mutually-exclusive "currently at this stage" counts (1, 1, 4) - correct on both
+their own terms, but confusing side by side. As of tracker-lens 0.3.1, `GHERKIN_SCENARIO` trackers'
+own metric cards *are* `stageBreakdown` by default (Gherkin's stages are a true dependency chain, so
+"which stage is each scenario currently at" is a meaningful thing for the plugin itself to report -
+see the plugin's own README on `TrackerSourceKind.stagesFormADependencyChain`). The boxes and the
+pie already agree without this template doing anything; the script now just reads the "implemented"
+card's own percent back out, for the whole-tracker frame color `lens-colored` uses (see below).
 
 Unlike `api-contracts`' cards (below), the stage *names* here stay exactly as the plugin renders
-them (`listed`/`defined`/`implemented`) - only the numbers change, since these three genuinely are
-the tracker's own canonical stages, just reported a different way.
+them (`listed`/`defined`/`implemented`) - only `lens-colored`'s frame color is this template's own
+addition, since these three genuinely are the tracker's own canonical stages, reported as-is.
 
 === Why Undefined/Unimplemented/Unverified don't sum to 100% (but all four states do)
 
@@ -192,6 +187,97 @@ var CHECK_DEFINITIONS = {
 };
 ----
 
+== Why The Trend Chart Extends Past Today
+
+Each tracker's line chart used to stop at today, plotting only the 30 trailing days the plugin's
+`#dashboard-data` JSON provides. This template now extends it, when a projection is available, out
+to 3 calendar days past the tracker's projected completion date - the same date the `.projection`
+block above already states in prose, read back out as a plain ISO date embedded next to it:
+
+[source,html]
+----
+<script type="application/json" class="projection-data" data-tracker="{{id}}">{"projectedDate":"{{projectedDate}}","currentCount":{{currentCount}},"totalCount":{{totalCount}},"velocityPerDay":{{velocityPerDay}}}</script>
+----
+
+That date is itself workday-aware (tracker-lens's `ProgressProjector` converts the remaining-work
+estimate as business days, skipping any weekends it spans, before landing on a calendar date) - this
+template only adds 3 more plain calendar days on top of it, not further business-day math of its
+own.
+
+Every stage on the chart needs its own forecast line, not just the one the plugin's projection is
+computed from (`bdd-scenarios` has three, `api-contracts` has three), so `extrapolateSeries` derives
+each stage's own trend locally, from that stage's own trailing-14-day rate of change in the chart's
+existing `series` data - clamped to never forecast backwards, and clamped at `totalCount` so no line
+forecasts past "everything is done":
+
+[source,javascript]
+----
+function extrapolateSeries(dates, series, forecastDates, totalCount) {
+  var window = Math.min(14, dates.length - 1);
+  var last = series[series.length - 1];
+  var earlier = series[series.length - 1 - window];
+  var dailyRate = window > 0 ? Math.max(0, (last - earlier) / window) : 0;
+  return forecastDates.map(function (date, index) {
+    var value = last + dailyRate * (index + 1);
+    return Math.round(Math.min(totalCount, value));
+  });
+}
+----
+
+The forecast portion of each line renders in `--dashboard-muted` (the active lens's own muted-text
+color) with a dashed stroke, via Chart.js's per-segment styling - the measured portion keeps the
+stage's usual color, so a reader can tell at a glance which part of the line is real and which is
+extrapolated:
+
+[source,javascript]
+----
+segment: {
+  borderColor: function (ctx) { return ctx.p0DataIndex >= lastRealIndex ? MUTED_COLOR : undefined; },
+  borderDash: function (ctx) { return ctx.p0DataIndex >= lastRealIndex ? [5, 5] : undefined; }
+}
+----
+
+A tracker whose velocity is very slow projects a completion date far out, which stretches this
+chart's x-axis (and its mostly-flat forecast lines) out with it - a faithful picture of "at this
+rate, it'll be a while," not a bug in the chart.
+
+== The lens-colored Lens
+
+A fourth lens, wired up via `trackerLens.lensStylesheet` rather than an external `lensStyle` pack
+(see `../custom-lens` for the same mechanism) - which means the switcher lists it under the plugin's
+fixed `custom-lens` id, not the file's own name. It's built on the bundled light lens with one
+addition: `bdd-scenarios`' whole tracker box, and each of `api-contracts`' four relabeled metric
+cards, get a frame color reflecting how healthy that number is, computed by this template's own
+script and handed to the CSS as a `--frame-color` custom property. The existing `--percent` fill-bar
+visualization every lens already has is left completely intact - `--frame-color` only changes *which*
+color that fill uses, from light-lens's fixed accent blue.
+
+`bdd-scenarios` gets one color for its whole tracker box, from its "implemented" stage's own percent
+(a single, coherent "how done is this" number, unlike `api-contracts`' four independent checks):
+
+[cols="1,1", options="header"]
+|===
+| % implemented | Color
+| 0-33% | red
+| 33-66% | amber
+| 66-100% | green
+|===
+
+`api-contracts`' Undefined (Shadow), Unimplemented (Mirage), and Unverified (Doppelganger) cards
+share the same five-band scale - low is good, since these are all "something's wrong" counts; the
+appended Compliant card, being the opposite kind of number, uses the same five cut points with the
+colors reversed:
+
+[cols="1,1,1", options="header"]
+|===
+| Range | Undefined / Unimplemented / Unverified | Compliant
+| 0-10% | green | red
+| 10-25% | yellow | orange
+| 25-60% | amber | amber
+| 60-90% | orange | yellow
+| 90-100% | red | green
+|===
+
 == The Sample Data
 
 `gherkin-progress-history.ndjson` has 6 scenarios: 3 fully `implemented`, 1 `defined` only, 1
@@ -209,6 +295,10 @@ Unverified), and `GET /api/orders/{id}` (declared, implemented, and verified: Co
 ----
 trackerLens {
     template = file('dashboard-template.html')
+
+    // See "The lens-colored Lens" above - listed in the switcher as "custom-lens", the plugin's
+    // fixed id for a lensStylesheet-supplied lens, not this file's own name.
+    lensStylesheet = file('lens-colored.css')
 
     trackers {
         register('bdd-scenarios') {
@@ -237,19 +327,25 @@ The build is expected to pass, including the same `ContractRule` validation ever
 through regardless of which template rendered it. Open `build/reports/tracker-lens/dashboard.html`:
 
 * `bdd-scenarios` (6 scenarios total) shows three metric cards reading `LISTED 1 / 6 (17%)`,
-  `DEFINED 1 / 6 (17%)`, `IMPLEMENTED 4 / 6 (67%)` - `stageBreakdown` numbers, not the plugin's
-  default cumulative ones - plus its usual line chart and a pie chart, legend to its left, with the
-  same three slices: 1 (`listed` only), 1 (`defined` only), 4 (`implemented`, including the
-  skip-scenario) - correctly the largest slice, since most scenarios really are done. Hovering a
-  slice shows "listed: 1 / 6", "defined: 1 / 6", "implemented: 4 / 6".
+  `DEFINED 1 / 6 (17%)`, `IMPLEMENTED 4 / 6 (67%)` - the plugin's own `stageBreakdown`-based default
+  as of tracker-lens 0.3.1, no rewriting needed. Its line chart now spans the section's full width
+  and extends past today with a muted, dashed forecast segment per stage; underneath it (not beside
+  it anymore), a pie chart with the same three slices: 1 (`listed` only), 1 (`defined` only), 4
+  (`implemented`, including the skip-scenario). Hovering a slice shows "listed: 1 / 6", "defined:
+  1 / 6", "implemented: 4 / 6".
 * `api-contracts` shows four metric cards - `UNDEFINED 4 / 13 (31%)`, `UNIMPLEMENTED 7 / 16 (44%)`,
   `UNVERIFIED 5 / 20 (25%)`, and `COMPLIANT 4 / 20 (20%)` - each with a `?` badge; its usual line
-  chart (still labeled declared/implemented/verified - the raw history, unchanged); and one pie
-  beside it, legend to its left, with four slices sized 4, 7, 5, 4 - summing visibly to 20, the
-  tracker's total, each a distinct color including `Compliant`'s violet. Hovering a slice shows
-  "Undefined: 4 / 20", and so on for the other three - the pie's own tooltip always divides by the
-  shared total, even where the card above it divides by something narrower.
+  chart (still labeled declared/implemented/verified - the raw history, unchanged), full width with
+  its own forecast segment; and underneath it, one pie with the same four names and counts, summing
+  visibly to 20, each a distinct color including `Compliant`'s violet.
+* The lens switcher now offers four options - `custom-lens` (this example's `lens-colored`),
+  `dark-lens`, `high-contrast-lens`, `light-lens`. Selecting `custom-lens` frames `bdd-scenarios`'
+  whole tracker box in green (67% implemented lands in its top band) and colors each of
+  `api-contracts`' four cards independently - Undefined and Unimplemented amber (31% and 44%),
+  Unverified yellow (exactly 25%), Compliant orange (20%) - per the tables above. Every other lens
+  leaves all of these frames at their normal, uncolored border.
 
-Switching lenses still works exactly as in `../plain`, since the lens switcher and every
-contract-bound element are untouched - only the two added charts and their surrounding layout are
-this template's own, unlensed markup.
+Switching lenses otherwise still works exactly as in `../plain`, since the lens switcher and every
+contract-bound element are untouched - only the two added charts, the forecast segment, and
+`lens-colored`'s frame coloring are this template's own, unlensed additions (`lens-colored` itself
+excepted, being a lens).
