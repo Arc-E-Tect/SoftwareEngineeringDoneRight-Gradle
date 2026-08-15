@@ -140,7 +140,7 @@ class ShadowApiReportWriterTest {
         File output = new File(tempDir.toFile(), "report.adoc");
         Map<String, ContractProgressRecord> history = Map.of("fp1", new ContractProgressRecord(
                 "fp1", HttpVerb.GET, "/orders/{id}", "com.example.OrderController",
-                Instant.parse("2026-01-14T09:02:11Z"), Instant.parse("2026-02-20T11:15:44Z"), null,
+                Instant.parse("2026-01-14T09:02:11Z"), Instant.parse("2026-02-20T11:15:44Z"), null, null,
                 Instant.parse("2026-02-20T11:15:44Z"), null));
 
         writer.write(output, 0, List.of(), "1.0.0", history);
