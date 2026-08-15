@@ -8,6 +8,7 @@ import com.arc_e_tect.gradle.detector.core.openapi.OpenApiEndpointCollector;
 import com.arc_e_tect.gradle.detector.core.progress.ContractHistoryStore;
 import com.arc_e_tect.gradle.detector.core.progress.ContractHistoryUpdater;
 import com.arc_e_tect.gradle.detector.core.progress.ContractProgressRecord;
+import com.arc_e_tect.gradle.detector.core.progress.LegacyContractHistoryFormatException;
 import com.arc_e_tect.gradle.detector.core.scan.ControllerScanner;
 import com.arc_e_tect.gradle.doppelganger.detect.ContractVerificationSource;
 import com.arc_e_tect.gradle.doppelganger.detect.DoppelgangerApiFinder;
@@ -315,9 +316,17 @@ public abstract class DetectDoppelgangerApisTask extends DefaultTask {
             List<Endpoint> implementedNow, List<DescribedEndpoint> declaredNow, List<Endpoint> verifiedNow) {
         File historyFile = getContractHistoryFile().getAsFile().get();
         ContractHistoryStore store = new ContractHistoryStore();
-        Map<String, ContractProgressRecord> previous = store.load(historyFile);
+        Map<String, ContractProgressRecord> previous;
+        try {
+            previous = store.load(historyFile);
+        } catch (LegacyContractHistoryFormatException e) {
+            throw new GradleException("doppelgangerApiDetector: " + historyFile + " is in the old 9-field "
+                    + "contract history format (missing 'stubbedAt'). Apply the mirage-api-detector plugin "
+                    + "and run its 'migrateContractHistory' task against this file to upgrade it in place, "
+                    + "or point contractHistoryFile at a new location to start a fresh history.", e);
+        }
         Map<String, ContractProgressRecord> updated = new ContractHistoryUpdater()
-                .update(previous, implementedNow, declaredNow, verifiedNow, Instant.now());
+                .update(previous, implementedNow, declaredNow, verifiedNow, null, Instant.now());
         if (getUpdateContractHistory().get()) {
             store.save(historyFile, updated.values());
         }
