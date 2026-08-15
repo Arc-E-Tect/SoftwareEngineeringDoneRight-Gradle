@@ -257,10 +257,12 @@ Each line is printed once and never overwritten in place, so it plays back clean
 
 NOTE: For a complete field-by-field reference to `contractHistoryFile` - its exact JSON schema, fingerprint algorithm, lifecycle semantics, and guidance for building tooling (including a visualization UI) around it - see link:docs/contract-history-file-format.adoc[Contract History File Format].
 
-Setting `trackContractHistory = true` persists, across builds, a history of when each endpoint first reached each stage of its contract lifecycle - declared, implemented, verified.
+Setting `trackContractHistory = true` persists, across builds, a history of when each endpoint first reached each stage of its contract lifecycle - declared, implemented, stubbed, verified.
 The history is keyed by a fingerprint of the endpoint's own HTTP verb and path, not by which plugin observed it, so Shadow, Mirage, and Doppelganger API Detector can all advance the *same* record when pointed at the same `contractHistoryFile` - useful if you run more than one of these plugins against the same API.
-Doppelganger API Detector is the only one of the three plugins that always has evidence for all three stages - `declared` from the OpenAPI documentation, `implemented` from the scanned `@RestController` classes, and `verified` from whichever contract verification sources are enabled (an empty list when every source is disabled, still distinct from offering no evidence at all).
+Doppelganger API Detector always has evidence for three of the four stages - `declared` from the OpenAPI documentation, `implemented` from the scanned `@RestController` classes, and `verified` from whichever contract verification sources are enabled (an empty list when every source is disabled, still distinct from offering no evidence at all) - but never `stubbed`, since it has no visibility into WireMock stubs.
 The plugin itself has no dependency on git or any other version control system - branch-based control over when to advance the history (e.g. "only on `main`") is entirely a CI concern, expressed through `updateContractHistory`.
+
+CAUTION: A `contractHistoryFile` written before `stubbedAt` existed (9 fields instead of the current 10) fails to load with a clear error rather than being silently reinterpreted. Apply the link:../mirage-api-detector/README.adoc[Mirage API Detector] plugin and run its `migrateContractHistory` task against the file to upgrade it in place, or point `contractHistoryFile` at a new location to start a fresh history - see link:../mirage-api-detector/docs/contract-history-file-format.adoc#legacy-format[the format reference's migration section] for details.
 
 [cols="1,1,1,3",options="header"]
 |===
@@ -276,14 +278,14 @@ The file is always *read* when `trackContractHistory` is `true`, regardless of t
 
 [source,json]
 ----
-{"fingerprint":"a1f3c9d0e21b7f44","verb":"GET","path":"/orders/{id}","declaringClass":"com.example.OrderController","declaredAt":"2026-01-14T09:02:11Z","implementedAt":"2026-02-20T11:15:44Z","verifiedAt":"2026-03-01T10:00:00Z","lastSeenAt":"2026-08-12T07:00:00Z","removedAt":null}
+{"fingerprint":"a1f3c9d0e21b7f44","verb":"GET","path":"/orders/{id}","declaringClass":"com.example.OrderController","declaredAt":"2026-01-14T09:02:11Z","implementedAt":"2026-02-20T11:15:44Z","stubbedAt":null,"verifiedAt":"2026-03-01T10:00:00Z","lastSeenAt":"2026-08-12T07:00:00Z","removedAt":null}
 ----
 
 A missing `contractHistoryFile` is treated as an empty history, not an error.
 A line that fails to parse (e.g. hand-edited into something invalid) is skipped with a `WARNING`-level `java.util.logging` message identifying its line number; it never fails the build.
 A previously persisted record whose fingerprint is no longer present in the current scan is *never deleted* - it's kept exactly as it was, except its `removedAt` is stamped the first time it goes missing.
 
-The generated report reflects the loaded (and possibly just-advanced) history as a `== Progress Over Time` section, once `trackContractHistory` finds at least one record: a human-friendly `Tracked since` timestamp, how many endpoints were declared/implemented/verified in the last 7 and 30 days, and how many previously tracked endpoints are no longer seen in the current run.
+The generated report reflects the loaded (and possibly just-advanced) history as a `== Progress Over Time` section, once `trackContractHistory` finds at least one record: a human-friendly `Tracked since` timestamp, how many endpoints were declared/implemented/stubbed/verified in the last 7 and 30 days, and how many previously tracked endpoints are no longer seen in the current run.
 
 Like any other Gradle task, `detectDoppelgangerApis` is skipped as `UP-TO-DATE` when none of its declared inputs have changed since the last run.
 `contractHistoryFile`'s configured *path* (not its content, which the task itself manages) is one of those tracked inputs, so renaming or relocating it in the build script is, on its own, enough to make the task run again and write history to the newly configured location.
