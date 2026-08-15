@@ -289,12 +289,12 @@ class GenerateTrackerLensTaskTest {
         Path shadowHistory = tempDir.resolve("shadow-api-detector-contract-history.ndjson");
         Files.writeString(shadowHistory,
                 "{\"fingerprint\":\"ep1\",\"verb\":\"GET\",\"path\":\"/orders\",\"declaringClass\":null,"
-                + "\"declaredAt\":\"" + declared + "\",\"implementedAt\":null,\"verifiedAt\":null,"
+                + "\"declaredAt\":\"" + declared + "\",\"implementedAt\":null,\"stubbedAt\":null,\"verifiedAt\":null,"
                 + "\"lastSeenAt\":\"" + declared + "\",\"removedAt\":null}\n");
         Path mirageHistory = tempDir.resolve("mirage-api-detector-contract-history.ndjson");
         Files.writeString(mirageHistory,
                 "{\"fingerprint\":\"ep1\",\"verb\":\"GET\",\"path\":\"/orders\",\"declaringClass\":\"com.example.OrderController\","
-                + "\"declaredAt\":null,\"implementedAt\":\"" + implemented + "\",\"verifiedAt\":null,"
+                + "\"declaredAt\":null,\"implementedAt\":\"" + implemented + "\",\"stubbedAt\":null,\"verifiedAt\":null,"
                 + "\"lastSeenAt\":\"" + implemented + "\",\"removedAt\":null}\n");
 
         task.getTrackerSpecs().set(List.of(new TrackerSpec(
@@ -368,7 +368,7 @@ class GenerateTrackerLensTaskTest {
         Instant declared = now.minus(Duration.ofDays(5));
         Files.writeString(file,
                 "{\"fingerprint\":\"a1\",\"verb\":\"GET\",\"path\":\"/orders\",\"declaringClass\":\"com.example.OrderController\","
-                + "\"declaredAt\":\"" + declared + "\",\"implementedAt\":null,\"verifiedAt\":null,"
+                + "\"declaredAt\":\"" + declared + "\",\"implementedAt\":null,\"stubbedAt\":null,\"verifiedAt\":null,"
                 + "\"lastSeenAt\":\"" + now + "\",\"removedAt\":null}\n");
     }
 

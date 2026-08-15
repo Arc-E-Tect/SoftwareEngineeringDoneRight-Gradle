@@ -24,8 +24,11 @@ public enum TrackerSourceKind {
     /** Gherkin scenario progress history, stages {@code listed}, {@code defined}, {@code implemented}. */
     GHERKIN_SCENARIO(List.of("listed", "defined", "implemented"), GherkinScenarioTrackerSource::new, true),
 
-    /** API contract progress history, stages {@code declared}, {@code implemented}, {@code verified}. */
-    API_CONTRACT(List.of("declared", "implemented", "verified"), ApiContractTrackerSource::new, false);
+    /**
+     * API contract progress history, stages {@code declared}, {@code implemented},
+     * {@code stubbed}, {@code verified}.
+     */
+    API_CONTRACT(List.of("declared", "implemented", "stubbed", "verified"), ApiContractTrackerSource::new, false);
 
     private final List<String> stages;
     private final Supplier<TrackerSource> factory;
@@ -54,10 +57,10 @@ public enum TrackerSourceKind {
      * <p>True for {@link #GHERKIN_SCENARIO}: a scenario is implemented only after being defined,
      * and defined only after being listed, in the real authoring workflow - even though the
      * recorded data can skip an intermediate stamp. False for {@link #API_CONTRACT}: declared,
-     * implemented, and verified are independent conditions an endpoint may satisfy in any
-     * combination (e.g. implemented without being declared), so no single "current stage" captures
-     * its status - the dashboard's built-in metric cards use cumulative "reached at least this
-     * stage" counts instead.</p>
+     * implemented, stubbed, and verified are independent conditions an endpoint may satisfy in any
+     * combination (e.g. implemented without being declared, or stubbed without ever being
+     * implemented), so no single "current stage" captures its status - the dashboard's built-in
+     * metric cards use cumulative "reached at least this stage" counts instead.</p>
      *
      * @return {@code true} if this kind's stages form a dependency chain
      */

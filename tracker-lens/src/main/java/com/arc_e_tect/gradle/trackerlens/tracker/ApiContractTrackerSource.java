@@ -20,15 +20,20 @@ import java.util.regex.Pattern;
 /**
  * {@link TrackerSource} for the API-detector plugins' shared contract progress-history NDJSON,
  * one record per line with fields {@code fingerprint}, {@code verb}, {@code path},
- * {@code declaringClass}, {@code declaredAt}, {@code implementedAt}, {@code verifiedAt},
- * {@code lastSeenAt}, {@code removedAt}.
+ * {@code declaringClass}, {@code declaredAt}, {@code implementedAt}, {@code stubbedAt},
+ * {@code verifiedAt}, {@code lastSeenAt}, {@code removedAt}.
  *
  * <p>This module has no code dependency on {@code api-detector-core}; the schema below is
  * hand-parsed directly from the known, fixed NDJSON shape that library writes, the same way that
  * library's own store hand-parses it - see this class's Javadoc rather than any shared code for
- * the field-by-field mapping.</p>
+ * the field-by-field mapping. This is the <em>current</em>, 10-field shape; a 9-field file written
+ * before {@code stubbedAt} existed does not match {@link #LINE_PATTERN} at all and every one of
+ * its lines is logged and skipped as malformed - see {@code api-detector-core}'s
+ * {@code LegacyContractHistoryFormatException} for the equivalent, more specific failure on the
+ * writing side.</p>
  *
- * <p>Stages, in canonical order: {@code declared}, {@code implemented}, {@code verified}.</p>
+ * <p>Stages, in canonical order: {@code declared}, {@code implemented}, {@code stubbed},
+ * {@code verified}.</p>
  */
 public class ApiContractTrackerSource implements TrackerSource {
 
@@ -45,6 +50,7 @@ public class ApiContractTrackerSource implements TrackerSource {
             + "\"declaringClass\":" + NULLABLE_STRING_FIELD + ","
             + "\"declaredAt\":" + INSTANT_FIELD + ","
             + "\"implementedAt\":" + INSTANT_FIELD + ","
+            + "\"stubbedAt\":" + INSTANT_FIELD + ","
             + "\"verifiedAt\":" + INSTANT_FIELD + ","
             + "\"lastSeenAt\":" + INSTANT_FIELD + ","
             + "\"removedAt\":" + INSTANT_FIELD
@@ -90,9 +96,10 @@ public class ApiContractTrackerSource implements TrackerSource {
             String declaringClass = matcher.group(4) == null ? null : unescape(matcher.group(4));
             Instant declaredAt = parseInstant(matcher.group(5));
             Instant implementedAt = parseInstant(matcher.group(6));
-            Instant verifiedAt = parseInstant(matcher.group(7));
-            Instant lastSeenAt = parseInstant(matcher.group(8));
-            Instant removedAt = parseInstant(matcher.group(9));
+            Instant stubbedAt = parseInstant(matcher.group(7));
+            Instant verifiedAt = parseInstant(matcher.group(8));
+            Instant lastSeenAt = parseInstant(matcher.group(9));
+            Instant removedAt = parseInstant(matcher.group(10));
 
             Map<String, Instant> stages = new LinkedHashMap<>();
             if (declaredAt != null) {
@@ -100,6 +107,9 @@ public class ApiContractTrackerSource implements TrackerSource {
             }
             if (implementedAt != null) {
                 stages.put("implemented", implementedAt);
+            }
+            if (stubbedAt != null) {
+                stages.put("stubbed", stubbedAt);
             }
             if (verifiedAt != null) {
                 stages.put("verified", verifiedAt);

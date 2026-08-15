@@ -23,11 +23,12 @@
     --dashboard-muted: #d9d9d9;
     --dashboard-accent: #ffd60a;
 
-    /* Blue / yellow / purple only - never red or green - so series stay distinguishable for
+    /* Blue / yellow / purple / cyan only - never red or green - so series stay distinguishable for
        protanopia, deuteranopia, and tritanopia alike. */
     --dashboard-stage-1: #4db8ff;
     --dashboard-stage-2: #ffd60a;
     --dashboard-stage-3: #c77dff;
+    --dashboard-stage-4: #5ce1e6;
 }
 
 body {

@@ -31,7 +31,8 @@ class TrackerSourceKindTest {
     @Test
     @DisplayName("apiContractShouldExposeStagesInCanonicalOrder")
     void apiContractShouldExposeStagesInCanonicalOrder() {
-        assertThat(TrackerSourceKind.API_CONTRACT.stages()).containsExactly("declared", "implemented", "verified");
+        assertThat(TrackerSourceKind.API_CONTRACT.stages())
+                .containsExactly("declared", "implemented", "stubbed", "verified");
     }
 
     @Test
