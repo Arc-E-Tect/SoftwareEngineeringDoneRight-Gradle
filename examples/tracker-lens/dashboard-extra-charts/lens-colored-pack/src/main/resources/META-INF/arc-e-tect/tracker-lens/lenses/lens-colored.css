@@ -1,9 +1,12 @@
 /*
- * "lens-colored" - a custom lens (registered via trackerLens.lensStylesheet, so the switcher lists
- * it under the plugin's fixed "custom-lens" id) built on top of the bundled light lens, adding one
- * feature: the bdd-scenarios tracker box and each of api-contracts' four relabeled metric cards
- * (see dashboard-template.html) get a frame color reflecting how healthy that number is, computed
- * by this project's own <script> and handed in as the --frame-color custom property below.
+ * "lens-colored" - a lens-pack lens (this file's own name becomes its id, per the plugin's usual
+ * META-INF/arc-e-tect/tracker-lens/lenses/*.css convention) consumed by the sibling
+ * dashboard-extra-charts project as a lensStyle dependency on this lens-colored-pack project - see
+ * that project's own README for how the two are wired together. Built on top of the bundled light
+ * lens, adding one feature: the bdd-scenarios tracker box and each of api-contracts' four relabeled
+ * metric cards (see dashboard-extra-charts/dashboard-template.html) get a frame color reflecting how
+ * healthy that number is, computed by that project's own <script> and handed in as the
+ * --frame-color custom property below.
  *
  * The existing --percent fill-bar visualization on .metric-card - the accent color sweeping across
  * the card's border proportional to its own percent - is left completely intact; --frame-color only

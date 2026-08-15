@@ -1,0 +1,16 @@
+// A lens-pack jar: a jar containing one or more lens CSS files under the fixed
+// META-INF/arc-e-tect/tracker-lens/lenses/ resource path - see
+// src/main/resources/META-INF/arc-e-tect/tracker-lens/lenses/lens-colored.css in this project.
+//
+// No maven-publish here, and nothing to run to make it available - ../dashboard-extra-charts
+// consumes this project directly via a Gradle composite build (see its settings.gradle's
+// includeBuild('lens-colored-pack') and its own README), which substitutes the lensStyle
+// dependency below with this project's own build output. No publish step, no local Maven repo,
+// unlike ../../scaffolded-lens-pack's generated lens-pack, which is a real, standalone published
+// artifact and needs one.
+plugins {
+    id 'java-library'
+}
+
+group = 'com.arc-e-tect.tracker-lens.examples'
+version = '1.0.0'

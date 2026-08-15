@@ -40,8 +40,9 @@ its own markup and its own script to derive additional views the plugin itself n
   room for the pie beside it, which now sits in its own row underneath instead), and its x-axis
   extends 3 days past the tracker's projected completion date whenever one is available - see
   "Why The Trend Chart Extends Past Today" below.
-* A fourth lens, registered via `trackerLens.lensStylesheet` (so the switcher lists it under the
-  plugin's fixed `custom-lens` id) - see "The lens-colored Lens" below.
+* A fourth lens, `lens-colored`, published by a sibling project (`lens-colored-pack/`) and consumed
+  as an ordinary `lensStyle` dependency via a Gradle composite build - the switcher lists it under
+  its own real name, not a placeholder id - see "The lens-colored Lens" below.
 
 === Why the Gherkin pie reads `stageBreakdown`, not `series`
 
@@ -243,14 +244,25 @@ rate, it'll be a while," not a bug in the chart.
 
 == The lens-colored Lens
 
-A fourth lens, wired up via `trackerLens.lensStylesheet` rather than an external `lensStyle` pack
-(see `../custom-lens` for the same mechanism) - which means the switcher lists it under the plugin's
-fixed `custom-lens` id, not the file's own name. It's built on the bundled light lens with one
-addition: `bdd-scenarios`' whole tracker box, and each of `api-contracts`' four relabeled metric
-cards, get a frame color reflecting how healthy that number is, computed by this template's own
-script and handed to the CSS as a `--frame-color` custom property. The existing `--percent` fill-bar
-visualization every lens already has is left completely intact - `--frame-color` only changes *which*
-color that fill uses, from light-lens's fixed accent blue.
+A fourth lens, `lens-colored`, lives in a sibling project, `lens-colored-pack/` - a minimal
+`java-library` build whose only resource is
+`src/main/resources/META-INF/arc-e-tect/tracker-lens/lenses/lens-colored.css`, exactly the layout
+`../external-lens-pack`'s real, published lens pack uses. Unlike that example, this one is never
+published anywhere: this project's `settings.gradle` declares
+`includeBuild('lens-colored-pack')`, a Gradle composite build, so its
+`dependencies { lensStyle 'com.arc-e-tect.tracker-lens.examples:lens-colored-pack:1.0.0' }`
+resolves directly against `lens-colored-pack`'s own build output - no `mavenLocal()` publish step,
+no external repository, just `./gradlew generateTrackerLensDashboard` from a clean checkout. Because
+it's a real lens-pack lens rather than a `trackerLens.lensStylesheet`-registered one (see
+`../custom-lens` for that simpler, single-file mechanism, which only ever gets the plugin's fixed
+`custom-lens` id), the switcher lists it under its own real name.
+
+`lens-colored.css` is built on the bundled light lens with one addition: `bdd-scenarios`' whole
+tracker box, and each of `api-contracts`' four relabeled metric cards, get a frame color reflecting
+how healthy that number is, computed by this template's own script and handed to the CSS as a
+`--frame-color` custom property. The existing `--percent` fill-bar visualization every lens already
+has is left completely intact - `--frame-color` only changes *which* color that fill uses, from
+light-lens's fixed accent blue.
 
 `bdd-scenarios` gets one color for its whole tracker box, from its "implemented" stage's own percent
 (a single, coherent "how done is this" number, unlike `api-contracts`' four independent checks):
@@ -291,14 +303,21 @@ Unverified), and `GET /api/orders/{id}` (declared, implemented, and verified: Co
 
 == Configuration
 
+`settings.gradle` brings in `lens-colored-pack` as a composite build (see "The lens-colored Lens"
+above):
+
+[source,groovy]
+----
+includeBuild('lens-colored-pack')
+----
+
+`build.gradle` consumes it like any other `lensStyle` dependency - the composite build is what makes
+this resolve without a publish step, not anything special about the dependency declaration itself:
+
 [source,groovy]
 ----
 trackerLens {
     template = file('dashboard-template.html')
-
-    // See "The lens-colored Lens" above - listed in the switcher as "custom-lens", the plugin's
-    // fixed id for a lensStylesheet-supplied lens, not this file's own name.
-    lensStylesheet = file('lens-colored.css')
 
     trackers {
         register('bdd-scenarios') {
@@ -310,6 +329,10 @@ trackerLens {
             source = com.arc_e_tect.gradle.trackerlens.TrackerSourceKind.API_CONTRACT
         }
     }
+}
+
+dependencies {
+    lensStyle 'com.arc-e-tect.tracker-lens.examples:lens-colored-pack:1.0.0'
 }
 ----
 
@@ -338,12 +361,12 @@ through regardless of which template rendered it. Open `build/reports/tracker-le
   chart (still labeled declared/implemented/verified - the raw history, unchanged), full width with
   its own forecast segment; and underneath it, one pie with the same four names and counts, summing
   visibly to 20, each a distinct color including `Compliant`'s violet.
-* The lens switcher now offers four options - `custom-lens` (this example's `lens-colored`),
-  `dark-lens`, `high-contrast-lens`, `light-lens`. Selecting `custom-lens` frames `bdd-scenarios`'
-  whole tracker box in green (67% implemented lands in its top band) and colors each of
-  `api-contracts`' four cards independently - Undefined and Unimplemented amber (31% and 44%),
-  Unverified yellow (exactly 25%), Compliant orange (20%) - per the tables above. Every other lens
-  leaves all of these frames at their normal, uncolored border.
+* The lens switcher now offers four options - `dark-lens`, `high-contrast-lens`, `lens-colored`,
+  `light-lens`. Selecting `lens-colored` frames `bdd-scenarios`' whole tracker box in green (67%
+  implemented lands in its top band) and colors each of `api-contracts`' four cards independently -
+  Undefined and Unimplemented amber (31% and 44%), Unverified yellow (exactly 25%), Compliant orange
+  (20%) - per the tables above. Every other lens leaves all of these frames at their normal,
+  uncolored border.
 
 Switching lenses otherwise still works exactly as in `../plain`, since the lens switcher and every
 contract-bound element are untouched - only the two added charts, the forecast segment, and
