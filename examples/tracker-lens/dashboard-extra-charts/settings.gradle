@@ -16,3 +16,8 @@ refreshVersions {
 }
 
 rootProject.name = 'tracker-lens-dashboard-extra-charts-example'
+
+// Composite build: substitutes the lensStyle dependency in build.gradle with lens-colored-pack's
+// own build output directly, so its "lens-colored" lens is available with no separate publish
+// step - see lens-colored-pack/build.gradle and this project's own README for why.
+includeBuild('lens-colored-pack')

@@ -7,10 +7,6 @@ trackerLens {
     // project-supplied copy only adds two extra, non-contract charts (see dashboard-template.html).
     template = file('dashboard-template.html')
 
-    // Registered via lensStylesheet, so the switcher lists it under the plugin's fixed "custom-lens"
-    // id rather than this file's own name - see lens-colored.css's own header comment for what it does.
-    lensStylesheet = file('lens-colored.css')
-
     trackers {
         register('bdd-scenarios') {
             historyFiles.from(file('gherkin-progress-history.ndjson'))
@@ -21,4 +17,11 @@ trackerLens {
             source = com.arc_e_tect.gradle.trackerlens.TrackerSourceKind.API_CONTRACT
         }
     }
+}
+
+dependencies {
+    // Substituted with lens-colored-pack's own build output by the composite build declared in
+    // settings.gradle - its "lens-colored" lens appears in the switcher under its own name, not the
+    // fixed "custom-lens" id a trackerLens.lensStylesheet-registered lens would get.
+    lensStyle 'com.arc-e-tect.tracker-lens.examples:lens-colored-pack:1.0.0'
 }
