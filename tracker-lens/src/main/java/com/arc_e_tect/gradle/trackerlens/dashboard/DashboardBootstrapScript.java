@@ -44,7 +44,7 @@ final class DashboardBootstrapScript {
                 new Chart(canvas.getContext('2d'), {
                   type: 'line',
                   data: { labels: tracker.dates, datasets: datasets },
-                  options: { responsive: true, plugins: { legend: { display: true } } }
+                  options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: true } } }
                 });
               });
 
