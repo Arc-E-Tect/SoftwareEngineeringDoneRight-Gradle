@@ -1,3 +1,45 @@
+# [1.0.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/tracker-lens-v0.5.0...tracker-lens-v1.0.0) (2026-08-15)
+
+
+### ✨ New and updated features
+
+* **shadow-api-detector:** adapt to api-detector-core's narrower implementedAt semantics ([#158](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/158)) ([ab1c5e7](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/ab1c5e7a8cdb4572f5e3b1684262937078556d23)), closes [#158](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/158)
+* **doppelganger-api-detector:** adapt to api-detector-core's narrower implementedAt semantics ([#159](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/159)) ([d83230f](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/d83230f5cd11ea2455ba29f01dbb5c90623758cb)), closes [#159](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/159)
+* **tracker-lens:** add stubbed stage for the API_CONTRACT tracker source ([#160](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/160)) ([57a45b5](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/57a45b50e81b16b4bb40303cc88b25464857348a)), closes [#160](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/160) [light/dark/hi#contrast](https://github.com/light/dark/hi/issues/contrast) [hi#contrast](https://github.com/hi/issues/contrast)
+* **mirage-api-detector:** separate real implementation evidence from stub evidence in contract history ([#157](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/157)) ([d62db26](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/d62db26abbdd96841ea410802953c9e33d168371)), closes [#157](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/157)
+
+
+### 🐛 Bug Fixes
+
+* **tracker-lens:** serialize release workflow runs to stop version races ([#156](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/156)) ([c4d9e79](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/c4d9e798b56ae06077dc6a2429f06eae9d08af44)), closes [#156](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/156)
+
+
+### BREAKING CHANGE
+
+* **tracker-lens:** a contractHistoryFile written by a pre-stubbedAt version
+of the API detector plugins (9 fields) no longer matches
+ApiContractTrackerSource's parser at all and is now skipped as malformed
+line-by-line, same as any other unparseable line - producing an empty
+tracker section rather than a populated one. Consumers should upgrade
+their contractHistoryFile (see mirage-api-detector's migrateContractHistory
+task) before regenerating a dashboard against it. A custom lens that
+doesn't yet define a 4th --dashboard-stage-N color will fall back to
+reusing stage-1's color for the new stubbed series.
+* **doppelganger-api-detector:** an existing contractHistoryFile (9 fields, no stubbedAt)
+now fails detectDoppelgangerApis with a clear error instead of loading.
+Apply mirage-api-detector and run its migrateContractHistory task once to
+upgrade the file in place, or point contractHistoryFile at a new location
+to start fresh.
+* **shadow-api-detector:** an existing contractHistoryFile (9 fields, no stubbedAt)
+now fails detectShadowApis with a clear error instead of loading. Apply
+mirage-api-detector and run its migrateContractHistory task once to
+upgrade the file in place, or point contractHistoryFile at a new location
+to start fresh.
+* **mirage-api-detector:** an existing contractHistoryFile (9 fields, no stubbedAt)
+now fails detectMirageApis with a clear error instead of loading. Run
+migrateContractHistory once to upgrade it in place, or point
+contractHistoryFile at a new location to start fresh.
+
 # [0.5.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/tracker-lens-v0.4.0...tracker-lens-v0.5.0) (2026-08-15)
 
 
