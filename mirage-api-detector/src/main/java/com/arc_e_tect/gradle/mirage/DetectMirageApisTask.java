@@ -7,6 +7,7 @@ import com.arc_e_tect.gradle.detector.core.openapi.OpenApiEndpointCollector;
 import com.arc_e_tect.gradle.detector.core.progress.ContractHistoryStore;
 import com.arc_e_tect.gradle.detector.core.progress.ContractHistoryUpdater;
 import com.arc_e_tect.gradle.detector.core.progress.ContractProgressRecord;
+import com.arc_e_tect.gradle.detector.core.progress.LegacyContractHistoryFormatException;
 import com.arc_e_tect.gradle.detector.core.scan.ControllerScanner;
 import com.arc_e_tect.gradle.mirage.detect.MirageApiFinder;
 import com.arc_e_tect.gradle.mirage.report.MirageApiReportWriter;
@@ -217,7 +218,7 @@ public abstract class DetectMirageApisTask extends DefaultTask {
         List<DescribedEndpoint> mirages = new MirageApiFinder().findMirages(described, endpoints);
 
         Map<String, ContractProgressRecord> contractHistory = getTrackContractHistory().get()
-                ? updateContractHistory(endpoints, described) : Map.of();
+                ? updateContractHistory(endpoints, scanMocks, described) : Map.of();
 
         File outputDir = getReportDir().getAsFile().get();
         File outputFile = new File(outputDir, getReportFileName().get());
@@ -242,20 +243,39 @@ public abstract class DetectMirageApisTask extends DefaultTask {
     }
 
     /**
-     * Loads the persisted contract progress history, advances it with the current run's implemented
-     * (controller- or stub-derived) and declared endpoints (Mirage API Detector never has
-     * verification evidence to offer), and - only when {@link #getUpdateContractHistory()} resolves
-     * to {@code true} - saves it back. The history file is always read regardless of
-     * {@link #getUpdateContractHistory()}, so the generated report reflects the up-to-date-in-memory
-     * history even on a run that doesn't persist it.
+     * Loads the persisted contract progress history, advances it with the current run's declared
+     * endpoints and either implemented (controller-derived) or stubbed (WireMock-derived) endpoints,
+     * depending on {@code scanMocks} (Mirage API Detector never has verification evidence to offer),
+     * and - only when {@link #getUpdateContractHistory()} resolves to {@code true} - saves it back.
+     * The history file is always read regardless of {@link #getUpdateContractHistory()}, so the
+     * generated report reflects the up-to-date-in-memory history even on a run that doesn't persist
+     * it.
+     *
+     * @param endpoints  the current run's scanned endpoints - real {@code @RestController} matches
+     *                   when {@code scanMocks} is {@code false}, WireMock stub matches otherwise
+     * @param scanMocks  whether {@code endpoints} came from scanning WireMock stubs rather than
+     *                   {@code @RestController} classes; determines whether {@code endpoints} is
+     *                   passed to the updater as implementation evidence or stub evidence
+     * @param declaredNow the current run's declared endpoints, from the OpenAPI documentation
      */
     private Map<String, ContractProgressRecord> updateContractHistory(
-            List<Endpoint> implementedNow, List<DescribedEndpoint> declaredNow) {
+            List<Endpoint> endpoints, boolean scanMocks, List<DescribedEndpoint> declaredNow) {
+        List<Endpoint> implementedNow = scanMocks ? List.of() : endpoints;
+        List<Endpoint> stubbedNow = scanMocks ? endpoints : null;
+
         File historyFile = getContractHistoryFile().getAsFile().get();
         ContractHistoryStore store = new ContractHistoryStore();
-        Map<String, ContractProgressRecord> previous = store.load(historyFile);
-        Map<String, ContractProgressRecord> updated =
-                new ContractHistoryUpdater().update(previous, implementedNow, declaredNow, null, Instant.now());
+        Map<String, ContractProgressRecord> previous;
+        try {
+            previous = store.load(historyFile);
+        } catch (LegacyContractHistoryFormatException e) {
+            throw new GradleException("mirageApiDetector: " + historyFile + " is in the old 9-field "
+                    + "contract history format (missing 'stubbedAt'). Run the 'migrateContractHistory' task "
+                    + "to upgrade it in place, or point contractHistoryFile at a new location to start a "
+                    + "fresh history.", e);
+        }
+        Map<String, ContractProgressRecord> updated = new ContractHistoryUpdater()
+                .update(previous, implementedNow, declaredNow, null, stubbedNow, Instant.now());
         if (getUpdateContractHistory().get()) {
             store.save(historyFile, updated.values());
         }

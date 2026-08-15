@@ -279,6 +279,60 @@ class MirageApiDetectorPluginTest {
                 .anyMatch(t -> t.getName().equals(MirageApiDetectorPlugin.TASK_NAME));
     }
 
+    @Test
+    @DisplayName("registers the migrateContractHistory task when applied")
+    void registersMigrateContractHistoryTask() {
+        Project project = projectWithPlugin();
+
+        assertThat(project.getTasks().findByName(MirageApiDetectorPlugin.MIGRATE_CONTRACT_HISTORY_TASK_NAME))
+                .isNotNull();
+    }
+
+    @Test
+    @DisplayName("migrateContractHistory defaults both controllerDirs and stubDirs regardless of scanMocks")
+    void migrateContractHistoryDefaultsBothDirsRegardlessOfScanMocks() {
+        Project project = projectWithPlugin();
+
+        ((ProjectInternal) project).evaluate();
+
+        MigrateContractHistoryTask task = (MigrateContractHistoryTask) project.getTasks()
+                .getByName(MirageApiDetectorPlugin.MIGRATE_CONTRACT_HISTORY_TASK_NAME);
+        assertThat(task.getControllerDirs().getFiles())
+                .containsExactly(new File(project.getProjectDir(), "src/main/java"));
+        assertThat(task.getStubDirs().getFiles())
+                .containsExactly(new File(project.getProjectDir(), "src/test/resources/mappings"));
+    }
+
+    @Test
+    @DisplayName("migrateContractHistory does not override controllerDirs/stubDirs configured explicitly by the user")
+    void migrateContractHistoryDoesNotOverrideExplicitDirs() {
+        Project project = projectWithPlugin();
+        File customControllerDir = new File(project.getProjectDir(), "src/web/java");
+        File customStubDir = new File(project.getProjectDir(), "src/test/resources/stubs");
+        extension(project).getControllerDirs().from(customControllerDir);
+        extension(project).getStubDirs().from(customStubDir);
+
+        ((ProjectInternal) project).evaluate();
+
+        MigrateContractHistoryTask task = (MigrateContractHistoryTask) project.getTasks()
+                .getByName(MirageApiDetectorPlugin.MIGRATE_CONTRACT_HISTORY_TASK_NAME);
+        assertThat(task.getControllerDirs().getFiles()).containsExactly(customControllerDir);
+        assertThat(task.getStubDirs().getFiles()).containsExactly(customStubDir);
+    }
+
+    @Test
+    @DisplayName("wires migrateContractHistory's contractHistoryFile from the extension")
+    void wiresMigrateContractHistoryFileFromExtension() {
+        Project project = projectWithPlugin();
+
+        ((ProjectInternal) project).evaluate();
+
+        MigrateContractHistoryTask task = (MigrateContractHistoryTask) project.getTasks()
+                .getByName(MirageApiDetectorPlugin.MIGRATE_CONTRACT_HISTORY_TASK_NAME);
+        assertThat(task.getContractHistoryFile().get().getAsFile())
+                .isEqualTo(new File(project.getProjectDir(), "mirage-api-detector-contract-history.ndjson"));
+    }
+
     private Project projectWithPlugin() {
         Project project = ProjectBuilder.builder().withProjectDir(tempDir.toFile()).build();
         project.getPluginManager().apply("java");

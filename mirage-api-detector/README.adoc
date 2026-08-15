@@ -214,8 +214,9 @@ mirageApiDetector {
 
 [cols="2,1,3",options="header"]
 |===
-| Task name           | Group        | Description
-| `detectMirageApis`  | verification | Scans the OpenAPI documentation and reports operations with no matching implementation (a `@RestController` class by default, or a WireMock stub when `scanMocks` is true).
+| Task name               | Group        | Description
+| `detectMirageApis`      | verification | Scans the OpenAPI documentation and reports operations with no matching implementation (a `@RestController` class by default, or a WireMock stub when `scanMocks` is true).
+| `migrateContractHistory` | verification | One-off, manually-invoked migration of `contractHistoryFile` from the old 9-field format to the current 10-field format. Not run automatically. See "Tracking Contract History" below.
 |===
 
 The task is **not** wired into `check` or `build` automatically. Teams that write their OpenAPI documentation ahead of the implementation - a common "spec-first" workflow - would otherwise see every build fail on endpoints that simply have not been built yet.
@@ -270,10 +271,17 @@ The `@RestController` progress line only appears when `scanMocks` is `false`; sc
 
 NOTE: For a complete field-by-field reference to `contractHistoryFile` - its exact JSON schema, fingerprint algorithm, lifecycle semantics, and guidance for building tooling (including a visualization UI) around it - see link:docs/contract-history-file-format.adoc[Contract History File Format].
 
-Setting `trackContractHistory = true` persists, across builds, a history of when each endpoint first reached each stage of its contract lifecycle - declared, implemented, verified.
+Setting `trackContractHistory = true` persists, across builds, a history of when each endpoint first reached each stage of its contract lifecycle - declared, implemented, stubbed, verified.
 The history is keyed by a fingerprint of the endpoint's own HTTP verb and path, not by which plugin observed it, so Shadow, Mirage, and Doppelganger API Detector can all advance the *same* record when pointed at the same `contractHistoryFile` - useful if you run more than one of these plugins against the same API.
-Mirage API Detector only ever has evidence for the `declared` and `implemented` stages (from the OpenAPI documentation, and from either the scanned `@RestController` classes or WireMock stubs depending on `scanMocks`); it never advances `verifiedAt`, since it has no visibility into contract verification evidence.
+Mirage API Detector only ever has evidence for the `declared` stage plus exactly one of `implemented`/`stubbed` per run, depending on `scanMocks`: a real `@RestController` match advances `implementedAt`, a WireMock stub match advances `stubbedAt` - never both from the same run, since `scanMocks` picks one source or the other. It never advances `verifiedAt`, since it has no visibility into contract verification evidence.
 The plugin itself has no dependency on git or any other version control system - branch-based control over when to advance the history (e.g. "only on `main`") is entirely a CI concern, expressed through `updateContractHistory`.
+
+[CAUTION]
+====
+`implementedAt` means **real implementation evidence only** - a WireMock stub match never sets it. This is a deliberate, breaking change from earlier versions of this plugin, which stamped `implementedAt` from *either* a real controller *or* a stub match, with no way to tell which after the fact.
+
+If you have an existing `contractHistoryFile` from before this change (9 fields, no `stubbedAt`), every `detectMirageApis`/`detectShadowApis`/`detectDoppelgangerApis` run against it now fails outright with a clear error, rather than silently reinterpreting its ambiguous `implementedAt` values under the new, narrower meaning. Run `./gradlew migrateContractHistory` once to upgrade the file in place - see <<migrating-legacy-contract-history>> below - or point `contractHistoryFile` at a new location to start a fresh history instead.
+====
 
 [cols="1,1,1,3",options="header"]
 |===
@@ -289,14 +297,41 @@ The file is always *read* when `trackContractHistory` is `true`, regardless of t
 
 [source,json]
 ----
-{"fingerprint":"a1f3c9d0e21b7f44","verb":"GET","path":"/orders/{id}","declaringClass":"com.example.OrderController","declaredAt":"2026-01-14T09:02:11Z","implementedAt":"2026-02-20T11:15:44Z","verifiedAt":null,"lastSeenAt":"2026-08-12T07:00:00Z","removedAt":null}
+{"fingerprint":"a1f3c9d0e21b7f44","verb":"GET","path":"/orders/{id}","declaringClass":"com.example.OrderController","declaredAt":"2026-01-14T09:02:11Z","implementedAt":"2026-02-20T11:15:44Z","stubbedAt":null,"verifiedAt":null,"lastSeenAt":"2026-08-12T07:00:00Z","removedAt":null}
 ----
 
 A missing `contractHistoryFile` is treated as an empty history, not an error.
 A line that fails to parse (e.g. hand-edited into something invalid) is skipped with a `WARNING`-level `java.util.logging` message identifying its line number; it never fails the build.
 A previously persisted record whose fingerprint is no longer present in the current scan is *never deleted* - it's kept exactly as it was, except its `removedAt` is stamped the first time it goes missing.
 
-The generated report reflects the loaded (and possibly just-advanced) history as a `== Progress Over Time` section, once `trackContractHistory` finds at least one record: a human-friendly `Tracked since` timestamp, how many endpoints were declared/implemented/verified in the last 7 and 30 days, and how many previously tracked endpoints are no longer seen in the current run.
+The generated report reflects the loaded (and possibly just-advanced) history as a `== Progress Over Time` section, once `trackContractHistory` finds at least one record: a human-friendly `Tracked since` timestamp, how many endpoints were declared/implemented/stubbed/verified in the last 7 and 30 days, and how many previously tracked endpoints are no longer seen in the current run.
+
+[#migrating-legacy-contract-history]
+=== Migrating legacy contract history (9-field format)
+
+[CAUTION]
+====
+This is a **one-off, manually-invoked task, not part of the normal build**. It re-scans your project's *current* `controllerDirs` and `stubDirs` to reconstruct, for every legacy record, whether its old `implementedAt` value should now count as real implementation evidence, stub evidence, both, or neither - it has no way to know what those directories looked like back when the timestamp was first recorded, so this is a best-effort reconstruction, not a lossless one. The original file is backed up alongside itself as `<file>.bak` before being overwritten, but **review the migrated file (or its version-controlled diff) before committing the result.**
+====
+
+[source,shell]
+----
+./gradlew migrateContractHistory
+----
+
+Every legacy record with a non-null `implementedAt` is reconstructed as follows; records with no `implementedAt` (declared-only) are carried over unchanged:
+
+[cols="1,3",options="header"]
+|===
+| Current state (re-scanned) | Outcome
+| Matches a controller only | `implementedAt` kept; `stubbedAt` stays `null`; `declaringClass` refreshed.
+| Matches a stub only | `implementedAt` becomes `null`; `stubbedAt` takes the old value; `declaringClass` becomes `null`.
+| Matches both | Both `implementedAt` and `stubbedAt` take the old value; `declaringClass` refreshed from the controller match.
+| Matches neither, not already removed | Both `implementedAt` and `stubbedAt` take the old value; `removedAt` is stamped with the migration's own run time.
+| Already marked `removedAt` | Both `implementedAt` and `stubbedAt` are cleared to `null` - nothing left to re-verify for an endpoint that's already gone.
+|===
+
+See link:docs/contract-history-file-format.adoc#legacy-format[the full format reference's "Migrating from the legacy 9-field format" section] for the complete rationale behind each rule.
 
 Like any other Gradle task, `detectMirageApis` is skipped as `UP-TO-DATE` when none of its declared inputs have changed since the last run.
 `contractHistoryFile`'s configured *path* (not its content, which the task itself manages) is one of those tracked inputs, so renaming or relocating it in the build script is, on its own, enough to make the task run again and write history to the newly configured location.
