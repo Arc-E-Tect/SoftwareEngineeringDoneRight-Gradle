@@ -29,21 +29,39 @@ public class TrackerViewFactory {
     /**
      * Builds the view for one tracker.
      *
-     * @param trackerId  the tracker's registered id
-     * @param stages     the tracker's canonical stage names, in order
-     * @param records    the tracker's records
-     * @param projection the tracker's completion projection, if available
-     * @param now        the instant to render as of
+     * @param trackerId                   the tracker's registered id
+     * @param stages                      the tracker's canonical stage names, in order
+     * @param records                     the tracker's records
+     * @param projection                  the tracker's completion projection, if available
+     * @param now                         the instant to render as of
+     * @param stagesFormADependencyChain  whether an item can only reach a later stage by having
+     *                                    already passed through every earlier one, e.g. Gherkin
+     *                                    scenarios ({@code true}). When {@code true}, metric card
+     *                                    counts are each item's single current stage (mutually
+     *                                    exclusive, summing to the total). When {@code false},
+     *                                    e.g. API contracts, stages are independent conditions an
+     *                                    item may reach in any combination, so metric card counts
+     *                                    stay cumulative "reached at least this stage" counts.
      * @return the built view
      */
     public TrackerView build(String trackerId, List<String> stages, List<LifecycleRecord> records,
-            Optional<Projection> projection, Instant now) {
+            Optional<Projection> projection, Instant now, boolean stagesFormADependencyChain) {
         List<LifecycleRecord> active = records.stream().filter(record -> record.removedAt() == null).toList();
         int totalCount = active.size();
 
+        Map<String, Integer> stageBreakdown = new LinkedHashMap<>();
+        for (String stage : stages) {
+            stageBreakdown.put(stage, 0);
+        }
+        for (LifecycleRecord record : active) {
+            record.latestStage(stages).ifPresent(stage -> stageBreakdown.merge(stage, 1, Integer::sum));
+        }
+
         List<MetricCardView> metrics = new ArrayList<>();
         for (String stage : stages) {
-            long count = active.stream().filter(record -> record.hasReached(stage)).count();
+            long count = stagesFormADependencyChain
+                    ? stageBreakdown.get(stage)
+                    : active.stream().filter(record -> record.hasReached(stage)).count();
             int percent = totalCount == 0 ? 0 : Math.round(count * 100f / totalCount);
             metrics.add(new MetricCardView(stage, (int) count, percent));
         }
@@ -63,14 +81,6 @@ public class TrackerViewFactory {
                 .filter(record -> !record.hasReached(finalStage))
                 .filter(record -> mostRecentActivity(record).isBefore(now.minus(STALE_THRESHOLD)))
                 .toList();
-
-        Map<String, Integer> stageBreakdown = new LinkedHashMap<>();
-        for (String stage : stages) {
-            stageBreakdown.put(stage, 0);
-        }
-        for (LifecycleRecord record : active) {
-            record.latestStage(stages).ifPresent(stage -> stageBreakdown.merge(stage, 1, Integer::sum));
-        }
 
         return new TrackerView(
                 trackerId, stages, metrics, totalCount, projection, chartDates, chartSeries, staleItems,

@@ -222,13 +222,14 @@ class DashboardHtmlWriterTest {
         Projection gherkinProjection = new Projection(NOW.plus(Duration.ofDays(5)), 1, 2, 0.1, Confidence.LOW);
         TrackerView gherkinView = factory.build(
                 "bdd-scenarios", List.of("listed", "defined", "implemented"), gherkinRecords,
-                Optional.of(gherkinProjection), NOW);
+                Optional.of(gherkinProjection), NOW, true);
 
         List<LifecycleRecord> apiRecords = List.of(
                 new LifecycleRecord("a1", "GET /orders", "com.example.OrderController",
                         Map.of("declared", NOW.minus(Duration.ofDays(2))), NOW, null));
         TrackerView apiView = factory.build(
-                "api-contracts", List.of("declared", "implemented", "verified"), apiRecords, Optional.empty(), NOW);
+                "api-contracts", List.of("declared", "implemented", "verified"), apiRecords, Optional.empty(), NOW,
+                false);
 
         List<ResolvedLens> lenses = List.of(
                 new ResolvedLens("light-lens", "built-in", "body{background:#fff}".getBytes(StandardCharsets.UTF_8)),
