@@ -1,3 +1,10 @@
+## [0.3.1](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/tracker-lens-v0.3.0...tracker-lens-v0.3.1) (2026-08-15)
+
+
+### 🐛 Bug Fixes
+
+* **tracker-lens:** use stageBreakdown for GHERKIN_SCENARIO metric cards ([#149](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/149)) ([6d7c99b](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/6d7c99b5ee21cf879f747184aed58c2572572221)), closes [#149](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/149)
+
 # [0.3.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/tracker-lens-v0.2.0...tracker-lens-v0.3.0) (2026-08-14)
 
 
