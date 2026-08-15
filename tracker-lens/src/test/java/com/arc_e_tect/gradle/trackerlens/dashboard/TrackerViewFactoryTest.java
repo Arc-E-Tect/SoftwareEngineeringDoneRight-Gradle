@@ -21,17 +21,33 @@ class TrackerViewFactoryTest {
     private final TrackerViewFactory factory = new TrackerViewFactory();
 
     @Test
-    @DisplayName("buildShouldComputeMetricCountAndPercentPerStage")
-    void buildShouldComputeMetricCountAndPercentPerStage() {
+    @DisplayName("buildShouldComputeCumulativeMetricCountAndPercentPerStageWhenStagesAreIndependent")
+    void buildShouldComputeCumulativeMetricCountAndPercentPerStageWhenStagesAreIndependent() {
         List<LifecycleRecord> records = List.of(
                 new LifecycleRecord("1", "a", null, Map.of("listed", NOW), NOW, null),
                 new LifecycleRecord("2", "b", null, Map.of("listed", NOW, "defined", NOW), NOW, null));
 
-        TrackerView view = factory.build("t", STAGES, records, Optional.empty(), NOW);
+        TrackerView view = factory.build("t", STAGES, records, Optional.empty(), NOW, false);
 
         assertThat(view.metrics()).extracting(MetricCardView::stage, MetricCardView::count, MetricCardView::percent)
                 .containsExactly(
                         org.assertj.core.groups.Tuple.tuple("listed", 2, 100),
+                        org.assertj.core.groups.Tuple.tuple("defined", 1, 50),
+                        org.assertj.core.groups.Tuple.tuple("implemented", 0, 0));
+    }
+
+    @Test
+    @DisplayName("buildShouldComputeCurrentStageMetricCountAndPercentPerStageWhenStagesFormADependencyChain")
+    void buildShouldComputeCurrentStageMetricCountAndPercentPerStageWhenStagesFormADependencyChain() {
+        List<LifecycleRecord> records = List.of(
+                new LifecycleRecord("1", "a", null, Map.of("listed", NOW), NOW, null),
+                new LifecycleRecord("2", "b", null, Map.of("listed", NOW, "defined", NOW), NOW, null));
+
+        TrackerView view = factory.build("t", STAGES, records, Optional.empty(), NOW, true);
+
+        assertThat(view.metrics()).extracting(MetricCardView::stage, MetricCardView::count, MetricCardView::percent)
+                .containsExactly(
+                        org.assertj.core.groups.Tuple.tuple("listed", 1, 50),
                         org.assertj.core.groups.Tuple.tuple("defined", 1, 50),
                         org.assertj.core.groups.Tuple.tuple("implemented", 0, 0));
     }
@@ -43,7 +59,7 @@ class TrackerViewFactoryTest {
                 new LifecycleRecord("1", "a", null, Map.of("listed", NOW), NOW, null),
                 new LifecycleRecord("2", "b", null, Map.of("listed", NOW), NOW, NOW));
 
-        TrackerView view = factory.build("t", STAGES, records, Optional.empty(), NOW);
+        TrackerView view = factory.build("t", STAGES, records, Optional.empty(), NOW, false);
 
         assertThat(view.totalCount()).isEqualTo(1);
     }
@@ -55,7 +71,7 @@ class TrackerViewFactoryTest {
         List<LifecycleRecord> records = List.of(
                 new LifecycleRecord("1", "stale-one", null, Map.of("listed", longAgo), longAgo, null));
 
-        TrackerView view = factory.build("t", STAGES, records, Optional.empty(), NOW);
+        TrackerView view = factory.build("t", STAGES, records, Optional.empty(), NOW, false);
 
         assertThat(view.staleItems()).extracting(LifecycleRecord::id).containsExactly("1");
     }
@@ -66,7 +82,7 @@ class TrackerViewFactoryTest {
         List<LifecycleRecord> records = List.of(
                 new LifecycleRecord("1", "fresh", null, Map.of("listed", NOW), NOW, null));
 
-        TrackerView view = factory.build("t", STAGES, records, Optional.empty(), NOW);
+        TrackerView view = factory.build("t", STAGES, records, Optional.empty(), NOW, false);
 
         assertThat(view.staleItems()).isEmpty();
     }
@@ -74,7 +90,7 @@ class TrackerViewFactoryTest {
     @Test
     @DisplayName("buildShouldProduceThirtyChartDatesEndingToday")
     void buildShouldProduceThirtyChartDatesEndingToday() {
-        TrackerView view = factory.build("t", STAGES, List.of(), Optional.empty(), NOW);
+        TrackerView view = factory.build("t", STAGES, List.of(), Optional.empty(), NOW, false);
 
         assertThat(view.chartDates()).hasSize(30);
     }
@@ -89,7 +105,7 @@ class TrackerViewFactoryTest {
                 new LifecycleRecord("3", "implemented", null,
                         Map.of("listed", NOW, "defined", NOW, "implemented", NOW), NOW, null));
 
-        TrackerView view = factory.build("t", STAGES, records, Optional.empty(), NOW);
+        TrackerView view = factory.build("t", STAGES, records, Optional.empty(), NOW, false);
 
         assertThat(view.stageBreakdown()).containsExactly(
                 Map.entry("listed", 1), Map.entry("defined", 1), Map.entry("implemented", 1));
@@ -108,7 +124,7 @@ class TrackerViewFactoryTest {
                 new LifecycleRecord("1", "skipped-defined", null,
                         Map.of("listed", NOW, "implemented", NOW), NOW, null));
 
-        TrackerView view = factory.build("t", STAGES, records, Optional.empty(), NOW);
+        TrackerView view = factory.build("t", STAGES, records, Optional.empty(), NOW, false);
 
         assertThat(view.stageBreakdown()).containsExactly(
                 Map.entry("listed", 0), Map.entry("defined", 0), Map.entry("implemented", 1));
@@ -120,7 +136,7 @@ class TrackerViewFactoryTest {
         List<LifecycleRecord> records = List.of(
                 new LifecycleRecord("1", "removed", null, Map.of("listed", NOW), NOW, NOW));
 
-        TrackerView view = factory.build("t", STAGES, records, Optional.empty(), NOW);
+        TrackerView view = factory.build("t", STAGES, records, Optional.empty(), NOW, false);
 
         assertThat(view.stageBreakdown()).containsExactly(
                 Map.entry("listed", 0), Map.entry("defined", 0), Map.entry("implemented", 0));

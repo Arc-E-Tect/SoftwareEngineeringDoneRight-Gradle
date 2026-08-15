@@ -186,7 +186,8 @@ public abstract class GenerateTrackerLensTask extends DefaultTask {
             int totalCount = (int) merged.stream().filter(record -> record.removedAt() == null).count();
             java.util.Optional<Projection> projection =
                     progressProjector.project(merged, spec.kind().finalStage(), totalCount, now);
-            views.add(trackerViewFactory.build(spec.id(), spec.kind().stages(), merged, projection, now));
+            views.add(trackerViewFactory.build(spec.id(), spec.kind().stages(), merged, projection, now,
+                    spec.kind().stagesFormADependencyChain()));
         }
         return views;
     }
