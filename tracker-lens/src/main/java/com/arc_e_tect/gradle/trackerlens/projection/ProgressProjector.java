@@ -4,6 +4,8 @@ import com.arc_e_tect.gradle.trackerlens.tracker.LifecycleRecord;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
@@ -19,12 +21,20 @@ import java.util.Optional;
  * months of silence. {@link Confidence} reflects how much of that window was actually available and
  * is meant to drive free-text disclaimer wording in the dashboard - it is never part of the CSS
  * contract.</p>
+ *
+ * <p>The projected date itself is workday-aware: {@code daysToCompletion} is treated as a count of
+ * business days (Monday-Friday) of remaining work, not calendar days, and is converted to a calendar
+ * date by skipping over any Saturdays and Sundays it spans - so a projection of "7 days to go" lands
+ * 9 calendar days out, not 7, since it implicitly crosses one weekend. Nobody's plan should read as
+ * expecting weekend work.</p>
  */
 public class ProgressProjector {
 
     private static final int MAX_LOOKBACK_DAYS = 90;
     private static final int MIN_LOOKBACK_DAYS = 7;
     private static final int MEDIUM_CONFIDENCE_THRESHOLD_DAYS = 30;
+    private static final int BUSINESS_DAYS_PER_WEEK = 5;
+    private static final ZoneOffset PROJECTION_ZONE = ZoneOffset.UTC;
 
     /** Creates a new {@code ProgressProjector}. */
     public ProgressProjector() {}
@@ -73,12 +83,54 @@ public class ProgressProjector {
         int currentCount = reachedTimestamps.size();
         double remaining = Math.max(0, totalCount - currentCount);
         double daysToCompletion = remaining / velocityPerDay;
-        Instant projectedDate = now.plusMillis(Math.round(daysToCompletion * Duration.ofDays(1).toMillis()));
+        Instant projectedDate = addBusinessDays(now, daysToCompletion);
 
         Confidence confidence = lookbackDays >= MAX_LOOKBACK_DAYS ? Confidence.HIGH
                 : lookbackDays >= MEDIUM_CONFIDENCE_THRESHOLD_DAYS ? Confidence.MEDIUM
                 : Confidence.LOW;
 
         return Optional.of(new Projection(projectedDate, currentCount, totalCount, velocityPerDay, confidence));
+    }
+
+    /**
+     * Adds {@code businessDays} business days (Monday-Friday) to {@code start}, skipping over any
+     * Saturdays and Sundays spanned along the way.
+     *
+     * <p>The whole-day part is added in O(1) via a weeks-then-remainder split - {@code weeks} full
+     * 7-calendar-day jumps (which never change which day of the week {@code start} lands on) plus a
+     * remainder of fewer than {@link #BUSINESS_DAYS_PER_WEEK} single-day steps, each corrected
+     * forward past a weekend if it lands on one - rather than a loop bounded by the (potentially
+     * large) day count itself. The fractional part is added as a plain calendar-time offset
+     * afterward, matching the sub-day precision the previous calendar-days-only calculation had.</p>
+     *
+     * @param start        the instant to project from
+     * @param businessDays the number of business days of remaining work, may be fractional
+     * @return {@code start} plus that many business days, expressed as a calendar instant
+     */
+    private static Instant addBusinessDays(Instant start, double businessDays) {
+        long wholeBusinessDays = (long) Math.floor(businessDays);
+        double fraction = businessDays - wholeBusinessDays;
+
+        LocalDate startDate = LocalDate.ofInstant(start, PROJECTION_ZONE);
+        long weeks = wholeBusinessDays / BUSINESS_DAYS_PER_WEEK;
+        long remainder = wholeBusinessDays % BUSINESS_DAYS_PER_WEEK;
+
+        LocalDate date = skipWeekend(startDate.plusWeeks(weeks));
+        for (long i = 0; i < remainder; i++) {
+            date = skipWeekend(date.plusDays(1));
+        }
+
+        Duration timeOfDay = Duration.between(startDate.atStartOfDay(PROJECTION_ZONE).toInstant(), start);
+        return date.atStartOfDay(PROJECTION_ZONE).toInstant()
+                .plus(timeOfDay)
+                .plusMillis(Math.round(fraction * Duration.ofDays(1).toMillis()));
+    }
+
+    private static LocalDate skipWeekend(LocalDate date) {
+        return switch (date.getDayOfWeek()) {
+            case SATURDAY -> date.plusDays(2);
+            case SUNDAY -> date.plusDays(1);
+            default -> date;
+        };
     }
 }
