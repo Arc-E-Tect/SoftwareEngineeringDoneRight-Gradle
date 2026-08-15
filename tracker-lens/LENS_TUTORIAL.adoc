@@ -40,6 +40,7 @@ The fixed dashboard contract expects at least the color variables below, plus th
     --dashboard-stage-1: #4caf50;
     --dashboard-stage-2: #7cb342;
     --dashboard-stage-3: #c0ca33;
+    --dashboard-stage-4: #33691e;
 }
 
 .dashboard {
@@ -91,6 +92,7 @@ Then create a file like this:
     --dashboard-stage-1: #4caf50;
     --dashboard-stage-2: #7cb342;
     --dashboard-stage-3: #c0ca33;
+    --dashboard-stage-4: #33691e;
 }
 
 .dashboard {

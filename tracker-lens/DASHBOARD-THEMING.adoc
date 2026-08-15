@@ -61,12 +61,14 @@ CSS) should ever select on it.
 == Writing a lens
 
 A lens is a single CSS file. It may style any of the selectors above, plus ordinary elements
-(`body`, headings, tables) freely. Two custom properties are read by the fixed bootstrap script at
-render time, via `getComputedStyle`, to color the Chart.js series:
+(`body`, headings, tables) freely. These custom properties are read by the fixed bootstrap script
+at render time, via `getComputedStyle`, to color the Chart.js series - one per stage the tracker's
+source defines, currently four for the built-in `API_CONTRACT` source:
 
 - `--dashboard-stage-1`
 - `--dashboard-stage-2`
 - `--dashboard-stage-3`
+- `--dashboard-stage-4`
 
 Define these on `:root` (or `.dashboard`) alongside whatever other custom properties your lens
 needs for its own use (the built-in lenses, for example, layer `--dashboard-bg`,
@@ -100,6 +102,8 @@ for a worked example) often wants to talk about the same four states this reposi
 `shadow-api-detector`, `mirage-api-detector`, and `doppelganger-api-detector` plugins classify an
 endpoint into, rather than the plugin's own raw `declared`/`implemented`/`verified` stage counts.
 The four states are a strict partition - every endpoint is in exactly one:
+
+NOTE: This quadrant is built from exactly `declared`/`implemented`/`verified`, unchanged since before the `API_CONTRACT` source gained a fourth stage, `stubbed` (an endpoint backed by a WireMock stub mapping - see `mirage-api-detector`'s `scanMocks` option). `stubbed` is an orthogonal evidence-type dimension, not a fifth named state to fold into this partition - `stubbedCount` is available from `#dashboard-data`/the metric cards like any other stage, but the derivation below neither needs nor accounts for it.
 
 [cols="1,3",options="header"]
 |===

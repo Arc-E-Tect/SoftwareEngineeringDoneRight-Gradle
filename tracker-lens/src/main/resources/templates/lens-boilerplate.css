@@ -20,12 +20,13 @@
 
 :root {
     /* --- Required: read directly by the dashboard's fixed bootstrap script via
-       getComputedStyle() to color the three Chart.js series on every tracker's chart. Always
-       define exactly these three names; the dashboard does not fall back to anything else of
+       getComputedStyle() to color the four Chart.js series on every tracker's chart. Always
+       define exactly these four names; the dashboard does not fall back to anything else of
        yours if they're missing (it falls back to its own internal defaults instead). */
     --dashboard-stage-1: #d64545; /* TODO: replace - first stage's chart line/legend color */
     --dashboard-stage-2: #45a1d6; /* TODO: replace - second stage's chart line/legend color */
     --dashboard-stage-3: #45d67a; /* TODO: replace - third stage's chart line/legend color */
+    --dashboard-stage-4: #a855f7; /* TODO: replace - fourth stage's chart line/legend color */
 
     /* --- This lens's own convention, not part of the contract: define whatever custom
        properties are convenient for keeping the rules below consistent. These particular names
@@ -168,7 +169,7 @@ body {
 }
 
 /* .chart canvas - exactly one per tracker: the Chart.js line chart. Only the size is normally
-   worth styling here; colors come from --dashboard-stage-1/-2/-3 above, read at render time. */
+   worth styling here; colors come from --dashboard-stage-1/-2/-3/-4 above, read at render time. */
 .chart {
     height: 220px;
     margin-top: 1rem;

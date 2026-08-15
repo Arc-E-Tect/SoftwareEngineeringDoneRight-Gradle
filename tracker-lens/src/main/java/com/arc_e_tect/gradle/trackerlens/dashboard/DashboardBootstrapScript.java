@@ -21,7 +21,8 @@ final class DashboardBootstrapScript {
               var stageColors = [
                 rootStyle.getPropertyValue('--dashboard-stage-1').trim() || '#4c6ef5',
                 rootStyle.getPropertyValue('--dashboard-stage-2').trim() || '#12b886',
-                rootStyle.getPropertyValue('--dashboard-stage-3').trim() || '#f59f00'
+                rootStyle.getPropertyValue('--dashboard-stage-3').trim() || '#f59f00',
+                rootStyle.getPropertyValue('--dashboard-stage-4').trim() || '#e64980'
               ];
 
               (data.trackers || []).forEach(function (tracker) {

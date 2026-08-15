@@ -199,7 +199,7 @@ Two `TrackerSourceKind` values are built in.
 |===
 | Kind | Producing plugin | Stages
 | `GHERKIN_SCENARIO` | `gherkin-to-asciidoc` (`trackProgress` history file) | `listed`, `defined`, `implemented`
-| `API_CONTRACT` | The Shadow/Mirage/Doppelganger API detectors' contract history file(s) | `declared`, `implemented`, `verified`
+| `API_CONTRACT` | The Shadow/Mirage/Doppelganger API detectors' contract history file(s) | `declared`, `implemented`, `stubbed`, `verified`
 |===
 
 === Splitting a tracker's history across files
@@ -409,7 +409,7 @@ The dynamic parts stay as Mustache variables and sections, resolved from the dat
 | `lensCount` | Number of discovered lenses.
 | `lenses` | List of `{id, selected}` - one `<option>` per lens.
 | `trackers` | List of trackers, each `{id, metrics, projection}`.
-| `trackers.metrics` | List of `{stage, count, totalCount, percent}` - one per stage. For `GHERKIN_SCENARIO` trackers, `count` is each stage's `stageBreakdown` value (mutually exclusive "currently at this stage", summing to `totalCount`), since a scenario can only reach a later stage by having already passed through every earlier one. For `API_CONTRACT` trackers, `count` stays cumulative "reached at least this stage" (declared/implemented/verified are independent conditions, not a dependency chain, so no single item ever has one "current" stage).
+| `trackers.metrics` | List of `{stage, count, totalCount, percent}` - one per stage. For `GHERKIN_SCENARIO` trackers, `count` is each stage's `stageBreakdown` value (mutually exclusive "currently at this stage", summing to `totalCount`), since a scenario can only reach a later stage by having already passed through every earlier one. For `API_CONTRACT` trackers, `count` stays cumulative "reached at least this stage" (declared/implemented/stubbed/verified are independent conditions, not a dependency chain, so no single item ever has one "current" stage).
 | `trackers.projection` | `{status, projectedDate, currentCount, totalCount, velocityPerDay, disclaimer}`, present only when at least 7 days of history is available - use `{{#projection}}...{{/projection}}` / `{{^projection}}...{{/projection}}` to branch on it. `projectedDate` is workday-aware: the remaining-work estimate is treated as business days (Monday-Friday), converted to a calendar date by skipping any weekends it spans - "7 days to go" lands 9 calendar days out, not 7, since nobody's plan should read as expecting weekend work.
 | `hasStaleItems` | `true` when at least one tracker has a stale item - gate the whole stale-items table on this, not on `staleItems` directly (a Mustache list section repeats its contents once per item, which would duplicate the table itself).
 | `staleItems` | List of `{trackerId, label, group, lastSeen}`.
