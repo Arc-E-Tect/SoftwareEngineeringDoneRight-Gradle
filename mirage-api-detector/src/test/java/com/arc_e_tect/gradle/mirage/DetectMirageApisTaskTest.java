@@ -220,6 +220,59 @@ class DetectMirageApisTaskTest {
     }
 
     @Test
+    @DisplayName("persists stub evidence as stubbedAt, not implementedAt, when scanMocks is true")
+    void persistsStubEvidenceAsStubbedAtNotImplementedAtWhenScanMocksIsTrue() throws Exception {
+        File stubDir = new File(tempDir.toFile(), "src/test/resources/mappings");
+        Files.createDirectories(stubDir.toPath());
+        Files.writeString(stubDir.toPath().resolve("listUsers.json"), """
+                {
+                  "request": { "method": "GET", "urlPath": "/users" },
+                  "response": { "status": 200 }
+                }
+                """);
+        File historyFile = new File(tempDir.toFile(), "contract-history.ndjson");
+
+        DetectMirageApisTask task = newTask();
+        task.getScanMocks().set(true);
+        task.getStubDirs().from(stubDir);
+        task.getControllerDirs().from(controllerDir);
+        task.getRootDocument().set(openApiFixture("single-endpoint.yaml"));
+        task.getReportDir().set(reportDir);
+        task.getReportFileName().set("mirage-apis.adoc");
+        task.getFailOnMirage().set(false);
+        task.getSystemUnderTestVersion().set("1.0.0");
+        task.getTrackContractHistory().set(true);
+        task.getContractHistoryFile().set(historyFile);
+        task.getUpdateContractHistory().set(true);
+
+        task.generate();
+
+        String historyContent = Files.readString(historyFile.toPath());
+        assertThat(historyContent)
+                .contains("\"implementedAt\":null")
+                .doesNotContain("\"stubbedAt\":null");
+    }
+
+    @Test
+    @DisplayName("throws with migration guidance when contractHistoryFile is in the legacy 9-field format")
+    void throwsWithMigrationGuidanceOnLegacyContractHistoryFormat() throws Exception {
+        File historyFile = new File(tempDir.toFile(), "contract-history.ndjson");
+        String legacyLine = "{\"fingerprint\":\"aaaa000000000000\",\"verb\":\"GET\",\"path\":\"/users\","
+                + "\"declaringClass\":null,\"declaredAt\":\"2026-01-01T00:00:00Z\","
+                + "\"implementedAt\":null,\"verifiedAt\":null,"
+                + "\"lastSeenAt\":\"2026-01-01T00:00:00Z\",\"removedAt\":null}";
+        Files.writeString(historyFile.toPath(), legacyLine + "\n");
+
+        DetectMirageApisTask task = configuredTask(openApiFixture("both-endpoints.yaml"), false);
+        task.getTrackContractHistory().set(true);
+        task.getContractHistoryFile().set(historyFile);
+
+        assertThatThrownBy(task::generate)
+                .isInstanceOf(GradleException.class)
+                .hasMessageContaining("migrateContractHistory");
+    }
+
+    @Test
     @DisplayName("does not consider an endpoint implemented by a matching controller when scanMocks is true")
     void ignoresControllerImplementationWhenScanningMocks() throws Exception {
         File stubDir = new File(tempDir.toFile(), "src/test/resources/mappings");

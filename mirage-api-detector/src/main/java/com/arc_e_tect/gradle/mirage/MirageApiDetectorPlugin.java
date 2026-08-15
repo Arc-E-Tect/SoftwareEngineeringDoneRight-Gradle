@@ -53,6 +53,9 @@ public class MirageApiDetectorPlugin implements Plugin<Project> {
     /** Name of the Gradle task registered by this plugin. */
     public static final String TASK_NAME = "detectMirageApis";
 
+    /** Name of the contract history migration task registered by this plugin. */
+    public static final String MIGRATE_CONTRACT_HISTORY_TASK_NAME = "migrateContractHistory";
+
     /** Creates a new plugin instance. Instantiated by Gradle infrastructure. */
     public MirageApiDetectorPlugin() {}
 
@@ -113,6 +116,27 @@ public class MirageApiDetectorPlugin implements Plugin<Project> {
             }
             if (ext.getScanMocks().get() && ext.getStubDirs().isEmpty()) {
                 taskProvider.configure(task ->
+                        task.getStubDirs().from(p.file(MirageApiDetectorExtension.DEFAULT_STUB_DIR)));
+            }
+        });
+
+        TaskProvider<MigrateContractHistoryTask> migrateTaskProvider = project.getTasks().register(
+                MIGRATE_CONTRACT_HISTORY_TASK_NAME, MigrateContractHistoryTask.class, task -> {
+                    task.getControllerDirs().from(ext.getControllerDirs());
+                    task.getStubDirs().from(ext.getStubDirs());
+                    task.getContractHistoryFile().set(ext.getContractHistoryFile());
+                });
+
+        // Unlike detectMirageApis, migration always needs both controller and stub directories
+        // regardless of scanMocks, since it must independently check each legacy record against
+        // both kinds of evidence - so both defaults apply unconditionally here.
+        project.afterEvaluate(p -> {
+            if (ext.getControllerDirs().isEmpty()) {
+                migrateTaskProvider.configure(task ->
+                        task.getControllerDirs().from(p.file(MirageApiDetectorExtension.DEFAULT_CONTROLLER_DIR)));
+            }
+            if (ext.getStubDirs().isEmpty()) {
+                migrateTaskProvider.configure(task ->
                         task.getStubDirs().from(p.file(MirageApiDetectorExtension.DEFAULT_STUB_DIR)));
             }
         });

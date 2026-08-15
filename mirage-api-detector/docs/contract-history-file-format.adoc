@@ -9,8 +9,10 @@ Every claim below is backed by the actual source referenced in <<source-of-truth
 
 == What this file is
 
-`contractHistoryFile` is a durable, git-committed log of *when each API endpoint first reached each stage of its contract lifecycle*: declared in the OpenAPI documentation, implemented by a `@RestController` method, and verified by a contract-verification source.
-It exists to answer questions a single build's report cannot: "how long did it take this endpoint to go from declared to implemented?", "how many endpoints were newly implemented in the last week?", "has this endpoint's implementation quietly disappeared?"
+`contractHistoryFile` is a durable, git-committed log of *when each API endpoint first reached each stage of its contract lifecycle*: declared in the OpenAPI documentation, implemented by a `@RestController` method, stubbed by a WireMock mapping file, and verified by a contract-verification source.
+It exists to answer questions a single build's report cannot: "how long did it take this endpoint to go from declared to implemented?", "how many endpoints were newly implemented in the last week?", "has this endpoint's implementation quietly disappeared?", "which endpoints are only stubbed so far, with no real implementation yet?"
+
+CAUTION: Versions of this format before `stubbedAt` existed (9 fields instead of the current 10) are a **breaking, incompatible change** from the format described below - see <<legacy-format>>.
 
 It is only written when `mirageApiDetector.trackContractHistory` is set to `true`; see link:../README.adoc#_tracking_contract_history[the README's "Tracking Contract History" section] for the DSL properties that control it.
 The file format itself, and the classes that read/write it, are **shared** across all three Arc-E-Tect detector plugins - Shadow, Mirage, and Doppelganger API Detector - via the `com.arc_e_tect.gradle.detector.core.progress` package in the `api-detector-core` library. Pointing more than one of these plugins at the *same* `contractHistoryFile` lets them merge their partial views of the same endpoints into one unified history; see <<cross-plugin-sharing>>.
@@ -46,6 +48,7 @@ This plugin's own task, `DetectMirageApisTask` (`com.arc_e_tect.gradle.mirage.De
 | Created when | The first time `detectMirageApis` runs with `trackContractHistory = true` and `updateContractHistory` resolving to `true`, and the file does not already exist.
 | Missing file | Treated as an empty history - **not** an error. Every currently-observed endpoint is then written as a brand-new record.
 | Malformed line | Skipped with a `WARNING`-level `java.util.logging` message identifying the line number. Never fails the build. The rest of the file is still loaded normally.
+| Legacy (pre-`stubbedAt`) line | **Not** treated as malformed. Detected explicitly and fails the whole load - see <<legacy-format>>.
 | Schema version field | **None.** There is no `"version"` or similar marker in the JSON. A tool consuming this file should treat the field set documented below as the only contract, and should not assume forward compatibility with a future field set.
 |===
 
@@ -62,7 +65,7 @@ Because `contractHistoryFile`'s *path* (not its content) is a tracked Gradle tas
 
 == Record schema
 
-Every line is one JSON object with exactly these eight keys, always present (using JSON `null` for an absent value - never an omitted key):
+Every line is one JSON object with exactly these ten keys, always present (using JSON `null` for an absent value - never an omitted key):
 
 [cols="1,1,1,4",options="header"]
 |===
@@ -70,11 +73,12 @@ Every line is one JSON object with exactly these eight keys, always present (usi
 | `fingerprint` | string | No | Stable identifier for this endpoint. See <<fingerprint>>. Acts as this record's primary key - the map this file round-trips through is keyed by this field.
 | `verb` | string (enum name) | No | The HTTP verb, one of `GET`, `HEAD`, `POST`, `PUT`, `PATCH`, `DELETE`, `OPTIONS`, `TRACE`, `ANY`. `ANY` only ever appears when the endpoint was observed from a Spring `@RequestMapping` that does not restrict its `method` attribute - it never appears for an endpoint sourced purely from OpenAPI, since every OpenAPI operation is described under exactly one concrete verb.
 | `path` | string | No | The endpoint's path template, e.g. `/orders/{id}`. Since `fingerprint` is a hash of `verb` + `path`, this value is immutable for a given fingerprint by construction - if either changes, it produces a *different* fingerprint (a new record), never an in-place edit of this field on the existing one.
-| `declaringClass` | string | Yes | Fully-qualified name of the `@RestController` class implementing this endpoint. `null` until an implementation is observed. Refreshed on every run that observes an implementation (so a class rename shows up), but is **never** set from verification evidence alone - a test class or contract file supplying `verifiedAt` evidence does not count as "declaring" the implementation class.
+| `declaringClass` | string | Yes | Fully-qualified name of the `@RestController` class implementing this endpoint. `null` until a *real* implementation is observed. Refreshed on every run that observes one (so a class rename shows up), but is **never** set from stub or verification evidence alone - a WireMock stub match (see `stubbedAt`) or a test class/contract file supplying `verifiedAt` evidence does not count as "declaring" the implementation class.
 | `declaredAt` | string (ISO-8601 instant) or `null` | Yes | The instant this endpoint was *first* observed as declared in the OpenAPI documentation. Stamped once; never overwritten on subsequent runs, even if the endpoint's declaration is later removed and re-added (see `removedAt` below for how disappearance/reappearance is tracked instead).
-| `implementedAt` | string (ISO-8601 instant) or `null` | Yes | The instant this endpoint was *first* observed as implemented. Same "stamped once" rule as `declaredAt`. Mirage API Detector populates this from a scanned `@RestController` method by default, or from a matching WireMock stub mapping file when `scanMocks = true` - either way counts as "implementation evidence" for this field; Shadow can also populate it, from its own controller scan only.
-| `verifiedAt` | string (ISO-8601 instant) or `null` | Yes | The instant this endpoint was *first* observed as verified by an enabled contract-verification source. **Mirage API Detector never sets this field** - it has no visibility into verification evidence at all, so every record it ever writes has `verifiedAt: null` unless a *different* plugin (Doppelganger) sharing the same file has advanced it. See <<cross-plugin-sharing>>.
-| `lastSeenAt` | string (ISO-8601 instant) or `null` | Yes | The instant of the *most recent* run that observed this endpoint in any of the sets it checked. Unlike the three stage timestamps above, this is refreshed forward on *every* run the endpoint is seen in - it is not a "first observed" timestamp. If a record stops being observed, `lastSeenAt` freezes at its last real value while `removedAt` (below) gets set instead.
+| `implementedAt` | string (ISO-8601 instant) or `null` | Yes | The instant this endpoint was *first* observed as implemented by a **real** `@RestController` method. Same "stamped once" rule as `declaredAt`. A WireMock stub match never sets this field on its own - see `stubbedAt` instead. Populated by Shadow API Detector and by Mirage API Detector when `scanMocks = false`; never populated by Mirage when `scanMocks = true`, and never by Doppelganger's own scan (Doppelganger reuses whatever a Shadow/Mirage run already recorded here, sharing the same file - see <<cross-plugin-sharing>>).
+| `stubbedAt` | string (ISO-8601 instant) or `null` | Yes | The instant this endpoint was *first* observed as backed by a WireMock stub mapping file. Same "stamped once" rule as `declaredAt`. Populated only by Mirage API Detector when `scanMocks = true`; every other plugin, and Mirage itself when `scanMocks = false`, leaves this field completely untouched. Independent of `implementedAt` - an endpoint can be stubbed without a real implementation, have a real implementation without ever being stubbed, or (rarely, if `scanMocks` differs across separate runs sharing this file) both.
+| `verifiedAt` | string (ISO-8601 instant) or `null` | Yes | The instant this endpoint was *first* observed as verified by an enabled contract-verification source. **Mirage and Shadow API Detector never set this field** - neither has visibility into verification evidence at all, so every record they ever write has `verifiedAt: null` unless a *different* plugin (Doppelganger) sharing the same file has advanced it. See <<cross-plugin-sharing>>.
+| `lastSeenAt` | string (ISO-8601 instant) or `null` | Yes | The instant of the *most recent* run that observed this endpoint in any of the sets it checked. Unlike the four stage timestamps above, this is refreshed forward on *every* run the endpoint is seen in - it is not a "first observed" timestamp. If a record stops being observed, `lastSeenAt` freezes at its last real value while `removedAt` (below) gets set instead.
 | `removedAt` | string (ISO-8601 instant) or `null` | Yes | `null` while the endpoint is still present in the most recent run. Set to the instant of the *first* run that failed to observe it anywhere. Records are **never deleted** from the file once written - a removed endpoint's row persists indefinitely with this field set. If the same fingerprint reappears in a later run, `removedAt` reverts to `null` automatically and the record resumes advancing normally.
 |===
 
@@ -93,7 +97,7 @@ The following JSON Schema (2020-12) validates a single *line* of this file (one 
   "description": "One line of a shadowApiDetector/mirageApiDetector/doppelgangerApiDetector contractHistoryFile.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["fingerprint", "verb", "path", "declaringClass", "declaredAt", "implementedAt", "verifiedAt", "lastSeenAt", "removedAt"],
+  "required": ["fingerprint", "verb", "path", "declaringClass", "declaredAt", "implementedAt", "stubbedAt", "verifiedAt", "lastSeenAt", "removedAt"],
   "properties": {
     "fingerprint": {
       "type": "string",
@@ -110,10 +114,11 @@ The following JSON Schema (2020-12) validates a single *line* of this file (one 
     },
     "declaringClass": {
       "type": ["string", "null"],
-      "description": "Fully-qualified @RestController class name, or null if no implementation has been observed."
+      "description": "Fully-qualified @RestController class name, or null if no real implementation has been observed. Never set from stub evidence alone."
     },
     "declaredAt":    { "type": ["string", "null"], "format": "date-time" },
-    "implementedAt": { "type": ["string", "null"], "format": "date-time" },
+    "implementedAt": { "type": ["string", "null"], "format": "date-time", "description": "First-seen real @RestController evidence only - never set from a WireMock stub match." },
+    "stubbedAt":     { "type": ["string", "null"], "format": "date-time", "description": "First-seen WireMock stub evidence only - independent of implementedAt." },
     "verifiedAt":    { "type": ["string", "null"], "format": "date-time" },
     "lastSeenAt":    { "type": ["string", "null"], "format": "date-time" },
     "removedAt":     { "type": ["string", "null"], "format": "date-time" }
@@ -139,17 +144,51 @@ A tool that wants to independently verify or recompute a fingerprint from a `ver
 [#cross-plugin-sharing]
 == Sharing one file across Shadow, Mirage, and Doppelganger
 
-Because the fingerprint depends only on verb and path, three separate Gradle plugins - each with a fundamentally different view of "what's implemented" or "what's verified" - can safely write into the *same* `contractHistoryFile` and have their observations merge into one coherent per-endpoint timeline, rather than three separate, siloed histories. This is a deliberate design goal, not an accident of the shared library.
+Because the fingerprint depends only on verb and path, three separate Gradle plugins - each with a fundamentally different view of "what's implemented", "what's stubbed", or "what's verified" - can safely write into the *same* `contractHistoryFile` and have their observations merge into one coherent per-endpoint timeline, rather than three separate, siloed histories. This is a deliberate design goal, not an accident of the shared library.
 
-[cols="1,1,1,1",options="header"]
+[cols="1,1,1,1,1",options="header"]
 |===
-| Plugin | Populates `declaredAt` | Populates `implementedAt` | Populates `verifiedAt`
-| Shadow API Detector | Yes | Yes | Never
-| Mirage API Detector (this plugin) | Yes | Yes (from controllers, or from WireMock stubs when `scanMocks = true`) | Never
-| Doppelganger API Detector | Yes | Yes | Yes - the only one of the three
+| Plugin | Populates `declaredAt` | Populates `implementedAt` | Populates `stubbedAt` | Populates `verifiedAt`
+| Shadow API Detector | Yes | Yes (from controllers only) | Never | Never
+| Mirage API Detector (this plugin) | Yes | Yes, only when `scanMocks = false` (from controllers) | Yes, only when `scanMocks = true` (from WireMock stubs) | Never
+| Doppelganger API Detector | Yes | Yes | Never | Yes - the only one of the three
 |===
+
+`implementedAt` and `stubbedAt` are deliberately mutually exclusive *within a single run*: whichever evidence a plugin's own run actually has (real controllers or stubs, never both at once for Mirage, since `scanMocks` picks one) only ever advances the matching field. A record can still end up with both non-null over time if, for example, Mirage runs against the same `contractHistoryFile` with `scanMocks = true` in one module and `scanMocks = false` in another - each run's own evidence is what it is; the merge is what makes the shared file "know" both things happened.
 
 If you are consuming a `contractHistoryFile` and want to know which plugin(s) actually wrote to it, this file format itself carries no such marker - you would need to know that out-of-band (e.g. from the consuming project's own build configuration).
+
+[#legacy-format]
+== Migrating from the legacy 9-field format
+
+Before `stubbedAt` existed, `implementedAt` meant something broader and more ambiguous than it does now: Mirage API Detector stamped it from *either* a real `@RestController` match *or* a WireMock stub match, with no way to tell which after the fact. That ambiguity is exactly what `stubbedAt` exists to remove - `implementedAt` now means real implementation evidence only, and stub evidence goes in `stubbedAt` instead. This is a **breaking change** to the file format: a `contractHistoryFile` written by an older version of this plugin has only 9 fields (no `stubbedAt`), and every detector plugin sharing this library now refuses to load it.
+
+CAUTION: Loading a legacy-format `contractHistoryFile` with the current library throws `LegacyContractHistoryFormatException` and fails the calling task (`detectMirageApis`, `detectShadowApis`, or `detectDoppelgangerApis`) with a `GradleException` naming this migration. **You must migrate the file before any of these tasks can use it again.**
+
+=== Running the migration
+
+Apply the `mirage-api-detector` plugin (even in a project that otherwise only uses Shadow or Doppelganger - it is the only one of the three with WireMock stub-scanning capability, which the migration needs) and run:
+
+[source,shell]
+----
+./gradlew migrateContractHistory
+----
+
+`migrateContractHistory` re-scans the currently configured `controllerDirs` and `stubDirs` and reconstructs every legacy record with a non-null `implementedAt` according to the rules below. Records with a `null` `implementedAt` (declared-only endpoints) are carried over unchanged, just gaining a `stubbedAt: null` field.
+
+[cols="1,3",options="header"]
+|===
+| Legacy record's current state | Migrated outcome
+| Matches a currently-scanned controller only | `implementedAt` kept as-is; `stubbedAt` stays `null`; `declaringClass` refreshed from the match.
+| Matches a currently-scanned stub only | `implementedAt` becomes `null`; `stubbedAt` takes the old `implementedAt` value; `declaringClass` becomes `null`. This is the case the migration exists to correct.
+| Matches both a controller and a stub | Both `implementedAt` and `stubbedAt` take the old `implementedAt` value; `declaringClass` refreshed from the controller match.
+| Matches neither, and `removedAt` was not already set | Both `implementedAt` and `stubbedAt` take the old value, and `removedAt` is stamped with the migration's own run time - the same outcome a normal detection run would reach on observing the same absence.
+| Already has `removedAt` set | Both `implementedAt` and `stubbedAt` are cleared to `null`. The endpoint is already gone, so there is nothing left to re-verify, and guessing would bake in a permanent, unverifiable assumption for a record that can never be re-scanned successfully.
+|===
+
+CAUTION: This migration is a **best-effort reconstruction, not a lossless transformation**. It can only tell a real implementation apart from a stub by re-scanning the project's *current* source and stub directories - it has no way to know what those directories looked like back when each timestamp was first stamped. The "matches both" and "matches neither" outcomes above both fall back to crediting the old timestamp to *both* fields, which is a deliberate, accepted approximation: the value being preserved is a first-seen date, and a first-seen date is still meaningful even when its evidence type is uncertain. `contractHistoryFile` is backed up alongside itself as `<file>.bak` before being overwritten, but **review the migrated file - or its version-controlled diff - before committing the result.**
+
+Once migrated, the file is back in the current 10-field format and every detector plugin can read and advance it normally.
 
 == Example file content
 
@@ -157,12 +196,13 @@ A realistic `contractHistoryFile` after several months of builds, showing every 
 
 [source,json]
 ----
-{"fingerprint":"1a2b3c4d5e6f7089","verb":"GET","path":"/orders","declaringClass":"com.example.OrderController","declaredAt":"2026-01-14T09:02:11Z","implementedAt":"2026-01-15T10:30:00Z","verifiedAt":"2026-02-01T08:00:00Z","lastSeenAt":"2026-08-12T07:00:00Z","removedAt":null}
-{"fingerprint":"7be04412aa3390d1","verb":"POST","path":"/orders","declaringClass":null,"declaredAt":"2026-06-01T08:00:00Z","implementedAt":null,"verifiedAt":null,"lastSeenAt":"2026-08-12T07:00:00Z","removedAt":null}
-{"fingerprint":"c3d4e5f607182934","verb":"DELETE","path":"/orders/{id}","declaringClass":"com.example.OrderController","declaredAt":"2026-02-20T11:15:44Z","implementedAt":"2026-02-20T11:15:44Z","verifiedAt":null,"lastSeenAt":"2026-05-01T07:00:00Z","removedAt":"2026-05-08T07:00:00Z"}
+{"fingerprint":"1a2b3c4d5e6f7089","verb":"GET","path":"/orders","declaringClass":"com.example.OrderController","declaredAt":"2026-01-14T09:02:11Z","implementedAt":"2026-01-15T10:30:00Z","stubbedAt":null,"verifiedAt":"2026-02-01T08:00:00Z","lastSeenAt":"2026-08-12T07:00:00Z","removedAt":null}
+{"fingerprint":"7be04412aa3390d1","verb":"POST","path":"/orders","declaringClass":null,"declaredAt":"2026-06-01T08:00:00Z","implementedAt":null,"stubbedAt":null,"verifiedAt":null,"lastSeenAt":"2026-08-12T07:00:00Z","removedAt":null}
+{"fingerprint":"c3d4e5f607182934","verb":"DELETE","path":"/orders/{id}","declaringClass":"com.example.OrderController","declaredAt":"2026-02-20T11:15:44Z","implementedAt":"2026-02-20T11:15:44Z","stubbedAt":null,"verifiedAt":null,"lastSeenAt":"2026-05-01T07:00:00Z","removedAt":"2026-05-08T07:00:00Z"}
+{"fingerprint":"e4f5a6b708192a3b","verb":"GET","path":"/orders/{id}/items","declaringClass":null,"declaredAt":"2026-03-01T08:00:00Z","implementedAt":null,"stubbedAt":"2026-03-02T09:00:00Z","verifiedAt":null,"lastSeenAt":"2026-08-12T07:00:00Z","removedAt":null}
 ----
 
-Reading these three lines: the first endpoint went from declared to implemented in one day and was verified about two weeks later, and is still present as of the most recent run. The second is declared but has never been implemented - exactly the endpoint shape this plugin exists to find, a "mirage API" - note `declaredAt` and `implementedAt` land on the same day here only because that endpoint happened to be declared and implemented simultaneously; `implementedAt` is otherwise fully independent of `declaredAt`. The third was declared and implemented on the same day, never verified, and stopped being observed after `2026-05-01` - `removedAt` records when that absence was *first* detected, one run later.
+Reading these four lines: the first endpoint went from declared to implemented in one day and was verified about two weeks later, and is still present as of the most recent run. The second is declared but has never been implemented or stubbed - exactly the endpoint shape this plugin exists to find, a "mirage API" - note `declaredAt` and `implementedAt` land on the same day here only because that endpoint happened to be declared and implemented simultaneously; `implementedAt` is otherwise fully independent of `declaredAt`. The third was declared and implemented on the same day, never verified, and stopped being observed after `2026-05-01` - `removedAt` records when that absence was *first* detected, one run later. The fourth was declared and, a day later, backed by a WireMock stub (a Mirage run with `scanMocks = true`) - it has never had a real implementation, so `implementedAt` and `declaringClass` stay `null` even though the endpoint is not a mirage API under stub-based scanning.
 
 [#relationship-to-report]
 == Relationship to the generated report
@@ -172,25 +212,26 @@ Every `detectMirageApis` run that has `trackContractHistory = true` and at least
 [cols="1,3",options="header"]
 |===
 | Report row | Computed as
-| `Tracked since` | The minimum non-null value across `declaredAt`, `implementedAt`, `verifiedAt`, `lastSeenAt`, and `removedAt`, over *every* record in the file. Rendered as `yyyy-MM-dd HH:mm:ss 'UTC'`, not the raw ISO-8601 string.
+| `Tracked since` | The minimum non-null value across `declaredAt`, `implementedAt`, `stubbedAt`, `verifiedAt`, `lastSeenAt`, and `removedAt`, over *every* record in the file. Rendered as `yyyy-MM-dd HH:mm:ss 'UTC'`, not the raw ISO-8601 string.
 | `Declared in the last 7/30 days` | Count of records whose `declaredAt` falls within `[now - 7 days, now]` / `[now - 30 days, now]`.
 | `Implemented in the last 7/30 days` | Same windowed count, over `implementedAt`.
-| `Verified in the last 7/30 days` | Same windowed count, over `verifiedAt`. For a `contractHistoryFile` written only by Mirage (never shared with Doppelganger), this is always `0`, correctly - not omitted, since it honestly reflects that no verification evidence has ever been observed.
+| `Stubbed in the last 7/30 days` | Same windowed count, over `stubbedAt`. For a `contractHistoryFile` never written by a `scanMocks = true` Mirage run, this is always `0`, correctly - not omitted, since it honestly reflects that no stub evidence has ever been observed.
+| `Verified in the last 7/30 days` | Same windowed count, over `verifiedAt`. For a `contractHistoryFile` written only by Mirage or Shadow (never shared with Doppelganger), this is always `0`, correctly - not omitted, since it honestly reflects that no verification evidence has ever been observed.
 | `Removed (no longer seen)` | Count of records where `removedAt` is non-null, as of this run.
 |===
 
-A tool building richer visualizations than this fixed six-row table has the *entire* underlying file available to compute anything else these summary numbers only sample - see <<visualization-ideas>>.
+A tool building richer visualizations than this fixed seven-row table has the *entire* underlying file available to compute anything else these summary numbers only sample - see <<visualization-ideas>>.
 
 [#visualization-ideas]
 == Building a visualization UI: what's meaningful to show
 
-The report above is a static snapshot. The file itself is a genuine time series - every record carries up to five independent timestamps - so a UI with access to the raw file (or, better, several historical revisions of it from git) can show meaningfully more than the report does. Ideas, roughly in order of implementation effort:
+The report above is a static snapshot. The file itself is a genuine time series - every record carries up to six independent timestamps - so a UI with access to the raw file (or, better, several historical revisions of it from git) can show meaningfully more than the report does. Ideas, roughly in order of implementation effort:
 
 Contract lifecycle timeline (per-endpoint)::
-One row per endpoint (labelled by `verb` + `path`, keyed internally by `fingerprint`), one horizontal timeline per row, with markers at `declaredAt`, `implementedAt`, and `verifiedAt` in sequence, and a distinct visual treatment (e.g. greyed out, or a tombstone marker) for rows where `removedAt` is set. This is the single most direct visualization of what the file actually contains.
+One row per endpoint (labelled by `verb` + `path`, keyed internally by `fingerprint`), one horizontal timeline per row, with markers at `declaredAt`, `implementedAt`/`stubbedAt`, and `verifiedAt`, and a distinct visual treatment (e.g. greyed out, or a tombstone marker) for rows where `removedAt` is set. `implementedAt` and `stubbedAt` are peers rather than sequential stages - render them as two independent markers (or one marker whose style differs by which field is set) rather than assuming one always precedes the other. This is the single most direct visualization of what the file actually contains.
 
 Coverage funnel::
-A simple three-stage funnel (or stacked bar) of *how many* records currently have a non-null `declaredAt`, `implementedAt`, and `verifiedAt` respectively, as of "now" - the single-point-in-time version of what the report's summary table already computes, but rendered as a funnel rather than a table makes the drop-off between stages visually obvious.
+A simple funnel (or stacked bar) of *how many* records currently have a non-null `declaredAt`, `implementedAt` or `stubbedAt` (combined, or as two separate bars), and `verifiedAt` respectively, as of "now" - the single-point-in-time version of what the report's summary table already computes, but rendered as a funnel rather than a table makes the drop-off between stages visually obvious. Splitting `implementedAt` and `stubbedAt` into separate bars directly answers "how many of our 'implemented' endpoints are actually only stubbed?"
 
 Rolling-window trend lines::
 The report's "last 7/30 days" counts are single numbers computed against "now". Recompute the *same* windowed count for many historical values of "now" (e.g. once per day, for the last 90 days) to produce a trend line per stage - this shows velocity and whether it's accelerating, flat, or stalling, which the report alone cannot.
