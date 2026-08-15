@@ -16,10 +16,10 @@ import java.util.stream.Collectors;
  *
  * <p>Registers the {@code trackerLens} DSL extension, a {@code lensStyle} resolvable configuration
  * that external style packs are declared against, the {@code generateTrackerLensDashboard} task, the
- * {@code listTrackerLensStyles} task, and the {@code initTrackerLens} / {@code bootstrapTrackerLensProject}
- * scaffolding tasks. None of these tasks is wired into {@code check} or {@code build} automatically -
- * the dashboard is a report, not a verification gate, and the scaffolding tasks are one-time developer
- * conveniences.</p>
+ * {@code listTrackerLensStyles} / {@code listTrackerLensTemplates} tasks, and the
+ * {@code initTrackerLens} / {@code bootstrapTrackerLensProject} scaffolding tasks. None of these
+ * tasks is wired into {@code check} or {@code build} automatically - the dashboard is a report, not
+ * a verification gate, and the scaffolding tasks are one-time developer conveniences.</p>
  *
  * <h2>Usage</h2>
  * <pre>
@@ -41,6 +41,9 @@ public class TrackerLensPlugin implements Plugin<Project> {
 
     /** Name of the lens-listing task registered by this plugin. */
     public static final String LIST_STYLES_TASK_NAME = "listTrackerLensStyles";
+
+    /** Name of the template-listing task registered by this plugin. */
+    public static final String LIST_TEMPLATES_TASK_NAME = "listTrackerLensTemplates";
 
     /** Name of the lens-boilerplate-generating task registered by this plugin. */
     public static final String INIT_LENS_TASK_NAME = "initTrackerLens";
@@ -71,16 +74,21 @@ public class TrackerLensPlugin implements Plugin<Project> {
                     task.getPreferredLensPack().set(extension.getPreferredLensPack());
                     task.getDefaultLens().set(extension.getDefaultLens());
                     task.getTemplate().set(extension.getTemplate());
+                    task.getTemplateId().set(extension.getTemplateId());
                     task.getDashboardName().set(extension.getDashboardName());
                     task.getVersion().set(extension.getVersion());
                     task.getLensStyleClasspath().from(lensStyle);
                 });
 
-        // None of the three tasks below needs a tracker to be registered at all, so all three are
+        // None of the four tasks below needs a tracker to be registered at all, so all four are
         // wired outside afterEvaluate and can never be affected by the at-least-one-tracker
         // validation below.
         project.getTasks().register(LIST_STYLES_TASK_NAME, ListTrackerLensStylesTask.class, task -> {
-            task.getLensStylesheet().set(extension.getLensStylesheet());
+            task.getPreferredLensPack().set(extension.getPreferredLensPack());
+            task.getLensStyleClasspath().from(lensStyle);
+        });
+
+        project.getTasks().register(LIST_TEMPLATES_TASK_NAME, ListTrackerLensTemplatesTask.class, task -> {
             task.getPreferredLensPack().set(extension.getPreferredLensPack());
             task.getLensStyleClasspath().from(lensStyle);
         });

@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.io.StringReader;
 import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -32,7 +33,7 @@ import java.util.Map;
  */
 public class DashboardHtmlWriter {
 
-    private static final String DEFAULT_TEMPLATE_RESOURCE = "templates/dashboard.html.mustache";
+    private static final String DEFAULT_TEMPLATE_RESOURCE = "META-INF/arc-e-tect/tracker-lens/templates/default.html";
 
     /** Creates a new {@code DashboardHtmlWriter}. */
     public DashboardHtmlWriter() {}
@@ -49,24 +50,45 @@ public class DashboardHtmlWriter {
      * @return the written {@code dashboard.html} file
      */
     public File write(File outputDir, DashboardView view, File customTemplate) {
+        String templateName = customTemplate != null ? customTemplate.getName() : DEFAULT_TEMPLATE_RESOURCE;
+        return writeInternal(outputDir, view, templateName, () -> openTemplate(customTemplate));
+    }
+
+    /**
+     * Writes {@code dashboard.html} and one CSS file per lens in {@code view.lenses()} to
+     * {@code outputDir}, rendering {@code dashboard.html} from {@code templateContent} - a
+     * lens-pack template resolved by id via {@code trackerLens.templateId}, rather than a project
+     * file or this plugin's own bundled default.
+     *
+     * @param outputDir      the directory to write into; created if missing
+     * @param view           the data to render
+     * @param templateName   the template's id, used only for error messages and as the Mustache
+     *                       compiler's internal template name
+     * @param templateContent the lens-pack template's own Mustache source
+     * @return the written {@code dashboard.html} file
+     */
+    public File write(File outputDir, DashboardView view, String templateName, String templateContent) {
+        return writeInternal(outputDir, view, templateName, () -> new StringReader(templateContent));
+    }
+
+    private File writeInternal(File outputDir, DashboardView view, String templateName, TemplateReaderSupplier readerSupplier) {
         try {
             Files.createDirectories(outputDir.toPath());
             for (ResolvedLens lens : view.lenses()) {
                 Files.write(outputDir.toPath().resolve(LensNaming.cssFileName(lens.id())), lens.content());
             }
             File dashboardFile = new File(outputDir, "dashboard.html");
-            Files.writeString(dashboardFile.toPath(), render(view, customTemplate), StandardCharsets.UTF_8);
+            Files.writeString(dashboardFile.toPath(), render(view, templateName, readerSupplier), StandardCharsets.UTF_8);
             return dashboardFile;
         } catch (IOException e) {
             throw new GradleException("trackerLens: failed to write dashboard to " + outputDir, e);
         }
     }
 
-    private String render(DashboardView view, File customTemplate) {
+    private String render(DashboardView view, String templateName, TemplateReaderSupplier readerSupplier) {
         Map<String, Object> context = DashboardTemplateContext.build(view);
-        String templateName = customTemplate != null ? customTemplate.getName() : DEFAULT_TEMPLATE_RESOURCE;
 
-        try (Reader templateReader = openTemplate(customTemplate); StringWriter writer = new StringWriter()) {
+        try (Reader templateReader = readerSupplier.open(); StringWriter writer = new StringWriter()) {
             Mustache mustache = new DefaultMustacheFactory().compile(templateReader, templateName);
             mustache.execute(writer, context).flush();
             return writer.toString();
@@ -88,5 +110,10 @@ public class DashboardHtmlWriter {
             throw new GradleException("trackerLens: missing bundled dashboard template: " + DEFAULT_TEMPLATE_RESOURCE);
         }
         return new InputStreamReader(stream, StandardCharsets.UTF_8);
+    }
+
+    @FunctionalInterface
+    private interface TemplateReaderSupplier {
+        Reader open() throws IOException;
     }
 }

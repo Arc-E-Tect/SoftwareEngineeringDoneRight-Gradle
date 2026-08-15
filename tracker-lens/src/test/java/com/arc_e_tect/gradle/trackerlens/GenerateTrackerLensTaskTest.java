@@ -204,6 +204,60 @@ class GenerateTrackerLensTaskTest {
     }
 
     @Test
+    @DisplayName("generateShouldRenderFromLensPackTemplateWhenTemplateIdConfigured")
+    void generateShouldRenderFromLensPackTemplateWhenTemplateIdConfigured() throws Exception {
+        GenerateTrackerLensTask task = newTask();
+        writeGherkinHistory(tempDir.resolve("gherkin.ndjson"));
+        task.getTrackerSpecs().set(List.of(
+                new TrackerSpec("bdd-scenarios", TrackerSourceKind.GHERKIN_SCENARIO, List.of(tempDir.resolve("gherkin.ndjson").toFile()))));
+        File jarFile = writeTemplatePackJar("view-pack.jar", "venn-diagram-view");
+        task.getLensStyleClasspath().from(jarFile);
+        task.getTemplateId().set("venn-diagram-view");
+        File outputDir = tempDir.resolve("out-pack-template").toFile();
+        task.getOutputDirectory().set(outputDir);
+
+        task.generate();
+
+        String html = Files.readString(new File(outputDir, "dashboard.html").toPath());
+        assertThat(html).contains("Venn Diagram View");
+    }
+
+    @Test
+    @DisplayName("generateShouldFailWhenTemplateAndTemplateIdAreBothConfigured")
+    void generateShouldFailWhenTemplateAndTemplateIdAreBothConfigured() throws Exception {
+        GenerateTrackerLensTask task = newTask();
+        writeGherkinHistory(tempDir.resolve("gherkin.ndjson"));
+        task.getTrackerSpecs().set(List.of(
+                new TrackerSpec("bdd-scenarios", TrackerSourceKind.GHERKIN_SCENARIO, List.of(tempDir.resolve("gherkin.ndjson").toFile()))));
+        Path template = tempDir.resolve("dashboard-template.html");
+        Files.writeString(template, "<html></html>");
+        task.getTemplate().set(template.toFile());
+        task.getTemplateId().set("default");
+        task.getOutputDirectory().set(tempDir.resolve("out-conflict").toFile());
+
+        assertThatThrownBy(task::generate)
+                .isInstanceOf(GradleException.class)
+                .hasMessageContaining("template")
+                .hasMessageContaining("templateId");
+    }
+
+    @Test
+    @DisplayName("generateShouldFailWithAClearErrorWhenTemplateIdIsNotFound")
+    void generateShouldFailWithAClearErrorWhenTemplateIdIsNotFound() throws Exception {
+        GenerateTrackerLensTask task = newTask();
+        writeGherkinHistory(tempDir.resolve("gherkin.ndjson"));
+        task.getTrackerSpecs().set(List.of(
+                new TrackerSpec("bdd-scenarios", TrackerSourceKind.GHERKIN_SCENARIO, List.of(tempDir.resolve("gherkin.ndjson").toFile()))));
+        task.getTemplateId().set("does-not-exist");
+        task.getOutputDirectory().set(tempDir.resolve("out-missing-template").toFile());
+
+        assertThatThrownBy(task::generate)
+                .isInstanceOf(GradleException.class)
+                .hasMessageContaining("does-not-exist")
+                .hasMessageContaining("default");
+    }
+
+    @Test
     @DisplayName("resolveDefaultLensIdShouldFallBackToAlphabeticalFirstWhenLightLensNotDiscoveredAndUnset")
     void resolveDefaultLensIdShouldFallBackToAlphabeticalFirstWhenLightLensNotDiscoveredAndUnset() {
         GenerateTrackerLensTask task = newTask();
@@ -326,6 +380,33 @@ class GenerateTrackerLensTaskTest {
             jar.closeEntry();
             jar.putNextEntry(new JarEntry("META-INF/arc-e-tect/tracker-lens/lenses/sunrise.css"));
             jar.write(".dashboard { color: orange; }".getBytes(StandardCharsets.UTF_8));
+            jar.closeEntry();
+        }
+        return jarFile.toFile();
+    }
+
+    private File writeTemplatePackJar(String fileName, String templateId) throws Exception {
+        Path jarFile = tempDir.resolve(fileName);
+        String template = """
+                <!doctype html>
+                <html><head><link rel="stylesheet" id="lens-stylesheet" href="{{defaultLensCssFile}}"></head>
+                <body>
+                <div class="dashboard">
+                <h1>Venn Diagram View</h1>
+                <div class="lens-switcher" data-lens-count="{{lensCount}}"><select></select></div>
+                {{#trackers}}
+                <section class="tracker" data-tracker="{{id}}">
+                {{#metrics}}<div class="metric-card" data-stage="{{stage}}" style="--percent: {{percent}}"></div>{{/metrics}}
+                <div class="chart"><canvas></canvas></div>
+                </section>
+                {{/trackers}}
+                </div>
+                {{{dashboardDataScript}}}
+                </body></html>
+                """;
+        try (JarOutputStream jar = new JarOutputStream(new FileOutputStream(jarFile.toFile()))) {
+            jar.putNextEntry(new JarEntry("META-INF/arc-e-tect/tracker-lens/templates/" + templateId + ".html"));
+            jar.write(template.getBytes(StandardCharsets.UTF_8));
             jar.closeEntry();
         }
         return jarFile.toFile();

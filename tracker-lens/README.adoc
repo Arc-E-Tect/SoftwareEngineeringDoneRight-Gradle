@@ -111,6 +111,11 @@ trackerLens {
     // Default: unset (this plugin's own bundled template)
     // template = file('dashboard-template.html')
 
+    // Optional id of a lens-pack-provided template to render instead - see "Lens packs can ship
+    // templates too" below and `listTrackerLensTemplates`. Mutually exclusive with template.
+    // Default: unset
+    // templateId = 'venn-diagram-view'
+
     // Where dashboard.html and its lens CSS files are written.
     // Default: layout.buildDirectory.dir('reports/tracker-lens')
     outputDir = layout.buildDirectory.dir('reports/tracker-lens')
@@ -158,6 +163,7 @@ trackerLens {
     // preferredLensPack.set("com.example:midnight-theme")
     // defaultLens.set("dark-lens")
     // template.set(file("dashboard-template.html"))
+    // templateId.set("venn-diagram-view")
     outputDir.set(layout.buildDirectory.dir("reports/tracker-lens"))
     // dashboardName.set("Checkout Service Lens")
     // version.set("2.3.0")
@@ -178,6 +184,7 @@ dependencies {
 | `preferredLensPack` | unset | Optional `group:artifact` coordinate restricting which one external pack's lenses are offered.
 | `defaultLens` | unset (`light-lens` if discovered, else alphabetically first) | Lens id active on first load.
 | `template` | unset (bundled default) | Optional Mustache template overriding `dashboard.html`'s static structure and wording.
+| `templateId` | unset | Optional id of a lens-pack-provided template to render instead (see `listTrackerLensTemplates`). Mutually exclusive with `template`.
 | `outputDir` | `layout.buildDirectory.dir('reports/tracker-lens')` | Where `dashboard.html` and its lens CSS files are written.
 | `dashboardName` | `"${project.name} Lens"` | The dashboard's displayed name, shown verbatim in the browser tab title and the page heading.
 | `version` | `project.version` | Version shown alongside `dashboardName` - the same convention as the API-detector plugins' `systemUnderTestVersion`.
@@ -229,14 +236,15 @@ Run the generator with:
 |===
 | Task name                      | Group        | Description
 | `generateTrackerLensDashboard` | reporting    | Reads every registered tracker, resolves the merged lens set, and writes `dashboard.html` plus one CSS file per discovered lens.
-| `listTrackerLensStyles`        | reporting    | Lists every lens style that `generateTrackerLensDashboard` would offer in the switcher - built-in, external `lensStyle` packs, and `lensStylesheet` when configured - without generating a dashboard.
+| `listTrackerLensStyles`        | reporting    | Lists every lens style available through a lens pack - built-in and external `lensStyle` packs - without generating a dashboard. Scoped to lens packs only: `lensStylesheet`'s single `custom-lens` lens still appears in the real switcher, but never in this listing (it isn't a discoverable, id-namespaced pack).
+| `listTrackerLensTemplates`     | reporting    | Lists every dashboard template available through a lens pack - built-in and external `lensStyle` packs - selectable via `templateId`, without generating a dashboard. Scoped to lens packs only, the same way `listTrackerLensStyles` is: a project's own `template` file is a different mechanism entirely and never appears here.
 | `initTrackerLens`              | tracker lens | Generates a complete, heavily-commented boilerplate lens CSS file to start a new lens from.
 | `bootstrapTrackerLensProject`  | tracker lens | Generates a boilerplate lens-pack project and a sample consumer project, for developing and testing a new lens end-to-end.
 |===
 
 None of these tasks is wired into `check` or `build` automatically - the dashboard is a report, not a verification gate, and the last two are one-time developer conveniences, not part of the ordinary build.
 
-`listTrackerLensStyles` needs no tracker to be registered; it only resolves lenses.
+`listTrackerLensStyles` and `listTrackerLensTemplates` need no tracker to be registered; they only resolve lens packs.
 
 [source]
 ----
@@ -255,6 +263,21 @@ midnight-theme:
 ----
 
 The example above shows what a collision looks like in the listing: `midnight-theme` also ships a lens called `dark-lens`, and since the built-in `dark-lens` resolves first, the pack's own gets auto-namespaced to `dark-lens (midnight-theme)` (see "Id collisions across packs" below) - exactly the id that would appear in the switcher.
+
+`listTrackerLensTemplates` works the same way, one directory over - see "Lens packs can ship templates too" below for what it lists.
+
+[source]
+----
+$ ./gradlew listTrackerLensTemplates
+
+Tracker Lens templates available (2):
+
+Built-in:
+  default
+
+venn-view-pack:
+  venn-diagram-view
+----
 
 === Scaffolding a new lens
 
@@ -327,6 +350,28 @@ The pack's lens (`midnight`, in this example) now appears in the switcher alongs
 
 TIP: Naming a built-in-style lens with a `-lens` suffix (as `light-lens` and `dark-lens` do) is a recommendation, not a rule - it makes an accidental id collision with another pack unlikely, but a pack author naming a lens `midnight` or `corporate-brand` is completely valid and nothing enforces the suffix.
 
+=== Lens packs can ship templates too
+
+A lens isn't only a color scheme - it can be a whole alternate *view* over the same tracking data, structuring the dashboard differently rather than just recoloring it. Any style pack (built-in or external, same jar or the same directory a pack's CSS lives in) can ship one or more Mustache dashboard templates under a second fixed resource path, right alongside its `lenses/`:
+
+[source]
+----
+META-INF/arc-e-tect/tracker-lens/templates/<template-id>.html
+----
+
+Each file's base name, lower-cased, becomes its template id - exactly the same convention `lenses/*.css` uses for lens ids, including auto-namespacing on a cross-pack id collision (see link:LENS_TUTORIAL.adoc#id-collisions-across-packs[LENS_TUTORIAL.adoc's "Id collisions across packs"], which applies identically to templates). A consuming project selects one by id via `trackerLens.templateId`:
+
+[source,groovy]
+----
+trackerLens {
+    templateId = 'venn-diagram-view'
+}
+----
+
+`templateId` and `template` (a project's own local file, see "Customizing the Dashboard with a Template" below) are two different answers to the same question - which template renders `dashboard.html` - so setting both fails the build with a clear error. Setting neither keeps today's default: this plugin's own bundled template, itself just the `default` id under its own built-in pack (see `listTrackerLensTemplates`'s own output above).
+
+A template selected this way still goes through exactly the same rendering and validation `template` does - the same Mustache context (see "Customizing the Dashboard with a Template" below for the full variable reference), the same unconditional `ContractRule` validation as the last step of generation. Nothing about *how* a template is chosen changes what it's allowed to render.
+
 == Writing your first external lens pack
 
 See link:LENS_TUTORIAL.adoc[LENS_TUTORIAL.adoc] for the novice-friendly, step-by-step guide to building and publishing an external lens pack.
@@ -349,6 +394,8 @@ trackerLens {
     template = file('dashboard-template.html')
 }
 ----
+
+Everything below - the bundled default's own structure, the Mustache context variables available, `ContractRule` validation - applies identically whether the rendered template comes from `template` (a project's own file) or `templateId` (a lens pack's own template, selected by id - see "Lens packs can ship templates too" above). The two are mutually exclusive ways of answering the same question; nothing about validation or context distinguishes between them.
 
 Start from the bundled default template and edit its static text directly - headings, captions, column labels are all literal text in the template, not a separate variable you look up and override.
 The dynamic parts stay as Mustache variables and sections, resolved from the data collected on each run.

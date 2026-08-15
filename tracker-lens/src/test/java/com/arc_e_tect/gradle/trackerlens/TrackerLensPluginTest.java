@@ -51,6 +51,18 @@ class TrackerLensPluginTest {
     }
 
     @Test
+    @DisplayName("applyShouldRegisterTheListTrackerLensTemplatesTaskAndSurviveEvaluationWithoutAnyTracker")
+    void applyShouldRegisterTheListTrackerLensTemplatesTaskAndSurviveEvaluationWithoutAnyTracker() {
+        // Same reasoning as listTrackerLensStyles above - listTrackerLensTemplates only touches
+        // template resolution, so it must stay usable even when no tracker has been configured yet.
+        Project project = newProject();
+
+        ((ProjectInternal) project).evaluate();
+
+        assertThat(project.getTasks().findByName(TrackerLensPlugin.LIST_TEMPLATES_TASK_NAME)).isNotNull();
+    }
+
+    @Test
     @DisplayName("applyShouldRegisterTheInitTrackerLensTaskAndSurviveEvaluationWithoutAnyTracker")
     void applyShouldRegisterTheInitTrackerLensTaskAndSurviveEvaluationWithoutAnyTracker() {
         Project project = newProject();
@@ -163,6 +175,24 @@ class TrackerLensPluginTest {
                 (GenerateTrackerLensTask) project.getTasks().getByName(TrackerLensPlugin.TASK_NAME);
         assertThat(task.getDashboardName().get()).isEqualTo("Checkout Service Lens");
         assertThat(task.getVersion().get()).isEqualTo("9.9.9");
+    }
+
+    @Test
+    @DisplayName("evaluateShouldPassTemplateIdThroughToTheGenerateTask")
+    void evaluateShouldPassTemplateIdThroughToTheGenerateTask() {
+        Project project = newProject();
+        TrackerLensExtension extension = project.getExtensions().getByType(TrackerLensExtension.class);
+        extension.getTemplateId().set("venn-diagram-view");
+        extension.trackers(trackers -> trackers.register("bdd-scenarios", registration -> {
+            registration.getHistoryFiles().from(tempDir.resolve("history.ndjson").toFile());
+            registration.getSource().set(TrackerSourceKind.GHERKIN_SCENARIO);
+        }));
+
+        ((ProjectInternal) project).evaluate();
+
+        GenerateTrackerLensTask task =
+                (GenerateTrackerLensTask) project.getTasks().getByName(TrackerLensPlugin.TASK_NAME);
+        assertThat(task.getTemplateId().get()).isEqualTo("venn-diagram-view");
     }
 
     @Test
