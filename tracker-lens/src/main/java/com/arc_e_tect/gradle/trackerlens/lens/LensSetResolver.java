@@ -9,9 +9,6 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * Resolves the full merged lens set - this plugin's own bundled built-in lenses, every resolved
@@ -27,7 +24,6 @@ import java.util.regex.Pattern;
 public class LensSetResolver {
 
     private static final String BUILT_IN_LENS_MARKER = "META-INF/arc-e-tect/tracker-lens/lenses/light-lens.css";
-    private static final Pattern TRAILING_VERSION = Pattern.compile("^(.*)-\\d[\\w.\\-]*$");
 
     private final LensScanner lensScanner = new LensScanner();
     private final LensResolver lensResolver = new LensResolver();
@@ -96,16 +92,10 @@ public class LensSetResolver {
     }
 
     String labelFor(File classpathRoot) {
-        String name = classpathRoot.getName();
-        if (name.toLowerCase(Locale.ROOT).endsWith(".jar")) {
-            name = name.substring(0, name.length() - 4);
-        }
-        Matcher matcher = TRAILING_VERSION.matcher(name);
-        return matcher.matches() ? matcher.group(1) : name;
+        return PackLabel.labelFor(classpathRoot);
     }
 
     String labelPart(String coordinate) {
-        int colon = coordinate.lastIndexOf(':');
-        return colon >= 0 ? coordinate.substring(colon + 1) : coordinate;
+        return PackLabel.labelPart(coordinate);
     }
 }

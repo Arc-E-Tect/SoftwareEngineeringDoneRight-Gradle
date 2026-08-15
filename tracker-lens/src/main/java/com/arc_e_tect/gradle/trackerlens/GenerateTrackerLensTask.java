@@ -8,6 +8,8 @@ import com.arc_e_tect.gradle.trackerlens.dashboard.TrackerView;
 import com.arc_e_tect.gradle.trackerlens.dashboard.TrackerViewFactory;
 import com.arc_e_tect.gradle.trackerlens.lens.LensSetResolver;
 import com.arc_e_tect.gradle.trackerlens.lens.ResolvedLens;
+import com.arc_e_tect.gradle.trackerlens.lens.ResolvedTemplate;
+import com.arc_e_tect.gradle.trackerlens.lens.TemplateSetResolver;
 import com.arc_e_tect.gradle.trackerlens.projection.Projection;
 import com.arc_e_tect.gradle.trackerlens.projection.ProgressProjector;
 import com.arc_e_tect.gradle.trackerlens.tracker.HistoryFileResolver;
@@ -33,6 +35,7 @@ import org.gradle.work.DisableCachingByDefault;
 
 import javax.inject.Inject;
 import java.io.File;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -48,6 +51,7 @@ import java.util.List;
 public abstract class GenerateTrackerLensTask extends DefaultTask {
 
     private final LensSetResolver lensSetResolver = new LensSetResolver();
+    private final TemplateSetResolver templateSetResolver = new TemplateSetResolver();
     private final TrackerViewFactory trackerViewFactory = new TrackerViewFactory();
     private final DashboardHtmlWriter dashboardHtmlWriter = new DashboardHtmlWriter();
     private final ProgressProjector progressProjector = new ProgressProjector();
@@ -126,6 +130,16 @@ public abstract class GenerateTrackerLensTask extends DefaultTask {
     public abstract RegularFileProperty getTemplate();
 
     /**
+     * Optional id of a lens-pack-provided template to render {@code dashboard.html} from, instead
+     * of this plugin's own bundled default. Mutually exclusive with {@link #getTemplate()}.
+     *
+     * @return mutable property for the selected lens-pack template's id
+     */
+    @Input
+    @Optional
+    public abstract Property<String> getTemplateId();
+
+    /**
      * The dashboard's displayed name, shown in the browser tab title and the page heading. Always
      * present by the time this task runs - {@code TrackerLensExtension} gives it a
      * {@code "<project.name> Lens"} convention, so there is nothing for this property to fall back
@@ -168,8 +182,7 @@ public abstract class GenerateTrackerLensTask extends DefaultTask {
 
         DashboardView view = new DashboardView(
                 trackerViews, lenses, defaultLensId, getDashboardName().get(), getVersion().get());
-        File customTemplate = getTemplate().isPresent() ? getTemplate().get().getAsFile() : null;
-        File dashboardFile = dashboardHtmlWriter.write(getOutputDirectory().get().getAsFile(), view, customTemplate);
+        File dashboardFile = writeDashboard(view);
 
         List<Violation> violations = contractValidator.validate(dashboardFile);
         if (!violations.isEmpty()) {
@@ -206,6 +219,36 @@ public abstract class GenerateTrackerLensTask extends DefaultTask {
             records.addAll(spec.kind().createSource().read(file));
         }
         return records;
+    }
+
+    private File writeDashboard(DashboardView view) {
+        boolean templateFileSet = getTemplate().isPresent();
+        boolean templateIdSet = getTemplateId().isPresent() && !getTemplateId().get().isBlank();
+        if (templateFileSet && templateIdSet) {
+            throw new GradleException("trackerLens: template and templateId are mutually exclusive - "
+                    + "set at most one of them");
+        }
+
+        File outputDirectory = getOutputDirectory().get().getAsFile();
+        if (templateIdSet) {
+            String id = getTemplateId().get();
+            List<ResolvedTemplate> templates = resolveTemplates();
+            ResolvedTemplate template = templates.stream()
+                    .filter(candidate -> candidate.id().equals(id))
+                    .findFirst()
+                    .orElseThrow(() -> new GradleException("trackerLens: no template with id '" + id
+                            + "' found among the resolved lens packs. Available: "
+                            + templates.stream().map(ResolvedTemplate::id).toList()));
+            return dashboardHtmlWriter.write(outputDirectory, view, template.id(),
+                    new String(template.content(), StandardCharsets.UTF_8));
+        }
+
+        File customTemplate = templateFileSet ? getTemplate().get().getAsFile() : null;
+        return dashboardHtmlWriter.write(outputDirectory, view, customTemplate);
+    }
+
+    private List<ResolvedTemplate> resolveTemplates() {
+        return templateSetResolver.resolve(getLensStyleClasspath(), getPreferredLensPack().getOrElse(""));
     }
 
     private List<ResolvedLens> resolveLenses() {

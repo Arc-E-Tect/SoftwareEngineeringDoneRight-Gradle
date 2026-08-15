@@ -181,6 +181,35 @@ class DashboardHtmlWriterTest {
     }
 
     @Test
+    @DisplayName("writeShouldRenderFromLensPackTemplateContentAndValidateItAgainstTheContract")
+    void writeShouldRenderFromLensPackTemplateContentAndValidateItAgainstTheContract() throws IOException {
+        String templateContent = """
+                <!doctype html>
+                <html><head><link rel="stylesheet" id="lens-stylesheet" href="{{defaultLensCssFile}}"></head>
+                <body>
+                <div class="dashboard">
+                <h1>Venn Diagram View</h1>
+                <div class="lens-switcher" data-lens-count="{{lensCount}}"><select></select></div>
+                {{#trackers}}
+                <section class="tracker" data-tracker="{{id}}">
+                {{#metrics}}<div class="metric-card" data-stage="{{stage}}" style="--percent: {{percent}}"></div>{{/metrics}}
+                <div class="chart"><canvas></canvas></div>
+                </section>
+                {{/trackers}}
+                </div>
+                {{{dashboardDataScript}}}
+                </body></html>
+                """;
+        DashboardView view = twoTrackerView();
+
+        File dashboardFile = writer.write(tempDir.toFile(), view, "venn-diagram-view", templateContent);
+
+        String html = Files.readString(dashboardFile.toPath());
+        assertThat(html).contains("Venn Diagram View");
+        assertThat(validator.validate(dashboardFile)).isEmpty();
+    }
+
+    @Test
     @DisplayName("writeShouldFailWithAClearErrorWhenCustomTemplateHasInvalidMustacheSyntax")
     void writeShouldFailWithAClearErrorWhenCustomTemplateHasInvalidMustacheSyntax() throws IOException {
         Path template = tempDir.resolve("broken-template.html");

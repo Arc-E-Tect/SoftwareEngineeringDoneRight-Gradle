@@ -4,34 +4,30 @@ import com.arc_e_tect.gradle.trackerlens.lens.LensSetResolver;
 import com.arc_e_tect.gradle.trackerlens.lens.ResolvedLens;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.file.ConfigurableFileCollection;
-import org.gradle.api.file.RegularFileProperty;
 import org.gradle.api.provider.Property;
 import org.gradle.api.tasks.Classpath;
 import org.gradle.api.tasks.Input;
-import org.gradle.api.tasks.InputFile;
 import org.gradle.api.tasks.Optional;
-import org.gradle.api.tasks.PathSensitive;
-import org.gradle.api.tasks.PathSensitivity;
 import org.gradle.api.tasks.TaskAction;
 import org.gradle.work.DisableCachingByDefault;
 
 import javax.inject.Inject;
-import java.io.File;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 /**
- * Lists every Tracker Lens style that {@code generateTrackerLensDashboard} would offer in the
- * dashboard's lens switcher - this plugin's own built-in lenses, every resolved external
- * {@code lensStyle} pack, and the {@code lensStylesheet} lens when configured - without generating
- * a dashboard.
+ * Lists every Tracker Lens style available through a lens pack - this plugin's own built-in lenses
+ * and every resolved external {@code lensStyle} pack's lenses - without generating a dashboard.
  *
- * <p>Resolves the exact same lens set as {@code generateTrackerLensDashboard}, via the shared
- * {@link LensSetResolver}, so this listing can never drift from what actually ends up in the
- * switcher. Unlike {@code generateTrackerLensDashboard}, this task needs no tracker to be
- * registered at all - it only touches lens resolution.</p>
+ * <p>Scoped to lens packs only: {@code trackerLens.lensStylesheet}'s single {@code custom-lens}
+ * lens - a bare project-supplied CSS file, not a discoverable, id-namespaced pack - is a different
+ * mechanism entirely and never appears here, even though {@code generateTrackerLensDashboard}'s own
+ * lens switcher does still offer it. Resolves the lens-pack subset of the same lens set
+ * {@code generateTrackerLensDashboard} resolves, via the shared {@link LensSetResolver} (called with
+ * no {@code lensStylesheet}), so this listing can never drift from what the packs themselves
+ * contribute. Needs no tracker to be registered at all - it only touches lens resolution.</p>
  */
 @DisableCachingByDefault(because = "Prints the available lens styles to the console; produces no outputs")
 public abstract class ListTrackerLensStylesTask extends DefaultTask {
@@ -42,8 +38,8 @@ public abstract class ListTrackerLensStylesTask extends DefaultTask {
     @Inject
     public ListTrackerLensStylesTask() {
         setGroup("reporting");
-        setDescription("Lists every Tracker Lens style (built-in, external lensStyle packs, and the custom "
-                + "lensStylesheet when configured) that generateTrackerLensDashboard would offer.");
+        setDescription("Lists every Tracker Lens style available through a lens pack (built-in and external "
+                + "lensStyle packs).");
     }
 
     /**
@@ -53,16 +49,6 @@ public abstract class ListTrackerLensStylesTask extends DefaultTask {
      */
     @Classpath
     public abstract ConfigurableFileCollection getLensStyleClasspath();
-
-    /**
-     * Optional single CSS file contributing the {@code custom-lens} lens.
-     *
-     * @return mutable file property for the custom lens stylesheet
-     */
-    @InputFile
-    @PathSensitive(PathSensitivity.RELATIVE)
-    @Optional
-    public abstract RegularFileProperty getLensStylesheet();
 
     /**
      * Optional coordinate restricting which single external style pack's lenses are offered.
@@ -76,9 +62,8 @@ public abstract class ListTrackerLensStylesTask extends DefaultTask {
     /** Resolves the lens set and prints it to the console, grouped by source. */
     @TaskAction
     public void list() {
-        File lensStylesheet = getLensStylesheet().isPresent() ? getLensStylesheet().get().getAsFile() : null;
         List<ResolvedLens> lenses =
-                lensSetResolver.resolve(lensStylesheet, getLensStyleClasspath(), getPreferredLensPack().getOrElse(""));
+                lensSetResolver.resolve(null, getLensStyleClasspath(), getPreferredLensPack().getOrElse(""));
 
         Map<String, List<String>> idsBySource = new LinkedHashMap<>();
         for (ResolvedLens lens : lenses) {
@@ -96,10 +81,6 @@ public abstract class ListTrackerLensStylesTask extends DefaultTask {
     }
 
     private String displayName(String sourceLabel) {
-        return switch (sourceLabel) {
-            case "built-in" -> "Built-in";
-            case "custom" -> "Custom (lensStylesheet)";
-            default -> sourceLabel;
-        };
+        return "built-in".equals(sourceLabel) ? "Built-in" : sourceLabel;
     }
 }

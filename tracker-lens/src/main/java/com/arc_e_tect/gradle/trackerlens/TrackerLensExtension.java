@@ -22,6 +22,7 @@ import javax.inject.Inject;
  *     preferredLensPack = "com.example:midnight-theme" // optional: restrict which external pack's lenses are offered
  *     defaultLens = "dark-lens"                        // optional
  *     template = file("dashboard-template.html")       // optional: override the bundled dashboard.html Mustache template
+ *     templateId = "venn-diagram-view"                 // optional: select a lens pack's own template instead (mutually exclusive with template)
  *     outputDir = layout.buildDirectory.dir("reports/tracker-lens")  // default shown
  *     dashboardName = "Checkout Service Lens"          // optional; default: "${project.name} Lens"
  *     version = "2.3.0"                                // optional; default: project.version
@@ -117,6 +118,22 @@ public abstract class TrackerLensExtension {
      * @return mutable file property for the custom dashboard template
      */
     public abstract RegularFileProperty getTemplate();
+
+    /**
+     * Optional id of a lens-pack-provided template (built-in or from a resolved {@code lensStyle}
+     * pack - see {@code listTrackerLensTemplates}) to render {@code dashboard.html} from, instead
+     * of this plugin's own bundled default. A lens pack is not just a color scheme: it can ship one
+     * or more whole alternate views over the same tracking data, each a Mustache template under its
+     * {@code META-INF/arc-e-tect/tracker-lens/templates/} resources, selectable by id here.
+     *
+     * <p>Mutually exclusive with {@link #getTemplate()} - setting both fails the build with a clear
+     * error, since a project file and a lens-pack id are two different answers to the same question
+     * of which template to render. Setting neither keeps today's default: this plugin's own bundled
+     * template.</p>
+     *
+     * @return mutable property for the selected lens-pack template's id
+     */
+    public abstract Property<String> getTemplateId();
 
     /**
      * The dashboard's displayed name, shown in the browser tab title and the page heading.

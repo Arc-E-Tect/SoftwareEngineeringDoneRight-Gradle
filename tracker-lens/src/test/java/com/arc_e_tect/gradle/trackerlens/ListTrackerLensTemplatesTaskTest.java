@@ -19,8 +19,8 @@ import java.util.jar.JarOutputStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@DisplayName("ListTrackerLensStylesTask")
-class ListTrackerLensStylesTaskTest {
+@DisplayName("ListTrackerLensTemplatesTask")
+class ListTrackerLensTemplatesTaskTest {
 
     @TempDir
     Path tempDir;
@@ -40,53 +40,53 @@ class ListTrackerLensStylesTaskTest {
     }
 
     @Test
-    @DisplayName("listShouldPrintTheThreeBuiltInLensesGroupedUnderBuiltIn")
-    void listShouldPrintTheThreeBuiltInLensesGroupedUnderBuiltIn() {
-        ListTrackerLensStylesTask task = newTask();
+    @DisplayName("listShouldPrintTheBuiltInTemplateGroupedUnderBuiltIn")
+    void listShouldPrintTheBuiltInTemplateGroupedUnderBuiltIn() {
+        ListTrackerLensTemplatesTask task = newTask();
 
         task.list();
 
         String output = capturedOut.toString(StandardCharsets.UTF_8);
-        assertThat(output).contains("Built-in:", "light-lens", "dark-lens", "high-contrast-lens");
+        assertThat(output).contains("Built-in:", "default");
     }
 
     @Test
-    @DisplayName("listShouldPrintExternalPackLensesGroupedUnderTheirDerivedPackLabel")
-    void listShouldPrintExternalPackLensesGroupedUnderTheirDerivedPackLabel() throws IOException {
-        ListTrackerLensStylesTask task = newTask();
-        File jarFile = writeStylePackJar("midnight-theme.jar", "midnight");
+    @DisplayName("listShouldPrintExternalPackTemplatesGroupedUnderTheirDerivedPackLabel")
+    void listShouldPrintExternalPackTemplatesGroupedUnderTheirDerivedPackLabel() throws IOException {
+        ListTrackerLensTemplatesTask task = newTask();
+        File jarFile = writeTemplatePackJar("venn-view-pack.jar", "venn-diagram-view");
         task.getLensStyleClasspath().from(jarFile);
 
         task.list();
 
         String output = capturedOut.toString(StandardCharsets.UTF_8);
-        assertThat(output).contains("midnight-theme:", "midnight");
+        assertThat(output).contains("venn-view-pack:", "venn-diagram-view");
     }
 
     @Test
     @DisplayName("listShouldPrintTotalDiscoveredCountInTheHeader")
     void listShouldPrintTotalDiscoveredCountInTheHeader() {
-        ListTrackerLensStylesTask task = newTask();
+        ListTrackerLensTemplatesTask task = newTask();
 
         task.list();
 
         String output = capturedOut.toString(StandardCharsets.UTF_8);
-        assertThat(output).contains("Tracker Lens styles available (3):");
+        assertThat(output).contains("Tracker Lens templates available (1):");
     }
 
-    private ListTrackerLensStylesTask newTask() {
+    private ListTrackerLensTemplatesTask newTask() {
         return ProjectBuilder.builder()
                 .withProjectDir(tempDir.toFile())
                 .build()
                 .getTasks()
-                .create("listTrackerLensStyles", ListTrackerLensStylesTask.class);
+                .create("listTrackerLensTemplates", ListTrackerLensTemplatesTask.class);
     }
 
-    private File writeStylePackJar(String fileName, String lensBaseName) throws IOException {
+    private File writeTemplatePackJar(String fileName, String templateBaseName) throws IOException {
         Path jarFile = tempDir.resolve(fileName);
         try (JarOutputStream jar = new JarOutputStream(new FileOutputStream(jarFile.toFile()))) {
-            jar.putNextEntry(new JarEntry("META-INF/arc-e-tect/tracker-lens/lenses/" + lensBaseName + ".css"));
-            jar.write(".dashboard {}".getBytes(StandardCharsets.UTF_8));
+            jar.putNextEntry(new JarEntry("META-INF/arc-e-tect/tracker-lens/templates/" + templateBaseName + ".html"));
+            jar.write("<html></html>".getBytes(StandardCharsets.UTF_8));
             jar.closeEntry();
         }
         return jarFile.toFile();
