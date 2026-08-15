@@ -94,14 +94,37 @@ class ProgressProjectorTest {
     @Test
     @DisplayName("projectShouldComputeProjectedDateFromVelocityAndRemainingCount")
     void projectShouldComputeProjectedDateFromVelocityAndRemainingCount() {
-        // 2 reached within a 10-day lookback -> velocity 0.2/day; 8 remaining of 10 total -> 40 days out.
+        // 2 reached within a 10-day lookback -> velocity 0.2/day; 8 remaining of 10 total -> 40
+        // business days out. NOW (2026-08-13) is a Thursday; 40 business days is an exact multiple
+        // of 5, so it lands on a Thursday 8 weeks later with no remainder-day weekend correction
+        // needed - 56 calendar days, not 40.
         List<LifecycleRecord> records = recordsReachingStageAt(
                 "implemented", NOW.minus(Duration.ofDays(10)), NOW.minus(Duration.ofDays(1)));
 
         Optional<Projection> projection = projector.project(records, "implemented", 10, NOW);
 
         assertThat(projection).isPresent().get()
-                .extracting(Projection::projectedDate).isEqualTo(NOW.plus(Duration.ofDays(40)));
+                .extracting(Projection::projectedDate).isEqualTo(NOW.plus(Duration.ofDays(56)));
+    }
+
+    @Test
+    @DisplayName("projectShouldSkipWeekendsWhenConvertingBusinessDaysToACalendarProjectedDate")
+    void projectShouldSkipWeekendsWhenConvertingBusinessDaysToACalendarProjectedDate() {
+        // A Monday. 7 reached, all exactly at the 7-day lookback boundary -> velocity 7/7 = 1/day;
+        // 7 remaining of 14 total -> exactly 7 business days out. From a Monday, 7 business days
+        // lands on the Wednesday of the week after next - 9 calendar days out, not 7, since it
+        // crosses one full weekend (the plugin's own worked example: "7 days to go" should never
+        // read as 7 calendar days when that implicitly assumes weekend work).
+        Instant monday = Instant.parse("2026-08-10T00:00:00Z");
+        List<LifecycleRecord> records = recordsReachingStageAt("implemented",
+                monday.minus(Duration.ofDays(7)), monday.minus(Duration.ofDays(7)), monday.minus(Duration.ofDays(7)),
+                monday.minus(Duration.ofDays(7)), monday.minus(Duration.ofDays(7)), monday.minus(Duration.ofDays(7)),
+                monday.minus(Duration.ofDays(7)));
+
+        Optional<Projection> projection = projector.project(records, "implemented", 14, monday);
+
+        assertThat(projection).isPresent().get()
+                .extracting(Projection::projectedDate).isEqualTo(monday.plus(Duration.ofDays(9)));
     }
 
     private List<LifecycleRecord> recordsReachingStageAt(String stage, Instant... instants) {
