@@ -1,3 +1,16 @@
+## [0.3.2](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/tracker-lens-v0.3.1...tracker-lens-v0.3.2) (2026-08-15)
+
+
+### 🐛 Bug Fixes
+
+* **tracker-lens:** make every tracker's line chart fill its container width ([#152](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/152)) ([202d2ca](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/202d2ca2a08f07a3fc1cddc2db1899b066524c4e)), closes [#152](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/152)
+* **tracker-lens:** make projected-completion dates workday-aware ([#151](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/151)) ([086aecb](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/086aecb5bd145bb1f8e8434a62522008c42ca09c)), closes [#151](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/151)
+
+
+### 🔧 Misc
+
+* **examples:** bump tracker-lens to 0.3.1 across examples ([#150](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/150)) ([cce801a](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/cce801a5bdecffae223e88450a34fa9cb26569e1)), closes [#150](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/150)
+
 ## [0.3.1](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/tracker-lens-v0.3.0...tracker-lens-v0.3.1) (2026-08-15)
 
 
