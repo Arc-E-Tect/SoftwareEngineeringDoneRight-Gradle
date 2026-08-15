@@ -1,3 +1,11 @@
+# [0.4.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/tracker-lens-v0.3.2...tracker-lens-v0.4.0) (2026-08-15)
+
+
+### ✨ New and updated features
+
+* **dashboard-extra-charts:** full-width forecast chart and lens-colored ([#153](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/153)) ([7c86d33](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/7c86d33594f9b7961081acf6793633c26b9d158a)), closes [#153](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/153)
+* **dashboard-extra-charts:** make lens-colored a real, integrated lens-pack lens ([#154](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/154)) ([6e4e5f2](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/6e4e5f280f7e651076fa71d1f6a38fe6ea2c03e5)), closes [#154](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/154) [#151](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/151) [#152](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/152)
+
 ## [0.3.2](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/tracker-lens-v0.3.1...tracker-lens-v0.3.2) (2026-08-15)
 
 
