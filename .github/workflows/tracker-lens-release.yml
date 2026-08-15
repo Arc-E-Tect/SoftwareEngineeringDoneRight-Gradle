@@ -10,6 +10,17 @@ on:
       - 'tracker-lens/docs/**'
   workflow_dispatch: {}
 
+concurrency:
+  # Only one release of this plugin may run at a time. cancel-in-progress stays false so a
+  # release that's already mid-publish is never killed part-way through (tag pushed but jar not
+  # published, or vice versa) - a run that arrives while one is in progress waits instead. If a
+  # second run is already waiting when a third arrives, GitHub supersedes the waiting one with the
+  # newest rather than running both; nothing is lost by that, since Calculate-Version always looks
+  # at every unreleased commit since the last tag, not just whatever triggered the run - the one
+  # run that does execute still bundles every commit that piled up while it waited.
+  group: tracker-lens-release
+  cancel-in-progress: false
+
 jobs:
   Calculate-Version:
     uses: ./.github/workflows/semantic-version-calculate.yml
