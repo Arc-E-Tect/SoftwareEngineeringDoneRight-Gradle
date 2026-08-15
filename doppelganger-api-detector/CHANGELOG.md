@@ -1,3 +1,58 @@
+# [1.0.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/doppelganger-api-detector-v0.4.0...doppelganger-api-detector-v1.0.0) (2026-08-15)
+
+
+### ✨ New and updated features
+
+* **shadow-api-detector:** adapt to api-detector-core's narrower implementedAt semantics ([#158](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/158)) ([ab1c5e7](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/ab1c5e7a8cdb4572f5e3b1684262937078556d23)), closes [#158](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/158)
+* **doppelganger-api-detector:** adapt to api-detector-core's narrower implementedAt semantics ([#159](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/159)) ([d83230f](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/d83230f5cd11ea2455ba29f01dbb5c90623758cb)), closes [#159](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/159)
+* **tracker-lens:** add dashboardName and version DSL properties ([#148](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/148)) ([8c0083a](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/8c0083a6caaa99f15f682cadb55a05cddfcb8a7f)), closes [#148](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/148)
+* **tracker-lens:** expose per-item current-stage breakdown in #dashboard-data ([#146](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/146)) ([c38c4f3](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/c38c4f311498fcd5a5e2ee5ef531ea17d49e07c1)), closes [#dashboard-data](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/dashboard-data) [#146](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/146) [#dashboard-data](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/dashboard-data)
+* **dashboard-extra-charts:** full-width forecast chart and lens-colored ([#153](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/153)) ([7c86d33](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/7c86d33594f9b7961081acf6793633c26b9d158a)), closes [#153](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/153)
+* **tracker-lens:** let lens packs ship selectable dashboard templates ([#155](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/155)) ([fa06b2a](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/fa06b2a5838c65fc0b675cb7e949d3f76c851fe0)), closes [#155](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/155)
+* **dashboard-extra-charts:** make lens-colored a real, integrated lens-pack lens ([#154](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/154)) ([6e4e5f2](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/6e4e5f280f7e651076fa71d1f6a38fe6ea2c03e5)), closes [#154](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/154) [#151](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/151) [#152](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/152)
+* **mirage-api-detector:** separate real implementation evidence from stub evidence in contract history ([#157](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/157)) ([d62db26](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/d62db26abbdd96841ea410802953c9e33d168371)), closes [#157](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/157)
+
+
+### 🐛 Bug Fixes
+
+* **tracker-lens:** correct dashboard-extra-charts' Gherkin pie and api-contracts numbers ([#145](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/145)) ([39a3bcc](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/39a3bcc182202fd740002a536dc1aa6e38d82ceb)), closes [#145](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/145) [#2f9e44](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/2f9e44) [#7048e8](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/7048e8)
+* **docs:** correct include directives in README for user authentication and invoice payment sections ([#144](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/144)) ([1afecc8](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/1afecc85e3f773b4380a63dc0b731e396667e12c)), closes [#144](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/144)
+* **tracker-lens:** make every tracker's line chart fill its container width ([#152](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/152)) ([202d2ca](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/202d2ca2a08f07a3fc1cddc2db1899b066524c4e)), closes [#152](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/152)
+* **tracker-lens:** make projected-completion dates workday-aware ([#151](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/151)) ([086aecb](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/086aecb5bd145bb1f8e8434a62522008c42ca09c)), closes [#151](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/151)
+* **tracker-lens:** rewrite bdd-scenarios' metric cards to match its own pie ([#147](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/147)) ([03a9c95](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/03a9c9506f0765e3a535991a61afa37a4c428d75)), closes [#147](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/147)
+* **tracker-lens:** serialize release workflow runs to stop version races ([#156](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/156)) ([c4d9e79](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/c4d9e798b56ae06077dc6a2429f06eae9d08af44)), closes [#156](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/156)
+* **tracker-lens:** use stageBreakdown for GHERKIN_SCENARIO metric cards ([#149](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/149)) ([6d7c99b](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/6d7c99b5ee21cf879f747184aed58c2572572221)), closes [#149](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/149)
+
+
+### 📝 Documentation
+
+* **tracker-lens:** add dashboard-extra-charts example (pie chart + nested Venn diagram) ([#143](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/143)) ([91423f3](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/91423f36fe57039b4c92081d3f955e6bfa87841e)), closes [#143](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/143) [#dashboard-data](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/dashboard-data)
+* **doppelganger-api-detector:** add verified-by-restdocs-restassured example ([#141](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/141)) ([0e88269](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/0e882691e014552337d163a0acfeed7c811b84bb)), closes [#141](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/141) [#140](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/140) [#140](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/140)
+* **tracker-lens:** add Vulnerability Scan, Gradle Plugin Portal, and GitHub release badges ([#142](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/142)) ([8c0a602](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/8c0a602c2abe4eb4dbec0cfca98336563ca50f37)), closes [#142](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/142)
+
+
+### 🔧 Misc
+
+* **examples:** bump tracker-lens to 0.3.1 across examples ([#150](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/150)) ([cce801a](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/cce801a5bdecffae223e88450a34fa9cb26569e1)), closes [#150](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/150)
+
+
+### BREAKING CHANGE
+
+* **doppelganger-api-detector:** an existing contractHistoryFile (9 fields, no stubbedAt)
+now fails detectDoppelgangerApis with a clear error instead of loading.
+Apply mirage-api-detector and run its migrateContractHistory task once to
+upgrade the file in place, or point contractHistoryFile at a new location
+to start fresh.
+* **shadow-api-detector:** an existing contractHistoryFile (9 fields, no stubbedAt)
+now fails detectShadowApis with a clear error instead of loading. Apply
+mirage-api-detector and run its migrateContractHistory task once to
+upgrade the file in place, or point contractHistoryFile at a new location
+to start fresh.
+* **mirage-api-detector:** an existing contractHistoryFile (9 fields, no stubbedAt)
+now fails detectMirageApis with a clear error instead of loading. Run
+migrateContractHistory once to upgrade it in place, or point
+contractHistoryFile at a new location to start fresh.
+
 # [0.4.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/doppelganger-api-detector-v0.3.2...doppelganger-api-detector-v0.4.0) (2026-08-14)
 
 
