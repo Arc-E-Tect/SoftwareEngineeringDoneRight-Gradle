@@ -4,7 +4,6 @@ on:
     paths:
       - 'examples/tracker-lens/high-contrast-accessibility/**/*.gradle'
       - 'examples/tracker-lens/high-contrast-accessibility/**/*.properties'
-      - 'examples/tracker-lens/high-contrast-accessibility/**/*.ndjson'
       - 'examples/tracker-lens/high-contrast-accessibility/**/libs.versions.toml'
       - '.github/workflows/example-tracker-lens-high-contrast-accessibility-build.yml'
 

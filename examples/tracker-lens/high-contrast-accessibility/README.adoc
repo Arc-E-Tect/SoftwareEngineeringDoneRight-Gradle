@@ -19,6 +19,12 @@ which stay distinguishable across protanopia, deuteranopia, and tritanopia alike
 Any project can do the same for its own dashboard with one line, without needing a custom lens or
 an external pack at all.
 
+== The Sample Data
+
+`gherkin-progress-history.ndjson` isn't committed to this repository - like `../plain`, it's
+generated fresh by `generateTrackerLensFixture` before every dashboard build, dated to whenever
+you actually run it rather than frozen at whatever point it was last captured.
+
 == Configuration
 
 [source,groovy]
@@ -33,6 +39,10 @@ trackerLens {
         }
     }
 }
+
+// Regenerates a calibrated sample fixture, dated to whenever this project is actually built,
+// before every dashboard render - never a snapshot that goes stale the moment it's committed.
+tasks.named('generateTrackerLensDashboard') { dependsOn 'generateTrackerLensFixture' }
 ----
 
 == Build And Run
