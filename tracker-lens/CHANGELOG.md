@@ -1,3 +1,15 @@
+# [1.1.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/tracker-lens-v1.0.0...tracker-lens-v1.1.0) (2026-08-16)
+
+
+### ✨ New and updated features
+
+* **tracker-lens:** add per-date stage breakdown to #dashboard-data ([#162](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/162)) ([dd80c04](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/dd80c0414e1937298098fcc1e571231dfb932942)), closes [#dashboard-data](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/dashboard-data) [#162](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/162)
+
+
+### 🐛 Bug Fixes
+
+* **api-only-suite:** bump api-detector-core to 1.0.0 ([#161](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/161)) ([85f7eec](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/85f7eec397dac228e4f5d0083ab27742ff8a3593)), closes [#161](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/161) [158/#159](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/159)
+
 # [1.0.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/tracker-lens-v0.5.0...tracker-lens-v1.0.0) (2026-08-15)
 
 
