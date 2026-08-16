@@ -34,6 +34,15 @@ public class ProgressHistoryStore {
 
     private static final Logger LOGGER = Logging.getLogger(ProgressHistoryStore.class);
 
+    /**
+     * The current schema version, written as the file's own first line ({@code save} always emits
+     * it) so a future format change has something to branch reading logic on. Purely additive: a
+     * file written before this existed has no such line, and {@link #load(File)} tolerates that by
+     * treating a missing marker as version 1, exactly like a present {@code "schemaVersion":1} line.
+     */
+    private static final int CURRENT_SCHEMA_VERSION = 1;
+    private static final Pattern SCHEMA_VERSION_LINE = Pattern.compile("^\\{\"schemaVersion\":(\\d+)\\}$");
+
     private static final String STRING_FIELD = "\"((?:[^\"\\\\]|\\\\.)*)\"";
     private static final String INSTANT_FIELD = "(null|\"[^\"]*\")";
     private static final Pattern LINE_PATTERN = Pattern.compile(
@@ -77,6 +86,9 @@ public class ProgressHistoryStore {
             if (line.isBlank()) {
                 continue;
             }
+            if (i == 0 && SCHEMA_VERSION_LINE.matcher(line).matches()) {
+                continue;
+            }
             ScenarioProgressRecord record = parseLine(line);
             if (record == null) {
                 LOGGER.warn("gherkinToAsciidoc: skipping malformed progress history line {} in {}", i + 1, file);
@@ -99,6 +111,7 @@ public class ProgressHistoryStore {
         sorted.sort(Comparator.comparing(ScenarioProgressRecord::fingerprint));
 
         try (PrintWriter writer = new PrintWriter(file, StandardCharsets.UTF_8)) {
+            writer.println("{\"schemaVersion\":" + CURRENT_SCHEMA_VERSION + "}");
             for (ScenarioProgressRecord record : sorted) {
                 writer.println(toJson(record));
             }
