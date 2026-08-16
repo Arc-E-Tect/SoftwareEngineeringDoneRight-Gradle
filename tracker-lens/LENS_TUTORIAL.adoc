@@ -152,9 +152,15 @@ repositories {
 }
 
 trackerLens {
-    trackers.register('bdd-scenarios') {
-        historyFiles.from(file('src/main/resources/gherkin-progress-history.ndjson'))
-        source = com.arc_e_tect.gradle.trackerlens.TrackerSourceKind.GHERKIN_SCENARIO
+    trackers {
+        register('bdd-scenarios') {
+            historyFiles.from(file('gherkin-progress-history.ndjson'))
+            source = com.arc_e_tect.gradle.trackerlens.TrackerSourceKind.GHERKIN_SCENARIO
+        }
+        register('api-contracts') {
+            historyFiles.from(file('api-contract-progress.ndjson'))
+            source = com.arc_e_tect.gradle.trackerlens.TrackerSourceKind.API_CONTRACT
+        }
     }
 }
 
@@ -163,6 +169,19 @@ dependencies {
 }
 ----
 
+=== Generating a realistic sample history
+
+The two `historyFiles` above don't exist yet, and a dashboard rendered from empty or hand-invented data isn't a good way to judge a lens - a real lens is judged by how it draws metric cards, charts, and a projected-completion forecast, none of which look like anything with only one or two made-up rows.
+
+Rather than hand-writing plausible-looking NDJSON, the plugin itself can generate it. `generateTrackerLensFixture` synthesizes a calibrated pair of history files covering every stage and category a lens needs to render - Shadow, Mirage, Stubbed, Doppelganger, and Compliant API contracts; BDD scenarios at every stage, including the stage-skip case; at least one removed item on each tracker - with a completion forecast landing a predictable ~30 days out, verified against the real forecast calculator rather than merely aimed at:
+
+[source,bash]
+----
+./gradlew generateTrackerLensFixture
+----
+
+This writes `gherkin-progress-history.ndjson` and `api-contract-progress.ndjson` into the project directory - exactly the two files the `trackerLens` block above already points at, with no further configuration needed. See link:README.adoc#generating-a-calibrated-fixture[README.adoc's "Generating a calibrated fixture" section] for the full property list, what "calibrated" means, and the plain Java API for using this same generator from a test with no Gradle involvement at all.
+
 Then run:
 
 [source,bash]
@@ -170,7 +189,7 @@ Then run:
 ./gradlew generateTrackerLensDashboard
 ----
 
-If the pack was discovered correctly, the dashboard switcher includes the lens id `jungle-lens`.
+If the pack was discovered correctly, the dashboard switcher includes the lens id `jungle-lens` - and this time, every metric card, chart, and the forecast panel all have real data to draw.
 
 == Step 4: validate the look
 
