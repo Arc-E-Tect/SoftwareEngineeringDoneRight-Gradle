@@ -1,3 +1,15 @@
+# [1.3.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/tracker-lens-v1.2.0...tracker-lens-v1.3.0) (2026-08-16)
+
+
+### ✨ New and updated features
+
+* **tracker-lens:** add a calibrated fixture generator for tracker-lens dashboards ([#166](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/166)) ([ce0eaa6](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/ce0eaa6a544a64df79bcaf6721e184438ea7c717)), closes [#166](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/166)
+
+
+### 🐛 Bug Fixes
+
+* **docs:** mention the schema-version marker in the detector plugins' NDJSON examples ([#165](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/165)) ([0ba9880](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/0ba98809c9b57b06e25a5f68770c34014c06c10b)), closes [#165](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/165)
+
 # [1.2.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/tracker-lens-v1.1.0...tracker-lens-v1.2.0) (2026-08-16)
 
 
