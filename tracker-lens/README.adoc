@@ -297,7 +297,7 @@ Refuses to overwrite a file that's already there, so re-running it never discard
 ./gradlew bootstrapTrackerLensProject
 ----
 
-Generates the full path from `LENS_TUTORIAL.adoc`: a `tracker-lens-bootstrap/` directory containing a `lens-pack/` project (the same boilerplate lens, wired up to publish to a local Maven repository) and a `sample-project/` project (applying `tracker-lens` itself - pinned to the exact plugin version that generated it - already configured to consume `lens-pack` and pre-loaded with a small sample history file, so `generateTrackerLensDashboard` has something to render immediately).
+Generates the full path from `LENS_TUTORIAL.adoc`: a `tracker-lens-bootstrap/` directory containing a `lens-pack/` project (the same boilerplate lens, wired up to publish to a local Maven repository) and a `sample-project/` project (applying `tracker-lens` itself - pinned to the exact plugin version that generated it - already configured to consume `lens-pack`, with `generateTrackerLensDashboard` wired to depend on `generateTrackerLensFixture`, so its first build - and every build after - generates a calibrated sample fixture dated to today before rendering, rather than reading a static file frozen at scaffold time).
 Also refuses to run into a non-empty output directory.
 
 Both tasks need no tracker to be registered - they're available as soon as the plugin is applied, whether or not `trackerLens { trackers { ... } }` has been configured yet.
