@@ -43,6 +43,12 @@ The `id="lens-select"` and `id="lens-stylesheet"` elements are also kept exactly
 template names them - those two ids are what the dashboard's own bootstrap script looks up at
 runtime to wire up the lens switcher, independent of the content contract.
 
+== The Sample Data
+
+`gherkin-progress-history.ndjson` isn't committed to this repository - like `../plain`, it's
+generated fresh by `generateTrackerLensFixture` before every dashboard build, dated to whenever
+you actually run it rather than frozen at whatever point it was last captured.
+
 == Configuration
 
 [source,groovy]
@@ -57,6 +63,10 @@ trackerLens {
         }
     }
 }
+
+// Regenerates a calibrated sample fixture, dated to whenever this project is actually built,
+// before every dashboard render - never a snapshot that goes stale the moment it's committed.
+tasks.named('generateTrackerLensDashboard') { dependsOn 'generateTrackerLensFixture' }
 ----
 
 == Build And Run

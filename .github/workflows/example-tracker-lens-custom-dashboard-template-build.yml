@@ -4,7 +4,6 @@ on:
     paths:
       - 'examples/tracker-lens/custom-dashboard-template/**/*.gradle'
       - 'examples/tracker-lens/custom-dashboard-template/**/*.properties'
-      - 'examples/tracker-lens/custom-dashboard-template/**/*.ndjson'
       - 'examples/tracker-lens/custom-dashboard-template/**/*.html'
       - 'examples/tracker-lens/custom-dashboard-template/**/libs.versions.toml'
       - '.github/workflows/example-tracker-lens-custom-dashboard-template-build.yml'
