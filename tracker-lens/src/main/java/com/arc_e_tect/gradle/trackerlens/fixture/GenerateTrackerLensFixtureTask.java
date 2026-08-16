@@ -7,7 +7,7 @@ import org.gradle.api.tasks.Input;
 import org.gradle.api.tasks.Optional;
 import org.gradle.api.tasks.OutputFile;
 import org.gradle.api.tasks.TaskAction;
-import org.gradle.work.DisableCachingByDefault;
+import org.gradle.api.tasks.UntrackedTask;
 
 import javax.inject.Inject;
 import java.time.Instant;
@@ -22,11 +22,17 @@ import java.time.Instant;
  * <p>Left entirely at its defaults, {@code asOf} defaults to the current instant at task-execution
  * time - not at configuration time - so re-running this task always regenerates a fixture fresh
  * relative to whenever it's run, exactly like {@link FixtureSpec#defaults()} does for a direct Java
- * caller. This is why the task is never cacheable: its very purpose, left at defaults, is to
- * produce different output on every run.</p>
+ * caller. {@code Instant.now()} is invisible to Gradle's own input snapshotting - unlike a real
+ * {@code @Input} property, an unset one is recorded identically on every execution - so without
+ * {@link UntrackedTask @UntrackedTask} a second, otherwise-unchanged invocation would report
+ * {@code UP-TO-DATE} and silently skip regenerating, defeating the entire point of leaving
+ * {@code asOf} at its default. {@code @UntrackedTask} disables both up-to-date checking and the
+ * shared build cache for this task, matching what's actually true of it: every execution can
+ * legitimately produce different output that no declared input/output tracking could represent.</p>
  */
-@DisableCachingByDefault(because = "Left at its defaults, asOf resolves to Instant.now() at execution time, so this "
-        + "task is deliberately non-reproducible run to run")
+@UntrackedTask(because = "asOf defaults to Instant.now() at execution time, invisible to Gradle's input "
+        + "snapshotting, so every execution can legitimately produce different output - neither "
+        + "up-to-date checking nor the build cache would ever be safe to apply here")
 public abstract class GenerateTrackerLensFixtureTask extends DefaultTask {
 
     private final TrackerLensFixtureGenerator generator = new TrackerLensFixtureGenerator();
