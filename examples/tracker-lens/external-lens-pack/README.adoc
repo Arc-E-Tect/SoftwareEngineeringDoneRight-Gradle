@@ -14,6 +14,12 @@ dashboard yourself (`../custom-lens`) or generating a pack of your own to publis
 (`../scaffolded-lens-pack`). It also shows `listTrackerLensStyles`, the task for discovering what a
 pack actually contributes before deciding which lens to default to.
 
+== The Sample Data
+
+`gherkin-progress-history.ndjson` isn't committed to this repository - like `../plain`, it's
+generated fresh by `generateTrackerLensFixture` before every dashboard build, dated to whenever
+you actually run it rather than frozen at whatever point it was last captured.
+
 == Configuration
 
 [source,groovy]
@@ -32,6 +38,10 @@ trackerLens {
         }
     }
 }
+
+// Regenerates a calibrated sample fixture, dated to whenever this project is actually built,
+// before every dashboard render - never a snapshot that goes stale the moment it's committed.
+tasks.named('generateTrackerLensDashboard') { dependsOn 'generateTrackerLensFixture' }
 
 dependencies {
     lensStyle 'com.arc-e-tect:geo-tracker-lens-pack:1.0.0'
