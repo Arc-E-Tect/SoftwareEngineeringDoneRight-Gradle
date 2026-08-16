@@ -78,8 +78,34 @@ class ProgressHistoryStoreTest {
         store.save(file, List.of(second, first));
 
         List<String> lines = Files.readAllLines(file.toPath(), StandardCharsets.UTF_8);
-        assertThat(lines.get(0)).contains("\"aaaa000000000000\"");
-        assertThat(lines.get(1)).contains("\"bbbb000000000000\"");
+        assertThat(lines.get(1)).contains("\"aaaa000000000000\"");
+        assertThat(lines.get(2)).contains("\"bbbb000000000000\"");
+    }
+
+    @Test
+    @DisplayName("save writes a schema-version marker as the file's first line")
+    void saveWritesASchemaVersionMarkerAsTheFilesFirstLine() throws IOException {
+        File file = tempDir.resolve("history.ndjson").toFile();
+
+        store.save(file, List.of());
+
+        List<String> lines = Files.readAllLines(file.toPath(), StandardCharsets.UTF_8);
+        assertThat(lines.get(0)).isEqualTo("{\"schemaVersion\":1}");
+    }
+
+    @Test
+    @DisplayName("load tolerates a file with no schema-version marker, exactly like one that has it")
+    void loadToleratesAFileWithNoSchemaVersionMarker() throws IOException {
+        File file = tempDir.resolve("history.ndjson").toFile();
+        String validLine = "{\"fingerprint\":\"aaaa000000000000\",\"scenarioName\":\"A\","
+                + "\"featureTitle\":\"Feature\",\"listedAt\":\"2026-01-01T00:00:00Z\","
+                + "\"definedAt\":null,\"implementedAt\":null,\"lastSeenAt\":\"2026-01-01T00:00:00Z\","
+                + "\"removedAt\":null}";
+        Files.writeString(file.toPath(), validLine + "\n", StandardCharsets.UTF_8);
+
+        Map<String, ScenarioProgressRecord> loaded = store.load(file);
+
+        assertThat(loaded).containsOnlyKeys("aaaa000000000000");
     }
 
     @Test
