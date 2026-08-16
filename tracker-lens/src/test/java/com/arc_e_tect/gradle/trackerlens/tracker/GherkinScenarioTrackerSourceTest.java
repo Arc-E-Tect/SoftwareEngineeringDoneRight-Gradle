@@ -99,6 +99,34 @@ class GherkinScenarioTrackerSourceTest {
         assertThat(records).hasSize(1);
     }
 
+    @Test
+    @DisplayName("readShouldSkipALeadingSchemaVersionMarkerLineWithoutLoggingItAsMalformed")
+    void readShouldSkipALeadingSchemaVersionMarkerLineWithoutLoggingItAsMalformed() throws IOException {
+        Path file = writeFile(
+                "{\"schemaVersion\":1}",
+                "{\"fingerprint\":\"z\",\"scenarioName\":\"s\",\"featureTitle\":\"f\","
+                + "\"listedAt\":\"2026-01-01T00:00:00Z\",\"definedAt\":null,"
+                + "\"implementedAt\":null,\"lastSeenAt\":\"2026-01-10T00:00:00Z\",\"removedAt\":null}");
+
+        List<LifecycleRecord> records = source.read(file.toFile());
+
+        assertThat(records).extracting(LifecycleRecord::id).containsExactly("z");
+    }
+
+    @Test
+    @DisplayName("readShouldTreatASchemaVersionMarkerLineNotFirstAsAnOrdinaryMalformedLine")
+    void readShouldTreatASchemaVersionMarkerLineNotFirstAsAnOrdinaryMalformedLine() throws IOException {
+        Path file = writeFile(
+                "{\"fingerprint\":\"z\",\"scenarioName\":\"s\",\"featureTitle\":\"f\","
+                + "\"listedAt\":\"2026-01-01T00:00:00Z\",\"definedAt\":null,"
+                + "\"implementedAt\":null,\"lastSeenAt\":\"2026-01-10T00:00:00Z\",\"removedAt\":null}",
+                "{\"schemaVersion\":1}");
+
+        List<LifecycleRecord> records = source.read(file.toFile());
+
+        assertThat(records).extracting(LifecycleRecord::id).containsExactly("z");
+    }
+
     private Path writeFile(String... lines) throws IOException {
         Path file = tempDir.resolve("history.ndjson");
         Files.write(file, List.of(lines));

@@ -25,7 +25,7 @@ class DashboardJsonTest {
                 "bdd-scenarios", List.of("listed", "defined"), List.of(), 0, Optional.empty(),
                 List.of(LocalDate.of(2026, 8, 1), LocalDate.of(2026, 8, 2)),
                 Map.of("listed", List.of(1, 2), "defined", List.of(0, 1)),
-                List.of(), stageBreakdown);
+                List.of(), stageBreakdown, List.of(stageBreakdown, stageBreakdown));
         DashboardView view = new DashboardView(
                 List.of(tracker),
                 List.of(new ResolvedLens("dark-lens (midnight-theme)", "midnight-theme", new byte[0])),

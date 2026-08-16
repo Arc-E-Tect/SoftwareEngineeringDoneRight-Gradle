@@ -61,17 +61,50 @@ public record LifecycleRecord(
      * already {@code implemented}. This walks {@code canonicalStages} from the end instead, so it
      * always reports the furthest reached stage regardless of which earlier ones were skipped.</p>
      *
+     * <p>Equivalent to {@link #latestStageAsOf(List, Instant)} evaluated "as of" the present -
+     * every entry in {@link #stageReachedAt()} was, by construction, reached at or before now, so
+     * {@code Instant.MAX} as the upper bound never excludes anything.</p>
+     *
      * @param canonicalStages the tracker's canonical stage names, in order
      * @return the furthest reached stage, or empty if none of {@code canonicalStages} has been
      *         reached
      */
     public Optional<String> latestStage(List<String> canonicalStages) {
+        return latestStageAsOf(canonicalStages, Instant.MAX);
+    }
+
+    /**
+     * The furthest stage this item had reached as of {@code asOf}, per {@code canonicalStages}'
+     * own order - the historical generalization of {@link #latestStage(List)}, which is simply
+     * this method evaluated as of the present.
+     *
+     * <p>A stage only counts if it was reached at or before {@code asOf}; a stage reached later
+     * is treated exactly as if it were never reached at all, so this always answers "what did
+     * this item's status look like at {@code asOf}," not "what does it look like now."</p>
+     *
+     * @param canonicalStages the tracker's canonical stage names, in order
+     * @param asOf            the instant to evaluate reached-ness as of, inclusive
+     * @return the furthest stage reached at or before {@code asOf}, or empty if none of
+     *         {@code canonicalStages} had been reached by then
+     */
+    public Optional<String> latestStageAsOf(List<String> canonicalStages, Instant asOf) {
         for (int i = canonicalStages.size() - 1; i >= 0; i--) {
             String stage = canonicalStages.get(i);
-            if (stageReachedAt.containsKey(stage)) {
+            Instant reachedAt = stageReachedAt.get(stage);
+            if (reachedAt != null && !reachedAt.isAfter(asOf)) {
                 return Optional.of(stage);
             }
         }
         return Optional.empty();
+    }
+
+    /**
+     * Whether this item was still active (present and not yet removed) as of {@code asOf}.
+     *
+     * @param asOf the instant to evaluate as of, inclusive
+     * @return {@code true} if {@link #removedAt()} is {@code null} or strictly after {@code asOf}
+     */
+    public boolean isActiveAsOf(Instant asOf) {
+        return removedAt == null || removedAt.isAfter(asOf);
     }
 }

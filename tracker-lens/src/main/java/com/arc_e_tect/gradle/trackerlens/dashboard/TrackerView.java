@@ -24,6 +24,9 @@ import java.util.Optional;
  *                       {@code metrics}' cumulative "reached at least this stage" counts, these are
  *                       mutually exclusive and always sum to {@code totalCount}, since every active
  *                       item has exactly one furthest-reached stage
+ * @param breakdownByDate {@code stageBreakdown}, recomputed as of each date in {@code chartDates}
+ *                        (same index order) instead of "now" - each entry sums to however many
+ *                        items were active as of that date, which may differ from {@code totalCount}
  */
 public record TrackerView(
         String id,
@@ -34,5 +37,6 @@ public record TrackerView(
         List<LocalDate> chartDates,
         Map<String, List<Integer>> chartSeries,
         List<LifecycleRecord> staleItems,
-        Map<String, Integer> stageBreakdown) {
+        Map<String, Integer> stageBreakdown,
+        List<Map<String, Integer>> breakdownByDate) {
 }
