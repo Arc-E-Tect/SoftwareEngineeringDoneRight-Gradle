@@ -104,6 +104,28 @@ class TrackerLensPluginIntegrationTest {
         assertThat(tempDir.resolve("tracker-lens-bootstrap/sample-project/build.gradle")).exists();
     }
 
+    @Test
+    @DisplayName("generateTrackerLensFixtureShouldNeverReportUpToDateOnASecondUnmodifiedInvocation")
+    void generateTrackerLensFixtureShouldNeverReportUpToDateOnASecondUnmodifiedInvocation() throws IOException {
+        // asOf defaults to Instant.now() at execution time, invisible to Gradle's own input
+        // snapshotting - ProjectBuilder-based tests (see GenerateTrackerLensFixtureTaskTest) call
+        // the task's action directly and so can never catch this: only a real, second Gradle
+        // invocation against the same project directory exercises up-to-date checking at all. A
+        // second, otherwise-unchanged invocation must still actually execute (SUCCESS, not
+        // UP_TO_DATE), or the fixture would silently go stale after the first build.
+        writeSettingsFile();
+        writeBuildFile("""
+                plugins {
+                    id 'com.arc-e-tect.tracker-lens'
+                }
+                """);
+
+        runner("generateTrackerLensFixture").build();
+        BuildResult second = runner("generateTrackerLensFixture").build();
+
+        assertThat(second.task(":generateTrackerLensFixture").getOutcome()).isEqualTo(TaskOutcome.SUCCESS);
+    }
+
     private void writeSettingsFile() throws IOException {
         Files.writeString(tempDir.resolve("settings.gradle"), "rootProject.name = 'tracker-lens-integration-test'\n");
     }
