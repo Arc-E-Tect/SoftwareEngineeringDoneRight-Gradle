@@ -1,0 +1,36 @@
+openapi: 3.1.0
+info:
+  title: Catalog Service API
+  version: "1.0"
+paths:
+  /items/{id}:
+    get:
+      # Declared, implemented (ItemController.getItem), and verified by
+      # ItemControllerValidatorTest - compliant.
+      operationId: getItem
+      tags: [Items]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                type: string
+  /items:
+    get:
+      # Declared AND implemented (ItemController.listItems), but never verified - the
+      # doppelganger API this service is designed to catch.
+      operationId: listItems
+      tags: [Items]
+      responses:
+        '200':
+          description: OK
+
+# Note: ItemController also implements GET /items/{id}/reviews, which has no description here at
+# all - the shadow API this service is designed to catch.
