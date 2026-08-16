@@ -1,3 +1,11 @@
+# [1.2.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/tracker-lens-v1.1.0...tracker-lens-v1.2.0) (2026-08-16)
+
+
+### ✨ New and updated features
+
+* **tracker-lens:** add a favicon to the bundled default template ([#164](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/164)) ([352c833](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/352c833549feece00a04c0ba87e60d7e34748295)), closes [#164](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/164)
+* **gherkin-to-asciidoc:** write and tolerate a schema-version marker ([#163](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/163)) ([10fcb7b](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/10fcb7bf3ec854eebc80db670e1f1dea32e60eaa)), closes [#163](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/163)
+
 # [1.1.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/tracker-lens-v1.0.0...tracker-lens-v1.1.0) (2026-08-16)
 
 
