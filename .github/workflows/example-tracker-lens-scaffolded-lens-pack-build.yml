@@ -2,13 +2,16 @@ name: Example - Tracker Lens Scaffolded Lens Pack Build
 on:
   push:
     paths:
-      - 'examples/tracker-lens/scaffolded-lens-pack/**/*.gradle'
-      - 'examples/tracker-lens/scaffolded-lens-pack/**/*.properties'
-      - 'examples/tracker-lens/scaffolded-lens-pack/**/*.ndjson'
-      - 'examples/tracker-lens/scaffolded-lens-pack/**/*.css'
-      - 'examples/tracker-lens/scaffolded-lens-pack/**/libs.versions.toml'
+      - 'examples/tracker-lens/scaffolded-lens-pack/**'
       - '.github/workflows/example-tracker-lens-scaffolded-lens-pack-build.yml'
 
+# Unlike every other example under examples/tracker-lens/, nothing is checked in here: this example
+# demonstrates bootstrapTrackerLensProject itself, whose scaffolded sample project now generates its
+# own calibrated fixture data dated to whenever it's actually built - a frozen, committed snapshot
+# of that output would go stale the day after it was captured. This workflow runs
+# bootstrapTrackerLensProject fresh, against the real published plugin, and asserts the *shape* of
+# what came out - both trackers registered, the dashboard renders, the scaffolded lens appears in
+# the switcher - rather than diffing against a golden file.
 jobs:
   Build-Example:
     name: Build Example
@@ -29,15 +32,44 @@ jobs:
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6.2.0
+        with:
+          gradle-version: 'current'
 
-      - name: Build lens-pack
+      - name: Scaffold a fresh project applying tracker-lens
         run: |
-          cd examples/tracker-lens/scaffolded-lens-pack/generated/lens-pack
-          chmod +x ./gradlew
-          ./gradlew publish --no-daemon
+          mkdir -p "$RUNNER_TEMP/scaffold-demo"
+          cd "$RUNNER_TEMP/scaffold-demo"
+          cat > settings.gradle <<'EOF'
+          rootProject.name = 'scaffold-demo'
+          EOF
+          cat > build.gradle <<'EOF'
+          plugins {
+              id 'com.arc-e-tect.tracker-lens' version '1.4.0'
+          }
+          EOF
+          gradle bootstrapTrackerLensProject --no-daemon
 
-      - name: Build sample-project
+      - name: Check the scaffolded sample project registers both trackers
         run: |
-          cd examples/tracker-lens/scaffolded-lens-pack/generated/sample-project
-          chmod +x ./gradlew
-          ./gradlew generateTrackerLensDashboard --no-daemon
+          cd "$RUNNER_TEMP/scaffold-demo/tracker-lens-bootstrap/sample-project"
+          grep -q "register('bdd-scenarios')" build.gradle
+          grep -q "register('api-contracts')" build.gradle
+          grep -q "dependsOn 'generateTrackerLensFixture'" build.gradle
+
+      - name: Publish the scaffolded lens pack
+        run: |
+          cd "$RUNNER_TEMP/scaffold-demo/tracker-lens-bootstrap/lens-pack"
+          gradle publish --no-daemon
+
+      - name: Build the scaffolded sample project's dashboard
+        run: |
+          cd "$RUNNER_TEMP/scaffold-demo/tracker-lens-bootstrap/sample-project"
+          gradle generateTrackerLensDashboard --no-daemon
+
+      - name: Check the dashboard rendered both trackers and the scaffolded lens
+        run: |
+          DASHBOARD="$RUNNER_TEMP/scaffold-demo/tracker-lens-bootstrap/sample-project/build/reports/tracker-lens/dashboard.html"
+          test -f "$DASHBOARD"
+          grep -q 'data-tracker="bdd-scenarios"' "$DASHBOARD"
+          grep -q 'data-tracker="api-contracts"' "$DASHBOARD"
+          grep -q '<option value="my-lens"' "$DASHBOARD"
