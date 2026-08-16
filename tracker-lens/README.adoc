@@ -240,6 +240,7 @@ Run the generator with:
 | `listTrackerLensTemplates`     | reporting    | Lists every dashboard template available through a lens pack - built-in and external `lensStyle` packs - selectable via `templateId`, without generating a dashboard. Scoped to lens packs only, the same way `listTrackerLensStyles` is: a project's own `template` file is a different mechanism entirely and never appears here.
 | `initTrackerLens`              | tracker lens | Generates a complete, heavily-commented boilerplate lens CSS file to start a new lens from.
 | `bootstrapTrackerLensProject`  | tracker lens | Generates a boilerplate lens-pack project and a sample consumer project, for developing and testing a new lens end-to-end.
+| `generateTrackerLensFixture`   | tracker lens | Generates a calibrated pair of `gherkin-progress-history.ndjson` / `api-contract-progress.ndjson` fixture files whose forecast lands a predictable distance in the future.
 |===
 
 None of these tasks is wired into `check` or `build` automatically - the dashboard is a report, not a verification gate, and the last two are one-time developer conveniences, not part of the ordinary build.
@@ -300,6 +301,83 @@ Generates the full path from `LENS_TUTORIAL.adoc`: a `tracker-lens-bootstrap/` d
 Also refuses to run into a non-empty output directory.
 
 Both tasks need no tracker to be registered - they're available as soon as the plugin is applied, whether or not `trackerLens { trackers { ... } }` has been configured yet.
+
+=== Generating a calibrated fixture
+
+`generateTrackerLensFixture` writes an ordinary `gherkin-progress-history.ndjson` / `api-contract-progress.ndjson` pair - indistinguishable from real usage data, since there is no fixture marker in the NDJSON format itself - calibrated so that `generateTrackerLensDashboard`, pointed at the result, projects a forecast landing approximately `forecastTargetDaysOut` days from `asOf`.
+That calibration is verified against the real `ProgressProjector` at generation time, not merely aimed at: the task builds a candidate dataset, runs it through a real projector instance, reads back the resulting forecast date, and adjusts until it lands within a day or two of the target - so the fixture stays correct automatically even if the projector's own lookback/velocity math changes later.
+
+Generating the fixture and rendering the dashboard from it are always two separate Gradle invocations - `generateTrackerLensFixture` runs, writes the files, and exits; some time later, `generateTrackerLensDashboard` runs and reads them back with its own, independently-called "now".
+The calibration accounts for that gap: it verifies each candidate not only at `asOf` itself but across a short window of realistic delay after it, so the forecast a real, separate dashboard build renders lands on target too, not just a value computed internally at generation time that nothing ever double-checks against an actual second build.
+The practical implication is the same one that makes any snapshot fixture trustworthy: generate it as part of, or immediately before, the build step that consumes it - which is exactly what leaving `asOf` at its default already does, since every run computes a fresh instant and a fresh calibration from scratch.
+A fixture that sits unused for a long time before its dashboard is finally built still renders something reasonable, since the underlying data doesn't change, but the tight day-or-two tolerance is only guaranteed for prompt, same-session use; regenerate rather than reuse a stale one.
+
+[source]
+----
+./gradlew generateTrackerLensFixture
+----
+
+Left at its defaults, `asOf` resolves to the current instant at task-execution time, not at configuration time - so re-running the task always regenerates a fixture that's fresh relative to whenever it's run.
+Every property is optional; unset ones fall back to the same defaults as the plain Java API below.
+
+[cols="2,3",options="header"]
+|===
+| Property                | Default
+| `asOf`                  | the current instant (ISO-8601 string, e.g. `2026-08-16T00:00:00Z`, to pin a fixed instant)
+| `historyStartDaysAgo`   | `60`
+| `forecastTargetDaysOut` | `30`
+| `workingDaysPerWeek`    | `5` - must stay `5`, matching `ProgressProjector`'s own, currently non-configurable business-days-per-week assumption
+| `bddScenarioCount`      | `8`
+| `apiContractCount`      | `20`
+| `bddScenarioHistoryFile` | `gherkin-progress-history.ndjson` in the project directory
+| `apiContractHistoryFile` | `api-contract-progress.ndjson` in the project directory
+|===
+
+The default counts produce more than a thin example: the API-contract tracker always includes at least one record in each of the Shadow, Mirage, Stubbed, Doppelganger, and Compliant conditions - with a dedicated record that is simultaneously Compliant and still has a stub, proving stub status is irrelevant once real implementation and verification are both present - and the BDD-scenario tracker always includes a representative at each stage plus a scenario that skipped straight from `listed` to `implemented`.
+Both trackers always include at least one removed record, to populate a lens's stale-items table.
+Requesting more than the default count scales every category proportionally rather than padding a fixed handful of them.
+
+Point a tracker's `historyFiles` straight at the fixture's own defaults and run both tasks together:
+
+[source,groovy]
+----
+trackerLens {
+    trackers {
+        register('bdd-scenarios') {
+            historyFiles.from(file('gherkin-progress-history.ndjson'))
+            source = com.arc_e_tect.gradle.trackerlens.TrackerSourceKind.GHERKIN_SCENARIO
+        }
+        register('api-contracts') {
+            historyFiles.from(file('api-contract-progress.ndjson'))
+            source = com.arc_e_tect.gradle.trackerlens.TrackerSourceKind.API_CONTRACT
+        }
+    }
+}
+----
+
+[source,bash]
+----
+./gradlew generateTrackerLensFixture generateTrackerLensDashboard
+----
+
+TIP: `generateTrackerLensDashboard` doesn't currently treat a tracker's history file *contents* as a tracked Gradle input - only that its configuration hasn't changed - so if you've already built the dashboard once and then only regenerate the fixture (its content changes, but the file path doesn't), a subsequent `generateTrackerLensDashboard` run may report `UP-TO-DATE` and keep showing the old data, even chained in the same invocation as above. Add `--rerun-tasks` if the dashboard doesn't seem to reflect a freshly-regenerated fixture.
+
+==== Using it from a test, with no Gradle involvement
+
+The same generator is a plain Java API, usable directly from an automated test - including one written by an AI agent - with no filesystem round trip required:
+
+[source,java]
+----
+FixtureSpec spec = FixtureSpec.defaults().withAsOf(Instant.parse("2026-08-16T00:00:00Z"));
+FixtureResult result = new TrackerLensFixtureGenerator().generate(spec);
+
+// Inspect result.bddScenarios() / result.apiContracts() directly, or write them out:
+result.writeTo(new File("gherkin-progress-history.ndjson"), new File("api-contract-progress.ndjson"));
+----
+
+Where the Gradle task's `asOf` defaults to the current instant so a prototyping run is always fresh, a test instead pins `asOf` explicitly via `withAsOf(...)`, producing byte-identical output on every run regardless of what day it's run on - both are the same `FixtureSpec` and the same generator, only whether `asOf` is left at its default or overridden differs.
+
+See link:LENS_TUTORIAL.adoc[LENS_TUTORIAL.adoc]'s "Step 3: consume it from a sample project" for this task used to give a brand-new lens something realistic to render against, instead of hand-writing sample history.
 
 == The Lens System
 

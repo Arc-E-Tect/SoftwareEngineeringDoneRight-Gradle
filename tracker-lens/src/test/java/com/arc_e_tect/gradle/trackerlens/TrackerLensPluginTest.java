@@ -83,6 +83,33 @@ class TrackerLensPluginTest {
     }
 
     @Test
+    @DisplayName("applyShouldRegisterTheGenerateTrackerLensFixtureTaskAndSurviveEvaluationWithoutAnyTracker")
+    void applyShouldRegisterTheGenerateTrackerLensFixtureTaskAndSurviveEvaluationWithoutAnyTracker() {
+        // generateTrackerLensFixture needs no tracker to be registered - it writes history files,
+        // it doesn't read them.
+        Project project = newProject();
+
+        ((ProjectInternal) project).evaluate();
+
+        assertThat(project.getTasks().findByName(TrackerLensPlugin.GENERATE_FIXTURE_TASK_NAME)).isNotNull();
+    }
+
+    @Test
+    @DisplayName("applyShouldDefaultFixtureOutputFilesToTheProjectDirectory")
+    void applyShouldDefaultFixtureOutputFilesToTheProjectDirectory() {
+        Project project = newProject();
+
+        com.arc_e_tect.gradle.trackerlens.fixture.GenerateTrackerLensFixtureTask task =
+                (com.arc_e_tect.gradle.trackerlens.fixture.GenerateTrackerLensFixtureTask)
+                        project.getTasks().getByName(TrackerLensPlugin.GENERATE_FIXTURE_TASK_NAME);
+
+        assertThat(task.getBddScenarioHistoryFile().get().getAsFile())
+                .isEqualTo(new java.io.File(project.getProjectDir(), "gherkin-progress-history.ndjson"));
+        assertThat(task.getApiContractHistoryFile().get().getAsFile())
+                .isEqualTo(new java.io.File(project.getProjectDir(), "api-contract-progress.ndjson"));
+    }
+
+    @Test
     @DisplayName("applyShouldRegisterTheLensStyleConfiguration")
     void applyShouldRegisterTheLensStyleConfiguration() {
         Project project = newProject();

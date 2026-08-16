@@ -1,5 +1,6 @@
 package com.arc_e_tect.gradle.trackerlens;
 
+import com.arc_e_tect.gradle.trackerlens.fixture.GenerateTrackerLensFixtureTask;
 import org.gradle.api.GradleException;
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
@@ -16,10 +17,11 @@ import java.util.stream.Collectors;
  *
  * <p>Registers the {@code trackerLens} DSL extension, a {@code lensStyle} resolvable configuration
  * that external style packs are declared against, the {@code generateTrackerLensDashboard} task, the
- * {@code listTrackerLensStyles} / {@code listTrackerLensTemplates} tasks, and the
- * {@code initTrackerLens} / {@code bootstrapTrackerLensProject} scaffolding tasks. None of these
- * tasks is wired into {@code check} or {@code build} automatically - the dashboard is a report, not
- * a verification gate, and the scaffolding tasks are one-time developer conveniences.</p>
+ * {@code listTrackerLensStyles} / {@code listTrackerLensTemplates} tasks, the
+ * {@code initTrackerLens} / {@code bootstrapTrackerLensProject} scaffolding tasks, and the
+ * {@code generateTrackerLensFixture} task. None of these tasks is wired into {@code check} or
+ * {@code build} automatically - the dashboard is a report, not a verification gate, the scaffolding
+ * tasks are one-time developer conveniences, and the fixture task is a prototyping aid.</p>
  *
  * <h2>Usage</h2>
  * <pre>
@@ -50,6 +52,9 @@ public class TrackerLensPlugin implements Plugin<Project> {
 
     /** Name of the project-scaffolding task registered by this plugin. */
     public static final String BOOTSTRAP_PROJECT_TASK_NAME = "bootstrapTrackerLensProject";
+
+    /** Name of the fixture-generating task registered by this plugin. */
+    public static final String GENERATE_FIXTURE_TASK_NAME = "generateTrackerLensFixture";
 
     /** Creates a new plugin instance. Instantiated by Gradle infrastructure. */
     public TrackerLensPlugin() {}
@@ -99,6 +104,13 @@ public class TrackerLensPlugin implements Plugin<Project> {
 
         project.getTasks().register(BOOTSTRAP_PROJECT_TASK_NAME, BootstrapTrackerLensProjectTask.class, task ->
                 task.getOutputDir().convention(project.getLayout().getProjectDirectory().dir("tracker-lens-bootstrap")));
+
+        project.getTasks().register(GENERATE_FIXTURE_TASK_NAME, GenerateTrackerLensFixtureTask.class, task -> {
+            task.getBddScenarioHistoryFile().convention(
+                    project.getLayout().getProjectDirectory().file("gherkin-progress-history.ndjson"));
+            task.getApiContractHistoryFile().convention(
+                    project.getLayout().getProjectDirectory().file("api-contract-progress.ndjson"));
+        });
 
         // Collected eagerly as each tracker is registered (all() realizes and invokes its action
         // immediately, unlike register()'s own deferred realization) rather than read back from
