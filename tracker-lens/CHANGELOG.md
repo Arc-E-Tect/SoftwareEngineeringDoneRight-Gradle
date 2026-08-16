@@ -1,3 +1,10 @@
+# [1.4.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/tracker-lens-v1.3.1...tracker-lens-v1.4.0) (2026-08-16)
+
+
+### ✨ New and updated features
+
+* **tracker-lens:** make bootstrapTrackerLensProject use the fixture generator ([#168](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/168)) ([f97bc52](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/f97bc5210ed57ce12871b851fb8f71f52f74e055)), closes [#168](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/168)
+
 ## [1.3.1](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/tracker-lens-v1.3.0...tracker-lens-v1.3.1) (2026-08-16)
 
 
