@@ -1,3 +1,10 @@
+## [1.3.1](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/tracker-lens-v1.3.0...tracker-lens-v1.3.1) (2026-08-16)
+
+
+### 🐛 Bug Fixes
+
+* **tracker-lens:** make generateTrackerLensFixture always re-execute ([#167](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/167)) ([db73cb8](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/db73cb85b705cfc39941941bf197c24718d40c86)), closes [#167](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/167)
+
 # [1.3.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/tracker-lens-v1.2.0...tracker-lens-v1.3.0) (2026-08-16)
 
 
