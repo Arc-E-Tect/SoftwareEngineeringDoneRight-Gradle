@@ -14,14 +14,14 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.Instant;
 
 /**
  * Generates a complete, runnable pair of projects for developing and testing a new lens end to
  * end - the same boilerplate {@code LENS_TUTORIAL.adoc} walks through by hand: a minimal lens-pack
  * project (containing the same boilerplate CSS {@code initTrackerLens} generates) and a minimal
- * sample project that applies {@code tracker-lens} itself, already wired to consume that pack and
- * render a dashboard from a small bundled sample history file.
+ * sample project that applies {@code tracker-lens} itself, already wired to consume that pack and,
+ * on its first (and every) dashboard build, generate its own calibrated sample fixture via
+ * {@code generateTrackerLensFixture} rather than reading a static file this task writes once.
  *
  * <p>The sample project pins the {@code tracker-lens} version that generated it (via
  * {@link PluginMetadata}), so regenerating after upgrading the plugin picks up the new version
@@ -59,7 +59,6 @@ public abstract class BootstrapTrackerLensProjectTask extends DefaultTask {
 
         File lensPackDir = new File(root, "lens-pack");
         File sampleProjectDir = new File(root, "sample-project");
-        Instant now = Instant.now();
 
         writeFile(new File(root, "README.adoc"), BootstrapProjectFiles.topLevelReadme());
 
@@ -73,8 +72,6 @@ public abstract class BootstrapTrackerLensProjectTask extends DefaultTask {
         writeFile(new File(sampleProjectDir, "build.gradle"),
                 BootstrapProjectFiles.sampleProjectBuildGradle(PluginMetadata.pluginVersion()));
         writeFile(new File(sampleProjectDir, "README.adoc"), BootstrapProjectFiles.sampleProjectReadme());
-        writeFile(new File(sampleProjectDir, "src/main/resources/gherkin-progress-history.ndjson"),
-                BootstrapProjectFiles.sampleHistoryNdjson(now));
 
         getLogger().lifecycle("trackerLens: wrote a lens-pack project and a sample consumer project to {}", root);
         getLogger().lifecycle("trackerLens: see {} for how to run them.", new File(root, "README.adoc"));

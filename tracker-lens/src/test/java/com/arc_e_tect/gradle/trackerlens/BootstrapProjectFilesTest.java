@@ -1,24 +1,12 @@
 package com.arc_e_tect.gradle.trackerlens;
 
-import com.arc_e_tect.gradle.trackerlens.tracker.GherkinScenarioTrackerSource;
-import com.arc_e_tect.gradle.trackerlens.tracker.LifecycleRecord;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
-
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.time.Instant;
-import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 @DisplayName("BootstrapProjectFiles")
 class BootstrapProjectFilesTest {
-
-    @TempDir
-    Path tempDir;
 
     @Test
     @DisplayName("sampleProjectBuildGradleShouldPinTheGivenPluginVersion")
@@ -37,29 +25,23 @@ class BootstrapProjectFilesTest {
     }
 
     @Test
-    @DisplayName("sampleHistoryNdjsonShouldBeReadableByGherkinScenarioTrackerSourceAsThreeRecords")
-    void sampleHistoryNdjsonShouldBeReadableByGherkinScenarioTrackerSourceAsThreeRecords() throws Exception {
-        Instant now = Instant.parse("2026-08-14T00:00:00Z");
-        String ndjson = BootstrapProjectFiles.sampleHistoryNdjson(now);
-        Path file = tempDir.resolve("sample-history.ndjson");
-        Files.writeString(file, ndjson, StandardCharsets.UTF_8);
+    @DisplayName("sampleProjectBuildGradleShouldRegisterBothTrackersAgainstTheFixtureGeneratorsDefaultFilenames")
+    void sampleProjectBuildGradleShouldRegisterBothTrackersAgainstTheFixtureGeneratorsDefaultFilenames() {
+        String buildGradle = BootstrapProjectFiles.sampleProjectBuildGradle("1.2.3");
 
-        List<LifecycleRecord> records = new GherkinScenarioTrackerSource().read(file.toFile());
-
-        assertThat(records).hasSize(3);
+        assertThat(buildGradle)
+                .contains("register('bdd-scenarios')", "historyFiles.from(file('gherkin-progress-history.ndjson'))")
+                .contains("register('api-contracts')", "historyFiles.from(file('api-contract-progress.ndjson'))")
+                .contains("TrackerSourceKind.GHERKIN_SCENARIO", "TrackerSourceKind.API_CONTRACT");
     }
 
     @Test
-    @DisplayName("sampleHistoryNdjsonShouldIncludeAtLeastOneFullyImplementedScenario")
-    void sampleHistoryNdjsonShouldIncludeAtLeastOneFullyImplementedScenario() throws Exception {
-        Instant now = Instant.parse("2026-08-14T00:00:00Z");
-        String ndjson = BootstrapProjectFiles.sampleHistoryNdjson(now);
-        Path file = tempDir.resolve("sample-history.ndjson");
-        Files.writeString(file, ndjson, StandardCharsets.UTF_8);
+    @DisplayName("sampleProjectBuildGradleShouldMakeGenerateTrackerLensDashboardDependOnGenerateTrackerLensFixture")
+    void sampleProjectBuildGradleShouldMakeGenerateTrackerLensDashboardDependOnGenerateTrackerLensFixture() {
+        String buildGradle = BootstrapProjectFiles.sampleProjectBuildGradle("1.2.3");
 
-        List<LifecycleRecord> records = new GherkinScenarioTrackerSource().read(file.toFile());
-
-        assertThat(records).anyMatch(record -> record.hasReached("implemented"));
+        assertThat(buildGradle)
+                .contains("tasks.named('generateTrackerLensDashboard') { dependsOn 'generateTrackerLensFixture' }");
     }
 
     @Test

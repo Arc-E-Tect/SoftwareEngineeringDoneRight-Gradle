@@ -37,7 +37,10 @@ class BootstrapTrackerLensProjectTaskTest {
             assertThat(root.resolve("sample-project/settings.gradle")).exists();
             assertThat(root.resolve("sample-project/build.gradle")).exists();
             assertThat(root.resolve("sample-project/README.adoc")).exists();
-            assertThat(root.resolve("sample-project/src/main/resources/gherkin-progress-history.ndjson")).exists();
+            // No history file is written here: sample-project/build.gradle wires
+            // generateTrackerLensDashboard to depend on generateTrackerLensFixture, so the sample
+            // project generates its own calibrated, dated-to-today fixture on its first build.
+            assertThat(root.resolve("sample-project/src/main/resources/gherkin-progress-history.ndjson")).doesNotExist();
         });
     }
 
