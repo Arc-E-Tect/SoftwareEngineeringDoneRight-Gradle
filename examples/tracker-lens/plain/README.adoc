@@ -14,18 +14,19 @@ smallest possible `trackerLens { trackers { ... } }` block and what the generate
 like with nothing else configured: a single tracker section with a metric card per stage, a
 projection block once enough history is available, and a lens switcher offering only the built-ins.
 
-== The History File
+== The Sample Data
 
-.`gherkin-progress-history.ndjson`
-[source,json]
-----
-{"fingerprint":"place-an-order","scenarioName":"Place an order","featureTitle":"Ordering", ...}
-----
+`gherkin-progress-history.ndjson` isn't committed to this repository - it's generated fresh by
+`generateTrackerLensFixture` before every dashboard build (see "Configuration" below), calibrated
+so the resulting forecast lands roughly 30 days out from whenever you actually run it, not from a
+snapshot frozen at some point in the past. This example exists to show what a plain dashboard looks
+like, and a dashboard built from data dated to today is a truer picture of that than one built from
+a file that gets staler every day it sits in git.
 
-Five scenarios across two features (`Ordering`, `Fulfillment`), spread across all three stages:
-three `implemented`, one `defined`, one only `listed` — enough spread to populate every metric card
-and, since the three `implemented` scenarios reach that stage across more than a week of history, a
-projection block.
+Left at its defaults, the generated fixture spreads a handful of scenarios across all three stages -
+enough to populate every metric card, and enough history for a projection block once the earliest
+of them clears the plugin's minimum lookback window. See `tracker-lens`'s own `README.adoc` for
+exactly what `generateTrackerLensFixture` guarantees.
 
 == Configuration
 
@@ -39,6 +40,10 @@ trackerLens {
         }
     }
 }
+
+// Regenerates a calibrated sample fixture, dated to whenever this project is actually built,
+// before every dashboard render - never a snapshot that goes stale the moment it's committed.
+tasks.named('generateTrackerLensDashboard') { dependsOn 'generateTrackerLensFixture' }
 ----
 
 == Build And Run
@@ -51,18 +56,18 @@ cd examples/tracker-lens/plain
 
 == What To Expect
 
-The build is expected to pass. The plugin writes `build/reports/tracker-lens/dashboard.html`,
-containing:
+The build is expected to pass. `generateTrackerLensFixture` runs first (wired as a dependency
+above), writing a fresh `gherkin-progress-history.ndjson`; the plugin then writes
+`build/reports/tracker-lens/dashboard.html`, containing:
 
 * One `.tracker[data-tracker="bdd-scenarios"]` section.
-* Three `.metric-card` elements — `listed` (1/5), `defined` (1/5), `implemented` (3/5). These are
-  each scenario's *current* stage (mutually exclusive, summing to 5), not a cumulative "reached at
-  least this stage" count — a scenario that's already `implemented` no longer counts toward `listed`
-  or `defined`.
-* A `.projection` block projecting when the remaining two scenarios will reach `implemented`, based
-  on the historical rate at which the first three did (this fades back to "not enough history yet"
-  once the bundled timestamps age past the plugin's 90-day lookback window — the dashboard still
-  generates fine either way).
+* Three `.metric-card` elements — `listed`, `defined`, `implemented` - each scenario's *current*
+  stage (mutually exclusive, summing to the total scenario count), not a cumulative "reached at
+  least this stage" count — a scenario that's already `implemented` no longer counts toward
+  `listed` or `defined`. Exact counts vary run to run, since the underlying data is regenerated
+  fresh each time.
+* A `.projection` block projecting when the remaining scenarios will reach `implemented`, based on
+  the historical rate at which earlier ones did.
 * A `.lens-switcher` offering `dark-lens`, `high-contrast-lens`, and `light-lens`.
 
 No `lensStyle` dependency and no `lensStylesheet` are configured, so no `custom-lens` or external

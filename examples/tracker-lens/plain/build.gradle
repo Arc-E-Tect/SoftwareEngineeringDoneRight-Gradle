@@ -10,3 +10,7 @@ trackerLens {
         }
     }
 }
+
+// Regenerates a calibrated sample fixture, dated to whenever this project is actually built,
+// before every dashboard render - never a snapshot that goes stale the moment it's committed.
+tasks.named('generateTrackerLensDashboard') { dependsOn 'generateTrackerLensFixture' }

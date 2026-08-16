@@ -4,7 +4,6 @@ on:
     paths:
       - 'examples/tracker-lens/plain/**/*.gradle'
       - 'examples/tracker-lens/plain/**/*.properties'
-      - 'examples/tracker-lens/plain/**/*.ndjson'
       - 'examples/tracker-lens/plain/**/libs.versions.toml'
       - '.github/workflows/example-tracker-lens-plain-build.yml'
 
