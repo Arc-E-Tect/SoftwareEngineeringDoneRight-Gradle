@@ -1,0 +1,74 @@
+plugins {
+    alias(libs.plugins.api.only.suite) apply false
+    alias(libs.plugins.spring.boot) apply false
+    alias(libs.plugins.spring.dependency.management) apply false
+}
+
+// Configuration here applies to every microservice sub-project. Each one owns its own
+// src/main/resources/openapi/openapi.yaml and its own @RestController - only the shape of the
+// drift (compliant / shadow / doppelganger) differs sub-project to sub-project.
+subprojects {
+    apply plugin: 'java'
+    apply plugin: 'org.springframework.boot'
+    apply plugin: 'io.spring.dependency-management'
+    apply plugin: 'com.arc-e-tect.api-only-suite'
+
+    group = 'com.arc-e-tect.example.microservices'
+    version = '0.0.1'
+
+    java {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(21)
+        }
+    }
+
+    repositories {
+        mavenCentral()
+    }
+
+    dependencies {
+        implementation 'org.springframework.boot:spring-boot-starter-web'
+
+        testImplementation 'org.springframework.boot:spring-boot-starter-test'
+        testImplementation libs.rest.assured
+        testImplementation libs.swagger.request.validator.restassured
+    }
+
+    test {
+        useJUnitPlatform()
+    }
+
+    // apiOnlySuite.rootDocument is a fallback forwarded to all three underlying detectors - each
+    // sub-project resolves this same relative path against its own directory, so every service's
+    // own openapi.yaml is picked up without repeating the block per detector.
+    apiOnlySuite {
+        rootDocument = file('src/main/resources/openapi/openapi.yaml')
+    }
+
+    // apiOnlySuite has no property for this - configure the underlying doppelgangerApiDetector
+    // extension directly, exactly as its own README documents. useOpenApiRequestValidator
+    // defaults to false; every service's compliant endpoint is verified with a REST Assured +
+    // OpenApiValidationFilter test (see each service's own *ValidatorTest), not Spring RestDocs.
+    doppelgangerApiDetector {
+        testDirs.from('src/test/java')
+        useOpenApiRequestValidator = true
+    }
+
+    // detectAllApiGaps is not wired into check/build automatically - opt in explicitly, per
+    // sub-project, same as the single-project example does.
+    tasks.named('check') {
+        dependsOn 'detectAllApiGaps'
+    }
+}
+
+// Collects all three sub-projects' shadow/mirage/doppelganger reports into one place, so a reader
+// doesn't have to open three separate build directories to see the whole picture across services.
+tasks.register('aggregateApiGapReports', Copy) {
+    dependsOn(subprojects.collect { it.tasks.named('detectAllApiGaps') })
+    into(layout.buildDirectory.dir('reports/api-only-suite/aggregate'))
+    subprojects.each { subproject ->
+        from(subproject.layout.buildDirectory.dir('reports')) {
+            into(subproject.name)
+        }
+    }
+}

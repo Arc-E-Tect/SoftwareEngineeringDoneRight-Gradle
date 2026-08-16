@@ -1,0 +1,46 @@
+openapi: 3.1.0
+info:
+  title: Orders Service API
+  version: "1.0"
+paths:
+  /orders/{id}:
+    get:
+      # Declared, implemented (OrderController.getOrder), and verified by
+      # OrderControllerValidatorTest - compliant.
+      operationId: getOrder
+      tags: [Orders]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                type: string
+  /orders:
+    post:
+      # Declared AND implemented (OrderController.createOrder), but never verified - the
+      # doppelganger API this service is designed to catch.
+      operationId: createOrder
+      tags: [Orders]
+      requestBody:
+        required: true
+        content:
+          text/plain:
+            schema:
+              type: string
+      responses:
+        '201':
+          description: Created
+          content:
+            text/plain:
+              schema:
+                type: string
+
+# Note: OrderController also implements DELETE /orders/{id}, which has no description here at
+# all - the shadow API this service is designed to catch.

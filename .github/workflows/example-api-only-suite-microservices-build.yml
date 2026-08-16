@@ -1,0 +1,75 @@
+name: Example - API-Only Suite Microservices Build
+on:
+  push:
+    paths:
+      - 'examples/api-only-suite/microservices/**/*.java'
+      - 'examples/api-only-suite/microservices/**/*.yaml'
+      - 'examples/api-only-suite/microservices/**/*.gradle'
+      - 'examples/api-only-suite/microservices/**/*.properties'
+      - 'examples/api-only-suite/microservices/**/libs.versions.toml'
+      - '.github/workflows/example-api-only-suite-microservices-build.yml'
+
+jobs:
+  Build-Example:
+    name: Build Example
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Setup Java
+        uses: actions/setup-java@ad2b38190b15e4d6bdf0c97fb4fca8412226d287 # v5.3.0
+        with:
+          distribution: 'temurin'
+          java-version: 21
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6.2.0
+
+      - name: Build every service and verify all three detectors ran in each
+        run: |
+          cd examples/api-only-suite/microservices
+          chmod +x ./gradlew
+          ./gradlew build aggregateApiGapReports --no-daemon
+
+          FAILED=0
+
+          check_report() {
+            local service="$1" report="$2" expect="$3"
+            local path="${service}/build/reports/${report}"
+            if ! grep -q "$expect" "$path"; then
+              echo "::error::Expected ${path} to list ${expect}"
+              FAILED=1
+            fi
+          }
+
+          check_report catalog-service shadow-api-detector/shadow-apis.adoc '/items/{id}/reviews'
+          check_report catalog-service doppelganger-api-detector/doppelganger-apis.adoc 'listItems'
+
+          check_report orders-service shadow-api-detector/shadow-apis.adoc '/orders/{id}'
+          check_report orders-service doppelganger-api-detector/doppelganger-apis.adoc 'createOrder'
+
+          check_report users-service shadow-api-detector/shadow-apis.adoc '/users/{id}/preferences'
+          check_report users-service doppelganger-api-detector/doppelganger-apis.adoc 'listUsers'
+
+          for service in catalog-service orders-service users-service; do
+            check_report "$service" mirage-api-detector/mirage-apis.adoc '0 of them are not implemented'
+
+            for detector in shadow-api-detector mirage-api-detector doppelganger-api-detector; do
+              aggregated="build/reports/api-only-suite/aggregate/${service}/${detector}"
+              if [ -z "$(find "$aggregated" -name '*.adoc' 2>/dev/null)" ]; then
+                echo "::error::Expected aggregateApiGapReports to collect ${service}/${detector}'s report"
+                FAILED=1
+              fi
+            done
+          done
+
+          if [ "$FAILED" -ne 0 ]; then
+            exit 1
+          fi
+
+          echo "::notice::All three detectors ran in all three services, and their reports were aggregated."

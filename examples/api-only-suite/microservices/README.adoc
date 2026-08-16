@@ -1,0 +1,203 @@
+= API-Only Suite — Microservices Example
+:toc: left
+
+== Description
+
+This example applies the Arc-E-Tect API-Only Suite plugin to a multi-project Gradle build made up of three
+independent microservices - `catalog-service`, `orders-service`, and `users-service` - each with its own
+`openapi.yaml` describing that service's own API, its own `@RestController`, and its own test. Every service
+is deliberately built with the same three-way split:
+
+[cols="1,3,3,3",options="header"]
+|===
+| Service          | Compliant (declared + implemented + verified) | Doppelganger (declared + implemented, not tested) | Shadow (implemented, not declared)
+| `catalog-service` | `GET /items/{id}` (`getItem`) | `GET /items` (`listItems`) | `GET /items/{id}/reviews` (`getItemReviews`)
+| `orders-service`  | `GET /orders/{id}` (`getOrder`) | `POST /orders` (`createOrder`) | `DELETE /orders/{id}` (`cancelOrder`)
+| `users-service`   | `GET /users/{id}` (`getUser`) | `GET /users` (`listUsers`) | `GET /users/{id}/preferences` (`getUserPreferences`)
+|===
+
+Each service's compliant endpoint is verified by a real REST Assured test using the Atlassian OpenAPI request
+validator - the same mechanism demonstrated in
+link:../../doppelganger-api-detector/verified-by-openapi-request-validator/README.adoc[Doppelganger API
+Detector's own `verified-by-openapi-request-validator` example] - so "verified" here means genuinely exercised
+over HTTP and genuinely validated against that service's own `openapi.yaml`, not just structurally present.
+
+None of the three services declares an endpoint it doesn't implement, so Mirage API Detector - also run by the
+suite - finds nothing in any of them. That's deliberate: this example is about showing the suite work across
+multiple, independently-described services, not about repeating the single-project
+link:../with-all-three-gaps/README.adoc[`with-all-three-gaps`] example's "all three gaps at once" story per
+service.
+
+== Intent
+
+This example shows:
+
+* How to apply `com.arc-e-tect.api-only-suite` once, to every microservice sub-project, via `subprojects { }`
+  in the root project's `build.gradle` - each service only needs its own `src/main/resources/openapi/openapi.yaml`
+  and its own `@RestController` classes, not its own copy of the plugin configuration.
+* That `apiOnlySuite.rootDocument`, declared once as a relative path in the shared `subprojects { }` block, is
+  re-resolved against *each service's own project directory* - `catalog-service/src/main/resources/openapi/openapi.yaml`,
+  `orders-service/src/main/resources/openapi/openapi.yaml`, and `users-service/src/main/resources/openapi/openapi.yaml`
+  are three distinct documents, never one shared file.
+* That `apiOnlySuite` is a thin fallback: `useOpenApiRequestValidator`, which it does not expose, still needs
+  to be set directly on the `doppelgangerApiDetector { }` extension the suite registers in every sub-project.
+* That each service's three reports - Shadow, Mirage, Doppelganger - land under that service's own `build/reports/`,
+  and how a plain `Copy` task can collect all nine into one place for a reader who wants the whole system's
+  picture at a glance.
+
+== Project Layout
+
+[source]
+----
+microservices/
+├── build.gradle              (root: applies the suite plugin to every service, aggregates reports)
+├── catalog-service/
+│   ├── src/main/java/.../ItemController.java
+│   ├── src/main/resources/openapi/openapi.yaml
+│   └── src/test/java/.../ItemControllerValidatorTest.java
+├── orders-service/
+│   ├── src/main/java/.../OrderController.java
+│   ├── src/main/resources/openapi/openapi.yaml
+│   └── src/test/java/.../OrderControllerValidatorTest.java
+└── users-service/
+    ├── src/main/java/.../UserController.java
+    ├── src/main/resources/openapi/openapi.yaml
+    └── src/test/java/.../UserControllerValidatorTest.java
+----
+
+== Applying The Plugin Once, Per Service
+
+The root `build.gradle` applies the plugin inside `subprojects { }`, so each service only supplies its own
+source - no service's `build.gradle` needs to exist at all:
+
+[source,groovy]
+----
+subprojects {
+    apply plugin: 'java'
+    apply plugin: 'org.springframework.boot'
+    apply plugin: 'io.spring.dependency-management'
+    apply plugin: 'com.arc-e-tect.api-only-suite'
+
+    // ...dependencies, toolchain, repositories...
+
+    apiOnlySuite {
+        rootDocument = file('src/main/resources/openapi/openapi.yaml')
+    }
+
+    // apiOnlySuite has no property for this - configure the underlying doppelgangerApiDetector
+    // extension directly.
+    doppelgangerApiDetector {
+        testDirs.from('src/test/java')
+        useOpenApiRequestValidator = true
+    }
+
+    tasks.named('check') {
+        dependsOn 'detectAllApiGaps'
+    }
+}
+----
+
+`file('src/main/resources/openapi/openapi.yaml')` inside `subprojects { }` resolves against *whichever*
+sub-project is currently being configured - so `catalog-service` gets its own `openapi.yaml`, `orders-service`
+gets its own, and `users-service` gets its own, from one line of shared configuration.
+
+== Build And Run
+
+[source,bash]
+----
+cd examples/api-only-suite/microservices
+./gradlew detectAllApiGaps
+----
+
+This runs all three detectors in all three services. `./gradlew build` also runs them, since this example
+wires `detectAllApiGaps` into `check` in every sub-project - and none of the three services enables
+`failOnShadow`/`failOnMirage`/`failOnDoppelganger`, so the build succeeds even though shadow and doppelganger
+APIs are found in every service.
+
+== What To Expect
+
+Console output shows all three detectors running once per service (nine detector runs total):
+
+[source]
+----
+> Task :catalog-service:detectAllApiGaps
+Shadow API Detector: scanned 3 endpoint(s), found 1 shadow API(s).
+Mirage API Detector: scanned 2 described endpoint(s), found 0 mirage API(s).
+Doppelganger API Detector: scanned 2 declared-and-implemented endpoint(s), found 1 doppelganger API(s).
+
+> Task :orders-service:detectAllApiGaps
+Shadow API Detector: scanned 3 endpoint(s), found 1 shadow API(s).
+Mirage API Detector: scanned 2 described endpoint(s), found 0 mirage API(s).
+Doppelganger API Detector: scanned 2 declared-and-implemented endpoint(s), found 1 doppelganger API(s).
+
+> Task :users-service:detectAllApiGaps
+Shadow API Detector: scanned 3 endpoint(s), found 1 shadow API(s).
+Mirage API Detector: scanned 2 described endpoint(s), found 0 mirage API(s).
+Doppelganger API Detector: scanned 2 declared-and-implemented endpoint(s), found 1 doppelganger API(s).
+----
+
+Each service writes its own reports under its own `build/reports/`:
+
+[cols="1,3",options="header"]
+|===
+| Report | What it lists, per service
+| `<service>/build/reports/shadow-api-detector/shadow-apis.adoc` | That service's one shadow endpoint.
+| `<service>/build/reports/mirage-api-detector/mirage-apis.adoc` | Empty - no service declares an unimplemented endpoint.
+| `<service>/build/reports/doppelganger-api-detector/doppelganger-apis.adoc` | That service's one unverified endpoint.
+|===
+
+Running `./gradlew test` (or `build`) also runs each service's own `*ControllerValidatorTest` - a real,
+passing REST Assured test against a real embedded server, independent of anything the detectors do. This is
+what makes each service's one "compliant" endpoint genuinely compliant, not just absent from the reports by
+construction.
+
+== Aggregating Reports Across Services
+
+[source,groovy]
+----
+tasks.register('aggregateApiGapReports', Copy) {
+    dependsOn(subprojects.collect { it.tasks.named('detectAllApiGaps') })
+    into(layout.buildDirectory.dir('reports/api-only-suite/aggregate'))
+    subprojects.each { subproject ->
+        from(subproject.layout.buildDirectory.dir('reports')) {
+            into(subproject.name)
+        }
+    }
+}
+----
+
+[source,bash]
+----
+./gradlew aggregateApiGapReports
+----
+
+This is a plain Gradle `Copy` task, not plugin functionality - the pattern is reusable in any multi-project
+build that wants one place to look at every service's reports, the same way
+link:../../architecture-validator/multi-module/README.adoc[Architecture Validator's own `multi-module`
+example] aggregates its own per-module reports. It copies every service's `build/reports/` - which, at the
+point `detectAllApiGaps` has run, contains only the three detectors' own output directories - into
+`build/reports/api-only-suite/aggregate/<service>/`:
+
+[source]
+----
+build/reports/api-only-suite/aggregate/
+├── catalog-service/
+│   ├── shadow-api-detector/shadow-apis.adoc
+│   ├── mirage-api-detector/mirage-apis.adoc
+│   └── doppelganger-api-detector/doppelganger-apis.adoc
+├── orders-service/
+│   └── ...
+└── users-service/
+    └── ...
+----
+
+== Suggested Fix
+
+For each service:
+
+* Add its shadow endpoint to that service's `openapi.yaml`, or remove the handler if it was never meant to ship.
+* Add a validated REST Assured test - or Spring RestDocs or Spring Cloud Contract evidence - for its
+  doppelganger endpoint.
+
+Since every service's drift is independent, fixing one service's gaps has no effect on the other two - each
+service's `openapi.yaml`, controller, and tests are the only inputs its own `detectAllApiGaps` run considers.
