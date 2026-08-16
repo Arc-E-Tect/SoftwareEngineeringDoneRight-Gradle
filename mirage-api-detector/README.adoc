@@ -297,8 +297,11 @@ The file is always *read* when `trackContractHistory` is `true`, regardless of t
 
 [source,json]
 ----
+{"schemaVersion":1}
 {"fingerprint":"a1f3c9d0e21b7f44","verb":"GET","path":"/orders/{id}","declaringClass":"com.example.OrderController","declaredAt":"2026-01-14T09:02:11Z","implementedAt":"2026-02-20T11:15:44Z","stubbedAt":null,"verifiedAt":null,"lastSeenAt":"2026-08-12T07:00:00Z","removedAt":null}
 ----
+
+The first line is a file-level `{"schemaVersion":N}` marker, always written, giving a future format change something to check against and branch reading logic on. It's purely additive: a file written before this existed simply has no such line, and is read exactly as it always was - the marker is optional on read, never required.
 
 A missing `contractHistoryFile` is treated as an empty history, not an error.
 A line that fails to parse (e.g. hand-edited into something invalid) is skipped with a `WARNING`-level `java.util.logging` message identifying its line number; it never fails the build.
