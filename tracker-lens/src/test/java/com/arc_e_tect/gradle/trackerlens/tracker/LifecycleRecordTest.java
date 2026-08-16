@@ -54,4 +54,67 @@ class LifecycleRecordTest {
         assertThat(record.hasReached("listed")).isTrue();
         assertThat(record.hasReached("implemented")).isFalse();
     }
+
+    @Test
+    @DisplayName("latestStageAsOfShouldIgnoreStagesReachedAfterTheGivenInstant")
+    void latestStageAsOfShouldIgnoreStagesReachedAfterTheGivenInstant() {
+        Instant definedAt = NOW.plusSeconds(60);
+        Instant implementedAt = NOW.plusSeconds(120);
+        LifecycleRecord record = new LifecycleRecord("1", "a", null,
+                Map.of("listed", NOW, "defined", definedAt, "implemented", implementedAt), implementedAt, null);
+
+        assertThat(record.latestStageAsOf(STAGES, NOW)).contains("listed");
+        assertThat(record.latestStageAsOf(STAGES, definedAt)).contains("defined");
+        assertThat(record.latestStageAsOf(STAGES, implementedAt)).contains("implemented");
+    }
+
+    @Test
+    @DisplayName("latestStageAsOfShouldIncludeAStageReachedExactlyAtTheGivenInstant")
+    void latestStageAsOfShouldIncludeAStageReachedExactlyAtTheGivenInstant() {
+        LifecycleRecord record = new LifecycleRecord("1", "a", null, Map.of("listed", NOW), NOW, null);
+
+        assertThat(record.latestStageAsOf(STAGES, NOW)).contains("listed");
+    }
+
+    @Test
+    @DisplayName("latestStageAsOfShouldReturnEmptyWhenEvaluatedBeforeTheItemWasFirstObserved")
+    void latestStageAsOfShouldReturnEmptyWhenEvaluatedBeforeTheItemWasFirstObserved() {
+        LifecycleRecord record = new LifecycleRecord("1", "a", null, Map.of("listed", NOW), NOW, null);
+
+        assertThat(record.latestStageAsOf(STAGES, NOW.minusSeconds(1))).isEmpty();
+    }
+
+    @Test
+    @DisplayName("latestStageAsOfShouldMatchLatestStageWhenAnEarlierStageWasSkippedRegardlessOfEvaluationInstant")
+    void latestStageAsOfShouldMatchLatestStageWhenAnEarlierStageWasSkippedRegardlessOfEvaluationInstant() {
+        // The exact edge case that a naive cumulative-count subtraction between two dates would get
+        // wrong: this item's furthest-reached-in-list-order stage ("implemented") isn't the
+        // highest-index key it holds by coincidence - "defined" was skipped entirely. latestStageAsOf,
+        // evaluated at or after implementedAt, must resolve this the same way latestStage() already
+        // does for "now".
+        LifecycleRecord record = new LifecycleRecord("1", "a", null,
+                Map.of("listed", NOW, "implemented", NOW.plusSeconds(60)), NOW.plusSeconds(60), null);
+
+        assertThat(record.latestStageAsOf(STAGES, NOW.plusSeconds(60))).isEqualTo(record.latestStage(STAGES));
+        assertThat(record.latestStageAsOf(STAGES, NOW.plusSeconds(60))).contains("implemented");
+    }
+
+    @Test
+    @DisplayName("isActiveAsOfShouldBeTrueWhenNeverRemoved")
+    void isActiveAsOfShouldBeTrueWhenNeverRemoved() {
+        LifecycleRecord record = new LifecycleRecord("1", "a", null, Map.of("listed", NOW), NOW, null);
+
+        assertThat(record.isActiveAsOf(NOW.plusSeconds(1000))).isTrue();
+    }
+
+    @Test
+    @DisplayName("isActiveAsOfShouldBeFalseOnceEvaluatedAtOrAfterRemoval")
+    void isActiveAsOfShouldBeFalseOnceEvaluatedAtOrAfterRemoval() {
+        Instant removedAt = NOW.plusSeconds(60);
+        LifecycleRecord record = new LifecycleRecord("1", "a", null, Map.of("listed", NOW), NOW, removedAt);
+
+        assertThat(record.isActiveAsOf(removedAt.minusSeconds(1))).isTrue();
+        assertThat(record.isActiveAsOf(removedAt)).isFalse();
+        assertThat(record.isActiveAsOf(removedAt.plusSeconds(1))).isFalse();
+    }
 }

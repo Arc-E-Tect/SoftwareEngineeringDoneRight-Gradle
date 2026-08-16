@@ -49,13 +49,7 @@ public class TrackerViewFactory {
         List<LifecycleRecord> active = records.stream().filter(record -> record.removedAt() == null).toList();
         int totalCount = active.size();
 
-        Map<String, Integer> stageBreakdown = new LinkedHashMap<>();
-        for (String stage : stages) {
-            stageBreakdown.put(stage, 0);
-        }
-        for (LifecycleRecord record : active) {
-            record.latestStage(stages).ifPresent(stage -> stageBreakdown.merge(stage, 1, Integer::sum));
-        }
+        Map<String, Integer> stageBreakdown = computeStageBreakdown(records, stages, now);
 
         List<MetricCardView> metrics = new ArrayList<>();
         for (String stage : stages) {
@@ -76,6 +70,11 @@ public class TrackerViewFactory {
             chartSeries.put(stage, counts);
         }
 
+        List<Map<String, Integer>> breakdownByDate = new ArrayList<>();
+        for (LocalDate date : chartDates) {
+            breakdownByDate.add(computeStageBreakdown(records, stages, endOfDate(date)));
+        }
+
         String finalStage = stages.get(stages.size() - 1);
         List<LifecycleRecord> staleItems = active.stream()
                 .filter(record -> !record.hasReached(finalStage))
@@ -84,7 +83,39 @@ public class TrackerViewFactory {
 
         return new TrackerView(
                 trackerId, stages, metrics, totalCount, projection, chartDates, chartSeries, staleItems,
-                stageBreakdown);
+                stageBreakdown, breakdownByDate);
+    }
+
+    /**
+     * The number of active items whose {@link LifecycleRecord#latestStageAsOf(List, Instant)} is
+     * each of {@code stages}, as of {@code asOf} - mutually exclusive and summing to the number of
+     * items active as of {@code asOf}, exactly like {@link TrackerView#stageBreakdown()} does for
+     * "now" (indeed, calling this with {@code asOf = now} reproduces {@code stageBreakdown} exactly).
+     *
+     * <p>Evaluated against each record's own full history rather than by comparing {@code
+     * chartSeries}' cumulative per-stage counts between dates - the latter looks equivalent but
+     * silently mis-attributes any item that skipped an intermediate stage (see
+     * {@link LifecycleRecord#latestStage(List)}'s own javadoc) to that skipped stage instead of the
+     * one it actually, furthest reached.</p>
+     */
+    private Map<String, Integer> computeStageBreakdown(List<LifecycleRecord> records, List<String> stages,
+            Instant asOf) {
+        Map<String, Integer> breakdown = new LinkedHashMap<>();
+        for (String stage : stages) {
+            breakdown.put(stage, 0);
+        }
+        for (LifecycleRecord record : records) {
+            if (!record.isActiveAsOf(asOf)) {
+                continue;
+            }
+            record.latestStageAsOf(stages, asOf).ifPresent(stage -> breakdown.merge(stage, 1, Integer::sum));
+        }
+        return breakdown;
+    }
+
+    /** The last instant of {@code date}, UTC - the inclusive "as of" bound for a chart date. */
+    private Instant endOfDate(LocalDate date) {
+        return date.plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant().minusNanos(1);
     }
 
     private List<LocalDate> chartDates(Instant now) {

@@ -33,6 +33,14 @@ public class GherkinScenarioTrackerSource implements TrackerSource {
 
     private static final Logger LOGGER = Logging.getLogger(GherkinScenarioTrackerSource.class);
 
+    /**
+     * Matches the file-level {@code {"schemaVersion":N}} marker line {@code gherkin-to-asciidoc}'s
+     * {@code ProgressHistoryStore} writes as of schema version 1 - present as this class's first
+     * line, silently skipped rather than logged as malformed. A file written before the marker
+     * existed simply has no line matching this pattern, so it reads exactly as it always has.
+     */
+    private static final Pattern SCHEMA_VERSION_LINE = Pattern.compile("^\\{\"schemaVersion\":(\\d+)\\}$");
+
     private static final String STRING_FIELD = "\"((?:[^\"\\\\]|\\\\.)*)\"";
     private static final String INSTANT_FIELD = "(null|\"[^\"]*\")";
     private static final Pattern LINE_PATTERN = Pattern.compile(
@@ -63,6 +71,9 @@ public class GherkinScenarioTrackerSource implements TrackerSource {
         for (int i = 0; i < lines.size(); i++) {
             String line = lines.get(i);
             if (line.isBlank()) {
+                continue;
+            }
+            if (i == 0 && SCHEMA_VERSION_LINE.matcher(line).matches()) {
                 continue;
             }
             LifecycleRecord record = parseLine(line);

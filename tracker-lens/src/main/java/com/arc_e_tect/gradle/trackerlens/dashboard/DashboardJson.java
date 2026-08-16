@@ -58,16 +58,29 @@ final class DashboardJson {
                     .append(entry.getValue().stream().map(String::valueOf).collect(Collectors.joining(",")))
                     .append(']');
         }
-        json.append("},\"stageBreakdown\":{");
-        first = true;
-        for (Map.Entry<String, Integer> entry : tracker.stageBreakdown().entrySet()) {
+        json.append("},\"stageBreakdown\":");
+        writeBreakdown(json, tracker.stageBreakdown());
+        json.append(",\"breakdownByDate\":[");
+        for (int i = 0; i < tracker.breakdownByDate().size(); i++) {
+            if (i > 0) {
+                json.append(',');
+            }
+            writeBreakdown(json, tracker.breakdownByDate().get(i));
+        }
+        json.append("]}");
+    }
+
+    private static void writeBreakdown(StringBuilder json, Map<String, Integer> breakdown) {
+        json.append('{');
+        boolean first = true;
+        for (Map.Entry<String, Integer> entry : breakdown.entrySet()) {
             if (!first) {
                 json.append(',');
             }
             first = false;
             json.append(quote(entry.getKey())).append(':').append(entry.getValue());
         }
-        json.append("}}");
+        json.append('}');
     }
 
     private static String quote(String value) {

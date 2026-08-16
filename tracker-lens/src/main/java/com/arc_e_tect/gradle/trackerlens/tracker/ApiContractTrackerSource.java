@@ -39,6 +39,14 @@ public class ApiContractTrackerSource implements TrackerSource {
 
     private static final Logger LOGGER = Logging.getLogger(ApiContractTrackerSource.class);
 
+    /**
+     * Matches an optional file-level {@code {"schemaVersion":N}} marker line, silently skipped
+     * rather than logged as malformed if present as this file's first line. {@code api-detector-core}
+     * does not write this marker yet - this is forward-compatible tolerance only, so that whenever
+     * it does start writing one, this reader already handles it without another release here.
+     */
+    private static final Pattern SCHEMA_VERSION_LINE = Pattern.compile("^\\{\"schemaVersion\":(\\d+)\\}$");
+
     private static final String STRING_FIELD = "\"((?:[^\"\\\\]|\\\\.)*)\"";
     private static final String NULLABLE_STRING_FIELD = "(?:null|" + STRING_FIELD + ")";
     private static final String INSTANT_FIELD = "(null|\"[^\"]*\")";
@@ -72,6 +80,9 @@ public class ApiContractTrackerSource implements TrackerSource {
         for (int i = 0; i < lines.size(); i++) {
             String line = lines.get(i);
             if (line.isBlank()) {
+                continue;
+            }
+            if (i == 0 && SCHEMA_VERSION_LINE.matcher(line).matches()) {
                 continue;
             }
             LifecycleRecord record = parseLine(line);
