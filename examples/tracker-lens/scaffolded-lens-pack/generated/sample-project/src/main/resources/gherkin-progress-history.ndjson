@@ -1,3 +1,0 @@
-{"fingerprint":"sample-1","scenarioName":"Place an order","featureTitle":"Ordering","listedAt":"2026-07-26T07:29:39.701264Z","definedAt":"2026-07-31T07:29:39.701264Z","implementedAt":"2026-08-05T07:29:39.701264Z","lastSeenAt":"2026-08-15T07:29:39.701264Z","removedAt":null}
-{"fingerprint":"sample-2","scenarioName":"Cancel an order","featureTitle":"Ordering","listedAt":"2026-08-03T07:29:39.701264Z","definedAt":"2026-08-10T07:29:39.701264Z","implementedAt":null,"lastSeenAt":"2026-08-15T07:29:39.701264Z","removedAt":null}
-{"fingerprint":"sample-3","scenarioName":"Refund an order","featureTitle":"Ordering","listedAt":"2026-08-07T07:29:39.701264Z","definedAt":null,"implementedAt":null,"lastSeenAt":"2026-08-15T07:29:39.701264Z","removedAt":null}
