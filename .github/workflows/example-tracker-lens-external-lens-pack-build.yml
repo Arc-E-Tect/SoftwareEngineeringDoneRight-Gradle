@@ -4,7 +4,6 @@ on:
     paths:
       - 'examples/tracker-lens/external-lens-pack/**/*.gradle'
       - 'examples/tracker-lens/external-lens-pack/**/*.properties'
-      - 'examples/tracker-lens/external-lens-pack/**/*.ndjson'
       - 'examples/tracker-lens/external-lens-pack/**/libs.versions.toml'
       - '.github/workflows/example-tracker-lens-external-lens-pack-build.yml'
 
