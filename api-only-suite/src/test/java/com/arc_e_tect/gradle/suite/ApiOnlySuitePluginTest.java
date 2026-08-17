@@ -143,6 +143,35 @@ class ApiOnlySuitePluginTest {
     }
 
     @Test
+    @DisplayName("wires mirageApiGapsForSuite identically to detectMirageApis otherwise, including scanMocks/stubDirs/basePath")
+    void nonFailingMirageTaskMirrorsPrimaryConfiguration() {
+        Project project = projectWithPlugin();
+        File rootDocument = new File(tempDir.toFile(), "openapi.yaml");
+        File stubDir = new File(project.getProjectDir(), "src/test/resources/mappings");
+        suiteExtension(project).getRootDocument().set(rootDocument);
+        mirageExtension(project).getScanMocks().set(true);
+        mirageExtension(project).getStubDirs().from(stubDir);
+        mirageExtension(project).getBasePath().set("/crm-service");
+
+        ((ProjectInternal) project).evaluate();
+
+        assertThat(mirageForSuiteTask(project).getRootDocument().getAsFile().get())
+                .isEqualTo(mirageTask(project).getRootDocument().getAsFile().get());
+        assertThat(mirageForSuiteTask(project).getControllerDirs().getFiles())
+                .isEqualTo(mirageTask(project).getControllerDirs().getFiles());
+        assertThat(mirageForSuiteTask(project).getScanMocks().get())
+                .isEqualTo(mirageTask(project).getScanMocks().get());
+        assertThat(mirageForSuiteTask(project).getStubDirs().getFiles())
+                .isEqualTo(mirageTask(project).getStubDirs().getFiles());
+        assertThat(mirageForSuiteTask(project).getBasePath().get())
+                .isEqualTo(mirageTask(project).getBasePath().get());
+        assertThat(mirageForSuiteTask(project).getReportDir().get().getAsFile())
+                .isEqualTo(mirageTask(project).getReportDir().get().getAsFile());
+        assertThat(mirageForSuiteTask(project).getReportFileName().get())
+                .isEqualTo(mirageTask(project).getReportFileName().get());
+    }
+
+    @Test
     @DisplayName("does not hook detectAllApiGaps into the check lifecycle task by default")
     void doesNotHookIntoCheckTaskByDefault() {
         Project project = ProjectBuilder.builder().withProjectDir(tempDir.toFile()).build();

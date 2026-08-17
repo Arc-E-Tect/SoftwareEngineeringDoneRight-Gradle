@@ -146,6 +146,7 @@ public class ApiOnlySuitePlugin implements Plugin<Project> {
             task.getControllerDirs().from(source.getControllerDirs());
             task.getScanMocks().set(source.getScanMocks());
             task.getStubDirs().from(source.getStubDirs());
+            task.getBasePath().set(source.getBasePath());
             task.getRootDocument().set(source.getRootDocument());
             task.getOpenApiDir().set(source.getOpenApiDir());
             task.getFailOnMirage().set(false);
