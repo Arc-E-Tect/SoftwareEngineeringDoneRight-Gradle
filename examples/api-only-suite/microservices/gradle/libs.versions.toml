@@ -16,5 +16,7 @@ swagger-request-validator-restassured = "2.44.9"
 
 [libraries]
 
+spring-boot-starter-web = { module = "org.springframework.boot:spring-boot-starter-web" }
+spring-boot-starter-test = { module = "org.springframework.boot:spring-boot-starter-test" }
 rest-assured = { module = "io.rest-assured:rest-assured", version.ref = "rest-assured" }
 swagger-request-validator-restassured = { module = "com.atlassian.oai:swagger-request-validator-restassured", version.ref = "swagger-request-validator-restassured" }
