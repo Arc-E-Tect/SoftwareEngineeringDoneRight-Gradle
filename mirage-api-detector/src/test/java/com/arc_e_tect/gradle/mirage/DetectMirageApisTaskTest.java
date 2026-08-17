@@ -13,6 +13,7 @@ import javax.inject.Inject;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -294,6 +295,128 @@ class DetectMirageApisTaskTest {
         assertThat(content).contains("1 of them is not backed by any WireMock stub");
     }
 
+    @Test
+    @DisplayName("strips an explicitly configured basePath from scanned stub paths before matching")
+    void stripsExplicitlyConfiguredBasePathFromScannedStubPaths() throws Exception {
+        File stubDir = new File(tempDir.toFile(), "src/test/resources/mappings");
+        Files.createDirectories(stubDir.toPath());
+        Files.writeString(stubDir.toPath().resolve("listUsers.json"), """
+                {
+                  "request": { "method": "GET", "urlPath": "/crm-service/users" },
+                  "response": { "status": 200 }
+                }
+                """);
+
+        DetectMirageApisTask task = newTask();
+        task.getScanMocks().set(true);
+        task.getStubDirs().from(stubDir);
+        task.getBasePath().set("/crm-service");
+        task.getRootDocument().set(openApiFixture("single-endpoint.yaml"));
+        task.getReportDir().set(reportDir);
+        task.getReportFileName().set("mirage-apis.adoc");
+        task.getFailOnMirage().set(false);
+        task.getSystemUnderTestVersion().set("1.0.0");
+
+        task.generate();
+
+        String content = Files.readString(new File(reportDir, "mirage-apis.adoc").toPath());
+        assertThat(content).contains("None found.");
+    }
+
+    @Test
+    @DisplayName("falls back to rootDocument's own first servers entry when basePath is not configured")
+    void fallsBackToRootDocumentServersUrlWhenBasePathNotConfigured() throws Exception {
+        File stubDir = new File(tempDir.toFile(), "src/test/resources/mappings");
+        Files.createDirectories(stubDir.toPath());
+        Files.writeString(stubDir.toPath().resolve("listUsers.json"), """
+                {
+                  "request": { "method": "GET", "urlPath": "/crm-service/users" },
+                  "response": { "status": 200 }
+                }
+                """);
+
+        DetectMirageApisTask task = newTask();
+        task.getScanMocks().set(true);
+        task.getStubDirs().from(stubDir);
+        task.getRootDocument().set(openApiFixture("single-endpoint-with-servers.yaml"));
+        task.getReportDir().set(reportDir);
+        task.getReportFileName().set("mirage-apis.adoc");
+        task.getFailOnMirage().set(false);
+        task.getSystemUnderTestVersion().set("1.0.0");
+
+        task.generate();
+
+        String content = Files.readString(new File(reportDir, "mirage-apis.adoc").toPath());
+        assertThat(content).contains("None found.");
+    }
+
+    @Test
+    @DisplayName("an explicitly configured basePath takes precedence over rootDocument's servers entry")
+    void explicitBasePathTakesPrecedenceOverRootDocumentServersUrl() throws Exception {
+        File stubDir = new File(tempDir.toFile(), "src/test/resources/mappings");
+        Files.createDirectories(stubDir.toPath());
+        // The stub's own request path matches the explicit basePath below, not the (deliberately
+        // different) base path rootDocument's own servers entry declares.
+        Files.writeString(stubDir.toPath().resolve("listUsers.json"), """
+                {
+                  "request": { "method": "GET", "urlPath": "/explicit-base/users" },
+                  "response": { "status": 200 }
+                }
+                """);
+
+        DetectMirageApisTask task = newTask();
+        task.getScanMocks().set(true);
+        task.getStubDirs().from(stubDir);
+        task.getBasePath().set("/explicit-base");
+        task.getRootDocument().set(openApiFixture("single-endpoint-with-servers.yaml"));
+        task.getReportDir().set(reportDir);
+        task.getReportFileName().set("mirage-apis.adoc");
+        task.getFailOnMirage().set(false);
+        task.getSystemUnderTestVersion().set("1.0.0");
+
+        task.generate();
+
+        String content = Files.readString(new File(reportDir, "mirage-apis.adoc").toPath());
+        assertThat(content).contains("None found.");
+    }
+
+    @Test
+    @DisplayName("merges stub evidence into the same contract history record as the declared endpoint once basePath is stripped")
+    void mergesStubEvidenceWithDeclaredEndpointAfterStrippingBasePath() throws Exception {
+        File stubDir = new File(tempDir.toFile(), "src/test/resources/mappings");
+        Files.createDirectories(stubDir.toPath());
+        Files.writeString(stubDir.toPath().resolve("listUsers.json"), """
+                {
+                  "request": { "method": "GET", "urlPath": "/crm-service/users" },
+                  "response": { "status": 200 }
+                }
+                """);
+        File historyFile = new File(tempDir.toFile(), "contract-history.ndjson");
+
+        DetectMirageApisTask task = newTask();
+        task.getScanMocks().set(true);
+        task.getStubDirs().from(stubDir);
+        task.getBasePath().set("/crm-service");
+        task.getRootDocument().set(openApiFixture("single-endpoint.yaml"));
+        task.getReportDir().set(reportDir);
+        task.getReportFileName().set("mirage-apis.adoc");
+        task.getFailOnMirage().set(false);
+        task.getSystemUnderTestVersion().set("1.0.0");
+        task.getTrackContractHistory().set(true);
+        task.getContractHistoryFile().set(historyFile);
+        task.getUpdateContractHistory().set(true);
+
+        task.generate();
+
+        // A single, merged record - not one orphan row with only stubbedAt set alongside a
+        // second, separate row with only declaredAt set.
+        List<String> lines = Files.readAllLines(historyFile.toPath()).stream()
+                .filter(line -> !line.isBlank() && !line.startsWith("{\"schemaVersion\""))
+                .toList();
+        assertThat(lines).hasSize(1);
+        assertThat(lines.get(0)).contains("\"declaredAt\":\"").contains("\"stubbedAt\":\"");
+    }
+
     private DetectMirageApisTask configuredTask(File rootDocument, boolean failOnMirage) {
         DetectMirageApisTask task = newTask();
         task.getControllerDirs().from(controllerDir);
@@ -378,6 +501,21 @@ class DetectMirageApisTaskTest {
                     info:
                       title: Test API
                       version: "1.0"
+                    paths:
+                      /users:
+                        get:
+                          operationId: listUsers
+                          responses:
+                            '200':
+                              description: OK
+                    """;
+            case "single-endpoint-with-servers.yaml" -> """
+                    openapi: 3.0.3
+                    info:
+                      title: Test API
+                      version: "1.0"
+                    servers:
+                      - url: http://localhost:9011/crm-service
                     paths:
                       /users:
                         get:

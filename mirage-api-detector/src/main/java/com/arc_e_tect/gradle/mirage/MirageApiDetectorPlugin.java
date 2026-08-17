@@ -94,6 +94,7 @@ public class MirageApiDetectorPlugin implements Plugin<Project> {
                     task.getControllerDirs().from(ext.getControllerDirs());
                     task.getScanMocks().set(ext.getScanMocks());
                     task.getStubDirs().from(ext.getStubDirs());
+                    task.getBasePath().set(ext.getBasePath());
                     task.getRootDocument().set(ext.getRootDocument());
                     task.getOpenApiDir().set(ext.getOpenApiDir());
                     task.getFailOnMirage().set(ext.getFailOnMirage());
