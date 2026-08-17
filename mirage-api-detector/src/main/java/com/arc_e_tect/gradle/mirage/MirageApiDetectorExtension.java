@@ -15,6 +15,7 @@ import org.gradle.api.provider.Property;
  *     // openApiDir  = rootDocument.get().asFile.parentFile                  // default
  *     scanMocks      = false                                                  // default
  *     // stubDirs.from('src/test/resources/mappings')                       // default; used only when scanMocks = true
+ *     // basePath     = '/crm-service'   // optional; used only when scanMocks = true - see getBasePath()
  *     failOnMirage   = false                                                  // default
  *     reportDir      = layout.buildDirectory.dir('reports/mirage-api-detector') // default
  *     reportFileName = 'mirage-apis.adoc'                                     // default
@@ -86,6 +87,21 @@ public abstract class MirageApiDetectorExtension {
      * @return mutable file collection of WireMock stub directories
      */
     public abstract ConfigurableFileCollection getStubDirs();
+
+    /**
+     * The base path to strip from every path found under {@link #getStubDirs()} before comparing
+     * it against the OpenAPI documentation, used only when {@link #getScanMocks()} is
+     * {@code true}. A WireMock stub mapping records the full request path a client actually
+     * sends - including whatever deployment-time context path the server runs under, e.g.
+     * {@code /crm-service} - while an OpenAPI-declared path never includes one. Left unconfigured
+     * (the default), this is instead read automatically from {@link #getRootDocument()}'s own
+     * first {@code servers} entry's {@code url}, e.g. {@code http://localhost:9011/crm-service}
+     * yields {@code /crm-service} - set this explicitly only when the document either declares no
+     * {@code servers} entry or declares the wrong one for this purpose.
+     *
+     * @return mutable string property for the base path to strip from scanned stub paths
+     */
+    public abstract Property<String> getBasePath();
 
     /**
      * The root OpenAPI document describing the API. Required: every other OpenAPI document is

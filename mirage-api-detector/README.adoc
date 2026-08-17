@@ -123,6 +123,23 @@ mirageApiDetector {
 }
 ----
 
+=== Stripping a base path from stub-scanned paths
+
+A WireMock stub mapping records the full request path a client actually sends - including whatever deployment-time context path the server runs under, e.g. `/crm-service` - while an OpenAPI-declared path never includes one (a server's `paths` are always relative to its own `servers` entry). Left unaccounted for, this mismatch means a stub's path never matches its corresponding OpenAPI operation: the stub is still found, but ends up as an orphaned, unmatched entry instead of being recognised as evidence for the declared endpoint.
+
+Set `basePath` to strip a fixed prefix from every scanned stub path before comparing it:
+
+[source,groovy]
+----
+mirageApiDetector {
+    scanMocks = true
+    stubDirs.from('src/test/resources/mappings')
+    basePath = '/crm-service'
+}
+----
+
+Left unset (the default), the base path is instead read automatically from `rootDocument`'s own first `servers` entry's `url` - e.g. `servers: [{ url: http://localhost:9011/crm-service }]` yields `/crm-service` with no configuration needed at all. Set `basePath` explicitly only when the document either declares no `servers` entry or declares the wrong one for this purpose.
+
 == Configuration
 
 The plugin registers a `mirageApiDetector` extension.
@@ -145,6 +162,13 @@ mirageApiDetector {
     // when scanMocks is true.
     // Default: src/test/resources/mappings
     // stubDirs.from('src/test/resources/mappings')
+
+    // The base path to strip from every stub-scanned path before comparing it against the
+    // OpenAPI documentation, used only when scanMocks is true. Left unset, this is instead read
+    // automatically from rootDocument's own first servers entry's url - see "Stripping a base
+    // path from stub-scanned paths" above.
+    // Default: unset
+    // basePath = '/crm-service'
 
     // The root OpenAPI document. Required - every other document is expected to be
     // reachable from this one via $ref links relative to it.
@@ -197,6 +221,7 @@ mirageApiDetector {
     controllerDirs.from("src/main/java")
     scanMocks.set(false)
     // stubDirs.from("src/test/resources/mappings")
+    // basePath.set("/crm-service")
     rootDocument.set(file("src/main/resources/openapi/openapi.yaml"))
     failOnMirage.set(false)
     reportDir.set(layout.buildDirectory.dir("reports/mirage-api-detector"))

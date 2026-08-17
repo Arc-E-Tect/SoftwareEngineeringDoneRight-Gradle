@@ -2,6 +2,7 @@ package com.arc_e_tect.gradle.mirage;
 
 import com.arc_e_tect.gradle.detector.core.console.ScanProgressReporter;
 import com.arc_e_tect.gradle.detector.core.model.Endpoint;
+import com.arc_e_tect.gradle.detector.core.model.PathTemplates;
 import com.arc_e_tect.gradle.detector.core.openapi.DescribedEndpoint;
 import com.arc_e_tect.gradle.detector.core.openapi.OpenApiEndpointCollector;
 import com.arc_e_tect.gradle.detector.core.progress.ContractHistoryStore;
@@ -79,6 +80,19 @@ public abstract class DetectMirageApisTask extends DefaultTask {
     @InputFiles
     @PathSensitive(PathSensitivity.RELATIVE)
     public abstract ConfigurableFileCollection getStubDirs();
+
+    /**
+     * The base path to strip from every path found under {@link #getStubDirs()} before comparing
+     * it against the OpenAPI documentation, used only when {@link #getScanMocks()} is
+     * {@code true}. When unset, falls back to {@link #getRootDocument()}'s own first
+     * {@code servers} entry's {@code url} at task-execution time - see
+     * {@link MirageApiDetectorExtension#getBasePath()} for the full explanation.
+     *
+     * @return mutable string property for the base path to strip from scanned stub paths
+     */
+    @Input
+    @Optional
+    public abstract Property<String> getBasePath();
 
     /**
      * The root OpenAPI document describing the API.
@@ -205,13 +219,15 @@ public abstract class DetectMirageApisTask extends DefaultTask {
                     + "it is the required root OpenAPI document.");
         }
 
-        boolean scanMocks = getScanMocks().get();
-        List<Endpoint> endpoints = scanMocks ? scanStubs() : scanControllers();
-
         File rootDocument = getRootDocument().getAsFile().get();
+        OpenApiEndpointCollector openApiCollector = new OpenApiEndpointCollector();
+
+        boolean scanMocks = getScanMocks().get();
+        List<Endpoint> endpoints = scanMocks ? scanStubs(openApiCollector, rootDocument) : scanControllers();
+
         ScanProgressReporter openApiProgress =
                 ScanProgressReporter.indeterminate(getLogger(), "Resolving OpenAPI documents");
-        List<DescribedEndpoint> described = new OpenApiEndpointCollector()
+        List<DescribedEndpoint> described = openApiCollector
                 .collect(rootDocument, file -> openApiProgress.step());
         openApiProgress.complete();
 
@@ -300,7 +316,7 @@ public abstract class DetectMirageApisTask extends DefaultTask {
         return endpoints;
     }
 
-    private List<Endpoint> scanStubs() {
+    private List<Endpoint> scanStubs(OpenApiEndpointCollector openApiCollector, File rootDocument) {
         WireMockStubScanner scanner = new WireMockStubScanner();
         List<Endpoint> endpoints = new ArrayList<>();
         for (File dir : getStubDirs()) {
@@ -310,7 +326,31 @@ public abstract class DetectMirageApisTask extends DefaultTask {
                 throw new GradleException("mirageApiDetector: failed to scan " + dir, e);
             }
         }
-        return endpoints;
+
+        String basePath = resolveBasePath(openApiCollector, rootDocument);
+        if (basePath == null) {
+            return endpoints;
+        }
+        List<Endpoint> stripped = new ArrayList<>(endpoints.size());
+        for (Endpoint endpoint : endpoints) {
+            stripped.add(new Endpoint(endpoint.verb(), PathTemplates.stripBasePath(endpoint.path(), basePath),
+                    endpoint.declaringClass(), endpoint.methodSignature(), endpoint.sourceFile(), endpoint.lineNumber()));
+        }
+        return stripped;
+    }
+
+    /**
+     * The base path to strip from every stub-scanned path: {@link #getBasePath()} when explicitly
+     * configured, otherwise the first {@code servers} entry's {@code url} declared by
+     * {@code rootDocument} - see {@link MirageApiDetectorExtension#getBasePath()}.
+     *
+     * @return the resolved base path, or {@code null} when neither source yields one
+     */
+    private String resolveBasePath(OpenApiEndpointCollector openApiCollector, File rootDocument) {
+        if (getBasePath().isPresent() && !getBasePath().get().isBlank()) {
+            return getBasePath().get();
+        }
+        return openApiCollector.firstServerBasePath(rootDocument).orElse(null);
     }
 
     private List<File> collectJavaFiles(File dir) {
