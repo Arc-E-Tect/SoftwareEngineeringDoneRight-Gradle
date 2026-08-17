@@ -1,3 +1,25 @@
+# [1.5.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/tracker-lens-v1.4.0...tracker-lens-v1.5.0) (2026-08-17)
+
+
+### ✨ New and updated features
+
+* **examples:** generate the custom-dashboard-template example's fixture instead of committing it ([#172](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/172)) ([02900b3](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/02900b39c64a07145b3466d7d67c15a711e49cbc)), closes [#172](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/172)
+* **examples:** generate the custom-lens tracker-lens example's fixture instead of committing it ([#171](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/171)) ([1fe2227](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/1fe22276405c2fb0917e30efb62eb004e4837731)), closes [#171](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/171)
+* **examples:** generate the external-lens-pack example's fixture instead of committing it ([#174](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/174)) ([f3c4e59](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/f3c4e59f19d093eb40b0853ae6bb5972468bd2a9)), closes [#174](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/174)
+* **examples:** generate the high-contrast-accessibility example's fixture instead of committing it ([#173](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/173)) ([36ecd86](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/36ecd86739a5c79264652269d05273dcc1a05a28)), closes [hi#contrast-accessibility](https://github.com/hi/issues/contrast-accessibility) [#173](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/173) [hi#contrast-lens](https://github.com/hi/issues/contrast-lens)
+* **examples:** generate the plain tracker-lens example's fixture instead of committing it ([#170](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/170)) ([7c081d8](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/7c081d82cda19794c8ad3202a5cd573022631cb5)), closes [#170](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/170)
+
+
+### 🐛 Bug Fixes
+
+* **tracker-lens:** start the chart on the earliest data point, not a fixed 30-day lookback ([#176](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/176)) ([d8c3fe3](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/d8c3fe3a1bc40c6da4c1ca2c9256d7cd62070aa4)), closes [#176](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/176)
+
+
+### 📝 Documentation
+
+* **api-only-suite:** add microservices multi-project example ([#175](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/175)) ([52f7913](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/52f7913e3dded1e9401d8b0907e47a008d9c0a83)), closes [#175](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/175)
+* **examples:** stop freezing scaffolded-lens-pack's generated output ([#169](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/169)) ([4203c22](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/4203c2256ea87851ec4470db748efc60877f64fa)), closes [#169](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/169) [tracker-lens#168](https://github.com/tracker-lens/issues/168)
+
 # [1.4.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/tracker-lens-v1.3.1...tracker-lens-v1.4.0) (2026-08-16)
 
 
