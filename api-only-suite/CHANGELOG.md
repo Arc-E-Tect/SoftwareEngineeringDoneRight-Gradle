@@ -1,3 +1,10 @@
+## [2.0.1](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/api-only-suite-v2.0.0...api-only-suite-v2.0.1) (2026-08-17)
+
+
+### 🐛 Bug Fixes
+
+* **api-only-suite:** forward basePath to mirageApiGapsForSuite ([#182](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/182)) ([ffcc8af](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/ffcc8af1740b333baf64ecd612470c50a054a109)), closes [#182](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/182) [#177](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/177)
+
 # [2.0.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/api-only-suite-v1.1.0...api-only-suite-v2.0.0) (2026-08-17)
 
 
