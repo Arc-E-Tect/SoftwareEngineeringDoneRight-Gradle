@@ -1,3 +1,13 @@
+## [1.5.1](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/tracker-lens-v1.5.0...tracker-lens-v1.5.1) (2026-08-17)
+
+
+### 🐛 Bug Fixes
+
+* **api-only-suite:** bump api-detector-core to 1.2.0 ([#179](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/179)) ([9c62c91](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/9c62c91dee506998240521ea85c609c2874c8e0f)), closes [#179](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/179) [#177](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/177)
+* **mirage-api-detector:** strip a base path from stub-scanned paths before matching ([#177](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/177)) ([f276bef](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/f276beffa57b09bbdd4165ac97417127bf47e14c)), closes [#177](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/177)
+* **gherkin-to-asciidoc:** strip numbering from persisted history fields ([#178](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/178)) ([c3b80cb](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/c3b80cb22e9b3f7c130fc3f1e0c8937f9b5fb15e)), closes [#178](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/178)
+* **tracker-lens:** zero-fill chart values past a tracker's last real data point ([#180](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/180)) ([1f2fb61](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/1f2fb617b38e83abe1edab5a509951a205fc284f)), closes [#180](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/180) [#dashboard-data](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/dashboard-data)
+
 # [1.5.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/tracker-lens-v1.4.0...tracker-lens-v1.5.0) (2026-08-17)
 
 
