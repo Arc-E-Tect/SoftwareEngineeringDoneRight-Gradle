@@ -23,5 +23,5 @@ dependencies {
     // Substituted with lens-colored-pack's own build output by the composite build declared in
     // settings.gradle - its "lens-colored" lens appears in the switcher under its own name, not the
     // fixed "custom-lens" id a trackerLens.lensStylesheet-registered lens would get.
-    lensStyle 'com.arc-e-tect.tracker-lens.examples:lens-colored-pack:1.0.0'
+    lensStyle libs.lens.colored.pack
 }
