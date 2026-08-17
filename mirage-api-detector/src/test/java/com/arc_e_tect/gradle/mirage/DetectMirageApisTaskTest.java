@@ -190,8 +190,11 @@ class DetectMirageApisTaskTest {
     }
 
     @Test
-    @DisplayName("scans WireMock stubs instead of controllers when scanMocks is true")
-    void scansStubsInsteadOfControllersWhenScanMocksTrue() throws Exception {
+    @DisplayName("still bases mirages on controller implementation, not stub coverage, when scanMocks is true")
+    void stillBasesMiragesOnControllerImplementationWhenScanMocksTrue() throws Exception {
+        // controllerDir (see setUp) only implements listUsers - deleteUser has no controller match,
+        // so it must still be reported as a mirage even though scanMocks is true and a stub exists
+        // for listUsers: stub evidence never changes which endpoints are mirage APIs.
         File stubDir = new File(tempDir.toFile(), "src/test/resources/mappings");
         Files.createDirectories(stubDir.toPath());
         Files.writeString(stubDir.toPath().resolve("listUsers.json"), """
@@ -215,14 +218,17 @@ class DetectMirageApisTaskTest {
 
         String content = Files.readString(new File(reportDir, "mirage-apis.adoc").toPath());
         assertThat(content)
-                .contains("1 of them is not backed by any WireMock stub")
+                .contains("1 of them is not implemented by any `@RestController` class")
                 .contains("/users/{id}")
                 .contains("deleteUser");
     }
 
     @Test
-    @DisplayName("persists stub evidence as stubbedAt, not implementedAt, when scanMocks is true")
-    void persistsStubEvidenceAsStubbedAtNotImplementedAtWhenScanMocksIsTrue() throws Exception {
+    @DisplayName("persists both implementedAt and stubbedAt in one run when scanMocks is true and a controller also implements it")
+    void persistsBothImplementedAtAndStubbedAtWhenScanMocksIsTrue() throws Exception {
+        // controllerDir (see setUp) implements listUsers, and the stub below also covers it - the
+        // whole point of scanMocks no longer being exclusive: one run can gather both kinds of
+        // evidence for the same endpoint.
         File stubDir = new File(tempDir.toFile(), "src/test/resources/mappings");
         Files.createDirectories(stubDir.toPath());
         Files.writeString(stubDir.toPath().resolve("listUsers.json"), """
@@ -250,8 +256,48 @@ class DetectMirageApisTaskTest {
 
         String historyContent = Files.readString(historyFile.toPath());
         assertThat(historyContent)
-                .contains("\"implementedAt\":null")
+                .doesNotContain("\"implementedAt\":null")
                 .doesNotContain("\"stubbedAt\":null");
+    }
+
+    @Test
+    @DisplayName("persists only stubbedAt when scanMocks is true but no controller implements the endpoint")
+    void persistsOnlyStubbedAtWhenNoControllerImplementsIt() throws Exception {
+        // controllerDir (see setUp) implements listUsers only - listOrders has no controller
+        // match, so its history record must gain stubbedAt but never implementedAt. Both
+        // endpoints here are path-parameter-free deliberately: matching a stub's literal path
+        // (e.g. "/users/1") against a declared path-variable template (e.g. "/users/{id}") is a
+        // separate, unrelated limitation this test isn't meant to exercise.
+        File stubDir = new File(tempDir.toFile(), "src/test/resources/mappings");
+        Files.createDirectories(stubDir.toPath());
+        Files.writeString(stubDir.toPath().resolve("listOrders.json"), """
+                {
+                  "request": { "method": "GET", "urlPath": "/orders" },
+                  "response": { "status": 200 }
+                }
+                """);
+        File historyFile = new File(tempDir.toFile(), "contract-history.ndjson");
+
+        DetectMirageApisTask task = newTask();
+        task.getScanMocks().set(true);
+        task.getStubDirs().from(stubDir);
+        task.getControllerDirs().from(controllerDir);
+        task.getRootDocument().set(openApiFixture("users-and-orders.yaml"));
+        task.getReportDir().set(reportDir);
+        task.getReportFileName().set("mirage-apis.adoc");
+        task.getFailOnMirage().set(false);
+        task.getSystemUnderTestVersion().set("1.0.0");
+        task.getTrackContractHistory().set(true);
+        task.getContractHistoryFile().set(historyFile);
+        task.getUpdateContractHistory().set(true);
+
+        task.generate();
+
+        List<String> lines = Files.readAllLines(historyFile.toPath()).stream()
+                .filter(line -> line.contains("\"path\":\"/orders\""))
+                .toList();
+        assertThat(lines).hasSize(1);
+        assertThat(lines.get(0)).contains("\"implementedAt\":null").doesNotContain("\"stubbedAt\":null");
     }
 
     @Test
@@ -274,8 +320,8 @@ class DetectMirageApisTaskTest {
     }
 
     @Test
-    @DisplayName("does not consider an endpoint implemented by a matching controller when scanMocks is true")
-    void ignoresControllerImplementationWhenScanningMocks() throws Exception {
+    @DisplayName("still considers an endpoint implemented by a matching controller when scanMocks is true, even without a matching stub")
+    void stillConsidersControllerImplementationWhenScanningMocks() throws Exception {
         File stubDir = new File(tempDir.toFile(), "src/test/resources/mappings");
         Files.createDirectories(stubDir.toPath());
 
@@ -292,7 +338,7 @@ class DetectMirageApisTaskTest {
         task.generate();
 
         String content = Files.readString(new File(reportDir, "mirage-apis.adoc").toPath());
-        assertThat(content).contains("1 of them is not backed by any WireMock stub");
+        assertThat(content).contains("None found.");
     }
 
     @Test
@@ -306,6 +352,7 @@ class DetectMirageApisTaskTest {
                   "response": { "status": 200 }
                 }
                 """);
+        File historyFile = new File(tempDir.toFile(), "contract-history.ndjson");
 
         DetectMirageApisTask task = newTask();
         task.getScanMocks().set(true);
@@ -316,11 +363,18 @@ class DetectMirageApisTaskTest {
         task.getReportFileName().set("mirage-apis.adoc");
         task.getFailOnMirage().set(false);
         task.getSystemUnderTestVersion().set("1.0.0");
+        task.getTrackContractHistory().set(true);
+        task.getContractHistoryFile().set(historyFile);
+        task.getUpdateContractHistory().set(true);
 
         task.generate();
 
-        String content = Files.readString(new File(reportDir, "mirage-apis.adoc").toPath());
-        assertThat(content).contains("None found.");
+        // Proof the stub actually matched the declared endpoint after basePath was stripped: mirage
+        // status itself no longer depends on stub matching (controllerDirs is unset here, so the
+        // report unconditionally lists the endpoint as a mirage), so stubbedAt in history is the
+        // signal to check instead.
+        String historyContent = Files.readString(historyFile.toPath());
+        assertThat(historyContent).doesNotContain("\"stubbedAt\":null");
     }
 
     @Test
@@ -334,6 +388,7 @@ class DetectMirageApisTaskTest {
                   "response": { "status": 200 }
                 }
                 """);
+        File historyFile = new File(tempDir.toFile(), "contract-history.ndjson");
 
         DetectMirageApisTask task = newTask();
         task.getScanMocks().set(true);
@@ -343,11 +398,14 @@ class DetectMirageApisTaskTest {
         task.getReportFileName().set("mirage-apis.adoc");
         task.getFailOnMirage().set(false);
         task.getSystemUnderTestVersion().set("1.0.0");
+        task.getTrackContractHistory().set(true);
+        task.getContractHistoryFile().set(historyFile);
+        task.getUpdateContractHistory().set(true);
 
         task.generate();
 
-        String content = Files.readString(new File(reportDir, "mirage-apis.adoc").toPath());
-        assertThat(content).contains("None found.");
+        String historyContent = Files.readString(historyFile.toPath());
+        assertThat(historyContent).doesNotContain("\"stubbedAt\":null");
     }
 
     @Test
@@ -363,6 +421,7 @@ class DetectMirageApisTaskTest {
                   "response": { "status": 200 }
                 }
                 """);
+        File historyFile = new File(tempDir.toFile(), "contract-history.ndjson");
 
         DetectMirageApisTask task = newTask();
         task.getScanMocks().set(true);
@@ -373,11 +432,14 @@ class DetectMirageApisTaskTest {
         task.getReportFileName().set("mirage-apis.adoc");
         task.getFailOnMirage().set(false);
         task.getSystemUnderTestVersion().set("1.0.0");
+        task.getTrackContractHistory().set(true);
+        task.getContractHistoryFile().set(historyFile);
+        task.getUpdateContractHistory().set(true);
 
         task.generate();
 
-        String content = Files.readString(new File(reportDir, "mirage-apis.adoc").toPath());
-        assertThat(content).contains("None found.");
+        String historyContent = Files.readString(historyFile.toPath());
+        assertThat(historyContent).doesNotContain("\"stubbedAt\":null");
     }
 
     @Test
@@ -548,6 +610,25 @@ class DetectMirageApisTaskTest {
                           responses:
                             '204':
                               description: No Content
+                    """;
+            case "users-and-orders.yaml" -> """
+                    openapi: 3.0.3
+                    info:
+                      title: Test API
+                      version: "1.0"
+                    paths:
+                      /users:
+                        get:
+                          operationId: listUsers
+                          responses:
+                            '200':
+                              description: OK
+                      /orders:
+                        get:
+                          operationId: listOrders
+                          responses:
+                            '200':
+                              description: OK
                     """;
             default -> throw new IllegalArgumentException("Unknown fixture: " + name);
         };

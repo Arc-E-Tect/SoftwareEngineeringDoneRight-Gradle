@@ -11,7 +11,7 @@ image:https://img.shields.io/github/v/release/Arc-E-Tect/SoftwareEngineeringDone
 image:https://img.shields.io/badge/Java-21%2B-blue[Java 21+,link=https://adoptium.net]
 image:https://img.shields.io/badge/Gradle-8.x%2B-02303A?logo=gradle[Gradle 8+,link=https://gradle.org]
 
-A Gradle plugin that scans your OpenAPI documentation for operations, compares them against a set of implemented endpoints, and reports every operation that has no match - a "mirage API". By default, "implemented" means exposed by a scanned Spring Boot `@RestController` class; set `scanMocks = true` to instead treat WireMock stub mapping files as the implementation evidence - see "Scanning WireMock stubs instead of controllers" below.
+A Gradle plugin that scans your OpenAPI documentation for operations, compares them against the endpoints exposed by scanned Spring Boot `@RestController` classes, and reports every operation that has no match - a "mirage API". Set `scanMocks = true` to additionally scan WireMock stub mapping files for stub evidence, recorded into contract history and the report alongside the real implementation evidence above - see "Additionally scanning WireMock stubs" below.
 
 Mirage APIs are endpoints that exist on paper but not in code: documented, reviewed, and visible to API consumers, yet unreachable at runtime. This is the mirror image of the companion link:../shadow-api-detector/README.adoc[Shadow API Detector] plugin, which catches the opposite drift - implemented but undocumented endpoints.
 
@@ -87,16 +87,16 @@ plugins {
 
 [NOTE]
 ====
-This is a scope restriction of the current MVP, not a design limit: only `@RestController`-based endpoints (or, in `scanMocks` mode, WireMock stubs) are recognised as implementation evidence, and only "documented but unimplemented" is reported (the reverse case - implemented but undocumented - is the companion link:../shadow-api-detector/README.adoc[Shadow API Detector] plugin's job). Both may be lifted in a future release.
+This is a scope restriction of the current MVP, not a design limit: only `@RestController`-based endpoints are recognised as implementation evidence, and only "documented but unimplemented" is reported (the reverse case - implemented but undocumented - is the companion link:../shadow-api-detector/README.adoc[Shadow API Detector] plugin's job). Both may be lifted in a future release.
 ====
 
-== Scanning WireMock stubs instead of controllers
+== Additionally scanning WireMock stubs
 
-By default, an OpenAPI operation is considered implemented as soon as a matching `@RestController` endpoint is found. Set `scanMocks = true` to use a different notion of "implemented" entirely: an operation is implemented when a WireMock stub mocks it, regardless of whether any controller exists for it. This suits teams building against a contract before the real implementation exists - or testing purely at the API-mock boundary - where "is this endpoint stubbed for consumer testing?" matters more than "does a controller method exist?".
+An OpenAPI operation is considered implemented - and so never reported as a mirage API - as soon as a matching `@RestController` endpoint is found; that never changes. Set `scanMocks = true` to *additionally* scan `stubDirs` for WireMock stub mapping files: every match is recorded as stub evidence (`stubbedAt`) in contract history and the report's `== Progress Over Time` section, alongside whatever real implementation evidence `controllerDirs` found. This suits teams that want to track "is this endpoint stubbed for consumer testing?" as a separate signal from "does a controller method exist?", without losing sight of which endpoints are still genuinely unimplemented.
 
 [IMPORTANT]
 ====
-`scanMocks` and controller scanning are mutually exclusive, not additive. When `scanMocks = true`, `controllerDirs` is not scanned at all - a real, working `@RestController` implementation with no matching stub still reports as a mirage API.
+Stub evidence never counts as implementation evidence. An endpoint stubbed by WireMock but implemented by no `@RestController` still reports as a mirage API - `scanMocks` only ever adds `stubbedAt` information, it never removes an endpoint from the Mirage APIs list.
 ====
 
 The plugin looks for `*.json` files, recursively, under `stubDirs` (default `src/test/resources/mappings`, WireMock's own conventional mapping directory). One file is expected to describe one stub - the common convention for files stored under a `mappings` directory. Each file is read structurally for its first `method` field and its first `url`, `urlPath`, `urlPattern`, or `urlPathPattern` field - deliberately without a JSON parser or the WireMock library itself on this plugin's classpath, the same "read the file as data, not code" approach the companion link:../doppelganger-api-detector/README.adoc[Doppelganger API Detector] plugin uses for Spring Cloud Contract files.
@@ -149,17 +149,18 @@ The plugin registers a `mirageApiDetector` extension.
 ----
 mirageApiDetector {
     // One or more directories to search recursively for @RestController classes, used to
-    // determine which OpenAPI operations are implemented. Not scanned when scanMocks is true.
+    // determine which OpenAPI operations are implemented - and thus which are reported as
+    // mirage APIs. Always scanned, regardless of scanMocks.
     // Default: src/main/java
     controllerDirs.from('src/main/java')
 
-    // Whether to determine implemented endpoints from WireMock stub mapping files instead of
-    // scanning @RestController classes. See "Scanning WireMock stubs instead of controllers".
+    // Whether to additionally scan WireMock stub mapping files for stub evidence, alongside
+    // controllerDirs' real implementation evidence. See "Additionally scanning WireMock stubs".
     // Default: false
     scanMocks = false
 
-    // One or more directories to search recursively for WireMock stub mapping files, used only
-    // when scanMocks is true.
+    // One or more directories to search recursively for WireMock stub mapping files, scanned
+    // for stub evidence when scanMocks is true.
     // Default: src/test/resources/mappings
     // stubDirs.from('src/test/resources/mappings')
 
@@ -240,7 +241,7 @@ mirageApiDetector {
 [cols="2,1,3",options="header"]
 |===
 | Task name               | Group        | Description
-| `detectMirageApis`      | verification | Scans the OpenAPI documentation and reports operations with no matching implementation (a `@RestController` class by default, or a WireMock stub when `scanMocks` is true).
+| `detectMirageApis`      | verification | Scans the OpenAPI documentation and reports operations with no matching `@RestController` implementation. Additionally scans WireMock stubs for stub evidence when `scanMocks` is true.
 | `migrateContractHistory` | verification | One-off, manually-invoked migration of `contractHistoryFile` from the old 9-field format to the current 10-field format. Not run automatically. See "Tracking Contract History" below.
 |===
 
@@ -290,7 +291,7 @@ This is plain log output, not an animated progress indicator.
 The plugin deliberately avoids Gradle's internal, unsupported console/progress APIs, since their shape can change between Gradle versions and this plugin is published on the Gradle Plugin Portal for consumers on Gradle versions this project doesn't control.
 Each line is printed once and never overwritten in place, so it plays back cleanly in CI logs as well as an interactive terminal.
 
-The `@RestController` progress line only appears when `scanMocks` is `false`; scanning WireMock stubs does not currently report per-file progress.
+Scanning WireMock stubs, when `scanMocks` is `true`, does not currently report per-file progress the way scanning `@RestController` classes does.
 
 == Tracking Contract History
 
@@ -298,7 +299,7 @@ NOTE: For a complete field-by-field reference to `contractHistoryFile` - its exa
 
 Setting `trackContractHistory = true` persists, across builds, a history of when each endpoint first reached each stage of its contract lifecycle - declared, implemented, stubbed, verified.
 The history is keyed by a fingerprint of the endpoint's own HTTP verb and path, not by which plugin observed it, so Shadow, Mirage, and Doppelganger API Detector can all advance the *same* record when pointed at the same `contractHistoryFile` - useful if you run more than one of these plugins against the same API.
-Mirage API Detector only ever has evidence for the `declared` stage plus exactly one of `implemented`/`stubbed` per run, depending on `scanMocks`: a real `@RestController` match advances `implementedAt`, a WireMock stub match advances `stubbedAt` - never both from the same run, since `scanMocks` picks one source or the other. It never advances `verifiedAt`, since it has no visibility into contract verification evidence.
+Mirage API Detector always has evidence for the `declared` and `implemented` stages, from the OpenAPI documentation and `controllerDirs` respectively, and additionally for `stubbed`, from `stubDirs`, whenever `scanMocks` is `true` - all three can advance from the very same run. It never advances `verifiedAt`, since it has no visibility into contract verification evidence.
 The plugin itself has no dependency on git or any other version control system - branch-based control over when to advance the history (e.g. "only on `main`") is entirely a CI concern, expressed through `updateContractHistory`.
 
 [CAUTION]

@@ -41,10 +41,12 @@ import java.util.Map;
 
 /**
  * Gradle task that parses the configured OpenAPI documentation, compares the operations it
- * describes against a set of implemented endpoints, and writes an AsciiDoc report of every
- * operation that has no match - the "mirage APIs". The implemented-endpoint set is either the
- * endpoints exposed by scanned {@code @RestController} classes (the default), or, when
- * {@link #getScanMocks()} is {@code true}, the requests stubbed by WireMock mapping files.
+ * describes against the endpoints exposed by scanned {@code @RestController} classes, and writes
+ * an AsciiDoc report of every operation that has no match - the "mirage APIs". When
+ * {@link #getScanMocks()} is {@code true}, WireMock stub mapping files are additionally scanned
+ * for stub evidence, recorded into contract history/the report alongside the real implementation
+ * evidence above - but never counted as implementation evidence itself, so it never changes which
+ * endpoints are reported as mirage APIs.
  *
  * <p>Registered automatically by {@link MirageApiDetectorPlugin} under the name
  * {@code detectMirageApis}.</p>
@@ -53,8 +55,9 @@ import java.util.Map;
 public abstract class DetectMirageApisTask extends DefaultTask {
 
     /**
-     * Directories to search recursively for {@code @RestController} classes. Not scanned when
-     * {@link #getScanMocks()} is {@code true}.
+     * Directories to search recursively for {@code @RestController} classes. Always scanned,
+     * regardless of {@link #getScanMocks()}: real implementation evidence is what determines
+     * which endpoints are reported as mirage APIs.
      *
      * @return mutable file collection of controller source directories
      */
@@ -63,17 +66,20 @@ public abstract class DetectMirageApisTask extends DefaultTask {
     public abstract ConfigurableFileCollection getControllerDirs();
 
     /**
-     * Whether to determine implemented endpoints from WireMock stub mapping files under
-     * {@link #getStubDirs()} instead of scanning {@code @RestController} classes.
+     * Whether to additionally scan WireMock stub mapping files under {@link #getStubDirs()} for
+     * stub evidence, recorded into contract history/the report alongside
+     * {@link #getControllerDirs()}'s real implementation evidence. Stub evidence never counts as
+     * implementation evidence itself - it never changes which endpoints are reported as mirage
+     * APIs, only what {@code stubbedAt} the contract history/report show for them.
      *
-     * @return mutable boolean property controlling whether stub-based scanning is used
+     * @return mutable boolean property controlling whether stub scanning is additionally performed
      */
     @Input
     public abstract Property<Boolean> getScanMocks();
 
     /**
-     * Directories to search recursively for WireMock stub mapping files, used to determine
-     * implemented endpoints when {@link #getScanMocks()} is {@code true}. Not scanned otherwise.
+     * Directories to search recursively for WireMock stub mapping files, scanned for stub
+     * evidence when {@link #getScanMocks()} is {@code true}. Not scanned otherwise.
      *
      * @return mutable file collection of WireMock stub directories
      */
@@ -207,10 +213,10 @@ public abstract class DetectMirageApisTask extends DefaultTask {
     }
 
     /**
-     * Task action: loads the configured OpenAPI documentation, scans either the configured
-     * controller directories or WireMock stub directories (per {@link #getScanMocks()}), writes
-     * the mirage API report, and - when {@link #getFailOnMirage()} is {@code true} - fails the
-     * build if any mirage API was found.
+     * Task action: loads the configured OpenAPI documentation, scans the configured controller
+     * directories - and, when {@link #getScanMocks()} is {@code true}, additionally the configured
+     * WireMock stub directories - writes the mirage API report, and - when
+     * {@link #getFailOnMirage()} is {@code true} - fails the build if any mirage API was found.
      */
     @TaskAction
     public void generate() {
@@ -222,8 +228,9 @@ public abstract class DetectMirageApisTask extends DefaultTask {
         File rootDocument = getRootDocument().getAsFile().get();
         OpenApiEndpointCollector openApiCollector = new OpenApiEndpointCollector();
 
+        List<Endpoint> controllerEndpoints = scanControllers();
         boolean scanMocks = getScanMocks().get();
-        List<Endpoint> endpoints = scanMocks ? scanStubs(openApiCollector, rootDocument) : scanControllers();
+        List<Endpoint> stubEndpoints = scanMocks ? scanStubs(openApiCollector, rootDocument) : null;
 
         ScanProgressReporter openApiProgress =
                 ScanProgressReporter.indeterminate(getLogger(), "Resolving OpenAPI documents");
@@ -231,16 +238,16 @@ public abstract class DetectMirageApisTask extends DefaultTask {
                 .collect(rootDocument, file -> openApiProgress.step());
         openApiProgress.complete();
 
-        List<DescribedEndpoint> mirages = new MirageApiFinder().findMirages(described, endpoints);
+        List<DescribedEndpoint> mirages = new MirageApiFinder().findMirages(described, controllerEndpoints);
 
         Map<String, ContractProgressRecord> contractHistory = getTrackContractHistory().get()
-                ? updateContractHistory(endpoints, scanMocks, described) : Map.of();
+                ? updateContractHistory(controllerEndpoints, stubEndpoints, described) : Map.of();
 
         File outputDir = getReportDir().getAsFile().get();
         File outputFile = new File(outputDir, getReportFileName().get());
         try {
             new MirageApiReportWriter().write(outputFile, described.size(), mirages,
-                    getSystemUnderTestVersion().get(), scanMocks, contractHistory);
+                    getSystemUnderTestVersion().get(), contractHistory);
         } catch (IOException e) {
             throw new GradleException("mirageApiDetector: failed to write report to " + outputFile, e);
         }
@@ -249,36 +256,30 @@ public abstract class DetectMirageApisTask extends DefaultTask {
                 described.size(), mirages.size(), outputFile);
 
         if (!mirages.isEmpty() && getFailOnMirage().get()) {
-            String evidenceNoun = scanMocks
-                    ? "backed by any WireMock stub"
-                    : "implemented by any @RestController class";
             throw new GradleException("mirageApiDetector: found " + mirages.size()
-                    + " mirage API(s) described in the OpenAPI documentation but not " + evidenceNoun
-                    + ". See " + outputFile);
+                    + " mirage API(s) described in the OpenAPI documentation but not implemented by any "
+                    + "@RestController class. See " + outputFile);
         }
     }
 
     /**
-     * Loads the persisted contract progress history, advances it with the current run's declared
-     * endpoints and either implemented (controller-derived) or stubbed (WireMock-derived) endpoints,
-     * depending on {@code scanMocks} (Mirage API Detector never has verification evidence to offer),
-     * and - only when {@link #getUpdateContractHistory()} resolves to {@code true} - saves it back.
-     * The history file is always read regardless of {@link #getUpdateContractHistory()}, so the
-     * generated report reflects the up-to-date-in-memory history even on a run that doesn't persist
-     * it.
+     * Loads the persisted contract progress history, advances it with the current run's declared,
+     * implemented (controller-derived), and - when {@link #getScanMocks()} is {@code true} -
+     * stubbed (WireMock-derived) endpoints (Mirage API Detector never has verification evidence to
+     * offer), and - only when {@link #getUpdateContractHistory()} resolves to {@code true} - saves
+     * it back. The history file is always read regardless of {@link #getUpdateContractHistory()},
+     * so the generated report reflects the up-to-date-in-memory history even on a run that doesn't
+     * persist it.
      *
-     * @param endpoints  the current run's scanned endpoints - real {@code @RestController} matches
-     *                   when {@code scanMocks} is {@code false}, WireMock stub matches otherwise
-     * @param scanMocks  whether {@code endpoints} came from scanning WireMock stubs rather than
-     *                   {@code @RestController} classes; determines whether {@code endpoints} is
-     *                   passed to the updater as implementation evidence or stub evidence
-     * @param declaredNow the current run's declared endpoints, from the OpenAPI documentation
+     * @param implementedNow the current run's scanned {@code @RestController} matches
+     * @param stubbedNow     the current run's scanned WireMock stub matches, or {@code null} when
+     *                       {@link #getScanMocks()} is {@code false} - stub evidence was not
+     *                       gathered this run at all, as opposed to an empty list, which means it
+     *                       was gathered and none was found
+     * @param declaredNow    the current run's declared endpoints, from the OpenAPI documentation
      */
     private Map<String, ContractProgressRecord> updateContractHistory(
-            List<Endpoint> endpoints, boolean scanMocks, List<DescribedEndpoint> declaredNow) {
-        List<Endpoint> implementedNow = scanMocks ? List.of() : endpoints;
-        List<Endpoint> stubbedNow = scanMocks ? endpoints : null;
-
+            List<Endpoint> implementedNow, List<Endpoint> stubbedNow, List<DescribedEndpoint> declaredNow) {
         File historyFile = getContractHistoryFile().getAsFile().get();
         ContractHistoryStore store = new ContractHistoryStore();
         Map<String, ContractProgressRecord> previous;
