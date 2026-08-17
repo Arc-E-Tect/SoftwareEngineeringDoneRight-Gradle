@@ -111,10 +111,13 @@ public abstract class DoppelgangerApiDetectorExtension {
     public abstract DirectoryProperty getContractsDir();
 
     /**
-     * Whether to treat Spring RestDocs test methods as verification evidence: either a
-     * {@code spring-restdocs-mockmvc} {@code mockMvc.perform(...)} call paired with
-     * {@code .andDo(document(...))}, or a {@code spring-restdocs-restassured}
-     * {@code .filter(document(...))} paired with a {@code when().get(...)/post(...)/...} call.
+        * Whether to treat Spring RestDocs test methods as verification evidence: either a
+        * {@code spring-restdocs-mockmvc} {@code mockMvc.perform(...)} call paired with
+        * {@code .andDo(document(...))}, a {@code spring-restdocs-webtestclient}
+        * {@code webTestClient.get()/post()/put()/delete()/patch().uri(...).exchange()...}
+        * chain paired with {@code .consumeWith(document(...))}, or a
+        * {@code spring-restdocs-restassured} {@code .filter(document(...))} paired with a
+        * {@code when().get(...)/post(...)/...} call.
      * Paths captured from a running-server style verification (REST Assured) have any leading
      * segment matching {@link #getRootDocument()}'s first {@code servers[].url} path stripped
      * before comparison, since that path is typically a servlet context path neither the OpenAPI
