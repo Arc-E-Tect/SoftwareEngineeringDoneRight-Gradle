@@ -19,6 +19,7 @@ jobs:
     with:
       fail_on_empty_version: true
       project_dir: architecture-validator
+      tag_format: 'architecture-validator-v${version}'
       DEBUG: true
     secrets:
       sem_rel_token_token: ${{ secrets.SEMANTIC_RELEASE_TOKEN }}
