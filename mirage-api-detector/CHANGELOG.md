@@ -1,3 +1,27 @@
+# [3.0.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/mirage-api-detector-v2.0.0...mirage-api-detector-v3.0.0) (2026-08-17)
+
+
+### ✨ New and updated features
+
+* **mirage-api-detector:** scan controllers and stubs together, not exclusively ([#181](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/181)) ([85db5b5](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/85db5b5c9c22757c76944ba3288e6d222418c6da)), closes [#181](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/181)
+
+
+### 🐛 Bug Fixes
+
+* **api-only-suite:** bump api-detector-core to 1.2.0 ([#179](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/179)) ([9c62c91](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/9c62c91dee506998240521ea85c609c2874c8e0f)), closes [#179](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/179) [#177](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/177)
+* **gherkin-to-asciidoc:** strip numbering from persisted history fields ([#178](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/178)) ([c3b80cb](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/c3b80cb22e9b3f7c130fc3f1e0c8937f9b5fb15e)), closes [#178](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/178)
+* **tracker-lens:** zero-fill chart values past a tracker's last real data point ([#180](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/180)) ([1f2fb61](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/1f2fb617b38e83abe1edab5a509951a205fc284f)), closes [#180](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/180) [#dashboard-data](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/dashboard-data)
+
+
+### Breaking change
+
+* **mirage-api-detector:** a project relying on scanMocks = true to mean "check against stubs instead of
+controllers" now also gets real controller-based mirage detection in the same run, and its
+contractHistoryFile can gain implementedAt entries it previously never would have. Verified
+end-to-end against a real project via a scratch mavenLocal publish: contract history now
+correctly carries both implementedAt and stubbedAt for endpoints with both kinds of evidence in
+the same run, where previously that was structurally impossible.
+
 # [2.0.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/mirage-api-detector-v1.0.0...mirage-api-detector-v2.0.0) (2026-08-17)
 
 
