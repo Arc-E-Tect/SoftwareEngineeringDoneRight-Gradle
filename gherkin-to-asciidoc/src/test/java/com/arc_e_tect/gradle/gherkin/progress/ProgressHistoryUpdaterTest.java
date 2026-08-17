@@ -189,6 +189,54 @@ class ProgressHistoryUpdaterTest {
     }
 
     @Test
+    @DisplayName("strips a FeatureIndexer index prefix from scenarioName before persisting it")
+    void stripsIndexPrefixFromScenarioNameBeforePersisting() {
+        ScenarioInfo scenario = new ScenarioInfo(
+                "Authentication", "Scenario: 1.2 - User logs in", List.of());
+        Instant now = Instant.parse("2026-01-01T00:00:00Z");
+
+        Map<String, ScenarioProgressRecord> updated = updater.update(Map.of(), List.of(scenario), List.of(), now);
+
+        String fingerprint = fingerprinter.fingerprint(scenario.title());
+        assertThat(updated.get(fingerprint).scenarioName()).isEqualTo("User logs in");
+    }
+
+    @Test
+    @DisplayName("strips a FeatureIndexer index prefix from featureTitle before persisting it")
+    void stripsIndexPrefixFromFeatureTitleBeforePersisting() {
+        ScenarioInfo scenario = new ScenarioInfo("1 - Authentication", "Scenario: User logs in", List.of());
+        Instant now = Instant.parse("2026-01-01T00:00:00Z");
+
+        Map<String, ScenarioProgressRecord> updated = updater.update(Map.of(), List.of(scenario), List.of(), now);
+
+        String fingerprint = fingerprinter.fingerprint(scenario.title());
+        assertThat(updated.get(fingerprint).featureTitle()).isEqualTo("Authentication");
+    }
+
+    @Test
+    @DisplayName("a scenario getting renumbered updates the same record's scenarioName instead of creating a new one")
+    void renumberedScenarioUpdatesSameRecordInsteadOfCreatingANewOne() {
+        String fingerprint = fingerprinter.fingerprint("Scenario: 1 - User logs in");
+        Instant originalListedAt = Instant.parse("2026-01-01T00:00:00Z");
+        ScenarioProgressRecord existing = new ScenarioProgressRecord(
+                fingerprint, "User logs in", "Authentication",
+                originalListedAt, null, null, originalListedAt, null);
+        // An earlier scenario was inserted elsewhere in the suite, bumping this one from 1 to 2 -
+        // its fingerprint (computed with the index prefix stripped) must be unaffected.
+        ScenarioInfo scenario = new ScenarioInfo("Authentication", "Scenario: 2 - User logs in", List.of());
+        Instant now = Instant.parse("2026-02-01T00:00:00Z");
+
+        Map<String, ScenarioProgressRecord> updated =
+                updater.update(Map.of(fingerprint, existing), List.of(scenario), List.of(), now);
+
+        assertThat(updated).hasSize(1);
+        assertThat(updated.get(fingerprint)).satisfies(record -> {
+            assertThat(record.scenarioName()).isEqualTo("User logs in");
+            assertThat(record.listedAt()).isEqualTo(originalListedAt);
+        });
+    }
+
+    @Test
     @DisplayName("refreshes lastSeenAt to now for every scenario present in the current run")
     void refreshesLastSeenAtToNow() {
         ScenarioInfo scenario = new ScenarioInfo("Authentication", "Scenario: User logs in", List.of());
