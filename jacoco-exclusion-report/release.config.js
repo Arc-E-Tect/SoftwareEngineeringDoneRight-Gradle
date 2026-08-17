@@ -4,13 +4,6 @@
 
 module.exports = {
     branches: ["main"],
-    // Scoped to this plugin's own tag namespace so its version history is independent of the
-    // other plugins in this monorepo (which share the unscoped "v${version}" tag format).
-    // A "jacoco-exclusion-report-v4.0.0" tag is seeded at the commit that was already the
-    // plugin's last published version under the shared tag pool, so the next release continues
-    // from there instead of jumping back to semantic-release's hardcoded 1.0.0 first-release
-    // default.
-    tagFormat: "jacoco-exclusion-report-v${version}",
     plugins: [
         ["@semantic-release/commit-analyzer", {
             preset: 'angular',
