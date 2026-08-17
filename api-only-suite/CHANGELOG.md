@@ -1,3 +1,25 @@
+# [2.0.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/api-only-suite-v1.1.0...api-only-suite-v2.0.0) (2026-08-17)
+
+
+### ✨ New and updated features
+
+* **mirage-api-detector:** scan controllers and stubs together, not exclusively ([#181](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/181)) ([85db5b5](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/85db5b5c9c22757c76944ba3288e6d222418c6da)), closes [#181](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/181)
+
+
+### 🐛 Bug Fixes
+
+* **tracker-lens:** zero-fill chart values past a tracker's last real data point ([#180](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/180)) ([1f2fb61](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/1f2fb617b38e83abe1edab5a509951a205fc284f)), closes [#180](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/180) [#dashboard-data](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/dashboard-data)
+
+
+### Breaking change
+
+* **mirage-api-detector:** a project relying on scanMocks = true to mean "check against stubs instead of
+controllers" now also gets real controller-based mirage detection in the same run, and its
+contractHistoryFile can gain implementedAt entries it previously never would have. Verified
+end-to-end against a real project via a scratch mavenLocal publish: contract history now
+correctly carries both implementedAt and stubbedAt for endpoints with both kinds of evidence in
+the same run, where previously that was structurally impossible.
+
 # [1.1.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/api-only-suite-v1.0.0...api-only-suite-v1.1.0) (2026-08-17)
 
 
