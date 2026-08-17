@@ -23,9 +23,13 @@ import org.gradle.api.provider.Property;
  * }
  * </pre>
  *
- * <p>{@code updateContractHistory} can be overridden for the whole build from the command line,
- * e.g. {@code -PshadowApiDetector.updateContractHistory=true} - see
- * {@link #getUpdateContractHistory()}.</p>
+ * <p>{@code updateContractHistory} and {@code failOnShadow} can each be overridden for a single run
+ * from the command line, e.g. {@code ./gradlew detectShadowApis --updateContractHistory} /
+ * {@code --no-updateContractHistory} and {@code --failOnShadow} / {@code --no-failOnShadow} - see
+ * {@link DetectShadowApisTask#getUpdateContractHistoryOverride()} and
+ * {@link DetectShadowApisTask#getFailOnShadowOverride()}. {@code detectShadowApis} also accepts
+ * {@code --scanForShadows=<name-or-path>} to scan a single {@code @RestController} class instead of
+ * the whole project - see {@link DetectShadowApisTask#getScanForShadows()}.</p>
  */
 public abstract class ShadowApiDetectorExtension {
 
@@ -43,14 +47,6 @@ public abstract class ShadowApiDetectorExtension {
 
     /** Default name of the persisted contract progress history file. */
     public static final String DEFAULT_CONTRACT_HISTORY_FILE_NAME = "shadow-api-detector-contract-history.ndjson";
-
-    /**
-     * Name of the Gradle project property that overrides {@link #getUpdateContractHistory()} from
-     * the command line for every project in the build, e.g.
-     * {@code -PshadowApiDetector.updateContractHistory=true}. Takes precedence over any project's
-     * own configured {@code updateContractHistory} value. The value is parsed as a boolean.
-     */
-    public static final String UPDATE_CONTRACT_HISTORY_OVERRIDE_PROPERTY = "shadowApiDetector.updateContractHistory";
 
     /**
      * Directories to search recursively for {@code @RestController} classes. One or more
@@ -146,11 +142,11 @@ public abstract class ShadowApiDetectorExtension {
      * always read regardless of this property's value, so a build with this set to {@code false}
      * still reports against the up-to-date-in-memory history, it simply doesn't persist it.
      *
-     * <p>The {@value #UPDATE_CONTRACT_HISTORY_OVERRIDE_PROPERTY} project property, when set (e.g.
-     * {@code -PshadowApiDetector.updateContractHistory=true}), overrides this property for every
-     * project in the build regardless of what any project configures here - typically driven from a
-     * Gradle property set differently per branch in the CI pipeline, since the plugin itself has no
-     * notion of which branch is currently checked out.</p>
+     * <p>Overridable for a single run via {@code detectShadowApis}'s own
+     * {@code --updateContractHistory}/{@code --no-updateContractHistory} command-line option - see
+     * {@link DetectShadowApisTask#getUpdateContractHistoryOverride()} - typically used from CI to
+     * advance the committed history only on the branch(es) whose pipeline should, since the plugin
+     * itself has no notion of which branch is currently checked out.</p>
      *
      * @return mutable boolean property controlling whether the contract history file is written back
      */

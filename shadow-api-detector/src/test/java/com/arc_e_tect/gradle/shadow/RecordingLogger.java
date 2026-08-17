@@ -35,7 +35,33 @@ class RecordingLogger implements Logger {
 
     @Override
     public void lifecycle(String message, Object... objects) {
-        lifecycleMessages.add(message);
+        lifecycleMessages.add(format(message, objects));
+    }
+
+    /**
+     * Substitutes each {@code {}} placeholder in {@code message} with the next argument, the same
+     * left-to-right pairing SLF4J itself uses - a placeholder past the last argument is left as-is
+     * rather than substituted with nothing, so a caller passing too few arguments is visible in the
+     * recorded message instead of silently swallowed.
+     */
+    private static String format(String message, Object... objects) {
+        StringBuilder result = new StringBuilder(message.length());
+        int argIndex = 0;
+        int i = 0;
+        while (i < message.length()) {
+            if (i + 1 < message.length() && message.charAt(i) == '{' && message.charAt(i + 1) == '}') {
+                if (argIndex < objects.length) {
+                    result.append(objects[argIndex++]);
+                } else {
+                    result.append("{}");
+                }
+                i += 2;
+            } else {
+                result.append(message.charAt(i));
+                i++;
+            }
+        }
+        return result.toString();
     }
 
     @Override

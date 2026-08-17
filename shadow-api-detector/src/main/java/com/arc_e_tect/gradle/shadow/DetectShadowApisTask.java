@@ -27,6 +27,7 @@ import org.gradle.api.tasks.OutputDirectory;
 import org.gradle.api.tasks.PathSensitive;
 import org.gradle.api.tasks.PathSensitivity;
 import org.gradle.api.tasks.TaskAction;
+import org.gradle.api.tasks.options.Option;
 import org.gradle.work.DisableCachingByDefault;
 
 import javax.inject.Inject;
@@ -161,6 +162,129 @@ public abstract class DetectShadowApisTask extends DefaultTask {
     public abstract Property<Boolean> getUpdateContractHistory();
 
     /**
+     * Single-run override of {@link #getUpdateContractHistory()}, settable only from the command
+     * line via {@code --updateContractHistory}/{@code --no-updateContractHistory} - never wired from
+     * the DSL, and unset by default. When present, takes precedence over
+     * {@link #getUpdateContractHistory()} for this run only, without changing the build script -
+     * typically used from CI to advance the committed history only on the branch(es) whose pipeline
+     * should, since the plugin itself has no notion of which branch is currently checked out.
+     *
+     * <p>Tracked as {@code @Input}, not {@code @Internal}: without that, passing a different value
+     * on the command line between two otherwise-identical runs would leave the task {@code UP-TO-DATE}
+     * and silently skip re-executing with the new override.</p>
+     *
+     * @return mutable, normally-unset boolean property overriding {@link #getUpdateContractHistory()}
+     *         for a single run
+     */
+    @Input
+    @Optional
+    public abstract Property<Boolean> getUpdateContractHistoryOverride();
+
+    /**
+     * CLI entry point for {@link #getUpdateContractHistoryOverride()}. Not meant to be called
+     * directly - Gradle invokes it when {@code --updateContractHistory}/{@code --no-updateContractHistory}
+     * is passed on the command line.
+     *
+     * <p>Deliberately not named {@code setUpdateContractHistoryOverride} - a method matching the
+     * {@code getUpdateContractHistoryOverride()}/{@code setUpdateContractHistoryOverride(...)}
+     * JavaBean getter/setter naming convention makes Gradle's task class generator treat the pair as
+     * a plain {@code boolean} property and reject {@link #getUpdateContractHistoryOverride()} for
+     * being abstract, even though it is a perfectly ordinary managed {@code Property<Boolean>}.</p>
+     *
+     * @param value the value to override {@link #getUpdateContractHistory()} with for this run
+     */
+    @Option(option = "updateContractHistory",
+            description = "Overrides shadowApiDetector.updateContractHistory for this run only.")
+    public void applyUpdateContractHistoryOverride(boolean value) {
+        getUpdateContractHistoryOverride().set(value);
+    }
+
+    /**
+     * Single-run override of {@link #getFailOnShadow()}, settable only from the command line via
+     * {@code --failOnShadow}/{@code --no-failOnShadow} - never wired from the DSL, and unset by
+     * default. When present, takes precedence over {@link #getFailOnShadow()} for this run only,
+     * without changing the build script - applies equally to a full-project scan and to a
+     * {@link #getScanForShadows()} single-controller scan.
+     *
+     * <p>Tracked as {@code @Input}, not {@code @Internal} - see
+     * {@link #getUpdateContractHistoryOverride()} for why.</p>
+     *
+     * @return mutable, normally-unset boolean property overriding {@link #getFailOnShadow()} for a
+     *         single run
+     */
+    @Input
+    @Optional
+    public abstract Property<Boolean> getFailOnShadowOverride();
+
+    /**
+     * CLI entry point for {@link #getFailOnShadowOverride()}. Not meant to be called directly -
+     * Gradle invokes it when {@code --failOnShadow}/{@code --no-failOnShadow} is passed on the
+     * command line. See {@link #applyUpdateContractHistoryOverride(boolean)} for why this is
+     * deliberately not named {@code setFailOnShadowOverride}.
+     *
+     * @param value the value to override {@link #getFailOnShadow()} with for this run
+     */
+    @Option(option = "failOnShadow", description = "Overrides shadowApiDetector.failOnShadow for this run only.")
+    public void applyFailOnShadowOverride(boolean value) {
+        getFailOnShadowOverride().set(value);
+    }
+
+    /**
+     * The name or path of a single {@code @RestController} class to scan for shadow APIs, settable
+     * only from the command line via {@code --scanForShadows=<name-or-path>} - never wired from the
+     * DSL, and unset by default. When present, {@link #generate()} scans only this controller
+     * instead of every file under {@link #getControllerDirs()}, and prints its findings to the
+     * console instead of writing {@link #getReportDir()}'s AsciiDoc report - see
+     * {@link #scanSingleController(String)}.
+     *
+     * <p>Two forms are accepted:</p>
+     * <ul>
+     *   <li>A path ending in {@code .java} - scanned directly, regardless of
+     *       {@link #getControllerDirs()}. Fails clearly if the file does not exist.</li>
+     *   <li>A bare class name (e.g. {@code OrderController}) - every {@code <name>.java} file found
+     *       anywhere under {@link #getControllerDirs()} is scanned; there may be more than one, e.g.
+     *       same-named controllers in different packages, in which case every match is scanned and
+     *       their findings combined. Fails clearly if no file named {@code <name>.java} is found.</li>
+     * </ul>
+     *
+     * <p>Tracked as {@code @Input}, not {@code @Internal} - see
+     * {@link #getUpdateContractHistoryOverride()} for why.</p>
+     *
+     * @return mutable, normally-unset string property naming or pathing a single controller to scan
+     */
+    @Input
+    @Optional
+    public abstract Property<String> getScanForShadows();
+
+    /**
+     * The project directory, used only to resolve a relative {@link #getScanForShadows()} path
+     * against - never against this process's own working directory, which need not be the project
+     * directory at all (e.g. when Gradle is invoked with {@code --project-dir} from elsewhere) and,
+     * unlike the project directory, isn't necessarily stable in a configuration-cache-compatible way.
+     * Wired once by {@link ShadowApiDetectorPlugin} at configuration time; not itself part of the
+     * public DSL.
+     *
+     * @return directory property for the project directory
+     */
+    @Internal
+    public abstract DirectoryProperty getProjectDirectory();
+
+    /**
+     * CLI entry point for {@link #getScanForShadows()}. Not meant to be called directly - Gradle
+     * invokes it when {@code --scanForShadows=<value>} is passed on the command line. See
+     * {@link #applyUpdateContractHistoryOverride(boolean)} for why this is deliberately not named
+     * {@code setScanForShadows}.
+     *
+     * @param value the controller name or {@code .java} path to scan
+     */
+    @Option(option = "scanForShadows",
+            description = "Scans a single @RestController class (by name, or by a path ending in .java) for "
+                    + "shadow APIs, printing findings to the console instead of writing the AsciiDoc report.")
+    public void applyScanForShadows(String value) {
+        getScanForShadows().set(value);
+    }
+
+    /**
      * Creates the task. Instantiated by Gradle infrastructure via {@link javax.inject.Inject}.
      */
     @Inject
@@ -170,15 +294,23 @@ public abstract class DetectShadowApisTask extends DefaultTask {
     }
 
     /**
-     * Task action: scans the configured controller directories, loads the configured OpenAPI
-     * documentation, writes the shadow API report, and - when {@link #getFailOnShadow()} is
-     * {@code true} - fails the build if any shadow API was found.
+     * Task action: either scans a single controller named or pathed by {@link #getScanForShadows()}
+     * and prints its findings to the console (see {@link #scanSingleController(String)}), or - when
+     * that property is unset - scans every {@code @RestController} class under
+     * {@link #getControllerDirs()}, loads the configured OpenAPI documentation, and writes the
+     * shadow API report. Either way, fails the build if any shadow API was found and the effective
+     * {@link #getFailOnShadow()} (accounting for {@link #getFailOnShadowOverride()}) is {@code true}.
      */
     @TaskAction
     public void generate() {
         if (!getRootDocument().isPresent()) {
             throw new GradleException("shadowApiDetector: rootDocument must be configured - "
                     + "it is the required root OpenAPI document.");
+        }
+
+        if (getScanForShadows().isPresent()) {
+            scanSingleController(getScanForShadows().get());
+            return;
         }
 
         List<File> controllerFiles = new ArrayList<>();
@@ -220,19 +352,128 @@ public abstract class DetectShadowApisTask extends DefaultTask {
         getLogger().lifecycle("Shadow API Detector: scanned {} endpoint(s), found {} shadow API(s). Report → {}",
                 endpoints.size(), shadows.size(), outputFile);
 
-        if (!shadows.isEmpty() && getFailOnShadow().get()) {
+        if (!shadows.isEmpty() && effectiveFailOnShadow()) {
             throw new GradleException("shadowApiDetector: found " + shadows.size()
                     + " shadow API(s) not described in the OpenAPI documentation. See " + outputFile);
         }
     }
 
     /**
+     * Scans only the controller(s) named or pathed by {@code scanForShadows} - see
+     * {@link #getScanForShadows()} for the two accepted forms - compares their endpoints against the
+     * configured OpenAPI documentation, and prints every shadow API found to the console, followed by
+     * a summary line of how many controllers were scanned, how many endpoints were found, and how
+     * many of those are shadow APIs. No AsciiDoc report is written and contract history is not
+     * touched, regardless of {@link #getTrackContractHistory()} - both are scoped to a full-project
+     * view this single-controller scan deliberately doesn't have, so persisting either from a partial
+     * run would misrepresent every endpoint this run didn't see as newly removed. Still fails the
+     * build, exactly like a full scan, when a shadow API is found and the effective
+     * {@link #getFailOnShadow()} is {@code true}.
+     */
+    private void scanSingleController(String target) {
+        List<File> controllerFiles = resolveScanForShadowsTargets(target);
+
+        ControllerScanner scanner = new ControllerScanner();
+        List<Endpoint> endpoints = new ArrayList<>();
+        for (File controllerFile : controllerFiles) {
+            scanFile(scanner, controllerFile, endpoints);
+        }
+
+        File rootDocument = getRootDocument().getAsFile().get();
+        List<DescribedEndpoint> described = new OpenApiEndpointCollector().collect(rootDocument, file -> {});
+
+        List<Endpoint> shadows = new ShadowApiFinder().findShadows(endpoints, described);
+
+        if (shadows.isEmpty()) {
+            getLogger().lifecycle("Shadow API Detector: no shadow APIs found.");
+        } else {
+            getLogger().lifecycle("Shadow API Detector: shadow API(s) found:");
+            for (Endpoint shadow : shadows) {
+                getLogger().lifecycle("  {} {} ({})", shadow.verb(), shadow.path(), shadow.declaringClass());
+            }
+        }
+        getLogger().lifecycle(
+                "Shadow API Detector: scanned {} controller(s), found {} endpoint(s), {} of them shadow API(s).",
+                controllerFiles.size(), endpoints.size(), shadows.size());
+
+        if (!shadows.isEmpty() && effectiveFailOnShadow()) {
+            throw new GradleException("shadowApiDetector: found " + shadows.size()
+                    + " shadow API(s) in the scanned controller(s).");
+        }
+    }
+
+    /**
+     * Resolves {@code scanForShadows} to the controller file(s) it names - a path ending in
+     * {@code .java} is used as-is (regardless of {@link #getControllerDirs()}), resolved against
+     * {@link #getProjectDirectory()} when relative, otherwise every {@code <target>.java} file found
+     * anywhere under {@link #getControllerDirs()} is returned.
+     *
+     * @throws GradleException if a given path does not exist, or a given name matches no file
+     */
+    private List<File> resolveScanForShadowsTargets(String target) {
+        if (target.endsWith(".java")) {
+            File targetFile = new File(target);
+            File controllerFile = targetFile.isAbsolute()
+                    ? targetFile
+                    : new File(getProjectDirectory().getAsFile().get(), target);
+            if (!controllerFile.isFile()) {
+                throw new GradleException("shadowApiDetector: scanForShadows path does not exist: " + controllerFile);
+            }
+            return List.of(controllerFile);
+        }
+
+        String fileName = target + ".java";
+        List<File> matches = new ArrayList<>();
+        for (File dir : getControllerDirs()) {
+            collectMatchingJavaFiles(dir, fileName, matches);
+        }
+        if (matches.isEmpty()) {
+            throw new GradleException("shadowApiDetector: no controller named '" + target
+                    + "' found under the configured controllerDirs.");
+        }
+        return matches;
+    }
+
+    private void collectMatchingJavaFiles(File dir, String fileName, List<File> matches) {
+        if (!dir.isDirectory()) {
+            return;
+        }
+        File[] children = dir.listFiles();
+        if (children == null) {
+            return;
+        }
+        for (File child : children) {
+            if (child.isFile() && child.getName().equals(fileName)) {
+                matches.add(child);
+            } else if (child.isDirectory()) {
+                collectMatchingJavaFiles(child, fileName, matches);
+            }
+        }
+    }
+
+    /**
+     * {@link #getFailOnShadow()}, unless {@link #getFailOnShadowOverride()} is present, in which case
+     * the override takes precedence.
+     */
+    private boolean effectiveFailOnShadow() {
+        return getFailOnShadowOverride().getOrElse(getFailOnShadow().get());
+    }
+
+    /**
+     * {@link #getUpdateContractHistory()}, unless {@link #getUpdateContractHistoryOverride()} is
+     * present, in which case the override takes precedence.
+     */
+    private boolean effectiveUpdateContractHistory() {
+        return getUpdateContractHistoryOverride().getOrElse(getUpdateContractHistory().get());
+    }
+
+    /**
      * Loads the persisted contract progress history, advances it with the current run's implemented
      * and declared endpoints (Shadow API Detector never has verification evidence to offer), and -
-     * only when {@link #getUpdateContractHistory()} resolves to {@code true} - saves it back. The
-     * history file is always read regardless of {@link #getUpdateContractHistory()}, so the
-     * generated report reflects the up-to-date-in-memory history even on a run that doesn't persist
-     * it.
+     * only when the effective {@link #getUpdateContractHistory()} (see
+     * {@link #effectiveUpdateContractHistory()}) resolves to {@code true} - saves it back. The
+     * history file is always read regardless, so the generated report reflects the up-to-date-in-memory
+     * history even on a run that doesn't persist it.
      */
     private Map<String, ContractProgressRecord> updateContractHistory(
             List<Endpoint> implementedNow, List<DescribedEndpoint> declaredNow) {
@@ -249,7 +490,7 @@ public abstract class DetectShadowApisTask extends DefaultTask {
         }
         Map<String, ContractProgressRecord> updated = new ContractHistoryUpdater()
                 .update(previous, implementedNow, declaredNow, null, null, Instant.now());
-        if (getUpdateContractHistory().get()) {
+        if (effectiveUpdateContractHistory()) {
             store.save(historyFile, updated.values());
         }
         return updated;

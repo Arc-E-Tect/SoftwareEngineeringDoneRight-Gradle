@@ -1,12 +1,8 @@
 package com.arc_e_tect.gradle.shadow;
 
-import org.gradle.api.GradleException;
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
-import org.gradle.api.provider.Provider;
 import org.gradle.api.tasks.TaskProvider;
-
-import java.util.Locale;
 
 /**
  * Gradle plugin that registers the {@code detectShadowApis} task and wires the
@@ -74,14 +70,6 @@ public class ShadowApiDetectorPlugin implements Plugin<Project> {
         // rather than snapshotting it at this point.
         ext.getUpdateContractHistory().convention(ext.getTrackContractHistory());
 
-        // The -PshadowApiDetector.updateContractHistory=<true|false> project property, when set,
-        // overrides updateContractHistory for every project in the build - regardless of what any
-        // project's own extension configures - typically used to advance the committed history
-        // only from the branch(es) whose CI pipeline should, without touching the build script.
-        Provider<Boolean> updateContractHistoryCliOverride = project.getProviders()
-                .gradleProperty(ShadowApiDetectorExtension.UPDATE_CONTRACT_HISTORY_OVERRIDE_PROPERTY)
-                .map(ShadowApiDetectorPlugin::parseUpdateContractHistory);
-
         TaskProvider<DetectShadowApisTask> taskProvider =
                 project.getTasks().register(TASK_NAME, DetectShadowApisTask.class, task -> {
                     task.getControllerDirs().from(ext.getControllerDirs());
@@ -93,8 +81,8 @@ public class ShadowApiDetectorPlugin implements Plugin<Project> {
                     task.getSystemUnderTestVersion().set(ext.getSystemUnderTestVersion());
                     task.getTrackContractHistory().set(ext.getTrackContractHistory());
                     task.getContractHistoryFile().set(ext.getContractHistoryFile());
-                    task.getUpdateContractHistory().set(
-                            updateContractHistoryCliOverride.orElse(ext.getUpdateContractHistory()));
+                    task.getUpdateContractHistory().set(ext.getUpdateContractHistory());
+                    task.getProjectDirectory().set(project.getLayout().getProjectDirectory());
                 });
 
         // Default to src/main/java only when the user has not configured any controller
@@ -106,23 +94,5 @@ public class ShadowApiDetectorPlugin implements Plugin<Project> {
                         task.getControllerDirs().from(p.file(ShadowApiDetectorExtension.DEFAULT_CONTROLLER_DIR)));
             }
         });
-    }
-
-    /**
-     * Parses the {@code -PshadowApiDetector.updateContractHistory=<value>} project property's
-     * value, accepting {@code true}/{@code false} case-insensitively.
-     */
-    private static boolean parseUpdateContractHistory(String value) {
-        String normalized = value.trim().toLowerCase(Locale.ROOT);
-        if ("true".equals(normalized)) {
-            return true;
-        }
-        if ("false".equals(normalized)) {
-            return false;
-        }
-        throw new GradleException(
-                "shadowApiDetector: invalid value '" + value + "' for -P"
-                + ShadowApiDetectorExtension.UPDATE_CONTRACT_HISTORY_OVERRIDE_PROPERTY
-                + "; expected 'true' or 'false'");
     }
 }

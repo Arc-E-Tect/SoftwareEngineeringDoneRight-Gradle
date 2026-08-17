@@ -230,6 +230,205 @@ class DetectShadowApisTaskTest {
                 .anyMatch(message -> message.contains("Scanning @RestController classes"));
     }
 
+    @Test
+    @DisplayName("scanForShadows by bare name finds the controller under controllerDirs and prints shadows to the console")
+    void scanForShadowsByNameFindsControllerAndPrintsToConsole() throws Exception {
+        RecordingLogger recordingLogger = new RecordingLogger();
+        LoggerCapturingDetectShadowApisTask task = project.getTasks()
+                .create("scanForShadowsByName", LoggerCapturingDetectShadowApisTask.class);
+        task.recordingLogger = recordingLogger;
+        task.getControllerDirs().from(controllerDir);
+        task.getRootDocument().set(openApiFixture("single-endpoint.yaml"));
+        task.getReportDir().set(reportDir);
+        task.getReportFileName().set("shadow-apis.adoc");
+        task.getFailOnShadow().set(false);
+        task.getSystemUnderTestVersion().set("1.0.0");
+        task.getScanForShadows().set("UserController");
+
+        task.generate();
+
+        assertThat(recordingLogger.lifecycleMessages())
+                .anyMatch(message -> message.contains("/users/{id}") && message.contains("com.example.UserController"))
+                .anyMatch(message -> message.contains("scanned 1 controller(s), found 2 endpoint(s), 1 of them shadow API(s)"));
+        assertThat(new File(reportDir, "shadow-apis.adoc")).doesNotExist();
+    }
+
+    @Test
+    @DisplayName("scanForShadows by name scans every same-named controller across different packages")
+    void scanForShadowsByNameScansEveryMatchAcrossPackages() throws Exception {
+        File otherPackageDir = new File(controllerDir.getParentFile(), "other");
+        Files.createDirectories(otherPackageDir.toPath());
+        Files.writeString(otherPackageDir.toPath().resolve("UserController.java"), """
+                package com.example.other;
+
+                import org.springframework.web.bind.annotation.GetMapping;
+                import org.springframework.web.bind.annotation.RequestMapping;
+                import org.springframework.web.bind.annotation.RestController;
+
+                @RestController
+                @RequestMapping("/other-users")
+                public class UserController {
+
+                    @GetMapping
+                    public String listOtherUsers() { return ""; }
+                }
+                """);
+        DetectShadowApisTask task = newTask();
+        task.getControllerDirs().from(controllerDir.getParentFile());
+        task.getRootDocument().set(openApiFixture("single-endpoint.yaml"));
+        task.getReportDir().set(reportDir);
+        task.getReportFileName().set("shadow-apis.adoc");
+        task.getFailOnShadow().set(false);
+        task.getSystemUnderTestVersion().set("1.0.0");
+        task.getScanForShadows().set("UserController");
+
+        task.generate();
+    }
+
+    @Test
+    @DisplayName("scanForShadows by an absolute .java path scans exactly that file, regardless of controllerDirs")
+    void scanForShadowsByAbsolutePathScansExactFile() throws Exception {
+        DetectShadowApisTask task = newTask();
+        task.getControllerDirs().from(tempDir.resolve("does-not-exist").toFile());
+        task.getRootDocument().set(openApiFixture("single-endpoint.yaml"));
+        task.getReportDir().set(reportDir);
+        task.getReportFileName().set("shadow-apis.adoc");
+        task.getFailOnShadow().set(true);
+        task.getSystemUnderTestVersion().set("1.0.0");
+        task.getScanForShadows().set(new File(controllerDir, "UserController.java").getAbsolutePath());
+
+        assertThatThrownBy(task::generate)
+                .isInstanceOf(GradleException.class)
+                .hasMessageContaining("1 shadow API(s)");
+    }
+
+    @Test
+    @DisplayName("scanForShadows by a relative .java path resolves against the project directory")
+    void scanForShadowsByRelativePathResolvesAgainstProjectDirectory() throws Exception {
+        DetectShadowApisTask task = newTask();
+        task.getControllerDirs().from(controllerDir);
+        task.getRootDocument().set(openApiFixture("single-endpoint.yaml"));
+        task.getReportDir().set(reportDir);
+        task.getReportFileName().set("shadow-apis.adoc");
+        task.getFailOnShadow().set(false);
+        task.getSystemUnderTestVersion().set("1.0.0");
+        Path relative = tempDir.relativize(new File(controllerDir, "UserController.java").toPath());
+        task.getScanForShadows().set(relative.toString());
+
+        task.generate();
+    }
+
+    @Test
+    @DisplayName("scanForShadows fails clearly when the given .java path does not exist")
+    void scanForShadowsFailsClearlyWhenPathDoesNotExist() throws Exception {
+        DetectShadowApisTask task = newTask();
+        task.getControllerDirs().from(controllerDir);
+        task.getRootDocument().set(openApiFixture("single-endpoint.yaml"));
+        task.getReportDir().set(reportDir);
+        task.getReportFileName().set("shadow-apis.adoc");
+        task.getFailOnShadow().set(false);
+        task.getSystemUnderTestVersion().set("1.0.0");
+        task.getScanForShadows().set("/no/such/Controller.java");
+
+        assertThatThrownBy(task::generate)
+                .isInstanceOf(GradleException.class)
+                .hasMessageContaining("scanForShadows path does not exist");
+    }
+
+    @Test
+    @DisplayName("scanForShadows fails clearly when no controller matches the given name")
+    void scanForShadowsFailsClearlyWhenNameNotFound() throws Exception {
+        DetectShadowApisTask task = newTask();
+        task.getControllerDirs().from(controllerDir);
+        task.getRootDocument().set(openApiFixture("single-endpoint.yaml"));
+        task.getReportDir().set(reportDir);
+        task.getReportFileName().set("shadow-apis.adoc");
+        task.getFailOnShadow().set(false);
+        task.getSystemUnderTestVersion().set("1.0.0");
+        task.getScanForShadows().set("NoSuchController");
+
+        assertThatThrownBy(task::generate)
+                .isInstanceOf(GradleException.class)
+                .hasMessageContaining("no controller named 'NoSuchController'");
+    }
+
+    @Test
+    @DisplayName("scanForShadows does not fail the build when failOnShadow is true but no shadows are found")
+    void scanForShadowsDoesNotFailWhenNoShadowsFound() throws Exception {
+        DetectShadowApisTask task = newTask();
+        task.getControllerDirs().from(controllerDir);
+        task.getRootDocument().set(openApiFixture("both-endpoints.yaml"));
+        task.getReportDir().set(reportDir);
+        task.getReportFileName().set("shadow-apis.adoc");
+        task.getFailOnShadow().set(true);
+        task.getSystemUnderTestVersion().set("1.0.0");
+        task.getScanForShadows().set("UserController");
+
+        task.generate();
+    }
+
+    @Test
+    @DisplayName("failOnShadowOverride true forces a failure even though failOnShadow is false")
+    void failOnShadowOverrideTrueForcesFailure() throws Exception {
+        DetectShadowApisTask task = configuredTask(openApiFixture("single-endpoint.yaml"), false);
+        task.getFailOnShadowOverride().set(true);
+
+        assertThatThrownBy(task::generate)
+                .isInstanceOf(GradleException.class)
+                .hasMessageContaining("1 shadow API(s)");
+    }
+
+    @Test
+    @DisplayName("failOnShadowOverride false prevents a failure even though failOnShadow is true")
+    void failOnShadowOverrideFalsePreventsFailure() throws Exception {
+        DetectShadowApisTask task = configuredTask(openApiFixture("single-endpoint.yaml"), true);
+        task.getFailOnShadowOverride().set(false);
+
+        task.generate();
+    }
+
+    @Test
+    @DisplayName("updateContractHistoryOverride true writes the history file even though updateContractHistory is false")
+    void updateContractHistoryOverrideTrueWritesFile() throws Exception {
+        File historyFile = new File(tempDir.toFile(), "contract-history.ndjson");
+        DetectShadowApisTask task = configuredTask(openApiFixture("both-endpoints.yaml"), false);
+        task.getTrackContractHistory().set(true);
+        task.getContractHistoryFile().set(historyFile);
+        task.getUpdateContractHistory().set(false);
+        task.getUpdateContractHistoryOverride().set(true);
+
+        task.generate();
+
+        assertThat(historyFile).exists();
+    }
+
+    @Test
+    @DisplayName("updateContractHistoryOverride false skips writing the history file even though updateContractHistory is true")
+    void updateContractHistoryOverrideFalseSkipsWrite() throws Exception {
+        File historyFile = new File(tempDir.toFile(), "contract-history.ndjson");
+        DetectShadowApisTask task = configuredTask(openApiFixture("both-endpoints.yaml"), false);
+        task.getTrackContractHistory().set(true);
+        task.getContractHistoryFile().set(historyFile);
+        task.getUpdateContractHistory().set(true);
+        task.getUpdateContractHistoryOverride().set(false);
+
+        task.generate();
+
+        assertThat(historyFile).doesNotExist();
+    }
+
+    @Test
+    @DisplayName("getScanForShadows, getFailOnShadowOverride, and getUpdateContractHistoryOverride are annotated "
+            + "with @Input so a changed CLI value invalidates up-to-date state")
+    void newCliOverridePropertiesAreAnnotatedAsInput() throws NoSuchMethodException {
+        assertThat(DetectShadowApisTask.class.getMethod("getScanForShadows")
+                .isAnnotationPresent(org.gradle.api.tasks.Input.class)).isTrue();
+        assertThat(DetectShadowApisTask.class.getMethod("getFailOnShadowOverride")
+                .isAnnotationPresent(org.gradle.api.tasks.Input.class)).isTrue();
+        assertThat(DetectShadowApisTask.class.getMethod("getUpdateContractHistoryOverride")
+                .isAnnotationPresent(org.gradle.api.tasks.Input.class)).isTrue();
+    }
+
     /**
      * Test-only subclass that substitutes a {@link RecordingLogger} for the framework-provided
      * task logger, since {@link DetectShadowApisTask#getLogger()} cannot otherwise be observed
@@ -262,6 +461,7 @@ class DetectShadowApisTaskTest {
     private DetectShadowApisTask newTask() {
         DetectShadowApisTask task = project.getTasks().create("detectShadowApisUnderTest", DetectShadowApisTask.class);
         task.getTrackContractHistory().set(false);
+        task.getProjectDirectory().set(tempDir.toFile());
         return task;
     }
 
