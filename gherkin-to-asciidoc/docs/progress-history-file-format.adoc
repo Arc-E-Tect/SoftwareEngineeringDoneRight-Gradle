@@ -69,8 +69,8 @@ Every line is one JSON object with exactly these eight keys, always present (usi
 |===
 | Key | JSON type | Nullable | Meaning
 | `fingerprint` | string | No | Stable identifier for this scenario. See <<fingerprint>>. Acts as this record's primary key - the map this file round-trips through is keyed by this field.
-| `scenarioName` | string | No | The scenario's display title, e.g. `1.2 - User logs in`, with only the `Scenario:`/`Scenario Outline:` keyword prefix removed. Unlike `fingerprint`, this field is **not** stripped of a numbering prefix, so its exact text can change run-to-run for the *same* fingerprint purely because `indexing` renumbered the scenario - see <<fingerprint>> for why that doesn't create a new record. Refreshed on every run that observes the scenario, so a renamed-in-place scenario always shows its current title here.
-| `featureTitle` | string | No | The title of the `Feature:` the scenario currently lives under. Refreshed on every run, so a scenario moved to a different feature file shows up under its new feature immediately - this is the entire point of fingerprinting by scenario name alone rather than by (feature, scenario) pair.
+| `scenarioName` | string | No | The scenario's display title, e.g. `User logs in`, with both the `Scenario:`/`Scenario Outline:` keyword prefix and any existing index-numbering prefix removed - the same stripping `fingerprint` itself uses (see <<fingerprint>>). So a scenario getting renumbered by `indexing` (e.g. because an earlier one was inserted or removed elsewhere in the suite) never changes this field; only an actual rename does. Refreshed on every run that observes the scenario, so a renamed-in-place scenario always shows its current title here.
+| `featureTitle` | string | No | The title of the `Feature:` the scenario currently lives under, with any existing index-numbering prefix removed (a `Feature:` title never carries a keyword prefix in the parsed source, so only index-stripping applies here). Refreshed on every run, so a scenario moved to a different feature file shows up under its new feature immediately - this is the entire point of fingerprinting by scenario name alone rather than by (feature, scenario) pair. Also means a feature getting renumbered by `indexing` never changes this field on its own.
 | `listedAt` | string (ISO-8601 instant) or `null` | Yes | The instant this scenario was *first* observed with `LISTED` status (a title with no `Given`/`When`/`Then` steps at all). Stamped once; never overwritten on subsequent runs.
 | `definedAt` | string (ISO-8601 instant) or `null` | Yes | The instant this scenario was *first* observed with `DEFINED` status (has steps, but at least one has no matching glue code). Same "stamped once" rule. **Can remain permanently `null`** even for a fully implemented scenario, if it jumped directly from `LISTED` to `IMPLEMENTED` between two runs (e.g. all its glue code was added in one commit) - see <<current-status-vs-history>>.
 | `implementedAt` | string (ISO-8601 instant) or `null` | Yes | The instant this scenario was *first* observed with `IMPLEMENTED` status (every step has matching glue code). Same "stamped once" rule.
@@ -104,7 +104,7 @@ normalized     = withoutIndex.trim().toLowerCase()
 fingerprint    = sha256_hex(normalized)[0:16]
 ----
 
-Note this differs from `scenarioName` (the persisted display field), which only has the keyword prefix stripped, not the index prefix - so two records can legitimately show *different* `scenarioName` text (e.g. `"1 - User logs in"` in one snapshot, `"2 - User logs in"` in a later one, after renumbering) while sharing the *same* `fingerprint`. A tool that joins or deduplicates records must use `fingerprint`, never `scenarioName`, as the identity key.
+`scenarioName` and `featureTitle` (the persisted display fields) are stripped the same way before being written, via the same shared helper (`ScenarioTitles`) - so renumbering alone never changes either field, and a tool consuming this file doesn't need to separately account for index-prefix churn in the display fields. `fingerprint` remains the only field to key joins or deduplication on, though, since it's additionally trimmed and lower-cased, which the persisted display fields deliberately are not (they preserve the scenario's/feature's actual casing and whitespace as written).
 
 == Example file content
 
@@ -114,10 +114,10 @@ A realistic `progressHistoryFile` after several months of builds, showing every 
 ----
 {"fingerprint":"a1f3c9d0e21b7f44","scenarioName":"User logs in","featureTitle":"User authentication","listedAt":"2026-01-14T09:02:11Z","definedAt":"2026-02-03T16:40:00Z","implementedAt":"2026-02-20T11:15:44Z","lastSeenAt":"2026-08-12T07:00:00Z","removedAt":null}
 {"fingerprint":"7be04412aa3390d1","scenarioName":"User resets password","featureTitle":"User authentication","listedAt":"2026-06-01T08:00:00Z","definedAt":null,"implementedAt":"2026-06-01T08:00:00Z","lastSeenAt":"2026-08-12T07:00:00Z","removedAt":null}
-{"fingerprint":"c3d4e5f607182934","scenarioName":"2 - Admin locks an account","featureTitle":"Account management","listedAt":"2026-02-20T11:15:44Z","definedAt":"2026-03-01T09:00:00Z","implementedAt":null,"lastSeenAt":"2026-05-01T07:00:00Z","removedAt":"2026-05-08T07:00:00Z"}
+{"fingerprint":"c3d4e5f607182934","scenarioName":"Admin locks an account","featureTitle":"Account management","listedAt":"2026-02-20T11:15:44Z","definedAt":"2026-03-01T09:00:00Z","implementedAt":null,"lastSeenAt":"2026-05-01T07:00:00Z","removedAt":"2026-05-08T07:00:00Z"}
 ----
 
-Reading these three lines: the first scenario progressed through all three stages over about five weeks and is still present. The second went straight from `listed` to `implemented` in the same run (`listedAt` and `implementedAt` are equal) with `definedAt` permanently `null` - a real, valid state, not missing data. The third was listed and later defined, but never implemented, and stopped being observed after `2026-05-01`; its `scenarioName` still carries an index prefix (`"2 - ..."`), which its `fingerprint` ignores entirely.
+Reading these three lines: the first scenario progressed through all three stages over about five weeks and is still present. The second went straight from `listed` to `implemented` in the same run (`listedAt` and `implementedAt` are equal) with `definedAt` permanently `null` - a real, valid state, not missing data. The third was listed and later defined, but never implemented, and stopped being observed after `2026-05-01`; even though this scenario is numbered `"2 - Admin locks an account"` in its source `.feature` file (with `indexing` enabled), its persisted `scenarioName` has that index prefix stripped, same as its `fingerprint` does.
 
 [#relationship-to-report]
 == Relationship to the generated report
@@ -186,7 +186,7 @@ The following JSON Schema (2020-12) validates a single *line* of this file (one 
     "scenarioName": {
       "type": "string",
       "minLength": 1,
-      "description": "Display title with only the Scenario:/Scenario Outline: keyword stripped; may still carry an index-numbering prefix."
+      "description": "Display title with the Scenario:/Scenario Outline: keyword and any index-numbering prefix both stripped."
     },
     "featureTitle": {
       "type": "string",

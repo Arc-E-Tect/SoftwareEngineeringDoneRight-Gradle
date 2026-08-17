@@ -7,8 +7,6 @@ import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * Produces the next {@link ScenarioProgressRecord} map to persist, from the previously persisted
@@ -22,10 +20,16 @@ import java.util.regex.Pattern;
  * {@code definedAt}. Every previously persisted record whose fingerprint is no longer present in
  * the current run is kept, unchanged, with {@code removedAt} stamped the first time it goes
  * missing. Records are never deleted.</p>
+ *
+ * <p>{@code scenarioName} and {@code featureTitle} are persisted via {@link ScenarioTitles}, with
+ * any {@code FeatureIndexer}-written numeric index prefix stripped - the same stripping
+ * {@link ScenarioFingerprint} applies to compute the record's key. Without it, a scenario or
+ * feature getting renumbered (e.g. because an earlier one was inserted or removed elsewhere in the
+ * suite) would silently rewrite these two fields on every affected record's next run, even though
+ * neither the scenario's identity nor its actual progress changed - pure numbering churn in a file
+ * meant to be committed.</p>
  */
 public class ProgressHistoryUpdater {
-
-    private static final Pattern KEYWORD_PREFIX = Pattern.compile("^(?:Scenario Outline|Scenario):\\s*(.*)$");
 
     private final ScenarioFingerprint fingerprinter = new ScenarioFingerprint();
     private final ScenarioClassifier classifier = new ScenarioClassifier();
@@ -73,7 +77,7 @@ public class ProgressHistoryUpdater {
         }
 
         return new ScenarioProgressRecord(
-                fingerprint, displayName(scenario.title()), scenario.featureTitle(),
+                fingerprint, cleanScenarioName(scenario.title()), cleanFeatureTitle(scenario.featureTitle()),
                 listedAt, definedAt, implementedAt, now, null);
     }
 
@@ -87,8 +91,12 @@ public class ProgressHistoryUpdater {
                 record.lastSeenAt(), now);
     }
 
-    private String displayName(String scenarioTitle) {
-        Matcher matcher = KEYWORD_PREFIX.matcher(scenarioTitle);
-        return matcher.matches() ? matcher.group(1) : scenarioTitle;
+    private String cleanScenarioName(String scenarioTitle) {
+        String withoutKeyword = ScenarioTitles.withoutKeyword(scenarioTitle);
+        return ScenarioTitles.withoutIndex(withoutKeyword).trim();
+    }
+
+    private String cleanFeatureTitle(String featureTitle) {
+        return ScenarioTitles.withoutIndex(featureTitle).trim();
     }
 }
