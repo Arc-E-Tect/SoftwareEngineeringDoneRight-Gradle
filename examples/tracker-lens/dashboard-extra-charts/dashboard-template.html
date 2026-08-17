@@ -121,8 +121,39 @@ vertical-align: middle;
   var data = dataElement ? JSON.parse(dataElement.textContent) : { trackers: [] };
   var trackersById = {};
   (data.trackers || []).forEach(function (tracker) {
-    trackersById[tracker.id] = tracker;
+    trackersById[tracker.id] = truncateToLastRealDate(tracker);
   });
+
+  // dates/series/breakdownByDate extend past a tracker's last real data point purely for the
+  // fixed bootstrap chart's width (see TrackerViewFactory#chartDates) - every stage reads 0 there,
+  // never a forecast (see TrackerViewFactory#hasDataOn). This template draws its own, better,
+  // trend-based forecast instead (see extrapolateSeries/addForecastSegment below), so it trims
+  // that dead padding off every array up front: every other function in this script can then keep
+  // treating "the array's last entry" as "the tracker's actual latest data" the way it always
+  // could before the plugin started padding with zeros, with no other change needed.
+  function truncateToLastRealDate(tracker) {
+    var cutoff = tracker.dates.length - 1;
+    outer: for (; cutoff > 0; cutoff--) {
+      for (var stage in tracker.series) {
+        if ((tracker.series[stage][cutoff] || 0) > 0) {
+          break outer;
+        }
+      }
+    }
+    // cutoff is 0 both when index 0 truly is the last real date and when every value is 0 (an
+    // empty tracker) - either way, keeping just index 0 (or the whole array, for an empty
+    // tracker with a single-element dates fallback) is correct, so no separate empty-tracker case
+    // is needed here.
+    var keep = cutoff + 1;
+    var series = {};
+    Object.keys(tracker.series).forEach(function (stage) {
+      series[stage] = tracker.series[stage].slice(0, keep);
+    });
+    tracker.dates = tracker.dates.slice(0, keep);
+    tracker.series = series;
+    tracker.breakdownByDate = tracker.breakdownByDate.slice(0, keep);
+    return tracker;
+  }
 
   var rootStyle = getComputedStyle(document.documentElement);
   var stageColors = [
