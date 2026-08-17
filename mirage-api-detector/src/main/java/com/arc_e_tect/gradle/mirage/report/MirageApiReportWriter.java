@@ -40,8 +40,8 @@ public class MirageApiReportWriter {
 
     /**
      * Writes the report to {@code outputFile}, creating its parent directory if necessary.
-     * Equivalent to calling {@link #write(File, int, List, String, boolean)} with
-     * {@code scanMocks} {@code false}.
+     * Equivalent to calling {@link #write(File, int, List, String, Map)} with an empty contract
+     * history.
      *
      * @param outputFile             target AsciiDoc file
      * @param totalDescribedCount    total number of endpoints described by the OpenAPI documentation
@@ -52,27 +52,7 @@ public class MirageApiReportWriter {
     public void write(
             File outputFile, int totalDescribedCount, List<DescribedEndpoint> mirages,
             String systemUnderTestVersion) throws IOException {
-        write(outputFile, totalDescribedCount, mirages, systemUnderTestVersion, false);
-    }
-
-    /**
-     * Writes the report to {@code outputFile}, creating its parent directory if necessary.
-     * Equivalent to calling {@link #write(File, int, List, String, boolean, Map)} with an empty
-     * contract history.
-     *
-     * @param outputFile             target AsciiDoc file
-     * @param totalDescribedCount    total number of endpoints described by the OpenAPI documentation
-     * @param mirages                the described endpoints with no matching implementation evidence
-     * @param systemUnderTestVersion version of the system under test that was scanned
-     * @param scanMocks              whether implemented endpoints were determined from WireMock
-     *                               stubs rather than {@code @RestController} classes - only
-     *                               affects report wording, not its structure
-     * @throws IOException if the output file cannot be written
-     */
-    public void write(
-            File outputFile, int totalDescribedCount, List<DescribedEndpoint> mirages,
-            String systemUnderTestVersion, boolean scanMocks) throws IOException {
-        write(outputFile, totalDescribedCount, mirages, systemUnderTestVersion, scanMocks, Map.of());
+        write(outputFile, totalDescribedCount, mirages, systemUnderTestVersion, Map.of());
     }
 
     /**
@@ -80,11 +60,9 @@ public class MirageApiReportWriter {
      *
      * @param outputFile             target AsciiDoc file
      * @param totalDescribedCount    total number of endpoints described by the OpenAPI documentation
-     * @param mirages                the described endpoints with no matching implementation evidence
+     * @param mirages                the described endpoints with no matching {@code @RestController}
+     *                               implementation
      * @param systemUnderTestVersion version of the system under test that was scanned
-     * @param scanMocks              whether implemented endpoints were determined from WireMock
-     *                               stubs rather than {@code @RestController} classes - only
-     *                               affects report wording, not its structure
      * @param contractHistory        contract progress history to render as a {@code == Progress Over
      *                                Time} section, keyed by fingerprint; when empty, no such
      *                                section is written
@@ -92,19 +70,15 @@ public class MirageApiReportWriter {
      */
     public void write(
             File outputFile, int totalDescribedCount, List<DescribedEndpoint> mirages,
-            String systemUnderTestVersion, boolean scanMocks, Map<String, ContractProgressRecord> contractHistory)
+            String systemUnderTestVersion, Map<String, ContractProgressRecord> contractHistory)
             throws IOException {
         File parent = outputFile.getParentFile();
         if (parent != null && !parent.exists() && !parent.mkdirs()) {
             throw new IOException("Could not create output directory: " + parent);
         }
 
-        String missingEvidenceClause = scanMocks
-                ? "backed by any WireMock stub"
-                : "implemented by any `@RestController` class";
-        String allEvidenceClause = scanMocks
-                ? "backed by a WireMock stub"
-                : "implemented by a scanned `@RestController` class";
+        String missingEvidenceClause = "implemented by any `@RestController` class";
+        String allEvidenceClause = "implemented by a scanned `@RestController` class";
 
         try (PrintWriter writer = new PrintWriter(outputFile, StandardCharsets.UTF_8)) {
             writer.println("= Mirage API Report");

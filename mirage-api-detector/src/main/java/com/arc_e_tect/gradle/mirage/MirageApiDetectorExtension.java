@@ -60,29 +60,29 @@ public abstract class MirageApiDetectorExtension {
 
     /**
      * Directories to search recursively for {@code @RestController} classes, used to determine
-     * which OpenAPI operations are implemented. Not scanned when {@link #getScanMocks()} is
-     * {@code true}. One or more directories may be configured. Defaults to
-     * {@value #DEFAULT_CONTROLLER_DIR}.
+     * which OpenAPI operations are implemented - and thus which are reported as mirage APIs.
+     * Always scanned, regardless of {@link #getScanMocks()}. One or more directories may be
+     * configured. Defaults to {@value #DEFAULT_CONTROLLER_DIR}.
      *
      * @return mutable file collection of controller source directories
      */
     public abstract ConfigurableFileCollection getControllerDirs();
 
     /**
-     * Whether to determine implemented endpoints from WireMock stub mapping files under
-     * {@link #getStubDirs()} instead of scanning {@code @RestController} classes under
-     * {@link #getControllerDirs()}. When {@code true}, controller directories are not scanned at
-     * all: an OpenAPI operation is a mirage API here when no stub mocks it, rather than when no
-     * controller implements it. Defaults to {@code false}.
+     * Whether to additionally scan WireMock stub mapping files under {@link #getStubDirs()} for
+     * stub evidence, alongside {@link #getControllerDirs()}'s real implementation evidence. Stub
+     * evidence is recorded into contract history/the report (as {@code stubbedAt}) but never
+     * counts as implementation evidence itself - it never changes which endpoints are reported as
+     * mirage APIs. Defaults to {@code false}.
      *
-     * @return mutable boolean property controlling whether stub-based scanning is used
+     * @return mutable boolean property controlling whether stub scanning is additionally performed
      */
     public abstract Property<Boolean> getScanMocks();
 
     /**
-     * Directories to search recursively for WireMock stub mapping files ({@code *.json}), used to
-     * determine implemented endpoints when {@link #getScanMocks()} is {@code true}. One or more
-     * directories may be configured. Defaults to {@value #DEFAULT_STUB_DIR}.
+     * Directories to search recursively for WireMock stub mapping files ({@code *.json}), scanned
+     * for stub evidence when {@link #getScanMocks()} is {@code true}. One or more directories may
+     * be configured. Defaults to {@value #DEFAULT_STUB_DIR}.
      *
      * @return mutable file collection of WireMock stub directories
      */

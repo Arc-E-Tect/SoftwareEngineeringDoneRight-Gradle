@@ -27,7 +27,7 @@ import java.util.Locale;
  * <ul>
  *   <li>Controller directories: {@code src/main/java}</li>
  *   <li>OpenAPI description directory: the root document's own parent directory</li>
- *   <li>Scan mocks instead of controllers: {@code false}</li>
+ *   <li>Additionally scan WireMock stubs: {@code false}</li>
  *   <li>WireMock stub directories: {@code src/test/resources/mappings} (used only when scanning
  *       mocks)</li>
  *   <li>Fail on mirage APIs: {@code false}</li>
@@ -107,11 +107,12 @@ public class MirageApiDetectorPlugin implements Plugin<Project> {
                             updateContractHistoryCliOverride.orElse(ext.getUpdateContractHistory()));
                 });
 
-        // Default controllerDirs/stubDirs only when the corresponding scanning mode is active and
-        // the user has not configured them themselves; deferred to afterEvaluate so the check
-        // happens once the build script has had a chance to configure the extension.
+        // controllerDirs defaults unconditionally - it's always scanned, regardless of scanMocks -
+        // while stubDirs only defaults when stub scanning is actually active; deferred to
+        // afterEvaluate so both checks happen once the build script has had a chance to configure
+        // the extension, and only when the user has not configured the directory themselves.
         project.afterEvaluate(p -> {
-            if (!ext.getScanMocks().get() && ext.getControllerDirs().isEmpty()) {
+            if (ext.getControllerDirs().isEmpty()) {
                 taskProvider.configure(task ->
                         task.getControllerDirs().from(p.file(MirageApiDetectorExtension.DEFAULT_CONTROLLER_DIR)));
             }

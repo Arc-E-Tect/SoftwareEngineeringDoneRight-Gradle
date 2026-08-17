@@ -183,8 +183,8 @@ class MirageApiDetectorPluginTest {
     }
 
     @Test
-    @DisplayName("does not default controllerDirs when scanMocks is true")
-    void doesNotDefaultControllerDirsWhenScanningMocks() {
+    @DisplayName("defaults controllerDirs even when scanMocks is true, since controllers are always scanned")
+    void defaultsControllerDirsEvenWhenScanningMocks() {
         Project project = projectWithPlugin();
         extension(project).getScanMocks().set(true);
 
@@ -192,7 +192,8 @@ class MirageApiDetectorPluginTest {
 
         DetectMirageApisTask task = (DetectMirageApisTask)
                 project.getTasks().getByName(MirageApiDetectorPlugin.TASK_NAME);
-        assertThat(task.getControllerDirs().getFiles()).isEmpty();
+        assertThat(task.getControllerDirs().getFiles())
+                .containsExactly(new File(project.getProjectDir(), "src/main/java"));
     }
 
     @Test
