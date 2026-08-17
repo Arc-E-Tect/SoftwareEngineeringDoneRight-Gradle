@@ -1,3 +1,18 @@
+# [3.0.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/api-only-suite-v2.0.1...api-only-suite-v3.0.0) (2026-08-17)
+
+
+### ✨ New and updated features
+
+* **shadow-api-detector:** add --scanForShadows to scan a single controller from the CLI ([#183](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/183)) ([e4f0e6d](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/e4f0e6da3fdadfa77fd0637bcfb230ddc64ac833)), closes [#183](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/183)
+
+
+### BREAKING CHANGE
+
+* **shadow-api-detector:** the -PshadowApiDetector.updateContractHistory=<value>
+project property no longer has any effect. Use
+detectShadowApis --updateContractHistory / --no-updateContractHistory
+instead.
+
 ## [2.0.1](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/api-only-suite-v2.0.0...api-only-suite-v2.0.1) (2026-08-17)
 
 
