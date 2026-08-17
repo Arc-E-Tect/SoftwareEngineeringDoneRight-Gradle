@@ -11,3 +11,10 @@ spring-dependency-management = { id = "io.spring.dependency-management", version
 doppelganger-api-detector = "0.0.2"
 spring-boot = "3.5.3"
 spring-dependency-management = "1.1.7"
+spring-restdocs = "3.0.4"
+
+[libraries]
+
+spring-boot-starter-web = { module = "org.springframework.boot:spring-boot-starter-web" }
+spring-boot-starter-test = { module = "org.springframework.boot:spring-boot-starter-test" }
+spring-restdocs-mockmvc = { module = "org.springframework.restdocs:spring-restdocs-mockmvc", version.ref = "spring-restdocs" }

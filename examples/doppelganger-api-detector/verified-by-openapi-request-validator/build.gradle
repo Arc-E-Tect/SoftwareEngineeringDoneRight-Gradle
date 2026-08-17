@@ -16,9 +16,9 @@ repositories {
 }
 
 dependencies {
-    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation libs.spring.boot.starter.web
 
-    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation libs.spring.boot.starter.test
     testImplementation libs.rest.assured
     testImplementation libs.swagger.request.validator.restassured
 }
