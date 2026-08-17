@@ -13,3 +13,12 @@ spring-dependency-management = { id = "io.spring.dependency-management", version
 doppelganger-api-detector = "0.4.0"
 spring-boot = "3.5.3"
 spring-dependency-management = "1.1.7"
+spring-restdocs = "3.0.4"
+rest-assured = "5.5.2"
+
+[libraries]
+
+spring-boot-starter-web = { module = "org.springframework.boot:spring-boot-starter-web" }
+spring-boot-starter-test = { module = "org.springframework.boot:spring-boot-starter-test" }
+spring-restdocs-restassured = { module = "org.springframework.restdocs:spring-restdocs-restassured", version.ref = "spring-restdocs" }
+rest-assured = { module = "io.rest-assured:rest-assured", version.ref = "rest-assured" }
