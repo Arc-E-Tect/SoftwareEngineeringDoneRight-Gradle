@@ -63,18 +63,22 @@ public class TrackerViewFactory {
         }
 
         List<LocalDate> chartDates = chartDates(records, now);
+        Optional<LocalDate> lastDataDate = lastDataDate(records);
+
         Map<String, List<Integer>> chartSeries = new LinkedHashMap<>();
         for (String stage : stages) {
             List<Integer> counts = new ArrayList<>();
             for (LocalDate date : chartDates) {
-                counts.add(cumulativeCountAt(records, stage, date));
+                counts.add(hasDataOn(date, lastDataDate) ? cumulativeCountAt(records, stage, date) : 0);
             }
             chartSeries.put(stage, counts);
         }
 
         List<Map<String, Integer>> breakdownByDate = new ArrayList<>();
         for (LocalDate date : chartDates) {
-            breakdownByDate.add(computeStageBreakdown(records, stages, endOfDate(date)));
+            breakdownByDate.add(hasDataOn(date, lastDataDate)
+                    ? computeStageBreakdown(records, stages, endOfDate(date))
+                    : zeroBreakdown(stages));
         }
 
         String finalStage = stages.get(stages.size() - 1);
@@ -130,6 +134,10 @@ public class TrackerViewFactory {
      * entire history was recorded in a single run) still gets a chart wide enough to be readable
      * rather than a near-single-point line.
      *
+     * <p>This padding can land after the latest real data point - even after {@code now} itself,
+     * for a tracker whose history is very recent - purely to give the chart a readable width.
+     * {@link #build} never plots a real value on a padding date, though: see {@link #hasDataOn}.</p>
+     *
      * <p>When {@code records} has no timestamps at all yet, falls back to the previous fixed
      * window - the last {@value #MINIMUM_CHART_WINDOW_DAYS} days ending {@code now} - since
      * there is no data to anchor a start date to.</p>
@@ -147,6 +155,35 @@ public class TrackerViewFactory {
         LocalDate minimumEnd = start.plusDays(MINIMUM_CHART_WINDOW_DAYS - 1);
         LocalDate end = naturalEnd.isBefore(minimumEnd) ? minimumEnd : naturalEnd;
         return datesBetween(start, end);
+    }
+
+    /** The latest timestamp actually present in {@code records}, as a date - empty when there is none. */
+    private Optional<LocalDate> lastDataDate(List<LifecycleRecord> records) {
+        List<Instant> timestamps = allTimestamps(records);
+        return timestamps.isEmpty()
+                ? Optional.empty()
+                : Optional.of(LocalDate.ofInstant(Collections.max(timestamps), ZoneOffset.UTC));
+    }
+
+    /**
+     * Whether {@code date} falls on or before the tracker's last real data point - {@code false}
+     * for a chart date that only exists as {@link #chartDates} padding (including one after
+     * {@code now}, for a tracker whose history is very recent). {@link #build} plots {@code 0}
+     * rather than a computed value on any date this returns {@code false} for, since there is
+     * nothing in {@code records} to compute one from - and, absent a forecasting feature, {@code
+     * 0} is a more honest chart value than silently repeating the last real one forever.
+     */
+    private boolean hasDataOn(LocalDate date, Optional<LocalDate> lastDataDate) {
+        return lastDataDate.isPresent() && !date.isAfter(lastDataDate.get());
+    }
+
+    /** A stage-to-zero map, in {@code stages} order - the padding-date value {@link #hasDataOn} gates to. */
+    private Map<String, Integer> zeroBreakdown(List<String> stages) {
+        Map<String, Integer> breakdown = new LinkedHashMap<>();
+        for (String stage : stages) {
+            breakdown.put(stage, 0);
+        }
+        return breakdown;
     }
 
     /** Every {@link LifecycleRecord#stageReachedAt()} value and non-null {@code removedAt} across {@code records}. */

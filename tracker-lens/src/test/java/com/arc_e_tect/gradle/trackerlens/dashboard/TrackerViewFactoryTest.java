@@ -146,6 +146,60 @@ class TrackerViewFactoryTest {
     }
 
     @Test
+    @DisplayName("buildShouldLetTheChartsDateRangeExtendPastTodayWhenTheLatestDataIsVeryRecent")
+    void buildShouldLetTheChartsDateRangeExtendPastTodayWhenTheLatestDataIsVeryRecent() {
+        // A tracker whose only data point is today still gets the same 7-day/30-day-minimum
+        // padding as any other - landing mostly in the future here - since the padding is purely
+        // about chart width; see buildShouldZeroFillChartSeriesAndBreakdownByDateAfterTheLastRealDataPoint
+        // for what actually gets plotted there.
+        List<LifecycleRecord> records = List.of(new LifecycleRecord("1", "a", null, Map.of("listed", NOW), NOW, null));
+
+        TrackerView view = factory.build("t", STAGES, records, Optional.empty(), NOW, false);
+
+        LocalDate today = LocalDate.ofInstant(NOW, ZoneOffset.UTC);
+        assertThat(view.chartDates()).hasSize(30);
+        assertThat(view.chartDates().get(0)).isEqualTo(today);
+        assertThat(view.chartDates().get(29)).isEqualTo(today.plusDays(29));
+    }
+
+    @Test
+    @DisplayName("buildShouldZeroFillChartSeriesAndBreakdownByDateAfterTheLastRealDataPoint")
+    void buildShouldZeroFillChartSeriesAndBreakdownByDateAfterTheLastRealDataPoint() {
+        // With only one real data point (today), every chart date after it is pure padding -
+        // there is nothing in the history to compute a value from, and no forecasting feature
+        // (yet) to justify projecting one, so those dates must read 0, not a flat repeat of
+        // today's real counts.
+        List<LifecycleRecord> records = List.of(
+                new LifecycleRecord("1", "listed-only", null, Map.of("listed", NOW), NOW, null),
+                new LifecycleRecord("2", "implemented", null,
+                        Map.of("listed", NOW, "defined", NOW, "implemented", NOW), NOW, null));
+
+        TrackerView view = factory.build("t", STAGES, records, Optional.empty(), NOW, false);
+
+        int lastIndex = view.chartDates().size() - 1;
+        assertThat(view.chartDates().get(lastIndex)).isAfter(LocalDate.ofInstant(NOW, ZoneOffset.UTC));
+
+        assertThat(view.chartSeries().get("listed").get(0)).isEqualTo(2);
+        assertThat(view.chartSeries().get("listed").get(lastIndex)).isEqualTo(0);
+        assertThat(view.chartSeries().get("implemented").get(0)).isEqualTo(1);
+        assertThat(view.chartSeries().get("implemented").get(lastIndex)).isEqualTo(0);
+
+        assertThat(view.breakdownByDate().get(lastIndex))
+                .containsExactly(Map.entry("listed", 0), Map.entry("defined", 0), Map.entry("implemented", 0));
+    }
+
+    @Test
+    @DisplayName("buildShouldZeroFillEveryChartDateWhenThereAreNoRecordsAtAll")
+    void buildShouldZeroFillEveryChartDateWhenThereAreNoRecordsAtAll() {
+        TrackerView view = factory.build("t", STAGES, List.of(), Optional.empty(), NOW, false);
+
+        assertThat(view.chartSeries().get("listed")).allMatch(count -> count == 0);
+        assertThat(view.breakdownByDate()).allSatisfy(breakdown ->
+                assertThat(breakdown).containsExactly(
+                        Map.entry("listed", 0), Map.entry("defined", 0), Map.entry("implemented", 0)));
+    }
+
+    @Test
     @DisplayName("buildShouldBucketEachActiveItemUnderItsFurthestReachedStageExactlyOnce")
     void buildShouldBucketEachActiveItemUnderItsFurthestReachedStageExactlyOnce() {
         List<LifecycleRecord> records = List.of(
@@ -201,8 +255,11 @@ class TrackerViewFactoryTest {
     }
 
     @Test
-    @DisplayName("buildShouldMakeTheMostRecentBreakdownByDateEntryMatchStageBreakdown")
-    void buildShouldMakeTheMostRecentBreakdownByDateEntryMatchStageBreakdown() {
+    @DisplayName("buildShouldMakeTheBreakdownByDateEntryOnTheLastRealDataDateMatchStageBreakdown")
+    void buildShouldMakeTheBreakdownByDateEntryOnTheLastRealDataDateMatchStageBreakdown() {
+        // Unlike the chart's last date - now routinely pure padding, zero-filled - the entry on
+        // the tracker's actual last real data date (here, today, since every record is dated NOW)
+        // must still agree with the "as of now" stageBreakdown.
         List<LifecycleRecord> records = List.of(
                 new LifecycleRecord("1", "listed-only", null, Map.of("listed", NOW), NOW, null),
                 new LifecycleRecord("2", "implemented", null,
@@ -210,8 +267,9 @@ class TrackerViewFactoryTest {
 
         TrackerView view = factory.build("t", STAGES, records, Optional.empty(), NOW, false);
 
-        assertThat(view.breakdownByDate().get(view.breakdownByDate().size() - 1))
-                .isEqualTo(view.stageBreakdown());
+        LocalDate today = LocalDate.ofInstant(NOW, ZoneOffset.UTC);
+        int todayIndex = view.chartDates().indexOf(today);
+        assertThat(view.breakdownByDate().get(todayIndex)).isEqualTo(view.stageBreakdown());
     }
 
     @Test
