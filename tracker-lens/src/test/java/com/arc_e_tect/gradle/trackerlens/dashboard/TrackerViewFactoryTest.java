@@ -90,11 +90,59 @@ class TrackerViewFactoryTest {
     }
 
     @Test
-    @DisplayName("buildShouldProduceThirtyChartDatesEndingToday")
-    void buildShouldProduceThirtyChartDatesEndingToday() {
+    @DisplayName("buildShouldProduceThirtyChartDatesEndingTodayWhenThereAreNoRecordsAtAll")
+    void buildShouldProduceThirtyChartDatesEndingTodayWhenThereAreNoRecordsAtAll() {
         TrackerView view = factory.build("t", STAGES, List.of(), Optional.empty(), NOW, false);
 
+        LocalDate today = LocalDate.ofInstant(NOW, ZoneOffset.UTC);
         assertThat(view.chartDates()).hasSize(30);
+        assertThat(view.chartDates().get(view.chartDates().size() - 1)).isEqualTo(today);
+    }
+
+    @Test
+    @DisplayName("buildShouldStartTheChartOnTheEarliestTimestampAcrossAllRecords")
+    void buildShouldStartTheChartOnTheEarliestTimestampAcrossAllRecords() {
+        Instant earliest = NOW.minus(Duration.ofDays(40));
+        Instant later = NOW.minus(Duration.ofDays(10));
+        List<LifecycleRecord> records = List.of(
+                new LifecycleRecord("1", "later", null, Map.of("listed", later), NOW, null),
+                new LifecycleRecord("2", "earliest", null, Map.of("listed", earliest), NOW, null));
+
+        TrackerView view = factory.build("t", STAGES, records, Optional.empty(), NOW, false);
+
+        assertThat(view.chartDates().get(0)).isEqualTo(LocalDate.ofInstant(earliest, ZoneOffset.UTC));
+    }
+
+    @Test
+    @DisplayName("buildShouldExtendTheChartSevenDaysPastTheLatestTimestampWhenTheSpanIsAlreadyThirtyDaysOrMore")
+    void buildShouldExtendTheChartSevenDaysPastTheLatestTimestampWhenTheSpanIsAlreadyThirtyDaysOrMore() {
+        Instant earliest = NOW.minus(Duration.ofDays(40));
+        Instant latestData = NOW.minus(Duration.ofDays(5));
+        List<LifecycleRecord> records = List.of(
+                new LifecycleRecord("1", "a", null, Map.of("listed", earliest), NOW, null),
+                new LifecycleRecord("2", "b", null, Map.of("listed", latestData), NOW, null));
+
+        TrackerView view = factory.build("t", STAGES, records, Optional.empty(), NOW, false);
+
+        LocalDate expectedStart = LocalDate.ofInstant(earliest, ZoneOffset.UTC);
+        LocalDate expectedEnd = LocalDate.ofInstant(latestData, ZoneOffset.UTC).plusDays(7);
+        assertThat(view.chartDates().get(0)).isEqualTo(expectedStart);
+        assertThat(view.chartDates().get(view.chartDates().size() - 1)).isEqualTo(expectedEnd);
+    }
+
+    @Test
+    @DisplayName("buildShouldExtendTheChartToThirtyDaysWhenTheDataSpanPlusPaddingWouldOtherwiseBeShorter")
+    void buildShouldExtendTheChartToThirtyDaysWhenTheDataSpanPlusPaddingWouldOtherwiseBeShorter() {
+        Instant onlyDataPoint = NOW.minus(Duration.ofDays(2));
+        List<LifecycleRecord> records = List.of(
+                new LifecycleRecord("1", "a", null, Map.of("listed", onlyDataPoint), NOW, null));
+
+        TrackerView view = factory.build("t", STAGES, records, Optional.empty(), NOW, false);
+
+        LocalDate expectedStart = LocalDate.ofInstant(onlyDataPoint, ZoneOffset.UTC);
+        assertThat(view.chartDates()).hasSize(30);
+        assertThat(view.chartDates().get(0)).isEqualTo(expectedStart);
+        assertThat(view.chartDates().get(29)).isEqualTo(expectedStart.plusDays(29));
     }
 
     @Test
@@ -180,12 +228,12 @@ class TrackerViewFactoryTest {
 
         TrackerView view = factory.build("t", STAGES, records, Optional.empty(), NOW, false);
 
-        int beforeListedIndex = view.chartDates().indexOf(fiveDaysAgo.minusDays(1));
+        // No "day before it was ever listed" case here: the chart window now starts exactly on
+        // the tracker's earliest data point (this item's own listedAt, fiveDaysAgo), so there is
+        // no earlier day left to check - see buildShouldStartTheChartOnTheEarliestTimestampAcrossAllRecords.
         int afterListedBeforeImplementedIndex = view.chartDates().indexOf(twoDaysAgo.minusDays(1));
         int afterImplementedIndex = view.chartDates().indexOf(twoDaysAgo);
 
-        assertThat(view.breakdownByDate().get(beforeListedIndex))
-                .containsExactly(Map.entry("listed", 0), Map.entry("defined", 0), Map.entry("implemented", 0));
         assertThat(view.breakdownByDate().get(afterListedBeforeImplementedIndex))
                 .containsExactly(Map.entry("listed", 1), Map.entry("defined", 0), Map.entry("implemented", 0));
         // The exact edge case a naive series-subtraction alternative gets wrong: "defined" was

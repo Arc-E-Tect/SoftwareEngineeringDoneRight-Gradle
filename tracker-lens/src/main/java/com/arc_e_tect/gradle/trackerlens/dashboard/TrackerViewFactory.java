@@ -8,6 +8,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -20,7 +21,8 @@ import java.util.Optional;
  */
 public class TrackerViewFactory {
 
-    private static final int CHART_WINDOW_DAYS = 30;
+    private static final int MINIMUM_CHART_WINDOW_DAYS = 30;
+    private static final int CHART_TRAILING_PADDING_DAYS = 7;
     private static final Duration STALE_THRESHOLD = Duration.ofDays(14);
 
     /** Creates a new {@code TrackerViewFactory}. */
@@ -60,7 +62,7 @@ public class TrackerViewFactory {
             metrics.add(new MetricCardView(stage, (int) count, percent));
         }
 
-        List<LocalDate> chartDates = chartDates(now);
+        List<LocalDate> chartDates = chartDates(records, now);
         Map<String, List<Integer>> chartSeries = new LinkedHashMap<>();
         for (String stage : stages) {
             List<Integer> counts = new ArrayList<>();
@@ -118,11 +120,51 @@ public class TrackerViewFactory {
         return date.plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant().minusNanos(1);
     }
 
-    private List<LocalDate> chartDates(Instant now) {
+    /**
+     * The chart's date range: starting on the earliest timestamp actually present in
+     * {@code records} (not a fixed lookback from {@code now}), so a tracker whose history only
+     * goes back a few days never shows weeks of misleading flat-zero lead-in. The end extends 7
+     * days past the latest timestamp present, for a little trailing breathing room - or further,
+     * whenever that would otherwise make for a window shorter than
+     * {@value #MINIMUM_CHART_WINDOW_DAYS} days, so a tightly-clustered tracker (e.g. one whose
+     * entire history was recorded in a single run) still gets a chart wide enough to be readable
+     * rather than a near-single-point line.
+     *
+     * <p>When {@code records} has no timestamps at all yet, falls back to the previous fixed
+     * window - the last {@value #MINIMUM_CHART_WINDOW_DAYS} days ending {@code now} - since
+     * there is no data to anchor a start date to.</p>
+     */
+    private List<LocalDate> chartDates(List<LifecycleRecord> records, Instant now) {
         LocalDate today = LocalDate.ofInstant(now, ZoneOffset.UTC);
+        List<Instant> timestamps = allTimestamps(records);
+        if (timestamps.isEmpty()) {
+            return datesBetween(today.minusDays(MINIMUM_CHART_WINDOW_DAYS - 1), today);
+        }
+
+        LocalDate start = LocalDate.ofInstant(Collections.min(timestamps), ZoneOffset.UTC);
+        LocalDate lastDataDate = LocalDate.ofInstant(Collections.max(timestamps), ZoneOffset.UTC);
+        LocalDate naturalEnd = lastDataDate.plusDays(CHART_TRAILING_PADDING_DAYS);
+        LocalDate minimumEnd = start.plusDays(MINIMUM_CHART_WINDOW_DAYS - 1);
+        LocalDate end = naturalEnd.isBefore(minimumEnd) ? minimumEnd : naturalEnd;
+        return datesBetween(start, end);
+    }
+
+    /** Every {@link LifecycleRecord#stageReachedAt()} value and non-null {@code removedAt} across {@code records}. */
+    private List<Instant> allTimestamps(List<LifecycleRecord> records) {
+        List<Instant> timestamps = new ArrayList<>();
+        for (LifecycleRecord record : records) {
+            timestamps.addAll(record.stageReachedAt().values());
+            if (record.removedAt() != null) {
+                timestamps.add(record.removedAt());
+            }
+        }
+        return timestamps;
+    }
+
+    private List<LocalDate> datesBetween(LocalDate start, LocalDate end) {
         List<LocalDate> dates = new ArrayList<>();
-        for (int i = CHART_WINDOW_DAYS - 1; i >= 0; i--) {
-            dates.add(today.minusDays(i));
+        for (LocalDate date = start; !date.isAfter(end); date = date.plusDays(1)) {
+            dates.add(date);
         }
         return dates;
     }
