@@ -11,6 +11,7 @@ import java.io.File;
 import java.nio.file.Path;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @DisplayName("DoppelgangerApiDetectorPlugin")
 class DoppelgangerApiDetectorPluginTest {
@@ -249,6 +250,44 @@ class DoppelgangerApiDetectorPluginTest {
         assertThat(project.getTasks().getByName("check").getTaskDependencies().getDependencies(null))
                 .anyMatch(t -> t.getName().equals(DoppelgangerApiDetectorPlugin.TASK_NAME));
     }
+
+        @Test
+        @DisplayName("the -PdoppelgangerApiDetector.updateContractHistory property accepts trimmed, case-insensitive booleans")
+        void updateContractHistoryPropertyAcceptsTrimmedCaseInsensitiveBooleans() throws Exception {
+        java.nio.file.Files.writeString(
+            tempDir.resolve("gradle.properties"),
+            "doppelgangerApiDetector.updateContractHistory=  FaLsE  \n");
+
+        Project project = projectWithPlugin();
+        extension(project).getTrackContractHistory().set(true);
+        extension(project).getUpdateContractHistory().set(true);
+
+        ((ProjectInternal) project).evaluate();
+
+        DetectDoppelgangerApisTask task = (DetectDoppelgangerApisTask)
+            project.getTasks().getByName(DoppelgangerApiDetectorPlugin.TASK_NAME);
+        assertThat(task.getUpdateContractHistory().get()).isFalse();
+        }
+
+        @Test
+        @DisplayName("an invalid -PdoppelgangerApiDetector.updateContractHistory value throws a descriptive GradleException")
+        void invalidUpdateContractHistoryPropertyThrowsDescriptiveError() throws Exception {
+        java.nio.file.Files.writeString(
+            tempDir.resolve("gradle.properties"),
+            "doppelgangerApiDetector.updateContractHistory=maybe\n");
+
+        Project project = projectWithPlugin();
+
+            ((ProjectInternal) project).evaluate();
+            DetectDoppelgangerApisTask task = (DetectDoppelgangerApisTask)
+                project.getTasks().getByName(DoppelgangerApiDetectorPlugin.TASK_NAME);
+
+            assertThatThrownBy(() -> task.getUpdateContractHistory().get())
+                .isInstanceOf(RuntimeException.class)
+                .hasRootCauseInstanceOf(org.gradle.api.GradleException.class)
+                .hasRootCauseMessage("doppelgangerApiDetector: invalid value 'maybe' for "
+                + "-PdoppelgangerApiDetector.updateContractHistory; expected 'true' or 'false'");
+        }
 
     private Project projectWithPlugin() {
         Project project = ProjectBuilder.builder().withProjectDir(tempDir.toFile()).build();
