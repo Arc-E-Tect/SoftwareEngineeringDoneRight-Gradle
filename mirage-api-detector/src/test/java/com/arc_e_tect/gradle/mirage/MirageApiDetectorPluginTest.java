@@ -8,9 +8,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
+import java.nio.file.Files;
 import java.nio.file.Path;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @DisplayName("MirageApiDetectorPlugin")
 class MirageApiDetectorPluginTest {
@@ -353,6 +355,38 @@ class MirageApiDetectorPluginTest {
                 .getByName(MirageApiDetectorPlugin.MIGRATE_CONTRACT_HISTORY_TASK_NAME);
         assertThat(task.getContractHistoryFile().get().getAsFile())
                 .isEqualTo(new File(project.getProjectDir(), "mirage-api-detector-contract-history.ndjson"));
+    }
+
+    @Test
+    @DisplayName("the -PmirageApiDetector.updateContractHistory property accepts trimmed, case-insensitive booleans")
+    void updateContractHistoryPropertyAcceptsTrimmedCaseInsensitiveBooleans() throws Exception {
+        Files.writeString(tempDir.resolve("gradle.properties"), "mirageApiDetector.updateContractHistory=  TrUe  \n");
+        Project project = projectWithPlugin();
+        extension(project).getTrackContractHistory().set(false);
+        extension(project).getUpdateContractHistory().set(false);
+
+        ((ProjectInternal) project).evaluate();
+
+        DetectMirageApisTask task = (DetectMirageApisTask)
+                project.getTasks().getByName(MirageApiDetectorPlugin.TASK_NAME);
+        assertThat(task.getUpdateContractHistory().get()).isTrue();
+    }
+
+    @Test
+    @DisplayName("an invalid -PmirageApiDetector.updateContractHistory value throws a descriptive GradleException")
+    void invalidUpdateContractHistoryPropertyThrowsDescriptiveError() throws Exception {
+        Files.writeString(tempDir.resolve("gradle.properties"), "mirageApiDetector.updateContractHistory=maybe\n");
+        Project project = projectWithPlugin();
+
+        ((ProjectInternal) project).evaluate();
+        DetectMirageApisTask task = (DetectMirageApisTask)
+            project.getTasks().getByName(MirageApiDetectorPlugin.TASK_NAME);
+
+        assertThatThrownBy(() -> task.getUpdateContractHistory().get())
+            .isInstanceOf(RuntimeException.class)
+            .hasRootCauseInstanceOf(org.gradle.api.GradleException.class)
+            .hasRootCauseMessage("mirageApiDetector: invalid value 'maybe' for "
+                        + "-PmirageApiDetector.updateContractHistory; expected 'true' or 'false'");
     }
 
     private Project projectWithPlugin() {
