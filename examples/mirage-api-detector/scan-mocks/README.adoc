@@ -7,19 +7,15 @@ This example applies the Mirage API Detector plugin in `scanMocks` mode: instead
 `@RestController` classes, the plugin looks for WireMock stub mapping files under `stubDirs` and
 treats each stubbed request as an implemented endpoint.
 
-`ItemController` genuinely implements all three operations described in the OpenAPI document -
-`GET /items`, `POST /items`, and `GET /items/{id}` - with real, working handlers. WireMock stubs
-only exist for the first two. Because `scanMocks = true` means controllers are never consulted at
-all, `GET /items/{id}` is still reported as a mirage API, even though a real implementation exists
-for it.
+`ItemController` implements `GET /items` and `POST /items`.
+The OpenAPI document also declares `GET /items/{id}`.
+WireMock stubs only exist for the first two operations, so `GET /items/{id}` is reported as a mirage API.
 
 == Intent
 
-This example exists to show that `scanMocks` genuinely redefines "implemented" rather than
-supplementing controller scanning: a working `@RestController` handler with no matching stub is
-not enough. This suits teams building against a contract before the real implementation exists,
-or testing purely at the API-mock boundary, where "is this endpoint stubbed for consumer testing?"
-is the question that matters.
+This example exists to show the failure mode when a documented operation has no corresponding
+mock contract in `stubDirs`.
+This suits teams validating consumer-facing mock coverage from their OpenAPI contract.
 
 == The Controller, Document, And Stubs
 
@@ -34,16 +30,13 @@ public class ItemController {
 
     @PostMapping
     public String createItem(@RequestBody String item) { ... }
-
-    @GetMapping("/{id}")
-    public String getItem(@PathVariable Long id) { ... }   // implemented, but not stubbed
 }
 ----
 
 Full source: `src/main/java/com/arc_e_tect/example/catalog/ItemController.java`.
 The OpenAPI document - `src/main/resources/openapi/openapi.yaml` - describes all three operations.
 WireMock stubs exist under `src/test/resources/mappings/` for `listItems` (`GET /items`) and
-`createItem` (`POST /items`) only - no stub exists for `getItem`.
+`createItem` (`POST /items`) only - no stub exists for `GET /items/{id}`.
 
 == Build And Run
 
