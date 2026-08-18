@@ -4,10 +4,11 @@
 
 tracker-lens = { id = "com.arc-e-tect.tracker-lens", version.ref = "tracker-lens" }
 
+[versions]
+
+tracker-lens = "1.5.1"
+
 [libraries]
 
 lens-colored-pack = { module = "com.arc-e-tect.tracker-lens.examples:lens-colored-pack" }
 
-[versions]
-
-tracker-lens = "0.3.2"

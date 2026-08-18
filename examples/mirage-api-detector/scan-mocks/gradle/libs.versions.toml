@@ -6,9 +6,10 @@ mirage-api-detector = { id = "com.arc-e-tect.mirage-api-detector", version.ref =
 
 [versions]
 
-mirage-api-detector = "0.2.0"
+mirage-api-detector = "3.0.0"
 spring-web = "7.0.8"
 
 [libraries]
 
 spring-web = { module = "org.springframework:spring-web", version.ref = "spring-web" }
+
