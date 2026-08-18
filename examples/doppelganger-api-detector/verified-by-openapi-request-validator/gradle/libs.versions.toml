@@ -8,11 +8,11 @@ spring-dependency-management = { id = "io.spring.dependency-management", version
 
 [versions]
 
-doppelganger-api-detector = "0.0.2"
-spring-boot = "3.5.3"
+doppelganger-api-detector = "2.0.0"
+spring-boot = "4.1.0"
 spring-dependency-management = "1.1.7"
-rest-assured = "5.5.2"
-swagger-request-validator-restassured = "2.44.9"
+rest-assured = "6.0.1"
+swagger-request-validator-restassured = "3.0.0"
 
 [libraries]
 
@@ -20,3 +20,4 @@ spring-boot-starter-web = { module = "org.springframework.boot:spring-boot-start
 spring-boot-starter-test = { module = "org.springframework.boot:spring-boot-starter-test" }
 rest-assured = { module = "io.rest-assured:rest-assured", version.ref = "rest-assured" }
 swagger-request-validator-restassured = { module = "com.atlassian.oai:swagger-request-validator-restassured", version.ref = "swagger-request-validator-restassured" }
+
