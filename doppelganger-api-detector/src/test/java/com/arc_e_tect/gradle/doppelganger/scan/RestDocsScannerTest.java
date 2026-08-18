@@ -181,6 +181,44 @@ class RestDocsScannerTest {
                 .containsExactly("/items/{id}");
     }
 
+    @Test
+    @DisplayName("recognises a documented WebTestClient get(...) call (new coverage)")
+    void recognisesDocumentedWebTestClientGetNewCoverage() throws Exception {
+        List<Endpoint> endpoints = scanner.scan(fixtureDir());
+
+        assertThat(endpoints)
+                .filteredOn(e -> e.methodSignature().startsWith("getItemWebTestClient"))
+                .extracting(Endpoint::verb, Endpoint::path)
+                .containsExactly(tuple(HttpVerb.GET, "/items/{id}"));
+    }
+
+    @Test
+    @DisplayName("recognises a documented WebTestClient post(...) call (new coverage)")
+    void recognisesDocumentedWebTestClientPostNewCoverage() throws Exception {
+        List<Endpoint> endpoints = scanner.scan(fixtureDir());
+
+        assertThat(endpoints)
+                .filteredOn(e -> e.methodSignature().startsWith("createItemWebTestClient"))
+                .extracting(Endpoint::verb, Endpoint::path)
+                .containsExactly(tuple(HttpVerb.POST, "/items"));
+    }
+
+    @Test
+    @DisplayName("ignores a WebTestClient call with no consumeWith(document(...)) (new coverage)")
+    void ignoresUndocumentedWebTestClientNewCoverage() throws Exception {
+        List<Endpoint> endpoints = scanner.scan(fixtureDir());
+
+        assertThat(endpoints).noneMatch(e -> e.methodSignature().startsWith("listItemsUndocumentedWebTestClient"));
+    }
+
+    @Test
+    @DisplayName("ignores a WebTestClient call whose path argument is not a string literal (new coverage)")
+    void ignoresDynamicPathWebTestClientNewCoverage() throws Exception {
+        List<Endpoint> endpoints = scanner.scan(fixtureDir());
+
+        assertThat(endpoints).noneMatch(e -> e.methodSignature().startsWith("deleteItemDynamicPathWebTestClient"));
+    }
+
     private static File fixtureDir() {
         URL url = RestDocsScannerTest.class.getClassLoader().getResource("fixtures/restdocs");
         if (url == null) {

@@ -14,6 +14,40 @@ public class RestDocsScannerFixture {
                 .andDo(document("create-order"));
     }
 
+    void getItemWebTestClient() {
+        webTestClient.get()
+                .uri("/items/{id}", 1)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .consumeWith(document("get-item-web-test-client"));
+    }
+
+    void createItemWebTestClient() {
+        webTestClient.post()
+                .uri("/items")
+                .exchange()
+                .expectStatus().isCreated()
+                .expectBody()
+                .consumeWith(document("create-item-web-test-client"));
+    }
+
+    void listItemsUndocumentedWebTestClient() {
+        webTestClient.get()
+                .uri("/items")
+                .exchange()
+                .expectStatus().isOk();
+    }
+
+    void deleteItemDynamicPathWebTestClient() {
+        webTestClient.delete()
+                .uri(buildPath())
+                .exchange()
+                .expectStatus().isNoContent()
+                .expectBody()
+                .consumeWith(document("delete-item-web-test-client"));
+    }
+
     void listOrdersUndocumented() throws Exception {
         mockMvc.perform(get("/orders"))
                 .andExpect(status().isOk());

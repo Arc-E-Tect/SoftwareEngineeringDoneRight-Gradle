@@ -78,7 +78,7 @@ Like its siblings, this plugin operates entirely at the source level: it parses 
 [cols="1,3",options="header"]
 |===
 | Source                       | Evidence recognised
-| Spring RestDocs               | A test method containing `mockMvc.perform(get(...)/post(...)/put(...)/delete(...)/patch(...))` whose call chain also includes `.andDo(document(...))`. The HTTP verb comes from the static builder method name, the path from its first string-literal argument.
+| Spring RestDocs               | A test method containing either `mockMvc.perform(get(...)/post(...)/put(...)/delete(...)/patch(...))` whose call chain also includes `.andDo(document(...))`, or `webTestClient.get()/post()/put()/delete()/patch().uri(...).exchange()...consumeWith(document(...))`. In the MockMvc case the HTTP verb comes from the static builder method name and the path from its first string-literal argument; in the WebTestClient case the verb comes from the request-builder method and the path from the `uri(...)` call.
 | Atlassian OpenAPI request validator | A test method containing either `.filter(new OpenApiValidationFilter(...))` (REST Assured style) or a direct `.validateRequest(...)` / `.validateResponse(...)` call, paired with a REST-Assured-style request built via `given().when().get("/orders/{id}")`-style calls in the same method.
 | Spring Cloud Contract         | Contract DSL files under `contractsDir` (default `src/testContract/resources/contracts/**/*.groovy` and `*.yml`), read structurally for `method '...'` and `url '...'` / `urlPath '...'` entries - no AST, no Groovy compilation.
 |===

@@ -20,13 +20,16 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * {@link ContractVerificationSource} for Spring RestDocs, recognising two independent call-chain
+ * {@link ContractVerificationSource} for Spring RestDocs, recognising three independent call-chain
  * shapes for the same underlying convention - a request-builder call paired with a
  * {@code document(...)} call somewhere in the same method body:
  *
  * <ul>
  *     <li>{@code spring-restdocs-mockmvc}: {@code mockMvc.perform(get(...)/post(...)/put(...)/
  *     delete(...)/patch(...))} together with {@code .andDo(document(...))}.</li>
+ *     <li>{@code spring-restdocs-webtestclient}: {@code webTestClient.get()/post()/put()/
+ *     delete()/patch().uri(...).exchange()...consumeWith(document(...))} - the HTTP verb comes
+ *     from the request-builder method and the path from the {@code uri(...)} call.</li>
  *     <li>{@code spring-restdocs-restassured}: {@code given(...).filter(document(...))...
  *     when().get(...)/post(...)/put(...)/delete(...)/patch(...)} - the verb call directly scoped
  *     on a call named {@code when}.</li>
@@ -107,13 +110,15 @@ public class RestDocsScanner implements ContractVerificationSource {
     private Endpoint endpointForMethod(MethodDeclaration method, String declaringClass, String fileName) {
         List<MethodCallExpr> calls = method.findAll(MethodCallExpr.class);
 
-        boolean documented = calls.stream().anyMatch(call -> isAndDoDocument(call) || isFilterDocument(call));
+        boolean documented = calls.stream().anyMatch(call -> isAndDoDocument(call)
+                || isConsumeWithDocument(call)
+                || isFilterDocument(call));
         if (!documented) {
             return null;
         }
 
         for (MethodCallExpr call : calls) {
-            if (!isPerformArgument(call) && !isWhenScoped(call)) {
+            if (!isPerformArgument(call) && !isWhenScoped(call) && !isWebTestClientUriScoped(call)) {
                 continue;
             }
             VerbAndPath verbAndPath = asVerbAndPath(call);
@@ -166,6 +171,15 @@ public class RestDocsScanner implements ContractVerificationSource {
         return arg.isMethodCallExpr() && arg.asMethodCallExpr().getNameAsString().equals("document");
     }
 
+    /** {@code .consumeWith(document(...))} - the {@code spring-restdocs-webtestclient} terminal call. */
+    private boolean isConsumeWithDocument(MethodCallExpr call) {
+        if (!call.getNameAsString().equals("consumeWith") || call.getArguments().isEmpty()) {
+            return false;
+        }
+        Expression arg = call.getArgument(0);
+        return arg.isMethodCallExpr() && arg.asMethodCallExpr().getNameAsString().equals("document");
+    }
+
     /** {@code .filter(document(...))} - the {@code spring-restdocs-restassured} counterpart of {@code andDo}. */
     private boolean isFilterDocument(MethodCallExpr call) {
         if (!call.getNameAsString().equals("filter")) {
@@ -175,7 +189,32 @@ public class RestDocsScanner implements ContractVerificationSource {
                 .anyMatch(arg -> arg.isMethodCallExpr() && arg.asMethodCallExpr().getNameAsString().equals("document"));
     }
 
+    /** {@code webTestClient.get()/post()/...().uri(...)} - the path call is scoped on the verb call. */
+    private boolean isWebTestClientUriScoped(MethodCallExpr call) {
+        if (!call.getNameAsString().equals("uri") || call.getArguments().isEmpty()) {
+            return false;
+        }
+        return call.getScope()
+                .filter(MethodCallExpr.class::isInstance)
+                .map(MethodCallExpr.class::cast)
+                .filter(scope -> VERB_BUILDER_METHODS.containsKey(scope.getNameAsString()))
+                .isPresent();
+    }
+
     private VerbAndPath asVerbAndPath(MethodCallExpr call) {
+        if (isWebTestClientUriScoped(call)) {
+            MethodCallExpr scope = call.getScope().map(MethodCallExpr.class::cast).orElse(null);
+            if (scope == null || !scope.getArguments().isEmpty()) {
+                return null;
+            }
+            HttpVerb verb = VERB_BUILDER_METHODS.get(scope.getNameAsString());
+            Expression first = call.getArgument(0);
+            if (verb == null || !first.isStringLiteralExpr()) {
+                return null;
+            }
+            return new VerbAndPath(verb, PathTemplates.normalize(first.asStringLiteralExpr().asString()));
+        }
+
         HttpVerb verb = VERB_BUILDER_METHODS.get(call.getNameAsString());
         if (verb == null || call.getArguments().isEmpty()) {
             return null;
