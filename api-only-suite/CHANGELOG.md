@@ -1,3 +1,16 @@
+## [3.0.1](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/api-only-suite-v3.0.0...api-only-suite-v3.0.1) (2026-08-18)
+
+
+### ⏪ Reverts
+
+* move jacoco-exclusion-report and gherkin-to-asciidoc semver scoping out of main ([#184](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/184)) ([31aaae5](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/31aaae5c55e35d1e10998d1e92cf603b5c4d866c)), closes [#184](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/184)
+
+
+### 🐛 Bug Fixes
+
+* add cross-plugin edge-case coverage ([#187](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/187)) ([71480ff](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/71480ffa0def70aa1e4ca8c39f87a21c609c1ce6)), closes [#187](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/187)
+* catalog example Gradle dependencies ([#186](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/186)) ([5a3994c](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/5a3994c355033bffc4f78475f8d2d38bd70187da)), closes [#186](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/186)
+
 # [3.0.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/api-only-suite-v2.0.1...api-only-suite-v3.0.0) (2026-08-17)
 
 
