@@ -6,6 +6,8 @@ import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -66,6 +68,31 @@ class FeatureParserTest {
         List<ScenarioInfo> scenarios = parser.parse(featureFile);
 
         assertThat(scenarios.get(0).steps()).isNotEmpty();
+    }
+
+    @Test
+    @DisplayName("extracts scenario steps regardless of using Given, And, But, or * keywords")
+    void parserShouldExtractStepsWhenScenarioUsesGivenAndButAndAsteriskKeywords(
+            @org.junit.jupiter.api.io.TempDir Path tempDir) throws Exception {
+        File featureFile = tempDir.resolve("keywords.feature").toFile();
+        Files.writeString(featureFile.toPath(), """
+                Feature: Keyword support
+
+                  Scenario: Rich keyword coverage
+                    Given a customer exists
+                    And the customer is active
+                    But the customer is not premium
+                    * the customer has a valid account number
+                """);
+
+        List<ScenarioInfo> scenarios = parser.parse(featureFile);
+
+        assertThat(scenarios).hasSize(1);
+        assertThat(scenarios.get(0).steps()).containsExactly(
+                "a customer exists",
+                "the customer is active",
+                "the customer is not premium",
+                "the customer has a valid account number");
     }
 
     @Test

@@ -61,6 +61,26 @@ class GlueCodeScannerTest {
     }
 
     @Test
+    @DisplayName("extracts step definitions declared with @And and @But")
+    void scannerShouldExtractStepDefinitionsWhenGlueUsesAndAndButAnnotations(@TempDir Path tempDir) throws IOException {
+        writeFile(tempDir, "AndButSteps.java", """
+                public class AndButSteps {
+                    @And("the audit trail contains {string}")
+                    public void auditTrailContains(String entry) {}
+
+                    @But("the account status remains active")
+                    public void statusRemainsActive() {}
+                }
+                """);
+
+        List<Expression> expressions = scanner.scan(tempDir.toFile());
+
+        assertThat(expressions).hasSize(2);
+        assertThat(expressions.get(0).match("the audit trail contains \"login\"")).isPresent();
+        assertThat(expressions.get(1).match("the account status remains active")).isPresent();
+    }
+
+    @Test
     @DisplayName("scans subdirectories recursively")
     void scansSubdirectoriesRecursively(@TempDir Path tempDir) throws IOException {
         Path subDir = tempDir.resolve("nested");

@@ -103,7 +103,7 @@ gherkinToAsciidoc {
     trackProgress = false
 
     // One or more directories containing the Cucumber-JVM glue code (step definitions),
-    // each scanned recursively for @Given/@When/@Then step definition patterns.
+    // each scanned recursively for @Given/@When/@Then/@And/@But step definition patterns.
     // Required when trackProgress is true; ignored otherwise.
     // glueCodeDirs.from('src/test/java/com/example/steps')
 
@@ -672,16 +672,16 @@ Each scenario is classified as exactly one of:
 [cols="1,3",options="header"]
 |===
 | Status        | Meaning
-| `listed`      | The scenario has a title only; it has no `Given`/`When`/`Then` steps yet.
+| `listed`      | The scenario has a title only; it has no step lines (`Given`/`When`/`Then`/`And`/`But`/`*`) yet.
 | `defined`     | The scenario has steps, but at least one step has no matching glue code in `glueCodeDirs`.
 | `implemented` | The scenario has steps, and every step has matching glue code in `glueCodeDirs`.
 |===
 
-Glue code is matched by scanning every directory in `glueCodeDirs` recursively for `@Given`/`@When`/`@Then`
+Glue code is matched by scanning every directory in `glueCodeDirs` recursively for `@Given`/`@When`/`@Then`/`@And`/`@But`
 step definitions and comparing each scenario step's text against every step definition pattern found across
 all of them, using the same https://github.com/cucumber/cucumber-expressions[Cucumber Expressions] (or regular
 expression) matching Cucumber-JVM itself uses at runtime. The step's keyword (`Given`/`When`/`Then`/`And`/`But`)
-is not taken into account, matching Cucumber-JVM's own behaviour of matching step text against all registered
+or `*` is not taken into account, matching Cucumber-JVM's own behaviour of matching step text against all registered
 definitions regardless of keyword.
 
 Enabling `trackProgress` also forces `groupByFeature = true` (see "Grouping by Feature" above): within each of
