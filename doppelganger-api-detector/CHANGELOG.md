@@ -1,3 +1,74 @@
+# [2.0.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/doppelganger-api-detector-v1.0.0...doppelganger-api-detector-v2.0.0) (2026-08-18)
+
+
+### ⏪ Reverts
+
+* move jacoco-exclusion-report and gherkin-to-asciidoc semver scoping out of main ([#184](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/184)) ([31aaae5](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/31aaae5c55e35d1e10998d1e92cf603b5c4d866c)), closes [#184](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/184)
+
+
+### ✨ New and updated features
+
+* **shadow-api-detector:** add --scanForShadows to scan a single controller from the CLI ([#183](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/183)) ([e4f0e6d](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/e4f0e6da3fdadfa77fd0637bcfb230ddc64ac833)), closes [#183](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/183)
+* **tracker-lens:** add a calibrated fixture generator for tracker-lens dashboards ([#166](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/166)) ([ce0eaa6](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/ce0eaa6a544a64df79bcaf6721e184438ea7c717)), closes [#166](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/166)
+* **tracker-lens:** add a favicon to the bundled default template ([#164](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/164)) ([352c833](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/352c833549feece00a04c0ba87e60d7e34748295)), closes [#164](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/164)
+* **tracker-lens:** add per-date stage breakdown to #dashboard-data ([#162](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/162)) ([dd80c04](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/dd80c0414e1937298098fcc1e571231dfb932942)), closes [#dashboard-data](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/dashboard-data) [#162](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/162)
+* **tracker-lens:** add stubbed stage for the API_CONTRACT tracker source ([#160](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/160)) ([57a45b5](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/57a45b50e81b16b4bb40303cc88b25464857348a)), closes [#160](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/160) [light/dark/hi#contrast](https://github.com/light/dark/hi/issues/contrast) [hi#contrast](https://github.com/hi/issues/contrast)
+* **examples:** generate the custom-dashboard-template example's fixture instead of committing it ([#172](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/172)) ([02900b3](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/02900b39c64a07145b3466d7d67c15a711e49cbc)), closes [#172](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/172)
+* **examples:** generate the custom-lens tracker-lens example's fixture instead of committing it ([#171](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/171)) ([1fe2227](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/1fe22276405c2fb0917e30efb62eb004e4837731)), closes [#171](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/171)
+* **examples:** generate the external-lens-pack example's fixture instead of committing it ([#174](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/174)) ([f3c4e59](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/f3c4e59f19d093eb40b0853ae6bb5972468bd2a9)), closes [#174](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/174)
+* **examples:** generate the high-contrast-accessibility example's fixture instead of committing it ([#173](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/173)) ([36ecd86](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/36ecd86739a5c79264652269d05273dcc1a05a28)), closes [hi#contrast-accessibility](https://github.com/hi/issues/contrast-accessibility) [#173](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/173) [hi#contrast-lens](https://github.com/hi/issues/contrast-lens)
+* **examples:** generate the plain tracker-lens example's fixture instead of committing it ([#170](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/170)) ([7c081d8](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/7c081d82cda19794c8ad3202a5cd573022631cb5)), closes [#170](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/170)
+* **tracker-lens:** make bootstrapTrackerLensProject use the fixture generator ([#168](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/168)) ([f97bc52](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/f97bc5210ed57ce12871b851fb8f71f52f74e055)), closes [#168](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/168)
+* **mirage-api-detector:** scan controllers and stubs together, not exclusively ([#181](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/181)) ([85db5b5](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/85db5b5c9c22757c76944ba3288e6d222418c6da)), closes [#181](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/181)
+* **gherkin-to-asciidoc:** write and tolerate a schema-version marker ([#163](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/163)) ([10fcb7b](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/10fcb7bf3ec854eebc80db670e1f1dea32e60eaa)), closes [#163](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/163)
+
+
+### 🐛 Bug Fixes
+
+* add cross-plugin edge-case coverage ([#187](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/187)) ([71480ff](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/71480ffa0def70aa1e4ca8c39f87a21c609c1ce6)), closes [#187](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/187)
+* **api-only-suite:** bump api-detector-core to 1.0.0 ([#161](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/161)) ([85f7eec](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/85f7eec397dac228e4f5d0083ab27742ff8a3593)), closes [#161](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/161) [158/#159](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/159)
+* **api-only-suite:** bump api-detector-core to 1.2.0 ([#179](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/179)) ([9c62c91](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/9c62c91dee506998240521ea85c609c2874c8e0f)), closes [#179](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/179) [#177](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/177)
+* catalog example Gradle dependencies ([#186](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/186)) ([5a3994c](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/5a3994c355033bffc4f78475f8d2d38bd70187da)), closes [#186](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/186)
+* **api-only-suite:** forward basePath to mirageApiGapsForSuite ([#182](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/182)) ([ffcc8af](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/ffcc8af1740b333baf64ecd612470c50a054a109)), closes [#182](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/182) [#177](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/177)
+* **tracker-lens:** make generateTrackerLensFixture always re-execute ([#167](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/167)) ([db73cb8](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/db73cb85b705cfc39941941bf197c24718d40c86)), closes [#167](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/167)
+* **docs:** mention the schema-version marker in the detector plugins' NDJSON examples ([#165](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/165)) ([0ba9880](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/0ba98809c9b57b06e25a5f68770c34014c06c10b)), closes [#165](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/165)
+* **tracker-lens:** start the chart on the earliest data point, not a fixed 30-day lookback ([#176](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/176)) ([d8c3fe3](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/d8c3fe3a1bc40c6da4c1ca2c9256d7cd62070aa4)), closes [#176](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/176)
+* **mirage-api-detector:** strip a base path from stub-scanned paths before matching ([#177](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/177)) ([f276bef](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/f276beffa57b09bbdd4165ac97417127bf47e14c)), closes [#177](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/177)
+* **gherkin-to-asciidoc:** strip numbering from persisted history fields ([#178](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/178)) ([c3b80cb](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/c3b80cb22e9b3f7c130fc3f1e0c8937f9b5fb15e)), closes [#178](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/178)
+* **tracker-lens:** zero-fill chart values past a tracker's last real data point ([#180](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/180)) ([1f2fb61](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/1f2fb617b38e83abe1edab5a509951a205fc284f)), closes [#180](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/180) [#dashboard-data](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/dashboard-data)
+
+
+### 📝 Documentation
+
+* **api-only-suite:** add microservices multi-project example ([#175](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/175)) ([52f7913](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/52f7913e3dded1e9401d8b0907e47a008d9c0a83)), closes [#175](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/175)
+* **examples:** stop freezing scaffolded-lens-pack's generated output ([#169](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/169)) ([4203c22](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/4203c2256ea87851ec4470db748efc60877f64fa)), closes [#169](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/169) [tracker-lens#168](https://github.com/tracker-lens/issues/168)
+
+
+### Breaking change
+
+* **mirage-api-detector:** a project relying on scanMocks = true to mean "check against stubs instead of
+controllers" now also gets real controller-based mirage detection in the same run, and its
+contractHistoryFile can gain implementedAt entries it previously never would have. Verified
+end-to-end against a real project via a scratch mavenLocal publish: contract history now
+correctly carries both implementedAt and stubbedAt for endpoints with both kinds of evidence in
+the same run, where previously that was structurally impossible.
+
+### BREAKING CHANGE
+
+* **shadow-api-detector:** the -PshadowApiDetector.updateContractHistory=<value>
+project property no longer has any effect. Use
+detectShadowApis --updateContractHistory / --no-updateContractHistory
+instead.
+* **tracker-lens:** a contractHistoryFile written by a pre-stubbedAt version
+of the API detector plugins (9 fields) no longer matches
+ApiContractTrackerSource's parser at all and is now skipped as malformed
+line-by-line, same as any other unparseable line - producing an empty
+tracker section rather than a populated one. Consumers should upgrade
+their contractHistoryFile (see mirage-api-detector's migrateContractHistory
+task) before regenerating a dashboard against it. A custom lens that
+doesn't yet define a 4th --dashboard-stage-N color will fall back to
+reusing stage-1's color for the new stubbed series.
+
 # [1.0.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/doppelganger-api-detector-v0.4.0...doppelganger-api-detector-v1.0.0) (2026-08-15)
 
 
