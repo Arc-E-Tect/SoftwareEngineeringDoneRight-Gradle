@@ -21,8 +21,7 @@ mirageApiDetector {
     rootDocument = file('src/main/resources/openapi/openapi.yaml')
 
     // Determine implemented endpoints from WireMock stub mapping files instead of scanning
-    // @RestController classes. ItemController genuinely implements getItem(...), but it is
-    // never consulted in this mode - only stubDirs is.
+    // @RestController classes.
     scanMocks = true
     stubDirs.from('src/test/resources/mappings')
 
