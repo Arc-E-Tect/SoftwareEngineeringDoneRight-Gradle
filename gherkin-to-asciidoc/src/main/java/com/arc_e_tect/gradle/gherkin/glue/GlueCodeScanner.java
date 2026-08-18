@@ -19,7 +19,8 @@ import java.util.regex.Pattern;
 
 /**
  * Scans a directory of Cucumber-JVM glue code (step definition source files) and
- * extracts every {@code @Given}/{@code @When}/{@code @Then} step definition pattern
+ * extracts every {@code @Given}/{@code @When}/{@code @Then}/{@code @And}/{@code @But}
+ * step definition pattern
  * as a compiled {@link Expression}.
  *
  * <p>Step definitions are matched with a regular expression over the raw source text
@@ -32,8 +33,8 @@ public class GlueCodeScanner {
 
     private static final Logger LOGGER = Logging.getLogger(GlueCodeScanner.class);
 
-    private static final Pattern STEP_ANNOTATION = Pattern.compile(
-            "@(?:Given|When|Then)\\s*\\(\\s*\"((?:[^\"\\\\]|\\\\.)*)\"\\s*\\)");
+        private static final Pattern STEP_ANNOTATION = Pattern.compile(
+            "@(?:Given|When|Then|And|But)\\s*\\(\\s*\"((?:[^\"\\\\]|\\\\.)*)\"\\s*\\)");
 
     private static final List<String> SOURCE_EXTENSIONS = List.of(".java", ".kt", ".groovy");
 
