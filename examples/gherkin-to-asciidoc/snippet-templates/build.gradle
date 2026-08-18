@@ -47,6 +47,8 @@ def commonConfig = { GenerateFeatureDocsTask task ->
     // Direct task registration bypasses the plugin's default task conventions.
     task.getIndexing().set(gherkinToAsciidoc.getIndexing())
     task.getForceRewrite().set(gherkinToAsciidoc.getForceRewrite())
+    task.getTrackProgressHistory().set(gherkinToAsciidoc.getTrackProgressHistory())
+    task.getUpdateProgressHistory().set(gherkinToAsciidoc.getUpdateProgressHistory())
 }
 
 tasks.register('generateGroupedNoTemplate', GenerateFeatureDocsTask) {
