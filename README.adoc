@@ -12,41 +12,41 @@ A collection of useful and usable Gradle plugins and utilities for software engi
 
 == Projects
 
-[cols="1,2,4",options="header"]
+[cols="1,2,5",options="header"]
 |===
 |Project |Latest Version |Description
 
 |link:jacoco-exclusion-report/README.adoc[JaCoCo Exclusion Report]
-|image:https://img.shields.io/gradle-plugin-portal/v/com.arc-e-tect.jacoco-exclusion-report?style=for-the-badge&logo=gradle[Gradle Plugin Portal,link=https://plugins.gradle.org/plugin/com.arc-e-tect.jacoco-exclusion-report,width=220]
+|<a href="https://plugins.gradle.org/plugin/com.arc-e-tect.jacoco-exclusion-report"><img src="https://img.shields.io/gradle-plugin-portal/v/com.arc-e-tect.jacoco-exclusion-report?style=for-the-badge&logo=gradle" alt="Gradle Plugin Portal" width="220" /></a>
 |Gradle plugin that scans Java sources for `@ExcludeFromJacocoGeneratedCodeCoverage` and generates an HTML + XML audit report of every excluded element, giving teams full visibility into what has been excluded from JaCoCo coverage enforcement and why.
 
 |link:architecture-validator/README.adoc[Architecture Validator]
-|image:https://img.shields.io/gradle-plugin-portal/v/com.arc-e-tect.architecture-validator?style=for-the-badge&logo=gradle[Gradle Plugin Portal,link=https://plugins.gradle.org/plugin/com.arc-e-tect.architecture-validator,width=220]
+|<a href="https://plugins.gradle.org/plugin/com.arc-e-tect.architecture-validator"><img src="https://img.shields.io/gradle-plugin-portal/v/com.arc-e-tect.architecture-validator?style=for-the-badge&logo=gradle" alt="Gradle Plugin Portal" width="220" /></a>
 |Contains the core architecture-validator plugin at `architecture-validator`.
 The companion Spring rule pack is maintained in the SoftwareEngineeringDoneRight-Library repository as `spring-rules`.
 
 |link:gherkin-to-asciidoc/README.adoc[Gherkin to AsciiDoc]
-|image:https://img.shields.io/gradle-plugin-portal/v/com.arc-e-tect.gherkin-to-asciidoc?style=for-the-badge&logo=gradle[Gradle Plugin Portal,link=https://plugins.gradle.org/plugin/com.arc-e-tect.gherkin-to-asciidoc,width=220]
+|<a href="https://plugins.gradle.org/plugin/com.arc-e-tect.gherkin-to-asciidoc"><img src="https://img.shields.io/gradle-plugin-portal/v/com.arc-e-tect.gherkin-to-asciidoc?style=for-the-badge&logo=gradle" alt="Gradle Plugin Portal" width="220" /></a>
 |Gradle plugin that scans `.feature` files for `Scenario` and `Scenario Outline` titles and generates an AsciiDoc file listing all scenarios, providing a living index of behaviour specifications ready to embed in project documentation.
 
 |link:shadow-api-detector/README.adoc[Shadow API Detector]
-|image:https://img.shields.io/gradle-plugin-portal/v/com.arc-e-tect.shadow-api-detector?style=for-the-badge&logo=gradle[Gradle Plugin Portal,link=https://plugins.gradle.org/plugin/com.arc-e-tect.shadow-api-detector,width=220]
+|<a href="https://plugins.gradle.org/plugin/com.arc-e-tect.shadow-api-detector"><img src="https://img.shields.io/gradle-plugin-portal/v/com.arc-e-tect.shadow-api-detector?style=for-the-badge&logo=gradle" alt="Gradle Plugin Portal" width="220" /></a>
 |Gradle plugin that scans Spring Boot `@RestController` classes for exposed endpoints and reports every one not described in the project's OpenAPI documentation, catching undocumented "shadow APIs" before they ship.
 
 |link:mirage-api-detector/README.adoc[Mirage API Detector]
-|image:https://img.shields.io/gradle-plugin-portal/v/com.arc-e-tect.mirage-api-detector?style=for-the-badge&logo=gradle[Gradle Plugin Portal,link=https://plugins.gradle.org/plugin/com.arc-e-tect.mirage-api-detector,width=220]
+|<a href="https://plugins.gradle.org/plugin/com.arc-e-tect.mirage-api-detector"><img src="https://img.shields.io/gradle-plugin-portal/v/com.arc-e-tect.mirage-api-detector?style=for-the-badge&logo=gradle" alt="Gradle Plugin Portal" width="220" /></a>
 |Gradle plugin that scans the project's OpenAPI documentation and reports every operation with no matching Spring Boot `@RestController` implementation, catching documented-but-unbuilt "mirage APIs" - the mirror image of the Shadow API Detector.
 
 |link:doppelganger-api-detector/README.adoc[Doppelganger API Detector]
-|image:https://img.shields.io/gradle-plugin-portal/v/com.arc-e-tect.doppelganger-api-detector?style=for-the-badge&logo=gradle[Gradle Plugin Portal,link=https://plugins.gradle.org/plugin/com.arc-e-tect.doppelganger-api-detector,width=220]
+|<a href="https://plugins.gradle.org/plugin/com.arc-e-tect.doppelganger-api-detector"><img src="https://img.shields.io/gradle-plugin-portal/v/com.arc-e-tect.doppelganger-api-detector?style=for-the-badge&logo=gradle" alt="Gradle Plugin Portal" width="220" /></a>
 |Gradle plugin that finds endpoints declared in your OpenAPI documentation *and* implemented by a `@RestController` method, but with no test verifying the implementation still honors the contract, catching untested "doppelganger APIs" via Spring RestDocs, the Atlassian OpenAPI request validator, or Spring Cloud Contract.
 
 |link:api-only-suite/README.adoc[Arc-E-Tect API-Only Suite]
-|image:https://img.shields.io/gradle-plugin-portal/v/com.arc-e-tect.api-only-suite?style=for-the-badge&logo=gradle[Gradle Plugin Portal,link=https://plugins.gradle.org/plugin/com.arc-e-tect.api-only-suite,width=220]
+|<a href="https://plugins.gradle.org/plugin/com.arc-e-tect.api-only-suite"><img src="https://img.shields.io/gradle-plugin-portal/v/com.arc-e-tect.api-only-suite?style=for-the-badge&logo=gradle" alt="Gradle Plugin Portal" width="220" /></a>
 |Gradle plugin that applies Shadow, Mirage, and Doppelganger API Detector together in one step, so declared, implemented, and verified are all checked for every endpoint.
 
 |link:tracker-lens/README.adoc[Tracker Lens]
-|image:https://img.shields.io/gradle-plugin-portal/v/com.arc-e-tect.tracker-lens?style=for-the-badge&logo=gradle[Gradle Plugin Portal,link=https://plugins.gradle.org/plugin/com.arc-e-tect.tracker-lens,width=220]
+|<a href="https://plugins.gradle.org/plugin/com.arc-e-tect.tracker-lens"><img src="https://img.shields.io/gradle-plugin-portal/v/com.arc-e-tect.tracker-lens?style=for-the-badge&logo=gradle" alt="Gradle Plugin Portal" width="220" /></a>
 |Gradle plugin that generates a themeable, standalone HTML dashboard from Gherkin scenario and API contract lifecycle history, with a pluggable multi-lens style-pack system and an optional Mustache template for customizing the dashboard's own structure and wording.
 
 |link:examples/README.adoc[Examples]
