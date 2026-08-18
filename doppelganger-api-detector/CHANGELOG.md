@@ -1,3 +1,10 @@
+## [2.0.1](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/doppelganger-api-detector-v2.0.0...doppelganger-api-detector-v2.0.1) (2026-08-18)
+
+
+### 🔧 Misc
+
+* dependency updates for Gradle plugin repository ([#188](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/188)) ([a650e7c](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/a650e7c01e4c092434230f18ebb8e5b6e7e197b9)), closes [#188](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/188)
+
 # [2.0.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/doppelganger-api-detector-v1.0.0...doppelganger-api-detector-v2.0.0) (2026-08-18)
 
 
