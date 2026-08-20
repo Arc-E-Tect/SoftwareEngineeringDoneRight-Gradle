@@ -14,7 +14,7 @@ import org.gradle.api.provider.Property;
  *     testDirs.from('src/testContract/java')                                  // default
  *     rootDocument   = file('src/main/resources/openapi/openapi.yaml')       // required
  *     // openApiDir  = rootDocument.get().asFile.parentFile                  // default
- *     // contractsDir = file('src/testContract/resources/contracts')        // default
+ *     // contractsDir = file('src/testContract/resources/contracts')        // required if useSpringCloudContract = true
  *     useRestDocs                 = true                                      // default
  *     useOpenApiRequestValidator  = false                                     // default
  *     useSpringCloudContract      = false                                     // default
@@ -46,7 +46,10 @@ public abstract class DoppelgangerApiDetectorExtension {
     /** Default relative path of the directory searched for test classes. */
     public static final String DEFAULT_TEST_DIR = "src/testContract/java";
 
-    /** Default relative path of the directory searched for Spring Cloud Contract DSL files. */
+    /**
+     * Suggested relative path of the directory searched for Spring Cloud Contract DSL files, shown
+     * in the DSL example above. Not applied as a convention default - see {@link #getContractsDir()}.
+     */
     public static final String DEFAULT_CONTRACTS_DIR = "src/testContract/resources/contracts";
 
     /** Default name of the generated AsciiDoc report file. */
@@ -103,8 +106,13 @@ public abstract class DoppelgangerApiDetectorExtension {
 
     /**
      * Directory searched for Spring Cloud Contract DSL files ({@code *.groovy} and {@code *.yml}),
-     * scanned recursively when {@link #getUseSpringCloudContract()} is {@code true}. Defaults to
-     * {@value #DEFAULT_CONTRACTS_DIR}.
+     * scanned recursively when {@link #getUseSpringCloudContract()} is {@code true}.
+     *
+     * <p>Deliberately has no convention default, unlike this plugin's other directory properties:
+     * enabling {@link #getUseSpringCloudContract()} without configuring this property is a DSL
+     * configuration error, not a bootstrapping gap - {@code detectDoppelgangerApis} fails eagerly in
+     * that case, rather than silently falling back to a guessed location. See
+     * {@link DetectDoppelgangerApisTask#generate()}.</p>
      *
      * @return mutable directory property for the Spring Cloud Contract directory
      */

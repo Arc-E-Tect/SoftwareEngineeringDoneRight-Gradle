@@ -262,9 +262,32 @@ public abstract class DetectDoppelgangerApisTask extends DefaultTask {
      * {@link #getFailOnDoppelganger()} is {@code true} - the one failure condition this task ever
      * raises on its own initiative, per this plugin's design: fail only on a real finding the DSL
      * asked to fail on, never on merely incomplete input.</p>
+     *
+     * <p>Two DSL configurations are rejected eagerly, before anything is scanned, regardless of
+     * {@link #getFailOnDoppelganger()} and regardless of what currently exists on disk - unlike
+     * every gap above, these are not bootstrapping gaps that resolve themselves as a project fills
+     * in, but property combinations that can never yield a meaningful result no matter what: every
+     * {@link #getUseRestDocs()}/{@link #getUseOpenApiRequestValidator()}/
+     * {@link #getUseSpringCloudContract()} source disabled at once, and
+     * {@link #getUseSpringCloudContract()} enabled with {@link #getContractsDir()} left
+     * unconfigured.</p>
      */
     @TaskAction
     public void generate() {
+        boolean useRestDocs = getUseRestDocs().get();
+        boolean useOpenApiRequestValidator = getUseOpenApiRequestValidator().get();
+        boolean useSpringCloudContract = getUseSpringCloudContract().get();
+        if (!useRestDocs && !useOpenApiRequestValidator && !useSpringCloudContract) {
+            throw new GradleException("doppelgangerApiDetector: at least one of useRestDocs, "
+                    + "useOpenApiRequestValidator, or useSpringCloudContract must be enabled - with all "
+                    + "three disabled, no endpoint could ever be verified, so every declared-and-implemented "
+                    + "endpoint would always be reported as a doppelganger API regardless of test coverage.");
+        }
+        if (useSpringCloudContract && !getContractsDir().isPresent()) {
+            throw new GradleException("doppelgangerApiDetector: contractsDir must be configured when "
+                    + "useSpringCloudContract is enabled - it has no default location.");
+        }
+
         List<String> warnings = new ArrayList<>();
 
         List<File> missingControllerDirs = new ArrayList<>();

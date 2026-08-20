@@ -274,15 +274,32 @@ class DetectDoppelgangerApisTaskTest {
     }
 
     @Test
-    @DisplayName("does not warn when contractsDir is left unset while useSpringCloudContract is enabled")
-    void doesNotWarnWhenContractsDirIsUnsetWhileSpringCloudContractIsEnabled() throws Exception {
+    @DisplayName("throws when useSpringCloudContract is enabled but contractsDir is not configured")
+    void throwsWhenSpringCloudContractEnabledButContractsDirNotConfigured() throws Exception {
         DetectDoppelgangerApisTask task = configuredTask(openApiFixture("both-endpoints.yaml"), false);
         task.getUseSpringCloudContract().set(true);
 
-        task.generate();
+        assertThatThrownBy(task::generate)
+                .isInstanceOf(GradleException.class)
+                .hasMessageContaining("contractsDir must be configured");
 
-        String content = Files.readString(new File(reportDir, "doppelganger-apis.adoc").toPath());
-        assertThat(content).doesNotContain("contractsDir");
+        assertThat(new File(reportDir, "doppelganger-apis.adoc")).doesNotExist();
+    }
+
+    @Test
+    @DisplayName("throws when every verification source is disabled")
+    void throwsWhenEveryVerificationSourceIsDisabled() throws Exception {
+        DetectDoppelgangerApisTask task = configuredTask(openApiFixture("both-endpoints.yaml"), false);
+        task.getUseRestDocs().set(false);
+        task.getUseOpenApiRequestValidator().set(false);
+        task.getUseSpringCloudContract().set(false);
+
+        assertThatThrownBy(task::generate)
+                .isInstanceOf(GradleException.class)
+                .hasMessageContaining("at least one of useRestDocs, useOpenApiRequestValidator, "
+                        + "or useSpringCloudContract must be enabled");
+
+        assertThat(new File(reportDir, "doppelganger-apis.adoc")).doesNotExist();
     }
 
     @Test
