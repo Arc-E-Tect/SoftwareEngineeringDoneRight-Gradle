@@ -38,7 +38,8 @@ public class DoppelgangerApiReportWriter {
 
     /**
      * Writes the report to {@code outputFile}, creating its parent directory if necessary.
-     * Equivalent to {@link #write(File, int, List, String, Map)} with an empty contract history.
+     * Equivalent to {@link #write(File, int, List, String, List, Map)} with no warnings and an empty
+     * contract history.
      *
      * @param outputFile             target AsciiDoc file
      * @param totalCandidateCount    total number of endpoints both declared and implemented, i.e.
@@ -50,11 +51,12 @@ public class DoppelgangerApiReportWriter {
     public void write(
             File outputFile, int totalCandidateCount, List<Endpoint> doppelgangers,
             String systemUnderTestVersion) throws IOException {
-        write(outputFile, totalCandidateCount, doppelgangers, systemUnderTestVersion, Map.of());
+        write(outputFile, totalCandidateCount, doppelgangers, systemUnderTestVersion, List.of(), Map.of());
     }
 
     /**
      * Writes the report to {@code outputFile}, creating its parent directory if necessary.
+     * Equivalent to {@link #write(File, int, List, String, List, Map)} with no warnings.
      *
      * @param outputFile             target AsciiDoc file
      * @param totalCandidateCount    total number of endpoints both declared and implemented, i.e.
@@ -69,6 +71,31 @@ public class DoppelgangerApiReportWriter {
     public void write(
             File outputFile, int totalCandidateCount, List<Endpoint> doppelgangers,
             String systemUnderTestVersion, Map<String, ContractProgressRecord> contractHistory) throws IOException {
+        write(outputFile, totalCandidateCount, doppelgangers, systemUnderTestVersion, List.of(), contractHistory);
+    }
+
+    /**
+     * Writes the report to {@code outputFile}, creating its parent directory if necessary.
+     *
+     * @param outputFile             target AsciiDoc file
+     * @param totalCandidateCount    total number of endpoints both declared and implemented, i.e.
+     *                                the candidate pool checked for verification evidence
+     * @param doppelgangers          the candidate endpoints with no verification evidence
+     * @param systemUnderTestVersion version of the system under test that was scanned
+     * @param warnings               non-fatal configuration gaps to render as a {@code WARNING}
+     *                                admonition right after the report header - e.g. a configured
+     *                                {@code rootDocument}, {@code controllerDirs}, {@code testDirs},
+     *                                or {@code contractsDir} entry that doesn't exist yet; when
+     *                                empty, no such admonition is written
+     * @param contractHistory        contract progress history to render as a {@code == Progress Over
+     *                                Time} section, keyed by fingerprint; when empty, no such
+     *                                section is written
+     * @throws IOException if the output file cannot be written
+     */
+    public void write(
+            File outputFile, int totalCandidateCount, List<Endpoint> doppelgangers,
+            String systemUnderTestVersion, List<String> warnings, Map<String, ContractProgressRecord> contractHistory)
+            throws IOException {
         File parent = outputFile.getParentFile();
         if (parent != null && !parent.exists() && !parent.mkdirs()) {
             throw new IOException("Could not create output directory: " + parent);
@@ -84,6 +111,7 @@ public class DoppelgangerApiReportWriter {
             writer.println("Generated: " + LocalDateTime.now()
                     .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
             writer.println();
+            writeWarnings(writer, warnings);
             writer.println("Scanned " + totalCandidateCount
                     + " endpoint(s) both declared in the OpenAPI documentation and implemented by a "
                     + "`@RestController` class. " + doppelgangers.size()
@@ -127,6 +155,23 @@ public class DoppelgangerApiReportWriter {
                 writer.println();
             });
         }
+    }
+
+    /**
+     * Writes {@code warnings} as a single {@code [WARNING]} AsciiDoc admonition block, one bullet
+     * per warning, or nothing at all when {@code warnings} is empty.
+     */
+    private void writeWarnings(PrintWriter writer, List<String> warnings) {
+        if (warnings.isEmpty()) {
+            return;
+        }
+        writer.println("[WARNING]");
+        writer.println("====");
+        for (String warning : warnings) {
+            writer.println("* " + warning);
+        }
+        writer.println("====");
+        writer.println();
     }
 
     /**

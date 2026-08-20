@@ -80,7 +80,7 @@ Like its siblings, this plugin operates entirely at the source level: it parses 
 | Source                       | Evidence recognised
 | Spring RestDocs               | A test method containing either `mockMvc.perform(get(...)/post(...)/put(...)/delete(...)/patch(...))` whose call chain also includes `.andDo(document(...))`, or `webTestClient.get()/post()/put()/delete()/patch().uri(...).exchange()...consumeWith(document(...))`. In the MockMvc case the HTTP verb comes from the static builder method name and the path from its first string-literal argument; in the WebTestClient case the verb comes from the request-builder method and the path from the `uri(...)` call.
 | Atlassian OpenAPI request validator | A test method containing either `.filter(new OpenApiValidationFilter(...))` (REST Assured style) or a direct `.validateRequest(...)` / `.validateResponse(...)` call, paired with a REST-Assured-style request built via `given().when().get("/orders/{id}")`-style calls in the same method.
-| Spring Cloud Contract         | Contract DSL files under `contractsDir` (default `src/testContract/resources/contracts/**/*.groovy` and `*.yml`), read structurally for `method '...'` and `url '...'` / `urlPath '...'` entries - no AST, no Groovy compilation.
+| Spring Cloud Contract         | Contract DSL files under `contractsDir` (a required property when this source is enabled - conventionally something like `src/testContract/resources/contracts/**/*.groovy` and `*.yml`), read structurally for `method '...'` and `url '...'` / `urlPath '...'` entries - no AST, no Groovy compilation.
 |===
 
 Each source matches by simple class/method name only, never resolving types - so none of the underlying testing libraries need to be on this plugin's own classpath. This matters in particular for the Atlassian OpenAPI request validator, whose Maven coordinates changed after v3.0.0 from `swagger-request-validator-*` to `openapi-request-validator-*` under `com.atlassian.oai`: matching by simple name recognises both old and new artifact versions identically.
@@ -104,6 +104,27 @@ doppelgangerApiDetector {
     useSpringCloudContract     = true
 }
 ----
+
+== Missing rootDocument, controllerDirs, testDirs, or contractsDir
+
+A missing `rootDocument` file, a `controllerDirs` entry that doesn't exist yet, or - for a currently enabled verification source - a `testDirs`/`contractsDir` entry it depends on with none of the currently enabled sources able to gather any evidence at all, is **not** a build failure - `detectDoppelgangerApis` still runs, still writes its report, and never fails the build because of it, regardless of `failOnDoppelganger`. This matters for a build script bootstrapped ahead of the code it describes: a team scaffolding `doppelgangerApiDetector { rootDocument = file('src/main/resources/openapi/openapi.yaml') }` as part of a project template shouldn't see every build break until that file, the first `@RestController`, or the first verification test actually exists.
+
+Instead, the generated report opens with a `[WARNING]` admonition explaining exactly what's missing, and doppelganger API detection is skipped for that run rather than computed from incomplete input - comparing a real OpenAPI document against zero implemented endpoints, or checking for verification evidence that could not possibly have been gathered, would otherwise report every candidate endpoint as a false-positive doppelganger API. `trackContractHistory` is similarly left untouched for that run: the report still displays whatever was last legitimately persisted, but nothing is advanced or saved from a partial view, which would otherwise misrepresent every endpoint this run couldn't see as newly removed.
+
+If `controllerDirs` or `testDirs` has more than one entry and *some*, but not all, exist, detection still proceeds normally using whichever ones do - only the missing entries are called out as individual warnings, without skipping the run entirely. Either one left with **zero** entries configured at all (rather than one that doesn't exist) is treated as a deliberate, valid setup, not a gap, and never warns.
+
+`testDirs` is shared by the Spring RestDocs and OpenAPI request validator sources, so a missing entry only counts as a gap - and only warns - when at least one of those two sources is actually enabled; both are still scanned, even when every `testDirs` entry is missing, since a directory containing no matching evidence looks identical to a scanner as one that doesn't exist yet. Detection is only suppressed when *every currently enabled* source has no usable directory to scan - a single enabled source with real evidence available is enough for the run to be considered complete, even if another enabled source's directory happens to be missing; that source simply contributes no evidence for this run, the same as if it had genuinely found none.
+
+`contractsDir` behaves slightly differently once `useSpringCloudContract` is configured: it must be configured too (see "Configuration errors vs. bootstrapping gaps" below) - once it is, a `contractsDir` that doesn't exist on disk *yet* behaves exactly like a missing `testDirs` entry, warning rather than failing.
+
+=== Configuration errors vs. bootstrapping gaps
+
+Not every incomplete-looking configuration is a bootstrapping gap. Two DSL configurations are rejected eagerly, with a `GradleException`, before anything is scanned - regardless of `failOnDoppelganger` and regardless of what currently exists on disk:
+
+* Every one of `useRestDocs`, `useOpenApiRequestValidator`, and `useSpringCloudContract` disabled at once. With no source enabled at all, no endpoint could ever be verified, so every declared-and-implemented endpoint would always be reported as a doppelganger API regardless of how much test coverage the project actually has - a report, and a potential build failure, with no real signal in it.
+* `useSpringCloudContract = true` with `contractsDir` left unconfigured. Unlike `rootDocument`, `controllerDirs`, and `testDirs`, `contractsDir` has no default location: most projects have no `contracts` directory at all, so a missing *value* here means the property was never wired up, not that the directory it points to hasn't been created yet.
+
+Both of these are permanent property-level contradictions, not gaps that a project naturally grows out of - unlike a `rootDocument` or `testDirs` entry that doesn't exist *yet*, no amount of writing tests or generating OpenAPI documentation resolves them; only editing the build script does. That is why they fail the build immediately instead of degrading to a `[WARNING]` admonition.
 
 == Configuration
 
@@ -131,9 +152,9 @@ doppelgangerApiDetector {
     // Default: rootDocument's own parent directory
     openApiDir = file('src/main/resources/openapi')
 
-    // Directory searched for Spring Cloud Contract DSL files.
-    // Default: src/testContract/resources/contracts
-    contractsDir = file('src/testContract/resources/contracts')
+    // Directory searched for Spring Cloud Contract DSL files. No default - required if
+    // useSpringCloudContract is true; leaving it unconfigured in that case fails the build.
+    // contractsDir = file('src/testContract/resources/contracts')
 
     // Whether each contract verification source is enabled.
     // Default: true for Spring RestDocs, false for the other two - opt in explicitly to the
@@ -194,7 +215,7 @@ doppelgangerApiDetector {
 }
 ----
 
-`rootDocument` is the only property that must be set - in all but very rare cases (an OpenAPI description split across many top-level documents with no single entry point) the root document is all the plugin needs, since it is expected to link to every other document itself.
+`rootDocument` is the only property that must always be set - in all but very rare cases (an OpenAPI description split across many top-level documents with no single entry point) the root document is all the plugin needs, since it is expected to link to every other document itself. `contractsDir` must additionally be set whenever `useSpringCloudContract` is enabled - see "Configuration errors vs. bootstrapping gaps" above.
 
 == Task
 

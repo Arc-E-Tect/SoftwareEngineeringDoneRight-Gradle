@@ -176,12 +176,11 @@ class DoppelgangerApiDetectorPluginTest {
     }
 
     @Test
-    @DisplayName("contractsDir defaults to src/testContract/resources/contracts")
-    void contractsDirDefaultsToStandardLocation() {
+    @DisplayName("contractsDir has no default - it must be configured explicitly when useSpringCloudContract is enabled")
+    void contractsDirHasNoDefault() {
         Project project = projectWithPlugin();
 
-        assertThat(extension(project).getContractsDir().get().getAsFile())
-                .isEqualTo(new File(project.getProjectDir(), "src/testContract/resources/contracts"));
+        assertThat(extension(project).getContractsDir().isPresent()).isFalse();
     }
 
     @Test

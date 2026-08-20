@@ -28,9 +28,9 @@ import java.util.Locale;
  *   <li>Controller directories: {@code src/main/java}</li>
  *   <li>Test directories: {@code src/testContract/java}</li>
  *   <li>OpenAPI description directory: the root document's own parent directory</li>
- *   <li>Contracts directory: {@code src/testContract/resources/contracts}</li>
- *   <li>Contract verification sources: Spring RestDocs, OpenAPI request validator, and Spring
- *       Cloud Contract, all enabled</li>
+ *   <li>Contracts directory: no default - required when {@code useSpringCloudContract} is enabled</li>
+ *   <li>Contract verification sources: Spring RestDocs enabled; OpenAPI request validator and
+ *       Spring Cloud Contract opt-in</li>
  *   <li>Fail on doppelganger APIs: {@code false}</li>
  *   <li>Report directory: {@code build/reports/doppelganger-api-detector}</li>
  *   <li>Report file name: {@code doppelganger-apis.adoc}</li>
@@ -73,8 +73,9 @@ public class DoppelgangerApiDetectorPlugin implements Plugin<Project> {
                 project.provider(() -> String.valueOf(project.getVersion())));
         ext.getOpenApiDir().convention(ext.getRootDocument().flatMap(rootDocument ->
                 project.getLayout().dir(project.provider(() -> rootDocument.getAsFile().getParentFile()))));
-        ext.getContractsDir().convention(project.getLayout().getProjectDirectory()
-                .dir(DoppelgangerApiDetectorExtension.DEFAULT_CONTRACTS_DIR));
+        // Deliberately no convention default: useSpringCloudContract defaults to false, and when it
+        // is explicitly enabled, contractsDir must be explicitly configured too - see
+        // DetectDoppelgangerApisTask#generate()'s eager validation of that combination.
 
         ext.getTrackContractHistory().convention(false);
         ext.getContractHistoryFile().convention(project.getLayout().getProjectDirectory()
