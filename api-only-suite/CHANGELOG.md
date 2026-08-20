@@ -1,3 +1,10 @@
+## [3.0.4](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/api-only-suite-v3.0.3...api-only-suite-v3.0.4) (2026-08-20)
+
+
+### 🐛 Bug Fixes
+
+* **mirage-api-detector:** don't fail the build on a missing rootDocument or controllerDirs ([#199](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/199)) ([962d629](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/962d629a98c08512f01b21f2a94aa7761c83edac)), closes [#199](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/199)
+
 ## [3.0.3](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/api-only-suite-v3.0.2...api-only-suite-v3.0.3) (2026-08-20)
 
 
