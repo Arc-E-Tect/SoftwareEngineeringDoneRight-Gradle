@@ -58,14 +58,155 @@ class DetectShadowApisTaskTest {
     }
 
     @Test
-    @DisplayName("throws when rootDocument is not configured")
-    void throwsWhenRootDocumentNotConfigured() {
+    @DisplayName("does not throw when rootDocument is not configured, and writes a WARNING instead")
+    void doesNotThrowWhenRootDocumentNotConfigured() throws Exception {
         DetectShadowApisTask task = newTask();
         task.getControllerDirs().from(controllerDir);
         task.getReportDir().set(reportDir);
         task.getReportFileName().set("shadow-apis.adoc");
+        task.getFailOnShadow().set(true);
+        task.getSystemUnderTestVersion().set("1.0.0");
+
+        task.generate();
+
+        String content = Files.readString(new File(reportDir, "shadow-apis.adoc").toPath());
+        assertThat(content)
+                .contains("[WARNING]")
+                .contains("`rootDocument` is not configured yet")
+                .contains("0 of them are not described");
+    }
+
+    @Test
+    @DisplayName("does not throw when the configured rootDocument file does not exist, and writes a WARNING instead")
+    void doesNotThrowWhenRootDocumentFileDoesNotExist() throws Exception {
+        DetectShadowApisTask task = newTask();
+        task.getControllerDirs().from(controllerDir);
+        task.getRootDocument().set(new File(tempDir.toFile(), "openapi/missing.yaml"));
+        task.getReportDir().set(reportDir);
+        task.getReportFileName().set("shadow-apis.adoc");
+        task.getFailOnShadow().set(true);
+        task.getSystemUnderTestVersion().set("1.0.0");
+
+        task.generate();
+
+        String content = Files.readString(new File(reportDir, "shadow-apis.adoc").toPath());
+        assertThat(content)
+                .contains("[WARNING]")
+                .contains("does not exist yet")
+                .contains("missing.yaml");
+    }
+
+    @Test
+    @DisplayName("does not throw when no configured controllerDirs exist, and writes a WARNING instead")
+    void doesNotThrowWhenNoControllerDirsExist() throws Exception {
+        DetectShadowApisTask task = newTask();
+        task.getControllerDirs().from(new File(tempDir.toFile(), "src/main/java/does-not-exist"));
+        task.getRootDocument().set(openApiFixture("single-endpoint.yaml"));
+        task.getReportDir().set(reportDir);
+        task.getReportFileName().set("shadow-apis.adoc");
+        task.getFailOnShadow().set(true);
+        task.getSystemUnderTestVersion().set("1.0.0");
+
+        task.generate();
+
+        String content = Files.readString(new File(reportDir, "shadow-apis.adoc").toPath());
+        assertThat(content)
+                .contains("[WARNING]")
+                .contains("None of the configured `controllerDirs` exist yet");
+    }
+
+    @Test
+    @DisplayName("a controllerDirs left entirely unconfigured is a valid empty setup, not a warning-worthy gap")
+    void emptyControllerDirsIsNotTreatedAsAMissingSource() throws Exception {
+        // Deliberately empty controllerDirs (no @RestController scanned at all, zero entries - as
+        // opposed to an entry that was configured but doesn't exist yet). Zero implemented
+        // endpoints trivially means zero shadow APIs, so this must proceed and report "None found",
+        // not be treated the same as a missing controllerDirs entry and skipped with a [WARNING].
+        DetectShadowApisTask task = newTask();
+        task.getRootDocument().set(openApiFixture("single-endpoint.yaml"));
+        task.getReportDir().set(reportDir);
+        task.getReportFileName().set("shadow-apis.adoc");
+        task.getFailOnShadow().set(true);
+        task.getSystemUnderTestVersion().set("1.0.0");
+
+        task.generate();
+
+        String content = Files.readString(new File(reportDir, "shadow-apis.adoc").toPath());
+        assertThat(content).doesNotContain("[WARNING]").contains("None found.");
+    }
+
+    @Test
+    @DisplayName("warns about one missing controllerDirs entry but still detects shadows from the entries that do exist")
+    void warnsAboutOneMissingControllerDirButStillDetects() throws Exception {
+        DetectShadowApisTask task = newTask();
+        task.getControllerDirs().from(controllerDir, new File(tempDir.toFile(), "src/main/java/also-missing"));
+        task.getRootDocument().set(openApiFixture("single-endpoint.yaml"));
+        task.getReportDir().set(reportDir);
+        task.getReportFileName().set("shadow-apis.adoc");
         task.getFailOnShadow().set(false);
         task.getSystemUnderTestVersion().set("1.0.0");
+
+        task.generate();
+
+        String content = Files.readString(new File(reportDir, "shadow-apis.adoc").toPath());
+        assertThat(content)
+                .contains("[WARNING]")
+                .contains("Configured `controllerDirs` entry does not exist yet")
+                .contains("also-missing")
+                .contains("1 of them is not described");
+    }
+
+    @Test
+    @DisplayName("does not fail even when failOnShadow is true if rootDocument is missing, since nothing was genuinely checked")
+    void doesNotFailOnMissingRootDocumentEvenWhenFailOnShadowIsTrue() throws Exception {
+        DetectShadowApisTask task = newTask();
+        task.getControllerDirs().from(controllerDir);
+        task.getReportDir().set(reportDir);
+        task.getReportFileName().set("shadow-apis.adoc");
+        task.getFailOnShadow().set(true);
+        task.getSystemUnderTestVersion().set("1.0.0");
+
+        task.generate();
+    }
+
+    @Test
+    @DisplayName("leaves a pre-existing contractHistoryFile untouched but still displays it when input is incomplete")
+    void leavesContractHistoryUntouchedWhenInputIsIncomplete() throws Exception {
+        File historyFile = new File(tempDir.toFile(), "contract-history.ndjson");
+        DetectShadowApisTask seedTask = configuredTask(openApiFixture("both-endpoints.yaml"), false);
+        seedTask.getTrackContractHistory().set(true);
+        seedTask.getContractHistoryFile().set(historyFile);
+        seedTask.getUpdateContractHistory().set(true);
+        seedTask.generate();
+        String seededContent = Files.readString(historyFile.toPath());
+
+        DetectShadowApisTask task = project.getTasks()
+                .create("detectShadowApisWithIncompleteInput", DetectShadowApisTask.class);
+        task.getTrackContractHistory().set(false);
+        task.getProjectDirectory().set(tempDir.toFile());
+        task.getControllerDirs().from(new File(tempDir.toFile(), "src/main/java/does-not-exist"));
+        task.getRootDocument().set(openApiFixture("both-endpoints.yaml"));
+        task.getReportDir().set(reportDir);
+        task.getReportFileName().set("shadow-apis.adoc");
+        task.getFailOnShadow().set(false);
+        task.getSystemUnderTestVersion().set("1.0.0");
+        task.getTrackContractHistory().set(true);
+        task.getContractHistoryFile().set(historyFile);
+        task.getUpdateContractHistory().set(true);
+
+        task.generate();
+
+        assertThat(Files.readString(historyFile.toPath())).isEqualTo(seededContent);
+        String reportContent = Files.readString(new File(reportDir, "shadow-apis.adoc").toPath());
+        assertThat(reportContent).contains("== Progress Over Time");
+    }
+
+    @Test
+    @DisplayName("scanForShadows still throws clearly when rootDocument is not configured, unlike the full-project scan")
+    void scanForShadowsStillThrowsWhenRootDocumentNotConfigured() {
+        DetectShadowApisTask task = newTask();
+        task.getControllerDirs().from(controllerDir);
+        task.getScanForShadows().set("UserController");
 
         assertThatThrownBy(task::generate)
                 .isInstanceOf(GradleException.class)

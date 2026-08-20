@@ -18,8 +18,6 @@ import org.gradle.api.file.DirectoryProperty;
 import org.gradle.api.file.RegularFileProperty;
 import org.gradle.api.provider.Property;
 import org.gradle.api.tasks.Input;
-import org.gradle.api.tasks.InputDirectory;
-import org.gradle.api.tasks.InputFile;
 import org.gradle.api.tasks.InputFiles;
 import org.gradle.api.tasks.Internal;
 import org.gradle.api.tasks.Optional;
@@ -61,9 +59,18 @@ public abstract class DetectShadowApisTask extends DefaultTask {
     /**
      * The root OpenAPI document describing the API.
      *
+     * <p>Validated as {@code @InputFiles} rather than {@code @InputFile}, and {@code @Optional}:
+     * unlike {@code @InputFile}, neither requires a value to be present nor the configured file to
+     * actually exist. A team bootstrapping a build script for a project whose OpenAPI documentation
+     * doesn't exist yet - or hasn't been configured yet - should get a report with a
+     * {@code WARNING} admonition explaining that from {@link #generate()}, not an opaque Gradle
+     * input-validation failure before the task action ever runs; see
+     * {@link #describeMissingRootDocument()}.</p>
+     *
      * @return mutable file property for the root OpenAPI document
      */
-    @InputFile
+    @Optional
+    @InputFiles
     @PathSensitive(PathSensitivity.RELATIVE)
     public abstract RegularFileProperty getRootDocument();
 
@@ -71,10 +78,14 @@ public abstract class DetectShadowApisTask extends DefaultTask {
      * Directory where OpenAPI descriptions are stored, tracked so that changes to any document
      * reachable from {@link #getRootDocument()} invalidate the task's cached result.
      *
+     * <p>Validated as {@code @InputFiles} rather than {@code @InputDirectory} for the same reason as
+     * {@link #getRootDocument()}: it defaults to that file's own parent directory, which does not
+     * exist either when the file itself does not.</p>
+     *
      * @return mutable directory property for the OpenAPI description directory
      */
     @Optional
-    @InputDirectory
+    @InputFiles
     @PathSensitive(PathSensitivity.RELATIVE)
     public abstract DirectoryProperty getOpenApiDir();
 
@@ -298,24 +309,61 @@ public abstract class DetectShadowApisTask extends DefaultTask {
      * and prints its findings to the console (see {@link #scanSingleController(String)}), or - when
      * that property is unset - scans every {@code @RestController} class under
      * {@link #getControllerDirs()}, loads the configured OpenAPI documentation, and writes the
-     * shadow API report. Either way, fails the build if any shadow API was found and the effective
-     * {@link #getFailOnShadow()} (accounting for {@link #getFailOnShadowOverride()}) is {@code true}.
+     * shadow API report.
+     *
+     * <p>A missing {@link #getRootDocument()} or empty {@link #getControllerDirs()} - e.g. a build
+     * script bootstrapped for a project whose OpenAPI documentation or {@code @RestController}
+     * classes don't exist yet - is <em>not</em> a build failure in this full-scan mode: it is
+     * recorded as a {@code WARNING} admonition in the generated report instead, and shadow API
+     * detection (and, deliberately, contract history advancement - see
+     * {@link #loadContractHistoryForDisplay()}) is skipped for this run rather than computed from
+     * incomplete input and risking a false positive. {@link #scanSingleController(String)} keeps its
+     * own, deliberately stricter behavior: a controller explicitly named on the command line that
+     * cannot be found is a real usage error, not a bootstrapping gap.</p>
+     *
+     * <p>The build still fails when a shadow API is genuinely found and the effective
+     * {@link #getFailOnShadow()} (accounting for {@link #getFailOnShadowOverride()}) is {@code true}
+     * - the one failure condition this task ever raises on its own initiative, per this plugin's
+     * design: fail only on a real finding the DSL asked to fail on, never on merely incomplete
+     * input.</p>
      */
     @TaskAction
     public void generate() {
-        if (!getRootDocument().isPresent()) {
-            throw new GradleException("shadowApiDetector: rootDocument must be configured - "
-                    + "it is the required root OpenAPI document.");
-        }
-
         if (getScanForShadows().isPresent()) {
+            if (!getRootDocument().isPresent()) {
+                throw new GradleException("shadowApiDetector: rootDocument must be configured - "
+                        + "it is the required root OpenAPI document.");
+            }
             scanSingleController(getScanForShadows().get());
             return;
         }
 
+        List<String> warnings = new ArrayList<>();
+
+        List<File> missingControllerDirs = new ArrayList<>();
         List<File> controllerFiles = new ArrayList<>();
+        boolean anyControllerDirExists = false;
         for (File dir : getControllerDirs()) {
-            controllerFiles.addAll(collectJavaFiles(dir));
+            if (dir.isDirectory()) {
+                anyControllerDirExists = true;
+                controllerFiles.addAll(collectJavaFiles(dir));
+            } else {
+                missingControllerDirs.add(dir);
+            }
+        }
+        // Deliberately distinct from "controllerDirs has zero entries at all", which is a valid,
+        // complete input (nothing to scan by design) rather than a bootstrapping gap, and must not
+        // silently skip detection below.
+        boolean controllerSourceMissing = !missingControllerDirs.isEmpty() && !anyControllerDirExists;
+        if (!missingControllerDirs.isEmpty()) {
+            if (anyControllerDirExists) {
+                for (File dir : missingControllerDirs) {
+                    warnings.add("Configured `controllerDirs` entry does not exist yet: `" + dir + "`.");
+                }
+            } else {
+                warnings.add("None of the configured `controllerDirs` exist yet. Shadow API detection was "
+                        + "skipped for this run - once at least one exists, re-run this task to check it.");
+            }
         }
 
         ControllerScanner scanner = new ControllerScanner();
@@ -328,23 +376,30 @@ public abstract class DetectShadowApisTask extends DefaultTask {
         }
         controllerScanProgress.complete();
 
-        File rootDocument = getRootDocument().getAsFile().get();
-        ScanProgressReporter openApiProgress =
-                ScanProgressReporter.indeterminate(getLogger(), "Resolving OpenAPI documents");
-        List<DescribedEndpoint> described = new OpenApiEndpointCollector()
-                .collect(rootDocument, file -> openApiProgress.step());
-        openApiProgress.complete();
+        boolean openApiAvailable = isRootDocumentAvailable();
+        List<DescribedEndpoint> described;
+        if (openApiAvailable) {
+            File rootDocument = getRootDocument().getAsFile().get();
+            ScanProgressReporter openApiProgress =
+                    ScanProgressReporter.indeterminate(getLogger(), "Resolving OpenAPI documents");
+            described = new OpenApiEndpointCollector().collect(rootDocument, file -> openApiProgress.step());
+            openApiProgress.complete();
+        } else {
+            described = List.of();
+            warnings.add(describeMissingRootDocument());
+        }
 
-        List<Endpoint> shadows = new ShadowApiFinder().findShadows(endpoints, described);
+        boolean inputComplete = openApiAvailable && !controllerSourceMissing;
+        List<Endpoint> shadows = inputComplete ? new ShadowApiFinder().findShadows(endpoints, described) : List.of();
 
-        Map<String, ContractProgressRecord> contractHistory = getTrackContractHistory().get()
-                ? updateContractHistory(endpoints, described) : Map.of();
+        Map<String, ContractProgressRecord> contractHistory = !getTrackContractHistory().get() ? Map.of()
+                : inputComplete ? updateContractHistory(endpoints, described) : loadContractHistoryForDisplay();
 
         File outputDir = getReportDir().getAsFile().get();
         File outputFile = new File(outputDir, getReportFileName().get());
         try {
-            new ShadowApiReportWriter().write(
-                    outputFile, endpoints.size(), shadows, getSystemUnderTestVersion().get(), contractHistory);
+            new ShadowApiReportWriter().write(outputFile, endpoints.size(), shadows,
+                    getSystemUnderTestVersion().get(), warnings, contractHistory);
         } catch (IOException e) {
             throw new GradleException("shadowApiDetector: failed to write report to " + outputFile, e);
         }
@@ -355,6 +410,51 @@ public abstract class DetectShadowApisTask extends DefaultTask {
         if (!shadows.isEmpty() && effectiveFailOnShadow()) {
             throw new GradleException("shadowApiDetector: found " + shadows.size()
                     + " shadow API(s) not described in the OpenAPI documentation. See " + outputFile);
+        }
+    }
+
+    /**
+     * Whether {@link #getRootDocument()} is both configured and points to a file that actually
+     * exists - the precondition for OpenAPI-based comparison being meaningful at all.
+     */
+    private boolean isRootDocumentAvailable() {
+        return getRootDocument().isPresent() && getRootDocument().getAsFile().get().isFile();
+    }
+
+    /**
+     * The {@code WARNING} admonition line explaining why OpenAPI-based comparison was skipped -
+     * distinguishing "never configured" from "configured, but the file doesn't exist yet", since the
+     * former needs no path in the message and the latter does.
+     */
+    private String describeMissingRootDocument() {
+        if (!getRootDocument().isPresent()) {
+            return "`rootDocument` is not configured yet. Shadow API detection was skipped for this run - "
+                    + "configure it once your OpenAPI documentation exists.";
+        }
+        return "The configured `rootDocument` does not exist yet: `" + getRootDocument().getAsFile().get()
+                + "`. Shadow API detection was skipped for this run - once the file exists, re-run this task "
+                + "to check it.";
+    }
+
+    /**
+     * Loads {@link #getContractHistoryFile()} as-is, for display in the report's
+     * {@code == Progress Over Time} section, without advancing or saving it. Used in place of
+     * {@link #updateContractHistory(List, List)} whenever this run's input is incomplete (see
+     * {@link #generate()}): advancing history from a partial view - e.g. an empty
+     * {@code implementedNow} purely because {@link #getControllerDirs()} doesn't exist yet, not
+     * because every previously-implemented endpoint was actually removed - would misrepresent every
+     * endpoint this run couldn't see as newly removed. The persisted file itself is left untouched
+     * either way; only the report's display of it is affected.
+     */
+    private Map<String, ContractProgressRecord> loadContractHistoryForDisplay() {
+        File historyFile = getContractHistoryFile().getAsFile().get();
+        try {
+            return new ContractHistoryStore().load(historyFile);
+        } catch (LegacyContractHistoryFormatException e) {
+            throw new GradleException("shadowApiDetector: " + historyFile + " is in the old 9-field "
+                    + "contract history format (missing 'stubbedAt'). Apply the mirage-api-detector plugin "
+                    + "and run its 'migrateContractHistory' task against this file to upgrade it in place, "
+                    + "or point contractHistoryFile at a new location to start a fresh history.", e);
         }
     }
 

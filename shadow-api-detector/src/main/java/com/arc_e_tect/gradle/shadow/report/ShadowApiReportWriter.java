@@ -37,7 +37,8 @@ public class ShadowApiReportWriter {
 
     /**
      * Writes the report to {@code outputFile}, creating its parent directory if necessary. Equivalent
-     * to {@link #write(File, int, List, String, Map)} with an empty contract history.
+     * to {@link #write(File, int, List, String, List, Map)} with no warnings and an empty contract
+     * history.
      *
      * @param outputFile             target AsciiDoc file
      * @param totalEndpointCount     total number of endpoints found across all scanned controllers
@@ -47,11 +48,12 @@ public class ShadowApiReportWriter {
      */
     public void write(File outputFile, int totalEndpointCount, List<Endpoint> shadows, String systemUnderTestVersion)
             throws IOException {
-        write(outputFile, totalEndpointCount, shadows, systemUnderTestVersion, Map.of());
+        write(outputFile, totalEndpointCount, shadows, systemUnderTestVersion, List.of(), Map.of());
     }
 
     /**
-     * Writes the report to {@code outputFile}, creating its parent directory if necessary.
+     * Writes the report to {@code outputFile}, creating its parent directory if necessary. Equivalent
+     * to {@link #write(File, int, List, String, List, Map)} with no warnings.
      *
      * @param outputFile             target AsciiDoc file
      * @param totalEndpointCount     total number of endpoints found across all scanned controllers
@@ -64,6 +66,27 @@ public class ShadowApiReportWriter {
      */
     public void write(File outputFile, int totalEndpointCount, List<Endpoint> shadows, String systemUnderTestVersion,
             Map<String, ContractProgressRecord> contractHistory) throws IOException {
+        write(outputFile, totalEndpointCount, shadows, systemUnderTestVersion, List.of(), contractHistory);
+    }
+
+    /**
+     * Writes the report to {@code outputFile}, creating its parent directory if necessary.
+     *
+     * @param outputFile             target AsciiDoc file
+     * @param totalEndpointCount     total number of endpoints found across all scanned controllers
+     * @param shadows                the endpoints not described in the OpenAPI documentation
+     * @param systemUnderTestVersion version of the system under test that was scanned
+     * @param warnings               non-fatal configuration gaps to render as a {@code WARNING}
+     *                                admonition right after the report header - e.g. a configured
+     *                                {@code rootDocument} or {@code controllerDirs} entry that
+     *                                doesn't exist yet; when empty, no such admonition is written
+     * @param contractHistory        contract progress history to render as a {@code == Progress Over
+     *                                Time} section, keyed by fingerprint; when empty, no such
+     *                                section is written
+     * @throws IOException if the output file cannot be written
+     */
+    public void write(File outputFile, int totalEndpointCount, List<Endpoint> shadows, String systemUnderTestVersion,
+            List<String> warnings, Map<String, ContractProgressRecord> contractHistory) throws IOException {
         File parent = outputFile.getParentFile();
         if (parent != null && !parent.exists() && !parent.mkdirs()) {
             throw new IOException("Could not create output directory: " + parent);
@@ -79,6 +102,7 @@ public class ShadowApiReportWriter {
             writer.println("Generated: " + LocalDateTime.now()
                     .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
             writer.println();
+            writeWarnings(writer, warnings);
             writer.println("Scanned " + totalEndpointCount
                     + " endpoint(s) exposed by `@RestController` classes. " + shadows.size()
                     + (shadows.size() == 1 ? " of them is" : " of them are")
@@ -121,6 +145,23 @@ public class ShadowApiReportWriter {
                 writer.println();
             });
         }
+    }
+
+    /**
+     * Writes {@code warnings} as a single {@code [WARNING]} AsciiDoc admonition block, one bullet
+     * per warning, or nothing at all when {@code warnings} is empty.
+     */
+    private void writeWarnings(PrintWriter writer, List<String> warnings) {
+        if (warnings.isEmpty()) {
+            return;
+        }
+        writer.println("[WARNING]");
+        writer.println("====");
+        for (String warning : warnings) {
+            writer.println("* " + warning);
+        }
+        writer.println("====");
+        writer.println();
     }
 
     /**
