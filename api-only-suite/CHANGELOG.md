@@ -1,3 +1,10 @@
+## [3.0.6](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/api-only-suite-v3.0.5...api-only-suite-v3.0.6) (2026-08-20)
+
+
+### 🐛 Bug Fixes
+
+* **api-only-suite:** bump api-detector-core to 1.2.1 ([#201](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/201)) ([583fe41](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/583fe414057fc8dbffc33b5899447bb20fa4bd19)), closes [#201](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/201)
+
 ## [3.0.5](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/api-only-suite-v3.0.4...api-only-suite-v3.0.5) (2026-08-20)
 
 
