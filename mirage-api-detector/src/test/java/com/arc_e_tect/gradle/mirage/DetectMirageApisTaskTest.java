@@ -54,18 +54,89 @@ class DetectMirageApisTaskTest {
     }
 
     @Test
-    @DisplayName("throws when rootDocument is not configured")
-    void throwsWhenRootDocumentNotConfigured() {
+    @DisplayName("does not throw when rootDocument is not configured, and writes a WARNING instead")
+    void doesNotThrowWhenRootDocumentNotConfigured() throws Exception {
         DetectMirageApisTask task = newTask();
         task.getControllerDirs().from(controllerDir);
+        task.getReportDir().set(reportDir);
+        task.getReportFileName().set("mirage-apis.adoc");
+        task.getFailOnMirage().set(true);
+        task.getSystemUnderTestVersion().set("1.0.0");
+
+        task.generate();
+
+        String content = Files.readString(new File(reportDir, "mirage-apis.adoc").toPath());
+        assertThat(content)
+                .contains("[WARNING]")
+                .contains("`rootDocument` is not configured yet");
+    }
+
+    @Test
+    @DisplayName("does not throw when the configured rootDocument file does not exist, and writes a WARNING instead")
+    void doesNotThrowWhenRootDocumentFileDoesNotExist() throws Exception {
+        DetectMirageApisTask task = newTask();
+        task.getControllerDirs().from(controllerDir);
+        task.getRootDocument().set(new File(tempDir.toFile(), "openapi/missing.yaml"));
+        task.getReportDir().set(reportDir);
+        task.getReportFileName().set("mirage-apis.adoc");
+        task.getFailOnMirage().set(true);
+        task.getSystemUnderTestVersion().set("1.0.0");
+
+        task.generate();
+
+        String content = Files.readString(new File(reportDir, "mirage-apis.adoc").toPath());
+        assertThat(content)
+                .contains("[WARNING]")
+                .contains("does not exist yet")
+                .contains("missing.yaml");
+    }
+
+    @Test
+    @DisplayName("does not throw when a configured controllerDirs entry does not exist, and writes a WARNING instead")
+    void doesNotThrowWhenNoControllerDirsExist() throws Exception {
+        DetectMirageApisTask task = newTask();
+        task.getControllerDirs().from(new File(tempDir.toFile(), "src/main/java/does-not-exist"));
+        task.getRootDocument().set(openApiFixture("single-endpoint.yaml"));
+        task.getReportDir().set(reportDir);
+        task.getReportFileName().set("mirage-apis.adoc");
+        task.getFailOnMirage().set(true);
+        task.getSystemUnderTestVersion().set("1.0.0");
+
+        task.generate();
+
+        String content = Files.readString(new File(reportDir, "mirage-apis.adoc").toPath());
+        assertThat(content)
+                .contains("[WARNING]")
+                .contains("None of the configured `controllerDirs` exist yet");
+    }
+
+    @Test
+    @DisplayName("a controllerDirs left entirely unconfigured is a valid stub-only setup, not a warning-worthy gap")
+    void emptyControllerDirsIsNotTreatedAsAMissingSource() throws Exception {
+        // Deliberately empty controllerDirs (no @RestController scanned at all) plus a stub that
+        // matches the declared endpoint. Since stub evidence never counts as real implementation
+        // evidence, this endpoint is still a genuine mirage API - the point of this test is only
+        // that the empty controllerDirs collection itself produces no [WARNING], unlike a
+        // controllerDirs entry that was configured but doesn't exist yet.
+        File stubDir = new File(tempDir.toFile(), "src/test/resources/mappings");
+        Files.createDirectories(stubDir.toPath());
+        Files.writeString(stubDir.toPath().resolve("listUsers.json"), """
+                { "request": { "method": "GET", "urlPath": "/users" }, "response": { "status": 200 } }
+                """);
+
+        DetectMirageApisTask task = newTask();
+        task.getScanMocks().set(true);
+        task.getStubDirs().from(stubDir);
+        task.getRootDocument().set(openApiFixture("single-endpoint.yaml"));
         task.getReportDir().set(reportDir);
         task.getReportFileName().set("mirage-apis.adoc");
         task.getFailOnMirage().set(false);
         task.getSystemUnderTestVersion().set("1.0.0");
 
-        assertThatThrownBy(task::generate)
-                .isInstanceOf(GradleException.class)
-                .hasMessageContaining("rootDocument must be configured");
+        task.generate();
+
+        String content = Files.readString(new File(reportDir, "mirage-apis.adoc").toPath());
+        assertThat(content).doesNotContain("[WARNING]").contains("1 of them is not implemented");
     }
 
     @Test
@@ -145,6 +216,37 @@ class DetectMirageApisTaskTest {
 
         String reportContent = Files.readString(new File(reportDir, "mirage-apis.adoc").toPath());
         assertThat(reportContent).contains("== Progress Over Time").contains("Tracked since");
+    }
+
+    @Test
+    @DisplayName("leaves a pre-existing contractHistoryFile untouched but still displays it when input is incomplete")
+    void leavesContractHistoryUntouchedWhenInputIsIncomplete() throws Exception {
+        File historyFile = new File(tempDir.toFile(), "contract-history.ndjson");
+        DetectMirageApisTask seedTask = configuredTask(openApiFixture("both-endpoints.yaml"), false);
+        seedTask.getTrackContractHistory().set(true);
+        seedTask.getContractHistoryFile().set(historyFile);
+        seedTask.getUpdateContractHistory().set(true);
+        seedTask.generate();
+        String seededContent = Files.readString(historyFile.toPath());
+
+        DetectMirageApisTask task = project.getTasks()
+                .create("detectMirageApisWithIncompleteInput", DetectMirageApisTask.class);
+        task.getTrackContractHistory().set(true);
+        task.getScanMocks().set(false);
+        task.getControllerDirs().from(new File(tempDir.toFile(), "src/main/java/does-not-exist"));
+        task.getRootDocument().set(openApiFixture("both-endpoints.yaml"));
+        task.getReportDir().set(reportDir);
+        task.getReportFileName().set("mirage-apis.adoc");
+        task.getFailOnMirage().set(false);
+        task.getSystemUnderTestVersion().set("1.0.0");
+        task.getContractHistoryFile().set(historyFile);
+        task.getUpdateContractHistory().set(true);
+
+        task.generate();
+
+        assertThat(Files.readString(historyFile.toPath())).isEqualTo(seededContent);
+        String reportContent = Files.readString(new File(reportDir, "mirage-apis.adoc").toPath());
+        assertThat(reportContent).contains("== Progress Over Time");
     }
 
     @Test
@@ -550,6 +652,7 @@ class DetectMirageApisTaskTest {
     private DetectMirageApisTask newTask() {
         DetectMirageApisTask task = project.getTasks().create("detectMirageApisUnderTest", DetectMirageApisTask.class);
         task.getTrackContractHistory().set(false);
+        task.getScanMocks().set(false);
         return task;
     }
 

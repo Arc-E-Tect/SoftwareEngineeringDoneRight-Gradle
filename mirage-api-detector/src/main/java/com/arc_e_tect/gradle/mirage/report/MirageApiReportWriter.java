@@ -40,8 +40,8 @@ public class MirageApiReportWriter {
 
     /**
      * Writes the report to {@code outputFile}, creating its parent directory if necessary.
-     * Equivalent to calling {@link #write(File, int, List, String, Map)} with an empty contract
-     * history.
+     * Equivalent to calling {@link #write(File, int, List, String, List, Map)} with no warnings and
+     * an empty contract history.
      *
      * @param outputFile             target AsciiDoc file
      * @param totalDescribedCount    total number of endpoints described by the OpenAPI documentation
@@ -52,11 +52,12 @@ public class MirageApiReportWriter {
     public void write(
             File outputFile, int totalDescribedCount, List<DescribedEndpoint> mirages,
             String systemUnderTestVersion) throws IOException {
-        write(outputFile, totalDescribedCount, mirages, systemUnderTestVersion, Map.of());
+        write(outputFile, totalDescribedCount, mirages, systemUnderTestVersion, List.of(), Map.of());
     }
 
     /**
      * Writes the report to {@code outputFile}, creating its parent directory if necessary.
+     * Equivalent to calling {@link #write(File, int, List, String, List, Map)} with no warnings.
      *
      * @param outputFile             target AsciiDoc file
      * @param totalDescribedCount    total number of endpoints described by the OpenAPI documentation
@@ -71,6 +72,31 @@ public class MirageApiReportWriter {
     public void write(
             File outputFile, int totalDescribedCount, List<DescribedEndpoint> mirages,
             String systemUnderTestVersion, Map<String, ContractProgressRecord> contractHistory)
+            throws IOException {
+        write(outputFile, totalDescribedCount, mirages, systemUnderTestVersion, List.of(), contractHistory);
+    }
+
+    /**
+     * Writes the report to {@code outputFile}, creating its parent directory if necessary.
+     *
+     * @param outputFile             target AsciiDoc file
+     * @param totalDescribedCount    total number of endpoints described by the OpenAPI documentation
+     * @param mirages                the described endpoints with no matching {@code @RestController}
+     *                               implementation
+     * @param systemUnderTestVersion version of the system under test that was scanned
+     * @param warnings               non-fatal configuration gaps to render as a {@code WARNING}
+     *                                admonition right after the report header - e.g. a configured
+     *                                {@code rootDocument} or {@code controllerDirs} entry that
+     *                                doesn't exist yet; when empty, no such admonition is written
+     * @param contractHistory        contract progress history to render as a {@code == Progress Over
+     *                                Time} section, keyed by fingerprint; when empty, no such
+     *                                section is written
+     * @throws IOException if the output file cannot be written
+     */
+    public void write(
+            File outputFile, int totalDescribedCount, List<DescribedEndpoint> mirages,
+            String systemUnderTestVersion, List<String> warnings,
+            Map<String, ContractProgressRecord> contractHistory)
             throws IOException {
         File parent = outputFile.getParentFile();
         if (parent != null && !parent.exists() && !parent.mkdirs()) {
@@ -90,6 +116,7 @@ public class MirageApiReportWriter {
             writer.println("Generated: " + LocalDateTime.now()
                     .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
             writer.println();
+            writeWarnings(writer, warnings);
             writer.println("Scanned " + totalDescribedCount
                     + " endpoint(s) described in the OpenAPI documentation. " + mirages.size()
                     + (mirages.size() == 1 ? " of them is not " : " of them are not ")
@@ -151,6 +178,23 @@ public class MirageApiReportWriter {
 
     private boolean isBlank(String s) {
         return s == null || s.isBlank();
+    }
+
+    /**
+     * Writes {@code warnings} as a single {@code [WARNING]} AsciiDoc admonition block, one bullet
+     * per warning, or nothing at all when {@code warnings} is empty.
+     */
+    private void writeWarnings(PrintWriter writer, List<String> warnings) {
+        if (warnings.isEmpty()) {
+            return;
+        }
+        writer.println("[WARNING]");
+        writer.println("====");
+        for (String warning : warnings) {
+            writer.println("* " + warning);
+        }
+        writer.println("====");
+        writer.println();
     }
 
     /**

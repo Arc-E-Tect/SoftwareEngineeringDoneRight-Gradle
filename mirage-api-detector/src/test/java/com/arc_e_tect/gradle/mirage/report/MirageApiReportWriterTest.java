@@ -36,6 +36,33 @@ class MirageApiReportWriterTest {
     }
 
     @Test
+    @DisplayName("omits the WARNING admonition when there are no warnings")
+    void omitsWarningAdmonitionWhenThereAreNoWarnings(@TempDir Path tempDir) throws Exception {
+        File output = new File(tempDir.toFile(), "report.adoc");
+
+        writer.write(output, 0, List.of(), "1.0.0", List.of(), Map.of());
+
+        assertThat(Files.readString(output.toPath())).doesNotContain("[WARNING]");
+    }
+
+    @Test
+    @DisplayName("renders every warning as a bullet inside a single WARNING admonition block")
+    void rendersWarningsAsAWarningAdmonition(@TempDir Path tempDir) throws Exception {
+        File output = new File(tempDir.toFile(), "report.adoc");
+
+        writer.write(output, 0, List.of(), "1.0.0",
+                List.of("`rootDocument` is not configured yet.", "Configured `controllerDirs` entry does not exist yet: `/tmp/missing`."),
+                Map.of());
+
+        String content = Files.readString(output.toPath());
+        assertThat(content)
+                .contains("[WARNING]")
+                .contains("====")
+                .contains("* `rootDocument` is not configured yet.")
+                .contains("* Configured `controllerDirs` entry does not exist yet: `/tmp/missing`.");
+    }
+
+    @Test
     @DisplayName("lists every mirage grouped by its primary tag")
     void listsMiragesGroupedByTag(@TempDir Path tempDir) throws Exception {
         File output = new File(tempDir.toFile(), "report.adoc");

@@ -140,6 +140,16 @@ mirageApiDetector {
 
 Left unset (the default), the base path is instead read automatically from `rootDocument`'s own first `servers` entry's `url` - e.g. `servers: [{ url: http://localhost:9011/crm-service }]` yields `/crm-service` with no configuration needed at all. Set `basePath` explicitly only when the document either declares no `servers` entry or declares the wrong one for this purpose.
 
+== Missing rootDocument or controllerDirs
+
+A missing `rootDocument` file or a `controllerDirs` entry that doesn't exist yet is **not** a build failure - `detectMirageApis` still runs, still writes its report, and never fails the build because of it, regardless of `failOnMirage`. This matters for a build script bootstrapped ahead of the code it describes: a team scaffolding `mirageApiDetector { rootDocument = file('src/main/resources/openapi/openapi.yaml') }` as part of a project template shouldn't see every build break until that file - or the first `@RestController` - actually exists.
+
+Instead, the generated report opens with a `[WARNING]` admonition explaining exactly what's missing, and mirage API detection is skipped for that run rather than computed from incomplete input - comparing a real OpenAPI document against zero implemented endpoints (or vice versa) would otherwise report every declared endpoint as a false-positive mirage API. `trackContractHistory` is similarly left untouched for that run: the report still displays whatever was last legitimately persisted, but nothing is advanced or saved from a partial view, which would otherwise misrepresent every endpoint this run couldn't see as newly removed.
+
+If `controllerDirs` has more than one entry and *some*, but not all, exist, detection still proceeds normally using whichever ones do - only the missing entries are called out as individual warnings, without skipping the run entirely. A `controllerDirs` left with **zero** entries configured at all (rather than one that doesn't exist) is treated as a deliberate, valid setup - e.g. a project that only scans WireMock stubs - not a gap, and never warns.
+
+A missing `stubDirs` entry (relevant only when `scanMocks = true`) only ever warns - it never suppresses mirage detection, since stub evidence never determines which endpoints are reported as mirage APIs in the first place.
+
 == Configuration
 
 The plugin registers a `mirageApiDetector` extension.
