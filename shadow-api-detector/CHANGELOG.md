@@ -1,3 +1,13 @@
+## [3.0.3](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/shadow-api-detector-v3.0.2...shadow-api-detector-v3.0.3) (2026-08-20)
+
+
+### 🐛 Bug Fixes
+
+* **api-only-suite:** bump api-detector-core to 1.2.1 ([#201](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/201)) ([583fe41](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/583fe414057fc8dbffc33b5899447bb20fa4bd19)), closes [#201](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/201)
+* **shadow-api-detector:** bump api-detector-core to 1.2.1 ([#202](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/202)) ([5e9b098](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/5e9b098f0782ece963da1a15d73d84ae8e59d433)), closes [#202](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/202)
+* **mirage-api-detector:** don't fail the build on a missing rootDocument or controllerDirs ([#199](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/199)) ([962d629](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/962d629a98c08512f01b21f2a94aa7761c83edac)), closes [#199](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/199)
+* **doppelganger-api-detector:** don't hard-fail on missing rootDocument/controllerDirs/testDirs/contractsDir ([#200](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/200)) ([6ca94ed](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/6ca94eda1ef95aead7b165f6be79c1f6ae23497a)), closes [#200](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/200) [#198](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/198) [#199](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/199)
+
 ## [3.0.2](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/shadow-api-detector-v3.0.1...shadow-api-detector-v3.0.2) (2026-08-20)
 
 
