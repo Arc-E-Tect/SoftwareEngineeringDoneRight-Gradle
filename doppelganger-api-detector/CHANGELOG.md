@@ -1,3 +1,13 @@
+## [2.0.3](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/doppelganger-api-detector-v2.0.2...doppelganger-api-detector-v2.0.3) (2026-08-20)
+
+
+### 🐛 Bug Fixes
+
+* **api-only-suite:** bump api-detector-core to 1.2.1 ([#201](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/201)) ([583fe41](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/583fe414057fc8dbffc33b5899447bb20fa4bd19)), closes [#201](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/201)
+* **shadow-api-detector:** bump api-detector-core to 1.2.1 ([#202](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/202)) ([5e9b098](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/5e9b098f0782ece963da1a15d73d84ae8e59d433)), closes [#202](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/202)
+* **mirage-api-detector:** bump api-detector-core to 1.2.1 ([#203](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/203)) ([5332ff9](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/5332ff9e2ef41b8850058a4aca20ae9d6f8e698f)), closes [#203](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/203)
+* **doppelganger-api-detector:** bump api-detector-core to 1.2.1 ([#204](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/204)) ([121b568](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/121b5689b7f91f951ace91d409eb5162dab48e04)), closes [#204](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/204)
+
 ## [2.0.2](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/doppelganger-api-detector-v2.0.1...doppelganger-api-detector-v2.0.2) (2026-08-20)
 
 
