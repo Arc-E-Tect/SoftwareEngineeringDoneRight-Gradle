@@ -36,6 +36,8 @@ com.arc-e-tect.doppelganger-api-detector
 The plugin supports OpenAPI v3 documents that are compatible with the parser stack bundled by the plugin.
 In practice, this means OpenAPI 3.0.x, 3.1.x, and 3.2.x are supported.
 OpenAPI v2 (Swagger 2.0) is not supported.
+OpenAPI 2 compatibility conversion is explicitly excluded from the runtime classpath.
+The plugin uses `io.swagger.parser.v3:swagger-parser-v3` only.
 OpenAPI versions newer than 3.2 are not supported at this time.
 If `rootDocument` declares an unsupported version, the `detectDoppelgangerApis` task fails with a parse error.
 The root document and every transitively referenced `$ref` document must also be parseable and resolvable as OpenAPI v3 content.
