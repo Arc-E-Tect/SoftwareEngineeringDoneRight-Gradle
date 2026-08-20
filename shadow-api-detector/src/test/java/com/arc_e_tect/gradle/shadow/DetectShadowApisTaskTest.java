@@ -116,6 +116,26 @@ class DetectShadowApisTaskTest {
     }
 
     @Test
+    @DisplayName("a controllerDirs left entirely unconfigured is a valid empty setup, not a warning-worthy gap")
+    void emptyControllerDirsIsNotTreatedAsAMissingSource() throws Exception {
+        // Deliberately empty controllerDirs (no @RestController scanned at all, zero entries - as
+        // opposed to an entry that was configured but doesn't exist yet). Zero implemented
+        // endpoints trivially means zero shadow APIs, so this must proceed and report "None found",
+        // not be treated the same as a missing controllerDirs entry and skipped with a [WARNING].
+        DetectShadowApisTask task = newTask();
+        task.getRootDocument().set(openApiFixture("single-endpoint.yaml"));
+        task.getReportDir().set(reportDir);
+        task.getReportFileName().set("shadow-apis.adoc");
+        task.getFailOnShadow().set(true);
+        task.getSystemUnderTestVersion().set("1.0.0");
+
+        task.generate();
+
+        String content = Files.readString(new File(reportDir, "shadow-apis.adoc").toPath());
+        assertThat(content).doesNotContain("[WARNING]").contains("None found.");
+    }
+
+    @Test
     @DisplayName("warns about one missing controllerDirs entry but still detects shadows from the entries that do exist")
     void warnsAboutOneMissingControllerDirButStillDetects() throws Exception {
         DetectShadowApisTask task = newTask();

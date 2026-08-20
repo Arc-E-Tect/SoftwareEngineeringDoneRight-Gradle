@@ -351,6 +351,10 @@ public abstract class DetectShadowApisTask extends DefaultTask {
                 missingControllerDirs.add(dir);
             }
         }
+        // Deliberately distinct from "controllerDirs has zero entries at all", which is a valid,
+        // complete input (nothing to scan by design) rather than a bootstrapping gap, and must not
+        // silently skip detection below.
+        boolean controllerSourceMissing = !missingControllerDirs.isEmpty() && !anyControllerDirExists;
         if (!missingControllerDirs.isEmpty()) {
             if (anyControllerDirExists) {
                 for (File dir : missingControllerDirs) {
@@ -385,7 +389,7 @@ public abstract class DetectShadowApisTask extends DefaultTask {
             warnings.add(describeMissingRootDocument());
         }
 
-        boolean inputComplete = openApiAvailable && anyControllerDirExists;
+        boolean inputComplete = openApiAvailable && !controllerSourceMissing;
         List<Endpoint> shadows = inputComplete ? new ShadowApiFinder().findShadows(endpoints, described) : List.of();
 
         Map<String, ContractProgressRecord> contractHistory = !getTrackContractHistory().get() ? Map.of()
