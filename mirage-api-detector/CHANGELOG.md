@@ -1,3 +1,44 @@
+# [4.0.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/mirage-api-detector-v3.0.0...mirage-api-detector-v4.0.0) (2026-08-20)
+
+
+### ⏪ Reverts
+
+* move jacoco-exclusion-report and gherkin-to-asciidoc semver scoping out of main ([#184](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/184)) ([31aaae5](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/31aaae5c55e35d1e10998d1e92cf603b5c4d866c)), closes [#184](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/184)
+
+
+### ✨ New and updated features
+
+* **shadow-api-detector:** add --scanForShadows to scan a single controller from the CLI ([#183](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/183)) ([e4f0e6d](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/e4f0e6da3fdadfa77fd0637bcfb230ddc64ac833)), closes [#183](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/183)
+
+
+### 🐛 Bug Fixes
+
+* add cross-plugin edge-case coverage ([#187](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/187)) ([71480ff](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/71480ffa0def70aa1e4ca8c39f87a21c609c1ce6)), closes [#187](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/187)
+* catalog example Gradle dependencies ([#186](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/186)) ([5a3994c](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/5a3994c355033bffc4f78475f8d2d38bd70187da)), closes [#186](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/186)
+* **shadow-api-detector:** don't fail the build on a missing rootDocument or controllerDirs ([#198](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/198)) ([534aad9](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/534aad950b43dd7bb3eb5ca4de73b41ef9cbd8d2)), closes [#198](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/198)
+* **mirage-api-detector:** don't fail the build on a missing rootDocument or controllerDirs ([#199](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/199)) ([962d629](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/962d629a98c08512f01b21f2a94aa7761c83edac)), closes [#199](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/199)
+* **api-only-suite:** forward basePath to mirageApiGapsForSuite ([#182](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/182)) ([ffcc8af](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/ffcc8af1740b333baf64ecd612470c50a054a109)), closes [#182](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/182) [#177](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/177)
+* **example-mirage-scan-mocks:** restore expected-failure behavior for CI gate ([#189](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/189)) ([ddbbede](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/ddbbedeccb4f144d0459352a0d9f734a8a5bf8e5)), closes [#189](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/189)
+* **gherkin-to-asciidoc:** support And/But glue and full Gherkin step keywords ([#197](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/197)) ([7b88725](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/7b88725d1d606288301e31a0aed56a41bb34ba60)), closes [#197](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/197)
+
+
+### 📝 Documentation
+
+* **readme:** add plugin versions to each plugin ([e2fae93](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/e2fae933ce4901431dec2f570a3c8473b3357702))
+
+
+### 🔧 Misc
+
+* dependency updates for Gradle plugin repository ([#188](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/188)) ([a650e7c](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/a650e7c01e4c092434230f18ebb8e5b6e7e197b9)), closes [#188](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/188)
+
+
+### BREAKING CHANGE
+
+* **shadow-api-detector:** the -PshadowApiDetector.updateContractHistory=<value>
+project property no longer has any effect. Use
+detectShadowApis --updateContractHistory / --no-updateContractHistory
+instead.
+
 # [3.0.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/mirage-api-detector-v2.0.0...mirage-api-detector-v3.0.0) (2026-08-17)
 
 
