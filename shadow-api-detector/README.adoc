@@ -90,6 +90,16 @@ plugins {
 This is a scope restriction of the current MVP, not a design limit: only `@RestController`-based endpoints are scanned, and only "exposed but undocumented" is reported (the reverse case - documented but unimplemented - is out of scope). Both may be lifted in a future release.
 ====
 
+== Missing rootDocument or controllerDirs
+
+A missing `rootDocument` file or a `controllerDirs` entry that doesn't exist yet is **not** a build failure - `detectShadowApis` still runs, still writes its report, and never fails the build because of it, regardless of `failOnShadow`. This matters for a build script bootstrapped ahead of the code it describes: a team scaffolding `shadowApiDetector { rootDocument = file('src/main/resources/openapi/openapi.yaml') }` as part of a project template shouldn't see every build break until that file - or the first `@RestController` - actually exists.
+
+Instead, the generated report opens with a `[WARNING]` admonition explaining exactly what's missing, and shadow API detection is skipped for that run rather than computed from incomplete input - comparing zero implemented endpoints against a real OpenAPI document (or vice versa) would otherwise report every endpoint on the other side as a false-positive shadow API. `trackContractHistory` is similarly left untouched for that run: the report still displays whatever was last legitimately persisted, but nothing is advanced or saved from a partial view, which would otherwise misrepresent every endpoint this run couldn't see as newly removed.
+
+If `controllerDirs` has more than one entry and *some*, but not all, exist, detection still proceeds normally using whichever ones do - only the missing entries are called out as individual warnings, without skipping the run entirely.
+
+This graceful handling applies only to the full-project scan. `--scanForShadows` (see "Command-line options" below) keeps its own, deliberately stricter behavior: a controller explicitly named on the command line that cannot be found - or an unconfigured `rootDocument` when using it - is a real usage error, not a bootstrapping gap, and still fails clearly.
+
 == Configuration
 
 The plugin registers a `shadowApiDetector` extension.
