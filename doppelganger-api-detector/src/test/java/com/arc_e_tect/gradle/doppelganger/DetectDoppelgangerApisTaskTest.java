@@ -71,11 +71,85 @@ class DetectDoppelgangerApisTaskTest {
     }
 
     @Test
-    @DisplayName("throws when rootDocument is not configured")
-    void throwsWhenRootDocumentNotConfigured() {
+    @DisplayName("does not throw when rootDocument is not configured, and warns instead")
+    void doesNotThrowWhenRootDocumentNotConfigured() throws Exception {
         DetectDoppelgangerApisTask task = newTask();
         task.getControllerDirs().from(controllerDir);
         task.getTestDirs().from(testDir);
+        task.getReportDir().set(reportDir);
+        task.getReportFileName().set("doppelganger-apis.adoc");
+        task.getFailOnDoppelganger().set(true);
+        task.getUseRestDocs().set(true);
+        task.getUseOpenApiRequestValidator().set(false);
+        task.getUseSpringCloudContract().set(false);
+        task.getSystemUnderTestVersion().set("1.0.0");
+
+        task.generate();
+
+        String content = Files.readString(new File(reportDir, "doppelganger-apis.adoc").toPath());
+        assertThat(content)
+                .contains("[WARNING]")
+                .contains("`rootDocument` is not configured yet")
+                .contains("None found.");
+    }
+
+    @Test
+    @DisplayName("does not throw when the configured rootDocument file does not exist")
+    void doesNotThrowWhenRootDocumentFileDoesNotExist() throws Exception {
+        File missing = new File(tempDir.toFile(), "openapi/does-not-exist.yaml");
+        DetectDoppelgangerApisTask task = newTask();
+        task.getControllerDirs().from(controllerDir);
+        task.getTestDirs().from(testDir);
+        task.getRootDocument().set(missing);
+        task.getReportDir().set(reportDir);
+        task.getReportFileName().set("doppelganger-apis.adoc");
+        task.getFailOnDoppelganger().set(true);
+        task.getUseRestDocs().set(true);
+        task.getUseOpenApiRequestValidator().set(false);
+        task.getUseSpringCloudContract().set(false);
+        task.getSystemUnderTestVersion().set("1.0.0");
+
+        task.generate();
+
+        String content = Files.readString(new File(reportDir, "doppelganger-apis.adoc").toPath());
+        assertThat(content)
+                .contains("[WARNING]")
+                .contains("does not exist yet: `" + missing + "`")
+                .contains("None found.");
+    }
+
+    @Test
+    @DisplayName("does not throw when none of the configured controllerDirs exist")
+    void doesNotThrowWhenNoControllerDirsExist() throws Exception {
+        File missing = new File(tempDir.toFile(), "src/main/java/does-not-exist");
+        DetectDoppelgangerApisTask task = newTask();
+        task.getControllerDirs().from(missing);
+        task.getTestDirs().from(testDir);
+        task.getRootDocument().set(openApiFixture("both-endpoints.yaml"));
+        task.getReportDir().set(reportDir);
+        task.getReportFileName().set("doppelganger-apis.adoc");
+        task.getFailOnDoppelganger().set(true);
+        task.getUseRestDocs().set(true);
+        task.getUseOpenApiRequestValidator().set(false);
+        task.getUseSpringCloudContract().set(false);
+        task.getSystemUnderTestVersion().set("1.0.0");
+
+        task.generate();
+
+        String content = Files.readString(new File(reportDir, "doppelganger-apis.adoc").toPath());
+        assertThat(content)
+                .contains("[WARNING]")
+                .contains("None of the configured `controllerDirs` exist yet")
+                .contains("None found.");
+    }
+
+    @Test
+    @DisplayName("does not treat an empty controllerDirs as a missing source")
+    void emptyControllerDirsIsNotTreatedAsAMissingSource() throws Exception {
+        File historyFile = new File(tempDir.toFile(), "contract-history.ndjson");
+        DetectDoppelgangerApisTask task = newTask();
+        task.getTestDirs().from(testDir);
+        task.getRootDocument().set(openApiFixture("both-endpoints.yaml"));
         task.getReportDir().set(reportDir);
         task.getReportFileName().set("doppelganger-apis.adoc");
         task.getFailOnDoppelganger().set(false);
@@ -83,10 +157,166 @@ class DetectDoppelgangerApisTaskTest {
         task.getUseOpenApiRequestValidator().set(false);
         task.getUseSpringCloudContract().set(false);
         task.getSystemUnderTestVersion().set("1.0.0");
+        task.getTrackContractHistory().set(true);
+        task.getContractHistoryFile().set(historyFile);
+        task.getUpdateContractHistory().set(true);
 
-        assertThatThrownBy(task::generate)
-                .isInstanceOf(GradleException.class)
-                .hasMessageContaining("rootDocument must be configured");
+        task.generate();
+
+        String content = Files.readString(new File(reportDir, "doppelganger-apis.adoc").toPath());
+        assertThat(content).doesNotContain("[WARNING]").contains("None found.");
+        assertThat(historyFile).exists();
+    }
+
+    @Test
+    @DisplayName("warns about one missing testDirs entry but still detects when another exists")
+    void warnsAboutOneMissingTestDirButStillDetects() throws Exception {
+        File missing = new File(tempDir.toFile(), "src/test/java/does-not-exist");
+        DetectDoppelgangerApisTask task = configuredTask(openApiFixture("both-endpoints.yaml"), false);
+        task.getTestDirs().from(missing);
+
+        task.generate();
+
+        String content = Files.readString(new File(reportDir, "doppelganger-apis.adoc").toPath());
+        assertThat(content)
+                .contains("[WARNING]")
+                .contains("Configured `testDirs` entry does not exist yet: `" + missing + "`")
+                .doesNotContain("None of the configured `testDirs` exist yet")
+                .contains("listOrders()")
+                .doesNotContain("getOrder()");
+    }
+
+    @Test
+    @DisplayName("suppresses detection when the only enabled verification source has no usable directory")
+    void suppressesDetectionWhenTheOnlyEnabledVerificationSourceHasNoUsableDirectory() throws Exception {
+        File missing = new File(tempDir.toFile(), "src/test/java/does-not-exist");
+        DetectDoppelgangerApisTask task = newTask();
+        task.getControllerDirs().from(controllerDir);
+        task.getTestDirs().from(missing);
+        task.getRootDocument().set(openApiFixture("both-endpoints.yaml"));
+        task.getReportDir().set(reportDir);
+        task.getReportFileName().set("doppelganger-apis.adoc");
+        task.getFailOnDoppelganger().set(true);
+        task.getUseRestDocs().set(true);
+        task.getUseOpenApiRequestValidator().set(false);
+        task.getUseSpringCloudContract().set(false);
+        task.getSystemUnderTestVersion().set("1.0.0");
+
+        task.generate();
+
+        String content = Files.readString(new File(reportDir, "doppelganger-apis.adoc").toPath());
+        assertThat(content)
+                .contains("[WARNING]")
+                .contains("None of the configured `testDirs` exist yet")
+                .contains("None found.");
+    }
+
+    @Test
+    @DisplayName("does not suppress detection when at least one enabled verification source is usable")
+    void doesNotSuppressWhenAtLeastOneEnabledSourceIsUsable() throws Exception {
+        File missing = new File(tempDir.toFile(), "src/test/java/does-not-exist");
+        File contractsDir = new File(tempDir.toFile(), "src/contractTest/resources/contracts");
+        Files.createDirectories(contractsDir.toPath());
+        Files.writeString(contractsDir.toPath().resolve("shouldListOrders.yml"), """
+                request:
+                  method: GET
+                  urlPath: /orders
+                response:
+                  status: 200
+                """);
+
+        DetectDoppelgangerApisTask task = newTask();
+        task.getControllerDirs().from(controllerDir);
+        task.getTestDirs().from(missing);
+        task.getContractsDir().set(contractsDir);
+        task.getRootDocument().set(openApiFixture("both-endpoints.yaml"));
+        task.getReportDir().set(reportDir);
+        task.getReportFileName().set("doppelganger-apis.adoc");
+        task.getFailOnDoppelganger().set(false);
+        task.getUseRestDocs().set(true);
+        task.getUseOpenApiRequestValidator().set(false);
+        task.getUseSpringCloudContract().set(true);
+        task.getSystemUnderTestVersion().set("1.0.0");
+
+        task.generate();
+
+        String content = Files.readString(new File(reportDir, "doppelganger-apis.adoc").toPath());
+        assertThat(content)
+                .contains("[WARNING]")
+                .contains("None of the configured `testDirs` exist yet")
+                .contains("getOrder()")
+                .doesNotContain("listOrders()");
+    }
+
+    @Test
+    @DisplayName("warns when a configured contractsDir does not exist")
+    void warnsWhenConfiguredContractsDirDoesNotExist() throws Exception {
+        File missingContractsDir = new File(tempDir.toFile(), "src/contractTest/resources/does-not-exist");
+        DetectDoppelgangerApisTask task = newTask();
+        task.getControllerDirs().from(controllerDir);
+        task.getTestDirs().from(testDir);
+        task.getContractsDir().set(missingContractsDir);
+        task.getRootDocument().set(openApiFixture("both-endpoints.yaml"));
+        task.getReportDir().set(reportDir);
+        task.getReportFileName().set("doppelganger-apis.adoc");
+        task.getFailOnDoppelganger().set(false);
+        task.getUseRestDocs().set(true);
+        task.getUseOpenApiRequestValidator().set(false);
+        task.getUseSpringCloudContract().set(true);
+        task.getSystemUnderTestVersion().set("1.0.0");
+
+        task.generate();
+
+        String content = Files.readString(new File(reportDir, "doppelganger-apis.adoc").toPath());
+        assertThat(content)
+                .contains("[WARNING]")
+                .contains("Configured `contractsDir` does not exist yet: `" + missingContractsDir + "`");
+    }
+
+    @Test
+    @DisplayName("does not warn when contractsDir is left unset while useSpringCloudContract is enabled")
+    void doesNotWarnWhenContractsDirIsUnsetWhileSpringCloudContractIsEnabled() throws Exception {
+        DetectDoppelgangerApisTask task = configuredTask(openApiFixture("both-endpoints.yaml"), false);
+        task.getUseSpringCloudContract().set(true);
+
+        task.generate();
+
+        String content = Files.readString(new File(reportDir, "doppelganger-apis.adoc").toPath());
+        assertThat(content).doesNotContain("contractsDir");
+    }
+
+    @Test
+    @DisplayName("leaves contract history untouched when this run's input is incomplete")
+    void leavesContractHistoryUntouchedWhenInputIsIncomplete() throws Exception {
+        File historyFile = new File(tempDir.toFile(), "contract-history.ndjson");
+        DetectDoppelgangerApisTask seedTask = configuredTask(openApiFixture("both-endpoints.yaml"), false);
+        seedTask.getTrackContractHistory().set(true);
+        seedTask.getContractHistoryFile().set(historyFile);
+        seedTask.getUpdateContractHistory().set(true);
+        seedTask.generate();
+        String seededContent = Files.readString(historyFile.toPath());
+
+        DetectDoppelgangerApisTask incompleteTask = project.getTasks()
+                .create("detectDoppelgangerApisWithIncompleteInput", DetectDoppelgangerApisTask.class);
+        incompleteTask.getControllerDirs().from(new File(tempDir.toFile(), "src/main/java/does-not-exist"));
+        incompleteTask.getTestDirs().from(testDir);
+        incompleteTask.getRootDocument().set(openApiFixture("both-endpoints.yaml"));
+        incompleteTask.getReportDir().set(reportDir);
+        incompleteTask.getReportFileName().set("doppelganger-apis.adoc");
+        incompleteTask.getFailOnDoppelganger().set(false);
+        incompleteTask.getUseRestDocs().set(true);
+        incompleteTask.getUseOpenApiRequestValidator().set(false);
+        incompleteTask.getUseSpringCloudContract().set(false);
+        incompleteTask.getSystemUnderTestVersion().set("1.0.0");
+        incompleteTask.getTrackContractHistory().set(true);
+        incompleteTask.getContractHistoryFile().set(historyFile);
+        incompleteTask.getUpdateContractHistory().set(true);
+
+        incompleteTask.generate();
+
+        assertThat(Files.readString(historyFile.toPath())).isEqualTo(seededContent);
+        String reportContent = Files.readString(new File(reportDir, "doppelganger-apis.adoc").toPath());
+        assertThat(reportContent).contains("== Progress Over Time").contains("Tracked since");
     }
 
     @Test

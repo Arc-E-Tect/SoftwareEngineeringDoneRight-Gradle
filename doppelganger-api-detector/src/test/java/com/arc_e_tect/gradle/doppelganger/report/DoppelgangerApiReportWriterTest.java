@@ -151,4 +151,31 @@ class DoppelgangerApiReportWriterTest {
                 .contains("2026-01-14 09:02:11 UTC")
                 .doesNotContain("2026-01-14T09:02:11Z");
     }
+
+    @Test
+    @DisplayName("omits the WARNING admonition when there are no warnings")
+    void omitsWarningAdmonitionWhenThereAreNoWarnings(@TempDir Path tempDir) throws Exception {
+        File output = new File(tempDir.toFile(), "report.adoc");
+
+        writer.write(output, 0, List.of(), "1.0.0", List.of(), Map.of());
+
+        assertThat(Files.readString(output.toPath())).doesNotContain("[WARNING]");
+    }
+
+    @Test
+    @DisplayName("renders warnings as a WARNING admonition")
+    void rendersWarningsAsAWarningAdmonition(@TempDir Path tempDir) throws Exception {
+        File output = new File(tempDir.toFile(), "report.adoc");
+        List<String> warnings = List.of(
+                "`rootDocument` is not configured yet.", "Configured `testDirs` entry does not exist yet: `x`.");
+
+        writer.write(output, 0, List.of(), "1.0.0", warnings, Map.of());
+
+        String content = Files.readString(output.toPath());
+        assertThat(content)
+                .contains("[WARNING]")
+                .contains("====")
+                .contains("* `rootDocument` is not configured yet.")
+                .contains("* Configured `testDirs` entry does not exist yet: `x`.");
+    }
 }

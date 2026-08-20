@@ -105,6 +105,18 @@ doppelgangerApiDetector {
 }
 ----
 
+== Missing rootDocument, controllerDirs, testDirs, or contractsDir
+
+A missing `rootDocument` file, a `controllerDirs` entry that doesn't exist yet, or - for a currently enabled verification source - a `testDirs`/`contractsDir` entry it depends on with none of the currently enabled sources able to gather any evidence at all, is **not** a build failure - `detectDoppelgangerApis` still runs, still writes its report, and never fails the build because of it, regardless of `failOnDoppelganger`. This matters for a build script bootstrapped ahead of the code it describes: a team scaffolding `doppelgangerApiDetector { rootDocument = file('src/main/resources/openapi/openapi.yaml') }` as part of a project template shouldn't see every build break until that file, the first `@RestController`, or the first verification test actually exists.
+
+Instead, the generated report opens with a `[WARNING]` admonition explaining exactly what's missing, and doppelganger API detection is skipped for that run rather than computed from incomplete input - comparing a real OpenAPI document against zero implemented endpoints, or checking for verification evidence that could not possibly have been gathered, would otherwise report every candidate endpoint as a false-positive doppelganger API. `trackContractHistory` is similarly left untouched for that run: the report still displays whatever was last legitimately persisted, but nothing is advanced or saved from a partial view, which would otherwise misrepresent every endpoint this run couldn't see as newly removed.
+
+If `controllerDirs` or `testDirs` has more than one entry and *some*, but not all, exist, detection still proceeds normally using whichever ones do - only the missing entries are called out as individual warnings, without skipping the run entirely. Either one left with **zero** entries configured at all (rather than one that doesn't exist) is treated as a deliberate, valid setup, not a gap, and never warns.
+
+`testDirs` is shared by the Spring RestDocs and OpenAPI request validator sources, so a missing entry only counts as a gap - and only warns - when at least one of those two sources is actually enabled; both are still scanned, even when every `testDirs` entry is missing, since a directory containing no matching evidence looks identical to a scanner as one that doesn't exist yet. Detection is only suppressed when *every currently enabled* source has no usable directory to scan - a single enabled source with real evidence available is enough for the run to be considered complete, even if another enabled source's directory happens to be missing; that source simply contributes no evidence for this run, the same as if it had genuinely found none.
+
+`contractsDir` behaves slightly differently: most projects have no `contracts` directory at all, so leaving it entirely unset while `useSpringCloudContract` is enabled is treated as a deliberate choice to offer no Spring Cloud Contract evidence, not a bootstrapping gap - it neither warns nor counts towards suppression. Only a `contractsDir` that *is* configured but doesn't exist on disk yet triggers a warning.
+
 == Configuration
 
 The plugin registers a `doppelgangerApiDetector` extension.

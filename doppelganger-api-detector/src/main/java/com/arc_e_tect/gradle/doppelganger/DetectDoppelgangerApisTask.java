@@ -24,8 +24,6 @@ import org.gradle.api.file.DirectoryProperty;
 import org.gradle.api.file.RegularFileProperty;
 import org.gradle.api.provider.Property;
 import org.gradle.api.tasks.Input;
-import org.gradle.api.tasks.InputDirectory;
-import org.gradle.api.tasks.InputFile;
 import org.gradle.api.tasks.InputFiles;
 import org.gradle.api.tasks.Internal;
 import org.gradle.api.tasks.Optional;
@@ -77,9 +75,18 @@ public abstract class DetectDoppelgangerApisTask extends DefaultTask {
     /**
      * The root OpenAPI document describing the API.
      *
+     * <p>Validated as {@code @InputFiles} rather than {@code @InputFile}, and {@code @Optional}:
+     * unlike {@code @InputFile}, neither requires a value to be present nor the configured file to
+     * actually exist. A team bootstrapping a build script for a project whose OpenAPI documentation
+     * doesn't exist yet - or hasn't been configured yet - should get a report with a
+     * {@code WARNING} admonition explaining that from {@link #generate()}, not an opaque Gradle
+     * input-validation failure before the task action ever runs; see
+     * {@link #describeMissingRootDocument()}.</p>
+     *
      * @return mutable file property for the root OpenAPI document
      */
-    @InputFile
+    @Optional
+    @InputFiles
     @PathSensitive(PathSensitivity.RELATIVE)
     public abstract RegularFileProperty getRootDocument();
 
@@ -87,10 +94,14 @@ public abstract class DetectDoppelgangerApisTask extends DefaultTask {
      * Directory where OpenAPI descriptions are stored, tracked so that changes to any document
      * reachable from {@link #getRootDocument()} invalidate the task's cached result.
      *
+     * <p>Validated as {@code @InputFiles} rather than {@code @InputDirectory} for the same reason as
+     * {@link #getRootDocument()}: it defaults to that file's own parent directory, which does not
+     * exist either when the file itself does not.</p>
+     *
      * @return mutable directory property for the OpenAPI description directory
      */
     @Optional
-    @InputDirectory
+    @InputFiles
     @PathSensitive(PathSensitivity.RELATIVE)
     public abstract DirectoryProperty getOpenApiDir();
 
@@ -234,22 +245,58 @@ public abstract class DetectDoppelgangerApisTask extends DefaultTask {
      * endpoints both declared and implemented, scans the enabled verification sources, writes the
      * doppelganger API report, and - when {@link #getFailOnDoppelganger()} is {@code true} - fails
      * the build if any doppelganger API was found.
+     *
+     * <p>A missing {@link #getRootDocument()}, empty {@link #getControllerDirs()}, or - for an
+     * enabled verification source - a missing {@link #getTestDirs()}/{@link #getContractsDir()} it
+     * depends on with none of its currently-enabled sources able to gather any evidence at all - e.g.
+     * a build script bootstrapped for a project whose OpenAPI documentation, controllers, or test
+     * evidence don't exist yet - is <em>not</em> a build failure: it is recorded as a {@code WARNING}
+     * admonition in the generated report instead, and doppelganger API detection (and, deliberately,
+     * contract history advancement - see {@link #loadContractHistoryForDisplay()}) is skipped for
+     * this run rather than computed from incomplete input and risking a false positive. A missing
+     * directory for a source that is <em>not</em> enabled, or {@link #getContractsDir()} left unset
+     * entirely while {@link #getUseSpringCloudContract()} is enabled, is a deliberate, complete
+     * configuration rather than a gap, and neither warns nor suppresses detection.</p>
+     *
+     * <p>The build still fails when a doppelganger API is genuinely found and
+     * {@link #getFailOnDoppelganger()} is {@code true} - the one failure condition this task ever
+     * raises on its own initiative, per this plugin's design: fail only on a real finding the DSL
+     * asked to fail on, never on merely incomplete input.</p>
      */
     @TaskAction
     public void generate() {
-        if (!getRootDocument().isPresent()) {
-            throw new GradleException("doppelgangerApiDetector: rootDocument must be configured - "
-                    + "it is the required root OpenAPI document.");
+        List<String> warnings = new ArrayList<>();
+
+        List<File> missingControllerDirs = new ArrayList<>();
+        List<File> controllerFiles = new ArrayList<>();
+        boolean anyControllerDirExists = false;
+        for (File dir : getControllerDirs()) {
+            if (dir.isDirectory()) {
+                anyControllerDirExists = true;
+                controllerFiles.addAll(collectJavaFiles(dir));
+            } else {
+                missingControllerDirs.add(dir);
+            }
+        }
+        // Deliberately distinct from "controllerDirs has zero entries at all", which is a valid,
+        // complete input (nothing to scan by design) rather than a bootstrapping gap, and must not
+        // silently skip detection below.
+        boolean controllerSourceMissing = !missingControllerDirs.isEmpty() && !anyControllerDirExists;
+        if (!missingControllerDirs.isEmpty()) {
+            if (anyControllerDirExists) {
+                for (File dir : missingControllerDirs) {
+                    warnings.add("Configured `controllerDirs` entry does not exist yet: `" + dir + "`.");
+                }
+            } else {
+                warnings.add("None of the configured `controllerDirs` exist yet. Doppelganger API detection "
+                        + "was skipped for this run - once at least one exists, re-run this task to check it.");
+            }
         }
 
         int totalPhases = countTotalPhases();
         int phase = 0;
 
         phase = announcePhase(phase, totalPhases, "Scanning @RestController classes...");
-        List<File> controllerFiles = new ArrayList<>();
-        for (File dir : getControllerDirs()) {
-            controllerFiles.addAll(collectJavaFiles(dir));
-        }
         ControllerScanner controllerScanner = new ControllerScanner();
         List<Endpoint> implemented = new ArrayList<>();
         ScanProgressReporter controllerScanProgress = ScanProgressReporter.determinate(
@@ -265,28 +312,38 @@ public abstract class DetectDoppelgangerApisTask extends DefaultTask {
         controllerScanProgress.complete();
 
         phase = announcePhase(phase, totalPhases, "Collecting OpenAPI endpoints...");
-        File rootDocument = getRootDocument().getAsFile().get();
-        ScanProgressReporter openApiProgress =
-                ScanProgressReporter.indeterminate(getLogger(), "Resolving OpenAPI documents");
-        List<DescribedEndpoint> described = new OpenApiEndpointCollector()
-                .collect(rootDocument, file -> openApiProgress.step());
-        openApiProgress.complete();
+        boolean openApiAvailable = isRootDocumentAvailable();
+        File rootDocument = openApiAvailable ? getRootDocument().getAsFile().get() : null;
+        List<DescribedEndpoint> described;
+        if (openApiAvailable) {
+            ScanProgressReporter openApiProgress =
+                    ScanProgressReporter.indeterminate(getLogger(), "Resolving OpenAPI documents");
+            described = new OpenApiEndpointCollector().collect(rootDocument, file -> openApiProgress.step());
+            openApiProgress.complete();
+        } else {
+            described = List.of();
+            warnings.add(describeMissingRootDocument());
+        }
 
         List<Endpoint> declaredAndImplemented = ContractSetOperations.intersection(implemented, described);
 
-        List<Endpoint> verified = collectVerifiedEndpoints(phase, totalPhases, rootDocument);
+        VerificationScan verificationScan = collectVerifiedEndpoints(phase, totalPhases, rootDocument, warnings);
+        List<Endpoint> verified = verificationScan.endpoints();
 
-        List<Endpoint> doppelgangers = new DoppelgangerApiFinder()
-                .findDoppelgangers(declaredAndImplemented, verified);
+        boolean inputComplete =
+                openApiAvailable && !controllerSourceMissing && !verificationScan.verificationInputMissing();
+        List<Endpoint> doppelgangers = inputComplete
+                ? new DoppelgangerApiFinder().findDoppelgangers(declaredAndImplemented, verified) : List.of();
 
-        Map<String, ContractProgressRecord> contractHistory = getTrackContractHistory().get()
-                ? updateContractHistory(implemented, described, verified) : Map.of();
+        Map<String, ContractProgressRecord> contractHistory = !getTrackContractHistory().get() ? Map.of()
+                : inputComplete ? updateContractHistory(implemented, described, verified)
+                        : loadContractHistoryForDisplay();
 
         File outputDir = getReportDir().getAsFile().get();
         File outputFile = new File(outputDir, getReportFileName().get());
         try {
             new DoppelgangerApiReportWriter().write(outputFile, declaredAndImplemented.size(), doppelgangers,
-                    getSystemUnderTestVersion().get(), contractHistory);
+                    getSystemUnderTestVersion().get(), warnings, contractHistory);
         } catch (IOException e) {
             throw new GradleException("doppelgangerApiDetector: failed to write report to " + outputFile, e);
         }
@@ -300,6 +357,51 @@ public abstract class DetectDoppelgangerApisTask extends DefaultTask {
             throw new GradleException("doppelgangerApiDetector: found " + doppelgangers.size()
                     + " doppelganger API(s) declared and implemented but not verified by any configured "
                     + "contract verification source. See " + outputFile);
+        }
+    }
+
+    /**
+     * Whether {@link #getRootDocument()} is both configured and points to a file that actually
+     * exists - the precondition for OpenAPI-based comparison being meaningful at all.
+     */
+    private boolean isRootDocumentAvailable() {
+        return getRootDocument().isPresent() && getRootDocument().getAsFile().get().isFile();
+    }
+
+    /**
+     * The {@code WARNING} admonition line explaining why doppelganger API detection was skipped -
+     * distinguishing "never configured" from "configured, but the file doesn't exist yet", since the
+     * former needs no path in the message and the latter does.
+     */
+    private String describeMissingRootDocument() {
+        if (!getRootDocument().isPresent()) {
+            return "`rootDocument` is not configured yet. Doppelganger API detection was skipped for this "
+                    + "run - configure it once your OpenAPI documentation exists.";
+        }
+        return "The configured `rootDocument` does not exist yet: `" + getRootDocument().getAsFile().get()
+                + "`. Doppelganger API detection was skipped for this run - once the file exists, re-run this "
+                + "task to check it.";
+    }
+
+    /**
+     * Loads {@link #getContractHistoryFile()} as-is, for display in the report's
+     * {@code == Progress Over Time} section, without advancing or saving it. Used in place of
+     * {@link #updateContractHistory(List, List, List)} whenever this run's input is incomplete (see
+     * {@link #generate()}): advancing history from a partial view - e.g. an empty {@code implementedNow}
+     * purely because {@link #getControllerDirs()} doesn't exist yet, not because every
+     * previously-implemented endpoint was actually removed - would misrepresent every endpoint this
+     * run couldn't see as newly removed. The persisted file itself is left untouched either way; only
+     * the report's display of it is affected.
+     */
+    private Map<String, ContractProgressRecord> loadContractHistoryForDisplay() {
+        File historyFile = getContractHistoryFile().getAsFile().get();
+        try {
+            return new ContractHistoryStore().load(historyFile);
+        } catch (LegacyContractHistoryFormatException e) {
+            throw new GradleException("doppelgangerApiDetector: " + historyFile + " is in the old 9-field "
+                    + "contract history format (missing 'stubbedAt'). Apply the mirage-api-detector plugin "
+                    + "and run its 'migrateContractHistory' task against this file to upgrade it in place, "
+                    + "or point contractHistoryFile at a new location to start a fresh history.", e);
         }
     }
 
@@ -333,28 +435,106 @@ public abstract class DetectDoppelgangerApisTask extends DefaultTask {
         return updated;
     }
 
-    private List<Endpoint> collectVerifiedEndpoints(int phase, int totalPhases, File rootDocument) {
+    /**
+     * The endpoints found by every enabled verification source, together with whether at least one
+     * currently-enabled source was unable to gather any evidence at all because the directory it
+     * depends on doesn't exist - the signal {@link #generate()} uses to decide whether to suppress
+     * doppelganger computation for this run.
+     *
+     * @param endpoints                the endpoints found by every enabled verification source,
+     *                                  combined
+     * @param verificationInputMissing whether at least one enabled source could gather no evidence
+     *                                  because its required directory is missing
+     */
+    private record VerificationScan(List<Endpoint> endpoints, boolean verificationInputMissing) {}
+
+    /**
+     * Scans every enabled verification source, collecting a {@code WARNING} for each configured
+     * {@link #getTestDirs()}/{@link #getContractsDir()} entry that doesn't exist yet, and computing
+     * whether every currently-enabled source was left with no usable directory to scan at all.
+     *
+     * <p>{@link #getTestDirs()} is shared by the Spring RestDocs and OpenAPI request validator
+     * sources: a missing entry is only reported, and only counts towards suppression, when at least
+     * one of those two sources is actually enabled. Both are still scanned - and announced - even
+     * when every {@code testDirs} entry is missing, since a directory that simply contains no
+     * matching evidence is indistinguishable from one that doesn't exist yet, at the scanner level.
+     * Spring Cloud Contract's phase, by contrast, is only announced and scanned when
+     * {@link #getContractsDir()} is both configured and exists - most projects have no
+     * {@code contracts} directory at all, and {@link #getContractsDir()} being left entirely unset
+     * while {@link #getUseSpringCloudContract()} is enabled is treated as a deliberate choice to
+     * offer no Spring Cloud Contract evidence, not a bootstrapping gap, so it neither warns nor
+     * counts towards suppression.</p>
+     *
+     * <p>Detection is only suppressed when <em>every</em> currently-enabled source has no usable
+     * directory - a single enabled source with real evidence available is enough for the run to be
+     * considered complete, even if another enabled source's directory is missing (that source simply
+     * contributes no evidence this run, same as if it had found none).</p>
+     */
+    private VerificationScan collectVerifiedEndpoints(
+            int phase, int totalPhases, File rootDocument, List<String> warnings) {
+        boolean useRestDocs = getUseRestDocs().get();
+        boolean useOpenApiRequestValidator = getUseOpenApiRequestValidator().get();
+        boolean useSpringCloudContract = getUseSpringCloudContract().get();
+
+        boolean testDirsNeeded = useRestDocs || useOpenApiRequestValidator;
+        List<File> missingTestDirs = new ArrayList<>();
+        boolean anyTestDirExists = false;
+        if (testDirsNeeded) {
+            for (File dir : getTestDirs()) {
+                if (dir.isDirectory()) {
+                    anyTestDirExists = true;
+                } else {
+                    missingTestDirs.add(dir);
+                }
+            }
+            if (!missingTestDirs.isEmpty()) {
+                if (anyTestDirExists) {
+                    for (File dir : missingTestDirs) {
+                        warnings.add("Configured `testDirs` entry does not exist yet: `" + dir + "`.");
+                    }
+                } else {
+                    warnings.add("None of the configured `testDirs` exist yet, so no Spring RestDocs or "
+                            + "OpenAPI request validator verification evidence could be gathered for this run.");
+                }
+            }
+        }
+        boolean testDirsSourceMissing = testDirsNeeded && !missingTestDirs.isEmpty() && !anyTestDirExists;
+
+        boolean contractsDirConfigured = getContractsDir().isPresent();
+        File contractsDir = contractsDirConfigured ? getContractsDir().getAsFile().get() : null;
+        boolean contractsDirExists = contractsDirConfigured && contractsDir.isDirectory();
+        boolean contractsDirSourceMissing = useSpringCloudContract && contractsDirConfigured && !contractsDirExists;
+        if (contractsDirSourceMissing) {
+            warnings.add("Configured `contractsDir` does not exist yet: `" + contractsDir + "`.");
+        }
+
         List<Endpoint> verified = new ArrayList<>();
         try {
-            if (getUseRestDocs().get()) {
+            if (useRestDocs) {
                 phase = announcePhase(phase, totalPhases, "Scanning Spring RestDocs verification evidence...");
-                String serverBasePath = OpenApiServerBasePath.resolve(rootDocument);
+                String serverBasePath = rootDocument == null ? "" : OpenApiServerBasePath.resolve(rootDocument);
                 verified.addAll(scanTestDirs(new RestDocsScanner(serverBasePath)));
             }
-            if (getUseOpenApiRequestValidator().get()) {
+            if (useOpenApiRequestValidator) {
                 phase = announcePhase(phase, totalPhases,
                         "Scanning OpenAPI request validator verification evidence...");
                 verified.addAll(scanTestDirs(new OpenApiRequestValidatorScanner()));
             }
-            if (getUseSpringCloudContract().get() && getContractsDir().isPresent()) {
+            if (useSpringCloudContract && contractsDirExists) {
                 announcePhase(phase, totalPhases, "Scanning Spring Cloud Contract verification evidence...");
-                File contractsDir = getContractsDir().getAsFile().get();
                 verified.addAll(new SpringCloudContractScanner().scan(contractsDir));
             }
         } catch (IOException e) {
             throw new GradleException("doppelgangerApiDetector: failed to scan verification evidence", e);
         }
-        return verified;
+
+        boolean anySourceEnabled = useRestDocs || useOpenApiRequestValidator || useSpringCloudContract;
+        boolean anyEnabledSourceUsable = (useRestDocs && !testDirsSourceMissing)
+                || (useOpenApiRequestValidator && !testDirsSourceMissing)
+                || (useSpringCloudContract && !contractsDirSourceMissing);
+        boolean verificationInputMissing = anySourceEnabled && !anyEnabledSourceUsable;
+
+        return new VerificationScan(verified, verificationInputMissing);
     }
 
     /**
@@ -372,7 +552,8 @@ public abstract class DetectDoppelgangerApisTask extends DefaultTask {
         if (getUseOpenApiRequestValidator().get()) {
             total++;
         }
-        if (getUseSpringCloudContract().get() && getContractsDir().isPresent()) {
+        if (getUseSpringCloudContract().get() && getContractsDir().isPresent()
+                && getContractsDir().getAsFile().get().isDirectory()) {
             total++;
         }
         return total;
