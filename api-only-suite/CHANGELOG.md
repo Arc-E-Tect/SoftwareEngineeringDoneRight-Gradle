@@ -1,3 +1,10 @@
+## [3.0.9](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/api-only-suite-v3.0.8...api-only-suite-v3.0.9) (2026-08-20)
+
+
+### 🐛 Bug Fixes
+
+* **doppelganger-api-detector:** bump api-detector-core to 1.2.1 ([#204](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/204)) ([121b568](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/121b5689b7f91f951ace91d409eb5162dab48e04)), closes [#204](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/204)
+
 ## [3.0.8](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/api-only-suite-v3.0.7...api-only-suite-v3.0.8) (2026-08-20)
 
 
