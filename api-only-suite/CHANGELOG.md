@@ -1,3 +1,10 @@
+## [3.0.5](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/api-only-suite-v3.0.4...api-only-suite-v3.0.5) (2026-08-20)
+
+
+### 🐛 Bug Fixes
+
+* **doppelganger-api-detector:** don't hard-fail on missing rootDocument/controllerDirs/testDirs/contractsDir ([#200](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/200)) ([6ca94ed](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/6ca94eda1ef95aead7b165f6be79c1f6ae23497a)), closes [#200](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/200) [#198](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/198) [#199](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/199)
+
 ## [3.0.4](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/api-only-suite-v3.0.3...api-only-suite-v3.0.4) (2026-08-20)
 
 
