@@ -1,3 +1,17 @@
+## [3.0.3](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/api-only-suite-v3.0.2...api-only-suite-v3.0.3) (2026-08-20)
+
+
+### 🐛 Bug Fixes
+
+* **shadow-api-detector:** don't fail the build on a missing rootDocument or controllerDirs ([#198](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/198)) ([534aad9](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/534aad950b43dd7bb3eb5ca4de73b41ef9cbd8d2)), closes [#198](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/198)
+* **example-mirage-scan-mocks:** restore expected-failure behavior for CI gate ([#189](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/189)) ([ddbbede](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/ddbbedeccb4f144d0459352a0d9f734a8a5bf8e5)), closes [#189](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/189)
+* **gherkin-to-asciidoc:** support And/But glue and full Gherkin step keywords ([#197](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/197)) ([7b88725](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/7b88725d1d606288301e31a0aed56a41bb34ba60)), closes [#197](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/197)
+
+
+### 📝 Documentation
+
+* **readme:** add plugin versions to each plugin ([e2fae93](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/e2fae933ce4901431dec2f570a3c8473b3357702))
+
 ## [3.0.2](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/api-only-suite-v3.0.1...api-only-suite-v3.0.2) (2026-08-18)
 
 
