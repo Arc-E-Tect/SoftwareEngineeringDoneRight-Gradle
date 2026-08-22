@@ -129,6 +129,7 @@ class ApiOnlySuitePluginTest {
         Project project = projectWithPlugin();
         File rootDocument = new File(tempDir.toFile(), "openapi.yaml");
         suiteExtension(project).getRootDocument().set(rootDocument);
+        shadowExtension(project).getExcludePaths().add("/actuator/health");
 
         ((ProjectInternal) project).evaluate();
 
@@ -140,6 +141,8 @@ class ApiOnlySuitePluginTest {
                 .isEqualTo(shadowTask(project).getReportDir().get().getAsFile());
         assertThat(shadowForSuiteTask(project).getReportFileName().get())
                 .isEqualTo(shadowTask(project).getReportFileName().get());
+        assertThat(shadowForSuiteTask(project).getExcludePaths().get())
+                .isEqualTo(shadowTask(project).getExcludePaths().get());
     }
 
     @Test
@@ -152,6 +155,7 @@ class ApiOnlySuitePluginTest {
         mirageExtension(project).getScanMocks().set(true);
         mirageExtension(project).getStubDirs().from(stubDir);
         mirageExtension(project).getBasePath().set("/crm-service");
+        mirageExtension(project).getExcludeWellKnown().add("spring-boot-actuator");
 
         ((ProjectInternal) project).evaluate();
 
@@ -169,6 +173,8 @@ class ApiOnlySuitePluginTest {
                 .isEqualTo(mirageTask(project).getReportDir().get().getAsFile());
         assertThat(mirageForSuiteTask(project).getReportFileName().get())
                 .isEqualTo(mirageTask(project).getReportFileName().get());
+        assertThat(mirageForSuiteTask(project).getExcludeWellKnown().get())
+                .isEqualTo(mirageTask(project).getExcludeWellKnown().get());
     }
 
     @Test
@@ -277,6 +283,79 @@ class ApiOnlySuitePluginTest {
 
         assertThat(shadowTask(project).getControllerDirs().getFiles())
                 .containsExactly(new File(project.getProjectDir(), "src/main/java"));
+    }
+
+    @Test
+    @DisplayName("forwards apiOnlySuite.excludePaths to all three plugins when none set it directly")
+    void suiteExcludePathsForwardedWhenNotSetDirectly() {
+        Project project = projectWithPlugin();
+        suiteExtension(project).getRootDocument().set(new File(tempDir.toFile(), "openapi.yaml"));
+        suiteExtension(project).getExcludePaths().add("/actuator/health");
+
+        ((ProjectInternal) project).evaluate();
+
+        assertThat(java.util.List.of(
+                shadowTask(project).getExcludePaths().get(),
+                mirageTask(project).getExcludePaths().get(),
+                doppelgangerTask(project).getExcludePaths().get()))
+                .containsOnly(java.util.List.of("/actuator/health"));
+    }
+
+    @Test
+    @DisplayName("shadowApiDetector's own excludePaths wins over apiOnlySuite's excludePaths")
+    void perPluginExcludePathsOverridesSuiteExcludePaths() {
+        Project project = projectWithPlugin();
+        suiteExtension(project).getRootDocument().set(new File(tempDir.toFile(), "openapi.yaml"));
+        suiteExtension(project).getExcludePaths().add("/actuator/health");
+        shadowExtension(project).getExcludePaths().add("/actuator/info");
+
+        ((ProjectInternal) project).evaluate();
+
+        assertThat(shadowTask(project).getExcludePaths().get()).containsExactly("/actuator/info");
+    }
+
+    @Test
+    @DisplayName("forwards apiOnlySuite.excludeFiles to all three plugins when none set it directly")
+    void suiteExcludeFilesForwardedWhenNotSetDirectly() {
+        Project project = projectWithPlugin();
+        File exclusionsFile = new File(tempDir.toFile(), "exclusions.yaml");
+        suiteExtension(project).getRootDocument().set(new File(tempDir.toFile(), "openapi.yaml"));
+        suiteExtension(project).getExcludeFiles().from(exclusionsFile);
+
+        ((ProjectInternal) project).evaluate();
+
+        assertThat(mirageTask(project).getExcludeFiles().getFiles()).containsExactly(exclusionsFile);
+    }
+
+    @Test
+    @DisplayName("shadowApiDetector's own excludeFiles wins over apiOnlySuite's excludeFiles")
+    void perPluginExcludeFilesOverridesSuiteExcludeFiles() {
+        Project project = projectWithPlugin();
+        File suiteFile = new File(tempDir.toFile(), "suite-exclusions.yaml");
+        File shadowFile = new File(tempDir.toFile(), "shadow-exclusions.yaml");
+        suiteExtension(project).getRootDocument().set(new File(tempDir.toFile(), "openapi.yaml"));
+        suiteExtension(project).getExcludeFiles().from(suiteFile);
+        shadowExtension(project).getExcludeFiles().from(shadowFile);
+
+        ((ProjectInternal) project).evaluate();
+
+        assertThat(shadowTask(project).getExcludeFiles().getFiles()).containsExactly(shadowFile);
+    }
+
+    @Test
+    @DisplayName("forwards apiOnlySuite.excludeWellKnown to all three plugins when none set it directly")
+    void suiteExcludeWellKnownForwardedWhenNotSetDirectly() {
+        Project project = projectWithPlugin();
+        suiteExtension(project).getRootDocument().set(new File(tempDir.toFile(), "openapi.yaml"));
+        suiteExtension(project).getExcludeWellKnown().add("spring-boot-actuator");
+
+        ((ProjectInternal) project).evaluate();
+
+        assertThat(java.util.List.of(
+                shadowTask(project).getExcludeWellKnown().get(),
+                mirageTask(project).getExcludeWellKnown().get(),
+                doppelgangerTask(project).getExcludeWellKnown().get()))
+                .containsOnly(java.util.List.of("spring-boot-actuator"));
     }
 
     @Test
