@@ -280,6 +280,59 @@ class ApiOnlySuitePluginTest {
     }
 
     @Test
+    @DisplayName("failOnDetection defaults to false")
+    void failOnDetectionDefaultsToFalse() {
+        Project project = projectWithPlugin();
+
+        assertThat(suiteExtension(project).getFailOnDetection().get()).isFalse();
+    }
+
+    @Test
+    @DisplayName("forwards apiOnlySuite.failOnDetection to all three plugins when none set their own fail-on-gap property")
+    void forwardsFailOnDetectionToAllThreePluginsWhenNoneSetItDirectly() {
+        Project project = projectWithPlugin();
+        suiteExtension(project).getRootDocument().set(new File(tempDir.toFile(), "openapi.yaml"));
+        suiteExtension(project).getFailOnDetection().set(true);
+
+        ((ProjectInternal) project).evaluate();
+
+        assertThat(shadowTask(project).getFailOnShadow().get()).isTrue();
+        assertThat(mirageTask(project).getFailOnMirage().get()).isTrue();
+        assertThat(doppelgangerTask(project).getFailOnDoppelganger().get()).isTrue();
+    }
+
+    @Test
+    @DisplayName("shadowApiDetector's own failOnShadow wins over apiOnlySuite's failOnDetection")
+    void perPluginFailOnShadowOverridesSuiteFailOnDetection() {
+        Project project = projectWithPlugin();
+        suiteExtension(project).getRootDocument().set(new File(tempDir.toFile(), "openapi.yaml"));
+        suiteExtension(project).getFailOnDetection().set(true);
+        shadowExtension(project).getFailOnShadow().set(false);
+
+        ((ProjectInternal) project).evaluate();
+
+        assertThat(shadowTask(project).getFailOnShadow().get()).isFalse();
+        // Mirage and Doppelganger still pick up apiOnlySuite's failOnDetection, since neither of
+        // them overrides its own fail-on-gap property directly.
+        assertThat(mirageTask(project).getFailOnMirage().get()).isTrue();
+        assertThat(doppelgangerTask(project).getFailOnDoppelganger().get()).isTrue();
+    }
+
+    @Test
+    @DisplayName("failOnDetection does not affect detectAllApiGaps's own non-failing task instances")
+    void failOnDetectionDoesNotAffectTheNonFailingSuiteTasks() {
+        Project project = projectWithPlugin();
+        suiteExtension(project).getRootDocument().set(new File(tempDir.toFile(), "openapi.yaml"));
+        suiteExtension(project).getFailOnDetection().set(true);
+
+        ((ProjectInternal) project).evaluate();
+
+        assertThat(shadowForSuiteTask(project).getFailOnShadow().get()).isFalse();
+        assertThat(mirageForSuiteTask(project).getFailOnMirage().get()).isFalse();
+        assertThat(doppelgangerForSuiteTask(project).getFailOnDoppelganger().get()).isFalse();
+    }
+
+    @Test
     @DisplayName("shadowApiGapsForSuite does not throw on a detected shadow API even when failOnShadow is true, unlike detectShadowApis itself")
     void nonFailingShadowTaskDoesNotThrowWhileThePrimaryTaskDoes() throws Exception {
         Project project = projectWithPlugin();
