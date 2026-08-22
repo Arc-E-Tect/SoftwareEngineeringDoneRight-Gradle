@@ -2,6 +2,7 @@ package com.arc_e_tect.gradle.suite;
 
 import org.gradle.api.file.ConfigurableFileCollection;
 import org.gradle.api.file.RegularFileProperty;
+import org.gradle.api.provider.ListProperty;
 import org.gradle.api.provider.Property;
 
 /**
@@ -24,6 +25,10 @@ import org.gradle.api.provider.Property;
  *     rootDocument = file('src/main/resources/openapi/openapi.yaml')
  *     controllerDirs.from('src/main/java')
  *     failOnDetection = true
+ *
+ *     excludePaths.add('/actuator/health')
+ *     excludeFiles.from('exclusions.yaml')
+ *     excludeWellKnown.add('spring-boot-actuator')
  * }
  * </pre>
  */
@@ -75,4 +80,35 @@ public abstract class ApiOnlySuiteExtension {
      *         underlying plugins
      */
     public abstract Property<Boolean> getFailOnDetection();
+
+    /**
+     * Exclusion rule strings, shared by all three underlying detector plugins. Forwarded as a
+     * fallback to each plugin's own {@code excludePaths} property, following the same
+     * "eager empty-check" idiom {@link #getControllerDirs()} already uses (not
+     * {@code Property#convention}, which has no equivalent for list-valued properties): when a
+     * plugin's own {@code excludePaths} is still empty at configuration time, this list is
+     * forwarded into it wholesale; a plugin that configures its own {@code excludePaths} directly
+     * keeps exactly that list instead, with nothing forwarded from here.
+     *
+     * @return mutable list property of exclusion rule strings, shared by all three plugins
+     */
+    public abstract ListProperty<String> getExcludePaths();
+
+    /**
+     * External exclusion rule files, shared by all three underlying detector plugins. Forwarded as
+     * a fallback to each plugin's own {@code excludeFiles} property, using the same eager
+     * empty-check idiom as {@link #getExcludePaths()} and {@link #getControllerDirs()}.
+     *
+     * @return mutable file collection of exclusion rule files, shared by all three plugins
+     */
+    public abstract ConfigurableFileCollection getExcludeFiles();
+
+    /**
+     * Names of bundled, well-known exclusion sets, shared by all three underlying detector
+     * plugins. Forwarded as a fallback to each plugin's own {@code excludeWellKnown} property,
+     * using the same eager empty-check idiom as {@link #getExcludePaths()}.
+     *
+     * @return mutable list property of well-known exclusion set names, shared by all three plugins
+     */
+    public abstract ListProperty<String> getExcludeWellKnown();
 }

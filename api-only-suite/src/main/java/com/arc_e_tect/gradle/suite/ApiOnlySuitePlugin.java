@@ -13,6 +13,8 @@ import org.gradle.api.Plugin;
 import org.gradle.api.Project;
 import org.gradle.api.tasks.TaskProvider;
 
+import java.util.List;
+
 /**
  * Gradle plugin that applies the Shadow, Mirage, and Doppelganger API Detector plugins together,
  * and registers the {@code detectAllApiGaps} aggregate task and the {@code apiOnlySuite} DSL
@@ -79,6 +81,8 @@ public class ApiOnlySuitePlugin implements Plugin<Project> {
     public void apply(Project project) {
         ApiOnlySuiteExtension ext = project.getExtensions().create(ApiOnlySuiteExtension.NAME, ApiOnlySuiteExtension.class);
         ext.getFailOnDetection().convention(false);
+        ext.getExcludePaths().convention(List.of());
+        ext.getExcludeWellKnown().convention(List.of());
 
         // Registered before the three detector plugins are applied below, so this callback runs
         // before each detector's own afterEvaluate-based defaulting of controllerDirs (afterEvaluate
@@ -129,6 +133,9 @@ public class ApiOnlySuitePlugin implements Plugin<Project> {
             task.getTrackContractHistory().set(source.getTrackContractHistory());
             task.getContractHistoryFile().set(source.getContractHistoryFile());
             task.getUpdateContractHistory().set(source.getUpdateContractHistory());
+            task.getExcludePaths().set(source.getExcludePaths());
+            task.getExcludeFiles().from(source.getExcludeFiles());
+            task.getExcludeWellKnown().set(source.getExcludeWellKnown());
         });
     }
 
@@ -159,6 +166,9 @@ public class ApiOnlySuitePlugin implements Plugin<Project> {
             task.getTrackContractHistory().set(source.getTrackContractHistory());
             task.getContractHistoryFile().set(source.getContractHistoryFile());
             task.getUpdateContractHistory().set(source.getUpdateContractHistory());
+            task.getExcludePaths().set(source.getExcludePaths());
+            task.getExcludeFiles().from(source.getExcludeFiles());
+            task.getExcludeWellKnown().set(source.getExcludeWellKnown());
         });
     }
 
@@ -191,6 +201,9 @@ public class ApiOnlySuitePlugin implements Plugin<Project> {
             task.getTrackContractHistory().set(source.getTrackContractHistory());
             task.getContractHistoryFile().set(source.getContractHistoryFile());
             task.getUpdateContractHistory().set(source.getUpdateContractHistory());
+            task.getExcludePaths().set(source.getExcludePaths());
+            task.getExcludeFiles().from(source.getExcludeFiles());
+            task.getExcludeWellKnown().set(source.getExcludeWellKnown());
         });
     }
 
@@ -214,7 +227,14 @@ public class ApiOnlySuitePlugin implements Plugin<Project> {
      * no equivalent lazy-fallback mechanism, so {@code controllerDirs} is forwarded with the same
      * eager empty-check idiom the three detector plugins already use for their own
      * {@code src/main/java} default - which is exactly why this method must run before those
-     * plugins' own defaulting does.</p>
+     * plugins' own defaulting does. {@link ApiOnlySuiteExtension#getExcludePaths()},
+     * {@link ApiOnlySuiteExtension#getExcludeFiles()}, and
+     * {@link ApiOnlySuiteExtension#getExcludeWellKnown()} are forwarded with that same eager
+     * empty-check idiom, not {@code Property#convention} - {@code ListProperty} has no equivalent
+     * "explicit value always wins" guarantee once a consumer calls {@code add(...)}/{@code addAll(...)}
+     * rather than {@code set(...)}, so a full-replace-when-configured rule, checked eagerly exactly
+     * like {@code controllerDirs}, is the one that behaves predictably regardless of how a consumer
+     * configures the individual plugin's own property.</p>
      */
     private void forwardSharedSettings(Project project, ApiOnlySuiteExtension ext) {
         ShadowApiDetectorExtension shadowExt = project.getExtensions().getByType(ShadowApiDetectorExtension.class);
@@ -238,6 +258,36 @@ public class ApiOnlySuitePlugin implements Plugin<Project> {
         }
         if (doppelgangerExt.getControllerDirs().isEmpty()) {
             doppelgangerExt.getControllerDirs().from(ext.getControllerDirs());
+        }
+
+        if (shadowExt.getExcludePaths().get().isEmpty()) {
+            shadowExt.getExcludePaths().set(ext.getExcludePaths());
+        }
+        if (mirageExt.getExcludePaths().get().isEmpty()) {
+            mirageExt.getExcludePaths().set(ext.getExcludePaths());
+        }
+        if (doppelgangerExt.getExcludePaths().get().isEmpty()) {
+            doppelgangerExt.getExcludePaths().set(ext.getExcludePaths());
+        }
+
+        if (shadowExt.getExcludeFiles().isEmpty()) {
+            shadowExt.getExcludeFiles().from(ext.getExcludeFiles());
+        }
+        if (mirageExt.getExcludeFiles().isEmpty()) {
+            mirageExt.getExcludeFiles().from(ext.getExcludeFiles());
+        }
+        if (doppelgangerExt.getExcludeFiles().isEmpty()) {
+            doppelgangerExt.getExcludeFiles().from(ext.getExcludeFiles());
+        }
+
+        if (shadowExt.getExcludeWellKnown().get().isEmpty()) {
+            shadowExt.getExcludeWellKnown().set(ext.getExcludeWellKnown());
+        }
+        if (mirageExt.getExcludeWellKnown().get().isEmpty()) {
+            mirageExt.getExcludeWellKnown().set(ext.getExcludeWellKnown());
+        }
+        if (doppelgangerExt.getExcludeWellKnown().get().isEmpty()) {
+            doppelgangerExt.getExcludeWellKnown().set(ext.getExcludeWellKnown());
         }
     }
 }

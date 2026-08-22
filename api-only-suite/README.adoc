@@ -64,7 +64,7 @@ Applying this plugin applies all three detector plugins. Each one registers its 
 
 == Configuration
 
-The plugin registers a thin `apiOnlySuite` extension exposing only the settings that are almost always identical across all three underlying plugins in practice: the shared OpenAPI document, the controller directories to scan, and whether the build should fail on a detected gap.
+The plugin registers a thin `apiOnlySuite` extension exposing only the settings that are almost always identical across all three underlying plugins in practice: the shared OpenAPI document, the controller directories to scan, whether the build should fail on a detected gap, and exclusion rules for known-good gaps.
 
 .Groovy DSL
 [source,groovy]
@@ -81,6 +81,14 @@ apiOnlySuite {
     // failOnDoppelganger. Has no effect on detectAllApiGaps itself - see "Task" below.
     // Default: false
     failOnDetection = false
+
+    // Exclusion rules, forwarded to all three underlying plugins' own excludePaths/excludeFiles/
+    // excludeWellKnown - see each plugin's own "Excluding known-good gaps"/"Excluding known-good
+    // implementations" section for what a match means for that plugin specifically. All three
+    // default to empty.
+    excludePaths.add('/actuator/health')
+    excludeFiles.from('exclusions.yaml')
+    excludeWellKnown.add('spring-boot-actuator')
 }
 ----
 
@@ -91,6 +99,9 @@ apiOnlySuite {
     rootDocument.set(file("src/main/resources/openapi/openapi.yaml"))
     controllerDirs.from("src/main/java")
     failOnDetection.set(false)
+    excludePaths.add("/actuator/health")
+    excludeFiles.from("exclusions.yaml")
+    excludeWellKnown.add("spring-boot-actuator")
 }
 ----
 
@@ -173,6 +184,22 @@ mirageApiDetector {
 ----
 
 Note that `failOnDetection` - like `failOnShadow`/`failOnMirage`/`failOnDoppelganger` themselves - has no effect on `detectAllApiGaps`; see "Task" below.
+
+`excludePaths`, `excludeFiles`, and `excludeWellKnown` follow the same precedence rule as `controllerDirs`, checked the same way, per property: when a plugin's own property is still empty once the whole build script has evaluated, the suite-level value is forwarded into it wholesale; a plugin that configures its own `excludePaths`/`excludeFiles`/`excludeWellKnown` directly keeps exactly that value instead, with nothing forwarded from `apiOnlySuite` for that property - this is a full override, not a merge, so setting even one entry directly on an individual plugin's own property replaces the suite-level list for that plugin entirely, rather than adding to it.
+
+[source,groovy]
+----
+apiOnlySuite {
+    excludePaths.add('/actuator/health')
+}
+
+shadowApiDetector {
+    // Shadow API Detector uses only this list - apiOnlySuite's excludePaths above is not added to
+    // it. Mirage and Doppelganger still get apiOnlySuite's excludePaths, since neither of them
+    // overrides its own excludePaths directly.
+    excludePaths.add('/internal/diagnostics/**')
+}
+----
 
 == Task
 
