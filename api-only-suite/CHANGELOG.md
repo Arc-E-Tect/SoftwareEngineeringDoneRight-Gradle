@@ -1,3 +1,10 @@
+# [3.1.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/api-only-suite-v3.0.9...api-only-suite-v3.1.0) (2026-08-22)
+
+
+### ✨ New and updated features
+
+* **api-only-suite:** add failOnDetection convenience property ([#205](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/205)) ([cf6a569](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/cf6a5696e8d0fb4347eec1a0b36c040b483dde78)), closes [#205](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/205)
+
 ## [3.0.9](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/api-only-suite-v3.0.8...api-only-suite-v3.0.9) (2026-08-20)
 
 
