@@ -52,7 +52,7 @@ public class MirageApiReportWriter {
     public void write(
             File outputFile, int totalDescribedCount, List<DescribedEndpoint> mirages,
             String systemUnderTestVersion) throws IOException {
-        write(outputFile, totalDescribedCount, mirages, systemUnderTestVersion, List.of(), Map.of());
+        write(outputFile, totalDescribedCount, mirages, List.of(), systemUnderTestVersion, List.of(), Map.of());
     }
 
     /**
@@ -73,11 +73,13 @@ public class MirageApiReportWriter {
             File outputFile, int totalDescribedCount, List<DescribedEndpoint> mirages,
             String systemUnderTestVersion, Map<String, ContractProgressRecord> contractHistory)
             throws IOException {
-        write(outputFile, totalDescribedCount, mirages, systemUnderTestVersion, List.of(), contractHistory);
+        write(outputFile, totalDescribedCount, mirages, List.of(), systemUnderTestVersion, List.of(), contractHistory);
     }
 
     /**
      * Writes the report to {@code outputFile}, creating its parent directory if necessary.
+     * Equivalent to calling {@link #write(File, int, List, List, String, List, Map)} with an empty
+     * excluded-mirages list.
      *
      * @param outputFile             target AsciiDoc file
      * @param totalDescribedCount    total number of endpoints described by the OpenAPI documentation
@@ -96,6 +98,38 @@ public class MirageApiReportWriter {
     public void write(
             File outputFile, int totalDescribedCount, List<DescribedEndpoint> mirages,
             String systemUnderTestVersion, List<String> warnings,
+            Map<String, ContractProgressRecord> contractHistory)
+            throws IOException {
+        write(outputFile, totalDescribedCount, mirages, List.of(), systemUnderTestVersion, warnings, contractHistory);
+    }
+
+    /**
+     * Writes the report to {@code outputFile}, creating its parent directory if necessary.
+     *
+     * @param outputFile             target AsciiDoc file
+     * @param totalDescribedCount    total number of endpoints described by the OpenAPI documentation
+     * @param mirages                the described endpoints with no matching {@code @RestController}
+     *                               implementation, excluding any matched by a configured exclusion
+     *                               rule - these are the endpoints that can fail {@code failOnMirage}
+     * @param excludedMirages        described-but-unimplemented endpoints matched by a configured
+     *                                exclusion rule, paired with their current-run WireMock stub
+     *                                status; rendered under {@code == Excluded Mirage APIs} instead
+     *                                of {@code == Mirage APIs}, never fails the build, and never
+     *                                appears in contract history - when empty, no such section is
+     *                                written
+     * @param systemUnderTestVersion version of the system under test that was scanned
+     * @param warnings               non-fatal configuration gaps to render as a {@code WARNING}
+     *                                admonition right after the report header - e.g. a configured
+     *                                {@code rootDocument} or {@code controllerDirs} entry that
+     *                                doesn't exist yet; when empty, no such admonition is written
+     * @param contractHistory        contract progress history to render as a {@code == Progress Over
+     *                                Time} section, keyed by fingerprint; when empty, no such
+     *                                section is written
+     * @throws IOException if the output file cannot be written
+     */
+    public void write(
+            File outputFile, int totalDescribedCount, List<DescribedEndpoint> mirages,
+            List<ExcludedMirage> excludedMirages, String systemUnderTestVersion, List<String> warnings,
             Map<String, ContractProgressRecord> contractHistory)
             throws IOException {
         File parent = outputFile.getParentFile();
@@ -131,35 +165,87 @@ public class MirageApiReportWriter {
             if (mirages.isEmpty()) {
                 writer.println("None found. Every endpoint described in the OpenAPI documentation is "
                         + allEvidenceClause + ".");
-                return;
+            } else {
+                writeMirageTable(writer, mirages);
             }
 
-            Map<String, List<DescribedEndpoint>> byTag = mirages.stream()
-                    .collect(Collectors.groupingBy(this::primaryTag, TreeMap::new, Collectors.toList()));
-
-            byTag.forEach((tag, tagMirages) -> {
-                writer.println("=== " + tag);
-                writer.println();
-                writer.println("[cols=\"1,3,3,3\",options=\"header\"]");
-                writer.println("|===");
-                writer.println("| HTTP Verb | Path | Operation ID | Tags");
-
-                tagMirages.stream()
-                        .sorted(Comparator.comparing(DescribedEndpoint::path)
-                                .thenComparing(e -> e.verb().name()))
-                        .forEach(e -> {
-                            List<String> tags = effectiveTags(e);
-                            writer.println();
-                            writer.println("| " + e.verb());
-                            writer.println("| " + e.path());
-                            writer.println("| " + (isBlank(e.operationId()) ? "(none)" : e.operationId()));
-                            writer.println("| " + (tags.isEmpty() ? "(none)" : String.join(", ", tags)));
-                        });
-
-                writer.println("|===");
-                writer.println();
-            });
+            writeExcludedSection(writer, excludedMirages);
         }
+    }
+
+    private void writeMirageTable(PrintWriter writer, List<DescribedEndpoint> mirages) {
+        Map<String, List<DescribedEndpoint>> byTag = mirages.stream()
+                .collect(Collectors.groupingBy(this::primaryTag, TreeMap::new, Collectors.toList()));
+
+        byTag.forEach((tag, tagMirages) -> {
+            writer.println("=== " + tag);
+            writer.println();
+            writer.println("[cols=\"1,3,3,3\",options=\"header\"]");
+            writer.println("|===");
+            writer.println("| HTTP Verb | Path | Operation ID | Tags");
+
+            tagMirages.stream()
+                    .sorted(Comparator.comparing(DescribedEndpoint::path)
+                            .thenComparing(e -> e.verb().name()))
+                    .forEach(e -> {
+                        List<String> tags = effectiveTags(e);
+                        writer.println();
+                        writer.println("| " + e.verb());
+                        writer.println("| " + e.path());
+                        writer.println("| " + (isBlank(e.operationId()) ? "(none)" : e.operationId()));
+                        writer.println("| " + (tags.isEmpty() ? "(none)" : String.join(", ", tags)));
+                    });
+
+            writer.println("|===");
+            writer.println();
+        });
+    }
+
+    /**
+     * Writes the {@code == Excluded Mirage APIs} section - endpoints that are, in fact, mirage
+     * APIs (declared, unimplemented) but matched a configured exclusion rule, so they never fail
+     * the build and are never written to contract history. Includes each one's current-run
+     * WireMock stub status, since that's still operationally relevant to consumers even though the
+     * endpoint is excluded from implementation-gap checking - see {@link StubStatus}. Written only
+     * when {@code excludedMirages} is non-empty.
+     */
+    private void writeExcludedSection(PrintWriter writer, List<ExcludedMirage> excludedMirages) {
+        if (excludedMirages.isEmpty()) {
+            return;
+        }
+        writer.println();
+        writer.println("== Excluded Mirage APIs");
+        writer.println();
+        writer.println("Declared in the OpenAPI documentation but not implemented by any `@RestController` "
+                + "class - same as a mirage API - except matched by a configured exclusion rule, so it does "
+                + "not fail the build and is not recorded in contract history.");
+        writer.println();
+        writer.println("[cols=\"1,3,3,1\",options=\"header\"]");
+        writer.println("|===");
+        writer.println("| HTTP Verb | Path | Operation ID | Stubbed");
+
+        excludedMirages.stream()
+                .sorted(Comparator.comparing((ExcludedMirage em) -> em.endpoint().path())
+                        .thenComparing(em -> em.endpoint().verb().name()))
+                .forEach(em -> {
+                    DescribedEndpoint e = em.endpoint();
+                    writer.println();
+                    writer.println("| " + e.verb());
+                    writer.println("| " + e.path());
+                    writer.println("| " + (isBlank(e.operationId()) ? "(none)" : e.operationId()));
+                    writer.println("| " + stubStatusLabel(em.stubStatus()));
+                });
+
+        writer.println("|===");
+        writer.println();
+    }
+
+    private String stubStatusLabel(StubStatus status) {
+        return switch (status) {
+            case STUBBED -> "Yes";
+            case NOT_STUBBED -> "No";
+            case NOT_SCANNED -> "Not scanned";
+        };
     }
 
     private String primaryTag(DescribedEndpoint endpoint) {
