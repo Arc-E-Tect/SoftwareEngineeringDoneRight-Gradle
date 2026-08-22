@@ -51,7 +51,7 @@ public class DoppelgangerApiReportWriter {
     public void write(
             File outputFile, int totalCandidateCount, List<Endpoint> doppelgangers,
             String systemUnderTestVersion) throws IOException {
-        write(outputFile, totalCandidateCount, doppelgangers, systemUnderTestVersion, List.of(), Map.of());
+        write(outputFile, totalCandidateCount, doppelgangers, List.of(), systemUnderTestVersion, List.of(), Map.of());
     }
 
     /**
@@ -71,11 +71,13 @@ public class DoppelgangerApiReportWriter {
     public void write(
             File outputFile, int totalCandidateCount, List<Endpoint> doppelgangers,
             String systemUnderTestVersion, Map<String, ContractProgressRecord> contractHistory) throws IOException {
-        write(outputFile, totalCandidateCount, doppelgangers, systemUnderTestVersion, List.of(), contractHistory);
+        write(outputFile, totalCandidateCount, doppelgangers, List.of(), systemUnderTestVersion, List.of(), contractHistory);
     }
 
     /**
      * Writes the report to {@code outputFile}, creating its parent directory if necessary.
+     * Equivalent to calling {@link #write(File, int, List, List, String, List, Map)} with an empty
+     * excluded-doppelgangers list.
      *
      * @param outputFile             target AsciiDoc file
      * @param totalCandidateCount    total number of endpoints both declared and implemented, i.e.
@@ -95,6 +97,40 @@ public class DoppelgangerApiReportWriter {
     public void write(
             File outputFile, int totalCandidateCount, List<Endpoint> doppelgangers,
             String systemUnderTestVersion, List<String> warnings, Map<String, ContractProgressRecord> contractHistory)
+            throws IOException {
+        write(outputFile, totalCandidateCount, doppelgangers, List.of(), systemUnderTestVersion, warnings, contractHistory);
+    }
+
+    /**
+     * Writes the report to {@code outputFile}, creating its parent directory if necessary.
+     *
+     * @param outputFile             target AsciiDoc file
+     * @param totalCandidateCount    total number of endpoints both declared and implemented, i.e.
+     *                                the candidate pool checked for verification evidence
+     * @param doppelgangers          the candidate endpoints with no verification evidence, excluding
+     *                                any matched by a configured exclusion rule - these are the
+     *                                endpoints that can fail {@code failOnDoppelganger}
+     * @param excludedDoppelgangers  declared-and-implemented, unverified endpoints matched by a
+     *                                configured exclusion rule; rendered under
+     *                                {@code == Excluded Doppelganger APIs} instead of
+     *                                {@code == Doppelganger APIs}, never fails the build, and never
+     *                                appears in contract history - when empty, no such section is
+     *                                written
+     * @param systemUnderTestVersion version of the system under test that was scanned
+     * @param warnings               non-fatal configuration gaps to render as a {@code WARNING}
+     *                                admonition right after the report header - e.g. a configured
+     *                                {@code rootDocument}, {@code controllerDirs}, {@code testDirs},
+     *                                or {@code contractsDir} entry that doesn't exist yet; when
+     *                                empty, no such admonition is written
+     * @param contractHistory        contract progress history to render as a {@code == Progress Over
+     *                                Time} section, keyed by fingerprint; when empty, no such
+     *                                section is written
+     * @throws IOException if the output file cannot be written
+     */
+    public void write(
+            File outputFile, int totalCandidateCount, List<Endpoint> doppelgangers,
+            List<Endpoint> excludedDoppelgangers, String systemUnderTestVersion, List<String> warnings,
+            Map<String, ContractProgressRecord> contractHistory)
             throws IOException {
         File parent = outputFile.getParentFile();
         if (parent != null && !parent.exists() && !parent.mkdirs()) {
@@ -127,34 +163,60 @@ public class DoppelgangerApiReportWriter {
             if (doppelgangers.isEmpty()) {
                 writer.println("None found. Every endpoint both declared and implemented has verification "
                         + "evidence from at least one configured contract verification source.");
-                return;
+            } else {
+                writeEndpointTable(writer, doppelgangers);
             }
 
-            Map<String, List<Endpoint>> byController = doppelgangers.stream()
-                    .collect(Collectors.groupingBy(Endpoint::declaringClass, TreeMap::new, Collectors.toList()));
-
-            byController.forEach((controller, controllerDoppelgangers) -> {
-                writer.println("=== " + controller);
-                writer.println();
-                writer.println("[cols=\"1,3,3,2,1\",options=\"header\"]");
-                writer.println("|===");
-                writer.println("| HTTP Verb | Path | Method | Source File | Line");
-
-                controllerDoppelgangers.stream()
-                        .sorted(Comparator.comparing(Endpoint::path).thenComparing(e -> e.verb().name()))
-                        .forEach(e -> {
-                            writer.println();
-                            writer.println("| " + e.verb());
-                            writer.println("| " + e.path());
-                            writer.println("| " + e.methodSignature());
-                            writer.println("| " + e.sourceFile());
-                            writer.println("| " + e.lineNumber());
-                        });
-
-                writer.println("|===");
-                writer.println();
-            });
+            writeExcludedSection(writer, excludedDoppelgangers);
         }
+    }
+
+    private void writeEndpointTable(PrintWriter writer, List<Endpoint> endpoints) {
+        Map<String, List<Endpoint>> byController = endpoints.stream()
+                .collect(Collectors.groupingBy(Endpoint::declaringClass, TreeMap::new, Collectors.toList()));
+
+        byController.forEach((controller, controllerEndpoints) -> {
+            writer.println("=== " + controller);
+            writer.println();
+            writer.println("[cols=\"1,3,3,2,1\",options=\"header\"]");
+            writer.println("|===");
+            writer.println("| HTTP Verb | Path | Method | Source File | Line");
+
+            controllerEndpoints.stream()
+                    .sorted(Comparator.comparing(Endpoint::path).thenComparing(e -> e.verb().name()))
+                    .forEach(e -> {
+                        writer.println();
+                        writer.println("| " + e.verb());
+                        writer.println("| " + e.path());
+                        writer.println("| " + e.methodSignature());
+                        writer.println("| " + e.sourceFile());
+                        writer.println("| " + e.lineNumber());
+                    });
+
+            writer.println("|===");
+            writer.println();
+        });
+    }
+
+    /**
+     * Writes the {@code == Excluded Doppelganger APIs} section - endpoints that are, in fact,
+     * doppelganger APIs (declared, implemented, unverified) but matched a configured exclusion
+     * rule, so they never fail the build and are never written to contract history. Written only
+     * when {@code excludedDoppelgangers} is non-empty.
+     */
+    private void writeExcludedSection(PrintWriter writer, List<Endpoint> excludedDoppelgangers) {
+        if (excludedDoppelgangers.isEmpty()) {
+            return;
+        }
+        writer.println();
+        writer.println("== Excluded Doppelganger APIs");
+        writer.println();
+        writer.println("Declared in the OpenAPI documentation and implemented by a `@RestController` class, "
+                + "but not verified by any configured contract verification source - same as a doppelganger "
+                + "API - except matched by a configured exclusion rule, so it does not fail the build and is "
+                + "not recorded in contract history.");
+        writer.println();
+        writeEndpointTable(writer, excludedDoppelgangers);
     }
 
     /**

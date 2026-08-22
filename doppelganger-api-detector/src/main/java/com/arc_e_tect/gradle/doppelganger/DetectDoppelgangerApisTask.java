@@ -2,6 +2,10 @@ package com.arc_e_tect.gradle.doppelganger;
 
 import com.arc_e_tect.gradle.detector.core.console.ScanProgressReporter;
 import com.arc_e_tect.gradle.detector.core.detect.ContractSetOperations;
+import com.arc_e_tect.gradle.detector.core.exclude.ExclusionFilter;
+import com.arc_e_tect.gradle.detector.core.exclude.ExclusionRule;
+import com.arc_e_tect.gradle.detector.core.exclude.ExclusionRuleFile;
+import com.arc_e_tect.gradle.detector.core.exclude.WellKnownExclusionSets;
 import com.arc_e_tect.gradle.detector.core.model.Endpoint;
 import com.arc_e_tect.gradle.detector.core.openapi.DescribedEndpoint;
 import com.arc_e_tect.gradle.detector.core.openapi.OpenApiEndpointCollector;
@@ -22,6 +26,7 @@ import org.gradle.api.GradleException;
 import org.gradle.api.file.ConfigurableFileCollection;
 import org.gradle.api.file.DirectoryProperty;
 import org.gradle.api.file.RegularFileProperty;
+import org.gradle.api.provider.ListProperty;
 import org.gradle.api.provider.Property;
 import org.gradle.api.tasks.Input;
 import org.gradle.api.tasks.InputFiles;
@@ -230,6 +235,33 @@ public abstract class DetectDoppelgangerApisTask extends DefaultTask {
     public abstract Property<Boolean> getUpdateContractHistory();
 
     /**
+     * Exclusion rule strings - see {@link DoppelgangerApiDetectorExtension#getExcludePaths()}.
+     *
+     * @return mutable list property of exclusion rule strings
+     */
+    @Input
+    public abstract ListProperty<String> getExcludePaths();
+
+    /**
+     * External exclusion rule files - see
+     * {@link DoppelgangerApiDetectorExtension#getExcludeFiles()}.
+     *
+     * @return mutable file collection of exclusion rule files
+     */
+    @InputFiles
+    @PathSensitive(PathSensitivity.RELATIVE)
+    public abstract ConfigurableFileCollection getExcludeFiles();
+
+    /**
+     * Bundled well-known exclusion set names - see
+     * {@link DoppelgangerApiDetectorExtension#getExcludeWellKnown()}.
+     *
+     * @return mutable list property of well-known exclusion set names
+     */
+    @Input
+    public abstract ListProperty<String> getExcludeWellKnown();
+
+    /**
      * Creates the task. Instantiated by Gradle infrastructure via {@link javax.inject.Inject}.
      */
     @Inject
@@ -358,29 +390,78 @@ public abstract class DetectDoppelgangerApisTask extends DefaultTask {
         List<Endpoint> doppelgangers = inputComplete
                 ? new DoppelgangerApiFinder().findDoppelgangers(declaredAndImplemented, verified) : List.of();
 
+        List<ExclusionRule> exclusionRules = resolveExclusionRules(warnings);
+        List<Endpoint> reportableDoppelgangers = ExclusionFilter.excludeMatching(doppelgangers, exclusionRules);
+        List<Endpoint> excludedDoppelgangers = ExclusionFilter.onlyMatching(doppelgangers, exclusionRules);
+
         Map<String, ContractProgressRecord> contractHistory = !getTrackContractHistory().get() ? Map.of()
-                : inputComplete ? updateContractHistory(implemented, described, verified)
+                : inputComplete ? updateContractHistory(
+                        ExclusionFilter.excludeMatching(implemented, exclusionRules),
+                        ExclusionFilter.excludeMatching(described, exclusionRules),
+                        ExclusionFilter.excludeMatching(verified, exclusionRules))
                         : loadContractHistoryForDisplay();
 
         File outputDir = getReportDir().getAsFile().get();
         File outputFile = new File(outputDir, getReportFileName().get());
         try {
-            new DoppelgangerApiReportWriter().write(outputFile, declaredAndImplemented.size(), doppelgangers,
-                    getSystemUnderTestVersion().get(), warnings, contractHistory);
+            new DoppelgangerApiReportWriter().write(outputFile, declaredAndImplemented.size(),
+                    reportableDoppelgangers, excludedDoppelgangers, getSystemUnderTestVersion().get(),
+                    warnings, contractHistory);
         } catch (IOException e) {
             throw new GradleException("doppelgangerApiDetector: failed to write report to " + outputFile, e);
         }
 
         getLogger().lifecycle(
                 "Doppelganger API Detector: scanned {} declared-and-implemented endpoint(s), found {} "
-                        + "doppelganger API(s). Report → {}",
-                declaredAndImplemented.size(), doppelgangers.size(), outputFile);
+                        + "doppelganger API(s) ({} excluded). Report → {}",
+                declaredAndImplemented.size(), reportableDoppelgangers.size(), excludedDoppelgangers.size(), outputFile);
 
-        if (!doppelgangers.isEmpty() && getFailOnDoppelganger().get()) {
-            throw new GradleException("doppelgangerApiDetector: found " + doppelgangers.size()
+        if (!reportableDoppelgangers.isEmpty() && getFailOnDoppelganger().get()) {
+            throw new GradleException("doppelgangerApiDetector: found " + reportableDoppelgangers.size()
                     + " doppelganger API(s) declared and implemented but not verified by any configured "
                     + "contract verification source. See " + outputFile);
         }
+    }
+
+    /**
+     * Resolves every configured exclusion rule - {@link #getExcludePaths()},
+     * {@link #getExcludeFiles()}, and {@link #getExcludeWellKnown()} - into one combined list. A
+     * missing {@code excludeFiles} entry only warns, the same way a missing {@code controllerDirs}
+     * or {@code testDirs} entry does; a malformed rule string or an unrecognised well-known set
+     * name fails the build outright, since those are build-script/file mistakes, not a
+     * "not built yet" bootstrapping gap.
+     */
+    private List<ExclusionRule> resolveExclusionRules(List<String> warnings) {
+        List<ExclusionRule> rules = new ArrayList<>();
+        for (String entry : getExcludePaths().get()) {
+            try {
+                rules.add(ExclusionRule.parse(entry));
+            } catch (IllegalArgumentException e) {
+                throw new GradleException(
+                        "doppelgangerApiDetector: invalid `excludePaths` entry: " + e.getMessage(), e);
+            }
+        }
+        for (File file : getExcludeFiles()) {
+            if (!file.isFile()) {
+                warnings.add("Configured `excludeFiles` entry does not exist yet: `" + file + "`.");
+                continue;
+            }
+            try {
+                rules.addAll(ExclusionRuleFile.load(file));
+            } catch (IOException e) {
+                throw new GradleException("doppelgangerApiDetector: failed to read excludeFiles entry " + file, e);
+            } catch (IllegalArgumentException e) {
+                throw new GradleException("doppelgangerApiDetector: " + e.getMessage(), e);
+            }
+        }
+        for (String name : getExcludeWellKnown().get()) {
+            try {
+                rules.addAll(WellKnownExclusionSets.resolve(name));
+            } catch (IllegalArgumentException e) {
+                throw new GradleException("doppelgangerApiDetector: " + e.getMessage(), e);
+            }
+        }
+        return rules;
     }
 
     /**
