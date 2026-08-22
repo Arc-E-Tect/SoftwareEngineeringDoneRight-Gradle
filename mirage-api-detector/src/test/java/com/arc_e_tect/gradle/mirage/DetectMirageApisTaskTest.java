@@ -581,6 +581,166 @@ class DetectMirageApisTaskTest {
         assertThat(lines.get(0)).contains("\"declaredAt\":\"").contains("\"stubbedAt\":\"");
     }
 
+    @Test
+    @DisplayName("excludePaths moves a matching mirage into the Excluded section and it no longer fails the build")
+    void excludePathsMovesMatchingMirageToExcludedSection() throws Exception {
+        DetectMirageApisTask task = configuredTask(openApiFixture("both-endpoints.yaml"), true);
+        task.getExcludePaths().set(List.of("/users/{id}"));
+
+        task.generate();
+
+        String content = Files.readString(new File(reportDir, "mirage-apis.adoc").toPath());
+        assertThat(content)
+                .contains("None found.")
+                .contains("== Excluded Mirage APIs")
+                .contains("/users/{id}")
+                .contains("Not scanned");
+    }
+
+    @Test
+    @DisplayName("excludeFiles rules combine across more than one file")
+    void excludeFilesCombineAcrossMultipleFiles() throws Exception {
+        File exclusionsA = new File(tempDir.toFile(), "exclusions-a.yaml");
+        Files.writeString(exclusionsA.toPath(), "exclusions:\n  - \"/nowhere\"\n");
+        File exclusionsB = new File(tempDir.toFile(), "exclusions-b.yaml");
+        Files.writeString(exclusionsB.toPath(), "exclusions:\n  - \"/users/{id}\"\n");
+
+        DetectMirageApisTask task = configuredTask(openApiFixture("both-endpoints.yaml"), true);
+        task.getExcludeFiles().from(exclusionsA, exclusionsB);
+
+        task.generate();
+
+        String content = Files.readString(new File(reportDir, "mirage-apis.adoc").toPath());
+        assertThat(content).contains("None found.").contains("== Excluded Mirage APIs");
+    }
+
+    @Test
+    @DisplayName("a missing excludeFiles entry warns but does not fail the build")
+    void missingExcludeFilesEntryWarns() throws Exception {
+        DetectMirageApisTask task = configuredTask(openApiFixture("both-endpoints.yaml"), false);
+        task.getExcludeFiles().from(new File(tempDir.toFile(), "does-not-exist.yaml"));
+
+        task.generate();
+
+        String content = Files.readString(new File(reportDir, "mirage-apis.adoc").toPath());
+        assertThat(content).contains("[WARNING]").contains("`excludeFiles` entry does not exist yet");
+    }
+
+    @Test
+    @DisplayName("excludeWellKnown resolves the bundled spring-boot-actuator set")
+    void excludeWellKnownResolvesSpringBootActuator() throws Exception {
+        File rootDocument = actuatorHealthFixture();
+
+        DetectMirageApisTask task = configuredTask(rootDocument, true);
+        task.getExcludeWellKnown().set(List.of("spring-boot-actuator"));
+
+        task.generate();
+
+        String content = Files.readString(new File(reportDir, "mirage-apis.adoc").toPath());
+        assertThat(content).contains("None found.").contains("== Excluded Mirage APIs").contains("/actuator/health");
+    }
+
+    @Test
+    @DisplayName("an unrecognised excludeWellKnown name fails the build")
+    void unrecognisedExcludeWellKnownNameFailsBuild() throws Exception {
+        DetectMirageApisTask task = configuredTask(openApiFixture("both-endpoints.yaml"), false);
+        task.getExcludeWellKnown().set(List.of("not-a-real-set"));
+
+        assertThatThrownBy(task::generate)
+                .isInstanceOf(GradleException.class)
+                .hasMessageContaining("not-a-real-set");
+    }
+
+    @Test
+    @DisplayName("an excluded endpoint never reaches the persisted contract history file")
+    void excludedEndpointNeverReachesContractHistory() throws Exception {
+        File historyFile = new File(tempDir.toFile(), "contract-history.ndjson");
+        DetectMirageApisTask task = configuredTask(openApiFixture("both-endpoints.yaml"), false);
+        task.getExcludePaths().set(List.of("/users/{id}"));
+        task.getTrackContractHistory().set(true);
+        task.getContractHistoryFile().set(historyFile);
+        task.getUpdateContractHistory().set(true);
+
+        task.generate();
+
+        String historyContent = Files.readString(historyFile.toPath());
+        assertThat(historyContent).doesNotContain("\"path\":\"/users/{id}\"");
+    }
+
+    @Test
+    @DisplayName("an excluded mirage reports Stubbed: Yes when a matching WireMock stub exists")
+    void excludedMirageReportsStubbedYesWhenStubMatches() throws Exception {
+        // Deliberately a parameter-free path: matching a stub's literal path against a declared
+        // path-variable template is a separate, unrelated limitation this test isn't meant to
+        // exercise - see the comment on persistsOnlyStubbedAtWhenNoControllerImplementsIt above.
+        File rootDocument = actuatorHealthFixture();
+        File stubDir = new File(tempDir.toFile(), "src/test/resources/mappings");
+        Files.createDirectories(stubDir.toPath());
+        Files.writeString(stubDir.toPath().resolve("health.json"), """
+                { "request": { "method": "GET", "urlPath": "/actuator/health" }, "response": { "status": 200 } }
+                """);
+
+        DetectMirageApisTask task = newTask();
+        task.getScanMocks().set(true);
+        task.getStubDirs().from(stubDir);
+        task.getControllerDirs().from(controllerDir);
+        task.getRootDocument().set(rootDocument);
+        task.getReportDir().set(reportDir);
+        task.getReportFileName().set("mirage-apis.adoc");
+        task.getFailOnMirage().set(false);
+        task.getSystemUnderTestVersion().set("1.0.0");
+        task.getExcludePaths().set(List.of("/actuator/health"));
+
+        task.generate();
+
+        String content = Files.readString(new File(reportDir, "mirage-apis.adoc").toPath());
+        assertThat(content).contains("== Excluded Mirage APIs").contains("| Yes");
+    }
+
+    @Test
+    @DisplayName("an excluded mirage reports Stubbed: No when scanMocks is enabled but no stub matches")
+    void excludedMirageReportsStubbedNoWhenNoStubMatches() throws Exception {
+        File rootDocument = actuatorHealthFixture();
+        File stubDir = new File(tempDir.toFile(), "src/test/resources/mappings");
+        Files.createDirectories(stubDir.toPath());
+
+        DetectMirageApisTask task = newTask();
+        task.getScanMocks().set(true);
+        task.getStubDirs().from(stubDir);
+        task.getControllerDirs().from(controllerDir);
+        task.getRootDocument().set(rootDocument);
+        task.getReportDir().set(reportDir);
+        task.getReportFileName().set("mirage-apis.adoc");
+        task.getFailOnMirage().set(false);
+        task.getSystemUnderTestVersion().set("1.0.0");
+        task.getExcludePaths().set(List.of("/actuator/health"));
+
+        task.generate();
+
+        String content = Files.readString(new File(reportDir, "mirage-apis.adoc").toPath());
+        assertThat(content).contains("== Excluded Mirage APIs").contains("| No");
+    }
+
+    private File actuatorHealthFixture() throws Exception {
+        File dir = new File(tempDir.toFile(), "openapi");
+        Files.createDirectories(dir.toPath());
+        File file = new File(dir, "actuator.yaml");
+        Files.writeString(file.toPath(), """
+                openapi: 3.0.3
+                info:
+                  title: Test API
+                  version: "1.0"
+                paths:
+                  /actuator/health:
+                    get:
+                      operationId: health
+                      responses:
+                        '200':
+                          description: OK
+                """);
+        return file;
+    }
+
     private DetectMirageApisTask configuredTask(File rootDocument, boolean failOnMirage) {
         DetectMirageApisTask task = newTask();
         task.getControllerDirs().from(controllerDir);

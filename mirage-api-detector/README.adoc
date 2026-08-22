@@ -142,6 +142,75 @@ mirageApiDetector {
 
 Left unset (the default), the base path is instead read automatically from `rootDocument`'s own first `servers` entry's `url` - e.g. `servers: [{ url: http://localhost:9011/crm-service }]` yields `/crm-service` with no configuration needed at all. Set `basePath` explicitly only when the document either declares no `servers` entry or declares the wrong one for this purpose.
 
+== Excluding known-good gaps
+
+Some documented endpoints are never going to be backed by a hand-written `@RestController` - Spring
+Boot Actuator's management endpoints (`/actuator/health`, `/actuator/info`, ...) are the canonical
+example: they're wired up by the framework's own auto-configuration, not a controller method, so
+`detectMirageApis` reports them as mirage APIs even though they're documented on purpose and fully
+functional at runtime. Exclusion rules let a project say "this gap is known and fine" without
+disabling detection for everything else.
+
+An exclusion rule is a string: a path pattern, optionally prefixed with an HTTP verb -
+`"/actuator/health"` (any verb) or `"GET /actuator/**"` (verb-restricted). Path patterns support
+Ant-style wildcards: `*` matches exactly one path segment, and a trailing `**` matches any number
+of remaining segments. The same rule syntax is used in all three ways to supply rules below, and
+rules from every source are combined:
+
+[source,groovy]
+----
+mirageApiDetector {
+    // Rule strings written directly in the build script.
+    excludePaths.add('/actuator/health')
+
+    // One or more YAML files of rules - see the format below. Lets a team check in its own
+    // reusable exclusion sets (e.g. an org-wide file shared across projects).
+    excludeFiles.from('mirage-exclusions.yaml')
+
+    // Bundled, well-known exclusion sets, selected by name.
+    excludeWellKnown.add('spring-boot-actuator')
+}
+----
+
+An exclusion file (`mirage-exclusions.yaml` above) looks like:
+
+[source,yaml]
+----
+exclusions:
+  - "/actuator/health"
+  - "GET /actuator/**"
+----
+
+Currently bundled well-known sets:
+
+[cols="1,3",options="header"]
+|===
+| Name                    | Covers
+| `spring-boot-actuator`  | `/actuator/**` (any verb) - Spring Boot Actuator's management endpoints
+|===
+
+[IMPORTANT]
+====
+An endpoint matching an exclusion rule is still, factually, a mirage API - declared in the OpenAPI
+documentation with no matching `@RestController` implementation. Exclusion changes what happens
+with that fact, not the fact itself:
+
+* It is reported under `== Excluded Mirage APIs` instead of `== Mirage APIs`.
+* It never fails `failOnMirage`.
+* It is never written to `contractHistoryFile` - excluded endpoints are expected to permanently
+  miss implementation evidence, so tracking their "progress over time" would just be noise.
+
+When `scanMocks` is `true`, each excluded mirage's *current-run* WireMock stub status is still
+shown in `== Excluded Mirage APIs` (`Stubbed: Yes`/`No`/`Not scanned`) even though it's never
+persisted to history - consumers relying on a stub for an excluded endpoint still need to know,
+this run, whether that stub actually exists.
+====
+
+An unrecognised `excludeWellKnown` name, or a malformed rule string (in `excludePaths` or an
+exclusion file), fails the build - both are build-script/file mistakes, not a "not built yet"
+bootstrapping gap. A configured `excludeFiles` entry that doesn't exist yet only warns, the same
+way a missing `controllerDirs`/`stubDirs` entry does.
+
 == Configuration
 
 The plugin registers a `mirageApiDetector` extension.
@@ -214,6 +283,12 @@ mirageApiDetector {
     // trackContractHistory is true; the file is always read either way.
     // Default: same as trackContractHistory
     // updateContractHistory = true
+
+    // Exclusion rule strings, files, and well-known set names - see "Excluding known-good gaps"
+    // above. All three are combined; each defaults to empty.
+    // excludePaths.add('/actuator/health')
+    // excludeFiles.from('mirage-exclusions.yaml')
+    // excludeWellKnown.add('spring-boot-actuator')
 }
 ----
 
@@ -233,6 +308,9 @@ mirageApiDetector {
     trackContractHistory.set(false)
     // contractHistoryFile.set(file("mirage-api-detector-contract-history.ndjson"))
     // updateContractHistory.set(true)
+    // excludePaths.add("/actuator/health")
+    // excludeFiles.from("mirage-exclusions.yaml")
+    // excludeWellKnown.add("spring-boot-actuator")
 }
 ----
 

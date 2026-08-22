@@ -92,6 +92,73 @@ plugins {
 This is a scope restriction of the current MVP, not a design limit: only `@RestController`-based endpoints are scanned, and only "exposed but undocumented" is reported (the reverse case - documented but unimplemented - is out of scope). Both may be lifted in a future release.
 ====
 
+== Excluding known-good implementations
+
+Some paths are meant to be off-limits to hand-written controllers - Spring Boot Actuator's
+management endpoints (`/actuator/health`, `/actuator/info`, ...) are the canonical example: they're
+wired up by the framework's own auto-configuration, and no `@RestController` is expected to exist
+there at all. If one does - deliberately or by accident - that's worth knowing about, whether or
+not it's also undocumented. Exclusion rules give `detectShadowApis` a way to flag exactly that.
+
+An exclusion rule is a string: a path pattern, optionally prefixed with an HTTP verb -
+`"/actuator/health"` (any verb) or `"GET /actuator/**"` (verb-restricted). Path patterns support
+Ant-style wildcards: `*` matches exactly one path segment, and a trailing `**` matches any number
+of remaining segments. The same rule syntax is used in all three ways to supply rules below, and
+rules from every source are combined:
+
+[source,groovy]
+----
+shadowApiDetector {
+    // Rule strings written directly in the build script.
+    excludePaths.add('/actuator/health')
+
+    // One or more YAML files of rules - see the format below. Lets a team check in its own
+    // reusable exclusion sets (e.g. an org-wide file shared across projects).
+    excludeFiles.from('shadow-exclusions.yaml')
+
+    // Bundled, well-known exclusion sets, selected by name.
+    excludeWellKnown.add('spring-boot-actuator')
+}
+----
+
+An exclusion file (`shadow-exclusions.yaml` above) looks like:
+
+[source,yaml]
+----
+exclusions:
+  - "/actuator/health"
+  - "GET /actuator/**"
+----
+
+Currently bundled well-known sets:
+
+[cols="1,3",options="header"]
+|===
+| Name                    | Covers
+| `spring-boot-actuator`  | `/actuator/**` (any verb) - Spring Boot Actuator's management endpoints
+|===
+
+[IMPORTANT]
+====
+Exclusion in Shadow API Detector points the opposite way from Mirage/Doppelganger API Detector's:
+a match here means a real `@RestController` implementation *was found* at a path declared excluded
+- regardless of whether that endpoint is also undocumented (a genuine shadow API in its own right).
+An exclusion rule exists because no real implementation was expected there, so finding one
+undermines that assumption and is worth reviewing on its own.
+
+A matching endpoint is:
+
+* Reported under `== Excluded Implementations` instead of `== Shadow APIs`.
+* Never counted toward `failOnShadow`.
+* Never written to `contractHistoryFile` - excluded endpoints are deliberately kept out of history
+  tracking.
+====
+
+An unrecognised `excludeWellKnown` name, or a malformed rule string (in `excludePaths` or an
+exclusion file), fails the build - both are build-script/file mistakes, not a "not built yet"
+bootstrapping gap. A configured `excludeFiles` entry that doesn't exist yet only warns, the same
+way a missing `controllerDirs` entry does.
+
 == Configuration
 
 The plugin registers a `shadowApiDetector` extension.
@@ -145,6 +212,12 @@ shadowApiDetector {
     // trackContractHistory is true; the file is always read either way.
     // Default: same as trackContractHistory
     // updateContractHistory = true
+
+    // Exclusion rule strings, files, and well-known set names - see "Excluding known-good
+    // implementations" above. All three are combined; each defaults to empty.
+    // excludePaths.add('/actuator/health')
+    // excludeFiles.from('shadow-exclusions.yaml')
+    // excludeWellKnown.add('spring-boot-actuator')
 }
 ----
 
@@ -161,6 +234,9 @@ shadowApiDetector {
     trackContractHistory.set(false)
     // contractHistoryFile.set(file("shadow-api-detector-contract-history.ndjson"))
     // updateContractHistory.set(true)
+    // excludePaths.add("/actuator/health")
+    // excludeFiles.from("shadow-exclusions.yaml")
+    // excludeWellKnown.add("spring-boot-actuator")
 }
 ----
 

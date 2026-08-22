@@ -3,6 +3,7 @@ package com.arc_e_tect.gradle.mirage;
 import org.gradle.api.file.ConfigurableFileCollection;
 import org.gradle.api.file.DirectoryProperty;
 import org.gradle.api.file.RegularFileProperty;
+import org.gradle.api.provider.ListProperty;
 import org.gradle.api.provider.Property;
 
 /**
@@ -23,6 +24,10 @@ import org.gradle.api.provider.Property;
  *     trackContractHistory  = false                                           // default
  *     // contractHistoryFile = file('mirage-api-detector-contract-history.ndjson') // default
  *     updateContractHistory = trackContractHistory                            // default; see getUpdateContractHistory()
+ *
+ *     // excludePaths.add('/actuator/health')                                 // default: empty
+ *     // excludeFiles.from('mirage-exclusions.yaml')                          // default: empty
+ *     // excludeWellKnown.add('spring-boot-actuator')                        // default: empty
  * }
  * </pre>
  *
@@ -198,4 +203,47 @@ public abstract class MirageApiDetectorExtension {
      * @return mutable boolean property controlling whether the contract history file is written back
      */
     public abstract Property<Boolean> getUpdateContractHistory();
+
+    /**
+     * Exclusion rule strings, parsed by
+     * {@link com.arc_e_tect.gradle.detector.core.exclude.ExclusionRule#parse(String)} - e.g.
+     * {@code "/actuator/health"} (any verb) or {@code "GET /actuator/**"} (verb-restricted,
+     * Ant-style {@code *}/{@code **} wildcards). A described endpoint matching any configured
+     * rule - from here, {@link #getExcludeFiles()}, or {@link #getExcludeWellKnown()} - is still a
+     * mirage API in fact (declared, unimplemented), but is reported under
+     * {@code == Excluded Mirage APIs} instead of {@code == Mirage APIs}: it never fails
+     * {@link #getFailOnMirage()} and never reaches {@link #getContractHistoryFile()}. Defaults to
+     * empty.
+     *
+     * @return mutable list property of exclusion rule strings
+     */
+    public abstract ListProperty<String> getExcludePaths();
+
+    /**
+     * One or more YAML files of exclusion rules, in the same format bundled well-known sets use:
+     * <pre>
+     * exclusions:
+     *   - "/actuator/health"
+     *   - "GET /actuator/**"
+     * </pre>
+     * Rules from every configured file are combined with {@link #getExcludePaths()} and
+     * {@link #getExcludeWellKnown()}. Lets a team check in its own reusable exclusion sets (e.g.
+     * an org-wide file shared across projects) alongside per-project ones. Defaults to empty.
+     *
+     * @return mutable file collection of exclusion rule files
+     */
+    public abstract ConfigurableFileCollection getExcludeFiles();
+
+    /**
+     * Names of bundled, well-known exclusion sets to apply - e.g.
+     * {@value com.arc_e_tect.gradle.detector.core.exclude.WellKnownExclusionSets#SPRING_BOOT_ACTUATOR}
+     * for Spring Boot Actuator's management endpoints, which are provided by the framework's own
+     * auto-configuration rather than a hand-written {@code @RestController} and so are
+     * structurally invisible to the controller scan even when documented and fully functional.
+     * Combined with {@link #getExcludePaths()} and {@link #getExcludeFiles()}. An unrecognised
+     * name fails the build. Defaults to empty.
+     *
+     * @return mutable list property of well-known exclusion set names
+     */
+    public abstract ListProperty<String> getExcludeWellKnown();
 }

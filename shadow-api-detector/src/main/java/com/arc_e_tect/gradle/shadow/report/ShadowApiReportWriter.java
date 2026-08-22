@@ -48,7 +48,7 @@ public class ShadowApiReportWriter {
      */
     public void write(File outputFile, int totalEndpointCount, List<Endpoint> shadows, String systemUnderTestVersion)
             throws IOException {
-        write(outputFile, totalEndpointCount, shadows, systemUnderTestVersion, List.of(), Map.of());
+        write(outputFile, totalEndpointCount, shadows, List.of(), systemUnderTestVersion, List.of(), Map.of());
     }
 
     /**
@@ -66,11 +66,13 @@ public class ShadowApiReportWriter {
      */
     public void write(File outputFile, int totalEndpointCount, List<Endpoint> shadows, String systemUnderTestVersion,
             Map<String, ContractProgressRecord> contractHistory) throws IOException {
-        write(outputFile, totalEndpointCount, shadows, systemUnderTestVersion, List.of(), contractHistory);
+        write(outputFile, totalEndpointCount, shadows, List.of(), systemUnderTestVersion, List.of(), contractHistory);
     }
 
     /**
      * Writes the report to {@code outputFile}, creating its parent directory if necessary.
+     * Equivalent to calling {@link #write(File, int, List, List, String, List, Map)} with an empty
+     * excluded-implementations list.
      *
      * @param outputFile             target AsciiDoc file
      * @param totalEndpointCount     total number of endpoints found across all scanned controllers
@@ -86,6 +88,38 @@ public class ShadowApiReportWriter {
      * @throws IOException if the output file cannot be written
      */
     public void write(File outputFile, int totalEndpointCount, List<Endpoint> shadows, String systemUnderTestVersion,
+            List<String> warnings, Map<String, ContractProgressRecord> contractHistory) throws IOException {
+        write(outputFile, totalEndpointCount, shadows, List.of(), systemUnderTestVersion, warnings, contractHistory);
+    }
+
+    /**
+     * Writes the report to {@code outputFile}, creating its parent directory if necessary.
+     *
+     * @param outputFile               target AsciiDoc file
+     * @param totalEndpointCount       total number of endpoints found across all scanned controllers
+     * @param shadows                  the endpoints not described in the OpenAPI documentation,
+     *                                 excluding any matched by a configured exclusion rule - these
+     *                                 are the endpoints that can fail {@code failOnShadow}
+     * @param excludedImplementations every scanned endpoint matched by a configured exclusion rule
+     *                                 (whether or not it is also undocumented) - a real
+     *                                 implementation exists at a path declared excluded, which
+     *                                 undermines the assumption behind the exclusion; rendered
+     *                                 under {@code == Excluded Implementations} instead of
+     *                                 {@code == Shadow APIs}, never fails the build, and never
+     *                                 appears in contract history - when empty, no such section is
+     *                                 written
+     * @param systemUnderTestVersion   version of the system under test that was scanned
+     * @param warnings                 non-fatal configuration gaps to render as a {@code WARNING}
+     *                                  admonition right after the report header - e.g. a configured
+     *                                  {@code rootDocument} or {@code controllerDirs} entry that
+     *                                  doesn't exist yet; when empty, no such admonition is written
+     * @param contractHistory          contract progress history to render as a {@code == Progress
+     *                                  Over Time} section, keyed by fingerprint; when empty, no such
+     *                                  section is written
+     * @throws IOException if the output file cannot be written
+     */
+    public void write(File outputFile, int totalEndpointCount, List<Endpoint> shadows,
+            List<Endpoint> excludedImplementations, String systemUnderTestVersion,
             List<String> warnings, Map<String, ContractProgressRecord> contractHistory) throws IOException {
         File parent = outputFile.getParentFile();
         if (parent != null && !parent.exists() && !parent.mkdirs()) {
@@ -117,34 +151,62 @@ public class ShadowApiReportWriter {
             if (shadows.isEmpty()) {
                 writer.println("None found. Every endpoint exposed by the scanned controllers is described "
                         + "in the OpenAPI documentation.");
-                return;
+            } else {
+                writeEndpointTable(writer, shadows);
             }
 
-            Map<String, List<Endpoint>> byController = shadows.stream()
-                    .collect(Collectors.groupingBy(Endpoint::declaringClass, TreeMap::new, Collectors.toList()));
-
-            byController.forEach((controller, controllerShadows) -> {
-                writer.println("=== " + controller);
-                writer.println();
-                writer.println("[cols=\"1,3,3,2,1\",options=\"header\"]");
-                writer.println("|===");
-                writer.println("| HTTP Verb | Path | Method | Source File | Line");
-
-                controllerShadows.stream()
-                        .sorted(Comparator.comparing(Endpoint::path).thenComparing(e -> e.verb().name()))
-                        .forEach(e -> {
-                            writer.println();
-                            writer.println("| " + e.verb());
-                            writer.println("| " + e.path());
-                            writer.println("| " + e.methodSignature());
-                            writer.println("| " + e.sourceFile());
-                            writer.println("| " + e.lineNumber());
-                        });
-
-                writer.println("|===");
-                writer.println();
-            });
+            writeExcludedSection(writer, excludedImplementations);
         }
+    }
+
+    private void writeEndpointTable(PrintWriter writer, List<Endpoint> endpoints) {
+        Map<String, List<Endpoint>> byController = endpoints.stream()
+                .collect(Collectors.groupingBy(Endpoint::declaringClass, TreeMap::new, Collectors.toList()));
+
+        byController.forEach((controller, controllerEndpoints) -> {
+            writer.println("=== " + controller);
+            writer.println();
+            writer.println("[cols=\"1,3,3,2,1\",options=\"header\"]");
+            writer.println("|===");
+            writer.println("| HTTP Verb | Path | Method | Source File | Line");
+
+            controllerEndpoints.stream()
+                    .sorted(Comparator.comparing(Endpoint::path).thenComparing(e -> e.verb().name()))
+                    .forEach(e -> {
+                        writer.println();
+                        writer.println("| " + e.verb());
+                        writer.println("| " + e.path());
+                        writer.println("| " + e.methodSignature());
+                        writer.println("| " + e.sourceFile());
+                        writer.println("| " + e.lineNumber());
+                    });
+
+            writer.println("|===");
+            writer.println();
+        });
+    }
+
+    /**
+     * Writes the {@code == Excluded Implementations} section - real {@code @RestController}
+     * implementations found at a path a configured exclusion rule declares excluded, regardless of
+     * whether that endpoint is also documented. Worth surfacing on its own: an exclusion rule
+     * exists because no real implementation was expected at that path (e.g. it's meant to be
+     * framework-provided), so an actual implementation there undermines that assumption. Never
+     * fails the build and never reaches contract history. Written only when
+     * {@code excludedImplementations} is non-empty.
+     */
+    private void writeExcludedSection(PrintWriter writer, List<Endpoint> excludedImplementations) {
+        if (excludedImplementations.isEmpty()) {
+            return;
+        }
+        writer.println();
+        writer.println("== Excluded Implementations");
+        writer.println();
+        writer.println("A real `@RestController` implementation exists at a path a configured exclusion "
+                + "rule declares excluded - regardless of whether it is also documented. Worth reviewing: "
+                + "the exclusion exists because no real implementation was expected here.");
+        writer.println();
+        writeEndpointTable(writer, excludedImplementations);
     }
 
     /**

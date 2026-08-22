@@ -1,3 +1,17 @@
+# [3.1.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/shadow-api-detector-v3.0.3...shadow-api-detector-v3.1.0) (2026-08-22)
+
+
+### ✨ New and updated features
+
+* **shadow-api-detector:** add exclusion rules for known-good implementations ([#206](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/206)) ([5c422ec](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/5c422ec7d0316d35d6c2534f8abff3b35578c1e6)), closes [#206](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/206)
+* **api-only-suite:** add failOnDetection convenience property ([#205](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/205)) ([cf6a569](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/cf6a5696e8d0fb4347eec1a0b36c040b483dde78)), closes [#205](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/205)
+
+
+### 🐛 Bug Fixes
+
+* **mirage-api-detector:** bump api-detector-core to 1.2.1 ([#203](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/203)) ([5332ff9](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/5332ff9e2ef41b8850058a4aca20ae9d6f8e698f)), closes [#203](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/203)
+* **doppelganger-api-detector:** bump api-detector-core to 1.2.1 ([#204](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/204)) ([121b568](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/121b5689b7f91f951ace91d409eb5162dab48e04)), closes [#204](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/204)
+
 ## [3.0.3](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/shadow-api-detector-v3.0.2...shadow-api-detector-v3.0.3) (2026-08-20)
 
 

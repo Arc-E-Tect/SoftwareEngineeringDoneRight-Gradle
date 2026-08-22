@@ -3,6 +3,7 @@ package com.arc_e_tect.gradle.shadow;
 import org.gradle.api.file.ConfigurableFileCollection;
 import org.gradle.api.file.DirectoryProperty;
 import org.gradle.api.file.RegularFileProperty;
+import org.gradle.api.provider.ListProperty;
 import org.gradle.api.provider.Property;
 
 /**
@@ -20,6 +21,10 @@ import org.gradle.api.provider.Property;
  *     trackContractHistory  = false                                           // default
  *     // contractHistoryFile = file('shadow-api-detector-contract-history.ndjson') // default
  *     updateContractHistory = trackContractHistory                            // default; see getUpdateContractHistory()
+ *
+ *     // excludePaths.add('/actuator/health')                                 // default: empty
+ *     // excludeFiles.from('shadow-exclusions.yaml')                          // default: empty
+ *     // excludeWellKnown.add('spring-boot-actuator')                        // default: empty
  * }
  * </pre>
  *
@@ -151,4 +156,44 @@ public abstract class ShadowApiDetectorExtension {
      * @return mutable boolean property controlling whether the contract history file is written back
      */
     public abstract Property<Boolean> getUpdateContractHistory();
+
+    /**
+     * Exclusion rule strings, parsed by
+     * {@link com.arc_e_tect.gradle.detector.core.exclude.ExclusionRule#parse(String)} - e.g.
+     * {@code "/actuator/health"} (any verb) or {@code "GET /actuator/**"} (verb-restricted,
+     * Ant-style {@code *}/{@code **} wildcards). Unlike Mirage/Doppelganger API Detector, a match
+     * here is a signal in the *opposite* direction: it means a real {@code @RestController}
+     * implementation exists at a path declared excluded (e.g. framework-provided, no real
+     * implementation expected there) - reported under {@code == Excluded Implementations} instead
+     * of {@code == Shadow APIs}, regardless of whether that implementation is also undocumented.
+     * It never fails {@link #getFailOnShadow()} and never reaches
+     * {@link #getContractHistoryFile()}. Defaults to empty.
+     *
+     * @return mutable list property of exclusion rule strings
+     */
+    public abstract ListProperty<String> getExcludePaths();
+
+    /**
+     * One or more YAML files of exclusion rules, in the same format bundled well-known sets use:
+     * <pre>
+     * exclusions:
+     *   - "/actuator/health"
+     *   - "GET /actuator/**"
+     * </pre>
+     * Rules from every configured file are combined with {@link #getExcludePaths()} and
+     * {@link #getExcludeWellKnown()}. Defaults to empty.
+     *
+     * @return mutable file collection of exclusion rule files
+     */
+    public abstract ConfigurableFileCollection getExcludeFiles();
+
+    /**
+     * Names of bundled, well-known exclusion sets to apply - e.g.
+     * {@value com.arc_e_tect.gradle.detector.core.exclude.WellKnownExclusionSets#SPRING_BOOT_ACTUATOR}
+     * for Spring Boot Actuator's management endpoints. Combined with {@link #getExcludePaths()}
+     * and {@link #getExcludeFiles()}. An unrecognised name fails the build. Defaults to empty.
+     *
+     * @return mutable list property of well-known exclusion set names
+     */
+    public abstract ListProperty<String> getExcludeWellKnown();
 }

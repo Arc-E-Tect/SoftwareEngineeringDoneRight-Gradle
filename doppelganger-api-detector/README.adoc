@@ -128,6 +128,71 @@ Not every incomplete-looking configuration is a bootstrapping gap. Two DSL confi
 
 Both of these are permanent property-level contradictions, not gaps that a project naturally grows out of - unlike a `rootDocument` or `testDirs` entry that doesn't exist *yet*, no amount of writing tests or generating OpenAPI documentation resolves them; only editing the build script does. That is why they fail the build immediately instead of degrading to a `[WARNING]` admonition.
 
+== Excluding known-good gaps
+
+Some declared-and-implemented endpoints are never going to get contract-test coverage the normal
+way - Spring Boot Actuator's management endpoints (`/actuator/health`, `/actuator/info`, ...) are
+the canonical example: they're framework-provided, so writing a Spring RestDocs/OpenAPI request
+validator/Spring Cloud Contract test against them the way you would your own API isn't the point.
+`detectDoppelgangerApis` still reports them as doppelganger APIs (declared, implemented, unverified)
+even though that's expected. Exclusion rules let a project say "this gap is known and fine" without
+disabling detection for everything else.
+
+An exclusion rule is a string: a path pattern, optionally prefixed with an HTTP verb -
+`"/actuator/health"` (any verb) or `"GET /actuator/**"` (verb-restricted). Path patterns support
+Ant-style wildcards: `*` matches exactly one path segment, and a trailing `**` matches any number
+of remaining segments. The same rule syntax is used in all three ways to supply rules below, and
+rules from every source are combined:
+
+[source,groovy]
+----
+doppelgangerApiDetector {
+    // Rule strings written directly in the build script.
+    excludePaths.add('/actuator/health')
+
+    // One or more YAML files of rules - see the format below. Lets a team check in its own
+    // reusable exclusion sets (e.g. an org-wide file shared across projects).
+    excludeFiles.from('doppelganger-exclusions.yaml')
+
+    // Bundled, well-known exclusion sets, selected by name.
+    excludeWellKnown.add('spring-boot-actuator')
+}
+----
+
+An exclusion file (`doppelganger-exclusions.yaml` above) looks like:
+
+[source,yaml]
+----
+exclusions:
+  - "/actuator/health"
+  - "GET /actuator/**"
+----
+
+Currently bundled well-known sets:
+
+[cols="1,3",options="header"]
+|===
+| Name                    | Covers
+| `spring-boot-actuator`  | `/actuator/**` (any verb) - Spring Boot Actuator's management endpoints
+|===
+
+[IMPORTANT]
+====
+An endpoint matching an exclusion rule is still, factually, a doppelganger API - declared,
+implemented, and unverified by any configured contract verification source. Exclusion changes what
+happens with that fact, not the fact itself:
+
+* It is reported under `== Excluded Doppelganger APIs` instead of `== Doppelganger APIs`.
+* It never fails `failOnDoppelganger`.
+* It is never written to `contractHistoryFile` - excluded endpoints are expected to permanently
+  miss verification evidence, so tracking their "progress over time" would just be noise.
+====
+
+An unrecognised `excludeWellKnown` name, or a malformed rule string (in `excludePaths` or an
+exclusion file), fails the build - both are build-script/file mistakes, not a "not built yet"
+bootstrapping gap. A configured `excludeFiles` entry that doesn't exist yet only warns, the same
+way a missing `controllerDirs`/`testDirs` entry does.
+
 == Configuration
 
 The plugin registers a `doppelgangerApiDetector` extension.
@@ -197,6 +262,12 @@ doppelgangerApiDetector {
     // trackContractHistory is true; the file is always read either way.
     // Default: same as trackContractHistory
     // updateContractHistory = true
+
+    // Exclusion rule strings, files, and well-known set names - see "Excluding known-good gaps"
+    // above. All three are combined; each defaults to empty.
+    // excludePaths.add('/actuator/health')
+    // excludeFiles.from('doppelganger-exclusions.yaml')
+    // excludeWellKnown.add('spring-boot-actuator')
 }
 ----
 
@@ -214,6 +285,9 @@ doppelgangerApiDetector {
     trackContractHistory.set(false)
     // contractHistoryFile.set(file("doppelganger-api-detector-contract-history.ndjson"))
     // updateContractHistory.set(true)
+    // excludePaths.add("/actuator/health")
+    // excludeFiles.from("doppelganger-exclusions.yaml")
+    // excludeWellKnown.add("spring-boot-actuator")
 }
 ----
 

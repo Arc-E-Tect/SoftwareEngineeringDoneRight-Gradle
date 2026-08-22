@@ -13,6 +13,7 @@ import javax.inject.Inject;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -469,6 +470,124 @@ class DetectDoppelgangerApisTaskTest {
 
         String content = Files.readString(new File(reportDir, "doppelganger-apis.adoc").toPath());
         assertThat(content).contains("listOrders()");
+    }
+
+    @Test
+    @DisplayName("excludePaths moves a matching doppelganger into Excluded Doppelganger APIs and it no longer fails the build")
+    void excludePathsMovesMatchingDoppelgangerToExcludedSection() throws Exception {
+        DetectDoppelgangerApisTask task = configuredTask(openApiFixture("both-endpoints.yaml"), true);
+        task.getExcludePaths().set(List.of("/orders"));
+
+        task.generate();
+
+        String content = Files.readString(new File(reportDir, "doppelganger-apis.adoc").toPath());
+        assertThat(content)
+                .contains("None found.")
+                .contains("== Excluded Doppelganger APIs")
+                .contains("listOrders()");
+    }
+
+    @Test
+    @DisplayName("excludeFiles rules combine across more than one file")
+    void excludeFilesCombineAcrossMultipleFiles() throws Exception {
+        File exclusionsA = new File(tempDir.toFile(), "exclusions-a.yaml");
+        Files.writeString(exclusionsA.toPath(), "exclusions:\n  - \"/nowhere\"\n");
+        File exclusionsB = new File(tempDir.toFile(), "exclusions-b.yaml");
+        Files.writeString(exclusionsB.toPath(), "exclusions:\n  - \"/orders\"\n");
+
+        DetectDoppelgangerApisTask task = configuredTask(openApiFixture("both-endpoints.yaml"), true);
+        task.getExcludeFiles().from(exclusionsA, exclusionsB);
+
+        task.generate();
+
+        String content = Files.readString(new File(reportDir, "doppelganger-apis.adoc").toPath());
+        assertThat(content).contains("None found.").contains("== Excluded Doppelganger APIs");
+    }
+
+    @Test
+    @DisplayName("a missing excludeFiles entry warns but does not fail the build")
+    void missingExcludeFilesEntryWarns() throws Exception {
+        DetectDoppelgangerApisTask task = configuredTask(openApiFixture("both-endpoints.yaml"), false);
+        task.getExcludeFiles().from(new File(tempDir.toFile(), "does-not-exist.yaml"));
+
+        task.generate();
+
+        String content = Files.readString(new File(reportDir, "doppelganger-apis.adoc").toPath());
+        assertThat(content).contains("[WARNING]").contains("`excludeFiles` entry does not exist yet");
+    }
+
+    @Test
+    @DisplayName("excludeWellKnown resolves the bundled spring-boot-actuator set")
+    void excludeWellKnownResolvesSpringBootActuator() throws Exception {
+        Files.writeString(controllerDir.toPath().resolve("HealthController.java"), """
+                package com.example;
+
+                import org.springframework.web.bind.annotation.GetMapping;
+                import org.springframework.web.bind.annotation.RequestMapping;
+                import org.springframework.web.bind.annotation.RestController;
+
+                @RestController
+                @RequestMapping("/actuator/health")
+                public class HealthController {
+
+                    @GetMapping
+                    public String health() { return ""; }
+                }
+                """);
+        File dir = new File(tempDir.toFile(), "openapi");
+        Files.createDirectories(dir.toPath());
+        File rootDocument = new File(dir, "actuator.yaml");
+        Files.writeString(rootDocument.toPath(), """
+                openapi: 3.0.3
+                info:
+                  title: Test API
+                  version: "1.0"
+                paths:
+                  /actuator/health:
+                    get:
+                      operationId: health
+                      responses:
+                        '200':
+                          description: OK
+                """);
+
+        DetectDoppelgangerApisTask task = configuredTask(rootDocument, true);
+        task.getExcludeWellKnown().set(List.of("spring-boot-actuator"));
+
+        task.generate();
+
+        String content = Files.readString(new File(reportDir, "doppelganger-apis.adoc").toPath());
+        assertThat(content)
+                .contains("None found.")
+                .contains("== Excluded Doppelganger APIs")
+                .contains("/actuator/health");
+    }
+
+    @Test
+    @DisplayName("an unrecognised excludeWellKnown name fails the build")
+    void unrecognisedExcludeWellKnownNameFailsBuild() throws Exception {
+        DetectDoppelgangerApisTask task = configuredTask(openApiFixture("both-endpoints.yaml"), false);
+        task.getExcludeWellKnown().set(List.of("not-a-real-set"));
+
+        assertThatThrownBy(task::generate)
+                .isInstanceOf(GradleException.class)
+                .hasMessageContaining("not-a-real-set");
+    }
+
+    @Test
+    @DisplayName("an excluded endpoint never reaches the persisted contract history file")
+    void excludedEndpointNeverReachesContractHistory() throws Exception {
+        File historyFile = new File(tempDir.toFile(), "contract-history.ndjson");
+        DetectDoppelgangerApisTask task = configuredTask(openApiFixture("both-endpoints.yaml"), false);
+        task.getExcludePaths().set(List.of("/orders"));
+        task.getTrackContractHistory().set(true);
+        task.getContractHistoryFile().set(historyFile);
+        task.getUpdateContractHistory().set(true);
+
+        task.generate();
+
+        String historyContent = Files.readString(historyFile.toPath());
+        assertThat(historyContent).doesNotContain("\"path\":\"/orders\"");
     }
 
     private DetectDoppelgangerApisTask configuredTask(File rootDocument, boolean failOnDoppelganger) {
