@@ -1,6 +1,11 @@
 package com.arc_e_tect.gradle.mirage;
 
 import com.arc_e_tect.gradle.detector.core.console.ScanProgressReporter;
+import com.arc_e_tect.gradle.detector.core.detect.ContractSetOperations;
+import com.arc_e_tect.gradle.detector.core.exclude.ExclusionFilter;
+import com.arc_e_tect.gradle.detector.core.exclude.ExclusionRule;
+import com.arc_e_tect.gradle.detector.core.exclude.ExclusionRuleFile;
+import com.arc_e_tect.gradle.detector.core.exclude.WellKnownExclusionSets;
 import com.arc_e_tect.gradle.detector.core.model.Endpoint;
 import com.arc_e_tect.gradle.detector.core.model.PathTemplates;
 import com.arc_e_tect.gradle.detector.core.openapi.DescribedEndpoint;
@@ -11,13 +16,16 @@ import com.arc_e_tect.gradle.detector.core.progress.ContractProgressRecord;
 import com.arc_e_tect.gradle.detector.core.progress.LegacyContractHistoryFormatException;
 import com.arc_e_tect.gradle.detector.core.scan.ControllerScanner;
 import com.arc_e_tect.gradle.mirage.detect.MirageApiFinder;
+import com.arc_e_tect.gradle.mirage.report.ExcludedMirage;
 import com.arc_e_tect.gradle.mirage.report.MirageApiReportWriter;
+import com.arc_e_tect.gradle.mirage.report.StubStatus;
 import com.arc_e_tect.gradle.mirage.scan.WireMockStubScanner;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.GradleException;
 import org.gradle.api.file.ConfigurableFileCollection;
 import org.gradle.api.file.DirectoryProperty;
 import org.gradle.api.file.RegularFileProperty;
+import org.gradle.api.provider.ListProperty;
 import org.gradle.api.provider.Property;
 import org.gradle.api.tasks.Input;
 import org.gradle.api.tasks.InputFiles;
@@ -214,6 +222,32 @@ public abstract class DetectMirageApisTask extends DefaultTask {
     public abstract Property<Boolean> getUpdateContractHistory();
 
     /**
+     * Exclusion rule strings - see {@link MirageApiDetectorExtension#getExcludePaths()}.
+     *
+     * @return mutable list property of exclusion rule strings
+     */
+    @Input
+    public abstract ListProperty<String> getExcludePaths();
+
+    /**
+     * External exclusion rule files - see {@link MirageApiDetectorExtension#getExcludeFiles()}.
+     *
+     * @return mutable file collection of exclusion rule files
+     */
+    @InputFiles
+    @PathSensitive(PathSensitivity.RELATIVE)
+    public abstract ConfigurableFileCollection getExcludeFiles();
+
+    /**
+     * Bundled well-known exclusion set names - see
+     * {@link MirageApiDetectorExtension#getExcludeWellKnown()}.
+     *
+     * @return mutable list property of well-known exclusion set names
+     */
+    @Input
+    public abstract ListProperty<String> getExcludeWellKnown();
+
+    /**
      * Creates the task. Instantiated by Gradle infrastructure via {@link javax.inject.Inject}.
      */
     @Inject
@@ -304,27 +338,95 @@ public abstract class DetectMirageApisTask extends DefaultTask {
         List<DescribedEndpoint> mirages = inputComplete
                 ? new MirageApiFinder().findMirages(described, controllerEndpoints) : List.of();
 
+        List<ExclusionRule> exclusionRules = resolveExclusionRules(warnings);
+        List<DescribedEndpoint> reportableMirages = ExclusionFilter.excludeMatching(mirages, exclusionRules);
+        List<ExcludedMirage> excludedMirages = ExclusionFilter.onlyMatching(mirages, exclusionRules).stream()
+                .map(e -> new ExcludedMirage(e, stubStatusFor(e, scanMocks, stubEndpoints)))
+                .toList();
+
         Map<String, ContractProgressRecord> contractHistory = !getTrackContractHistory().get() ? Map.of()
-                : inputComplete ? updateContractHistory(controllerEndpoints, stubEndpoints, described)
+                : inputComplete ? updateContractHistory(
+                        ExclusionFilter.excludeMatching(controllerEndpoints, exclusionRules),
+                        stubEndpoints == null ? null : ExclusionFilter.excludeMatching(stubEndpoints, exclusionRules),
+                        ExclusionFilter.excludeMatching(described, exclusionRules))
                         : loadContractHistoryForDisplay();
 
         File outputDir = getReportDir().getAsFile().get();
         File outputFile = new File(outputDir, getReportFileName().get());
         try {
-            new MirageApiReportWriter().write(outputFile, described.size(), mirages,
+            new MirageApiReportWriter().write(outputFile, described.size(), reportableMirages, excludedMirages,
                     getSystemUnderTestVersion().get(), warnings, contractHistory);
         } catch (IOException e) {
             throw new GradleException("mirageApiDetector: failed to write report to " + outputFile, e);
         }
 
-        getLogger().lifecycle("Mirage API Detector: scanned {} described endpoint(s), found {} mirage API(s). Report → {}",
-                described.size(), mirages.size(), outputFile);
+        getLogger().lifecycle("Mirage API Detector: scanned {} described endpoint(s), found {} mirage API(s) "
+                        + "({} excluded). Report → {}",
+                described.size(), reportableMirages.size(), excludedMirages.size(), outputFile);
 
-        if (!mirages.isEmpty() && getFailOnMirage().get()) {
-            throw new GradleException("mirageApiDetector: found " + mirages.size()
+        if (!reportableMirages.isEmpty() && getFailOnMirage().get()) {
+            throw new GradleException("mirageApiDetector: found " + reportableMirages.size()
                     + " mirage API(s) described in the OpenAPI documentation but not implemented by any "
                     + "@RestController class. See " + outputFile);
         }
+    }
+
+    /**
+     * Resolves every configured exclusion rule - {@link #getExcludePaths()},
+     * {@link #getExcludeFiles()}, and {@link #getExcludeWellKnown()} - into one combined list. A
+     * missing {@code excludeFiles} entry only warns, the same way a missing {@code controllerDirs}
+     * or {@code stubDirs} entry does; a malformed rule string or an unrecognised well-known set
+     * name fails the build outright, since those are build-script/file mistakes, not a
+     * "not built yet" bootstrapping gap.
+     */
+    private List<ExclusionRule> resolveExclusionRules(List<String> warnings) {
+        List<ExclusionRule> rules = new ArrayList<>();
+        for (String entry : getExcludePaths().get()) {
+            try {
+                rules.add(ExclusionRule.parse(entry));
+            } catch (IllegalArgumentException e) {
+                throw new GradleException("mirageApiDetector: invalid `excludePaths` entry: " + e.getMessage(), e);
+            }
+        }
+        for (File file : getExcludeFiles()) {
+            if (!file.isFile()) {
+                warnings.add("Configured `excludeFiles` entry does not exist yet: `" + file + "`.");
+                continue;
+            }
+            try {
+                rules.addAll(ExclusionRuleFile.load(file));
+            } catch (IOException e) {
+                throw new GradleException("mirageApiDetector: failed to read excludeFiles entry " + file, e);
+            } catch (IllegalArgumentException e) {
+                throw new GradleException("mirageApiDetector: " + e.getMessage(), e);
+            }
+        }
+        for (String name : getExcludeWellKnown().get()) {
+            try {
+                rules.addAll(WellKnownExclusionSets.resolve(name));
+            } catch (IllegalArgumentException e) {
+                throw new GradleException("mirageApiDetector: " + e.getMessage(), e);
+            }
+        }
+        return rules;
+    }
+
+    /**
+     * The current run's WireMock stub status for an excluded mirage - see
+     * {@link ExcludedMirage}/{@link StubStatus}. Always computed fresh from this run's stub scan,
+     * independent of contract history, since excluded endpoints are deliberately kept out of it.
+     *
+     * @param endpoint      the excluded, described-but-unimplemented endpoint
+     * @param scanMocks     whether stub scanning was enabled this run
+     * @param stubEndpoints this run's scanned stub endpoints, or {@code null} when
+     *                      {@code scanMocks} is {@code false}
+     */
+    private StubStatus stubStatusFor(DescribedEndpoint endpoint, boolean scanMocks, List<Endpoint> stubEndpoints) {
+        if (!scanMocks) {
+            return StubStatus.NOT_SCANNED;
+        }
+        boolean stubbed = !ContractSetOperations.intersection(List.of(endpoint), stubEndpoints).isEmpty();
+        return stubbed ? StubStatus.STUBBED : StubStatus.NOT_STUBBED;
     }
 
     /**

@@ -224,4 +224,65 @@ class MirageApiReportWriterTest {
                 .contains("2026-01-14 09:02:11 UTC")
                 .doesNotContain("2026-01-14T09:02:11Z");
     }
+
+    @Test
+    @DisplayName("omits the Excluded Mirage APIs section when there are no excluded mirages")
+    void omitsExcludedSectionWhenEmpty(@TempDir Path tempDir) throws Exception {
+        File output = new File(tempDir.toFile(), "report.adoc");
+
+        writer.write(output, 0, List.of(), List.of(), "1.0.0", List.of(), Map.of());
+
+        assertThat(Files.readString(output.toPath())).doesNotContain("== Excluded Mirage APIs");
+    }
+
+    @Test
+    @DisplayName("lists an excluded mirage with its stub status under Excluded Mirage APIs")
+    void listsExcludedMirageWithStubStatus(@TempDir Path tempDir) throws Exception {
+        File output = new File(tempDir.toFile(), "report.adoc");
+        DescribedEndpoint health = new DescribedEndpoint(HttpVerb.GET, "/actuator/health", "health", List.of());
+
+        writer.write(output, 1, List.of(), List.of(new ExcludedMirage(health, StubStatus.STUBBED)),
+                "1.0.0", List.of(), Map.of());
+
+        String content = Files.readString(output.toPath());
+        assertThat(content)
+                .contains("== Excluded Mirage APIs")
+                .contains("/actuator/health")
+                .contains("health")
+                .contains("| Yes");
+    }
+
+    @Test
+    @DisplayName("renders each stub status as its own label")
+    void rendersEachStubStatusAsItsOwnLabel(@TempDir Path tempDir) throws Exception {
+        File output = new File(tempDir.toFile(), "report.adoc");
+        List<ExcludedMirage> excluded = List.of(
+                new ExcludedMirage(new DescribedEndpoint(HttpVerb.GET, "/a", "a", List.of()), StubStatus.STUBBED),
+                new ExcludedMirage(new DescribedEndpoint(HttpVerb.GET, "/b", "b", List.of()), StubStatus.NOT_STUBBED),
+                new ExcludedMirage(new DescribedEndpoint(HttpVerb.GET, "/c", "c", List.of()), StubStatus.NOT_SCANNED));
+
+        writer.write(output, 3, List.of(), excluded, "1.0.0", List.of(), Map.of());
+
+        String content = Files.readString(output.toPath());
+        assertThat(content).contains("| Yes").contains("| No").contains("| Not scanned");
+    }
+
+    @Test
+    @DisplayName("still writes the Excluded Mirage APIs section when the main Mirage APIs list is also non-empty")
+    void writesExcludedSectionAlongsideNonEmptyMainList(@TempDir Path tempDir) throws Exception {
+        File output = new File(tempDir.toFile(), "report.adoc");
+        List<DescribedEndpoint> mirages = List.of(
+                new DescribedEndpoint(HttpVerb.POST, "/api/users/{id}", "createUser", List.of("Users")));
+        List<ExcludedMirage> excluded = List.of(new ExcludedMirage(
+                new DescribedEndpoint(HttpVerb.GET, "/actuator/health", "health", List.of()), StubStatus.NOT_SCANNED));
+
+        writer.write(output, 2, mirages, excluded, "1.0.0", List.of(), Map.of());
+
+        String content = Files.readString(output.toPath());
+        assertThat(content)
+                .contains("=== Users")
+                .contains("createUser")
+                .contains("== Excluded Mirage APIs")
+                .contains("/actuator/health");
+    }
 }
