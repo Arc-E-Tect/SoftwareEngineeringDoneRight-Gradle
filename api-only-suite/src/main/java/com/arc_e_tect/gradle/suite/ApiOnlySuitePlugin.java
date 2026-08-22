@@ -57,13 +57,15 @@ import org.gradle.api.tasks.TaskProvider;
  *
  * <h2>{@code detectAllApiGaps} never fails the build on a detected gap</h2>
  * <p>{@code detectAllApiGaps} always runs all three detectors to completion and never fails the
- * build, regardless of {@code failOnShadow}/{@code failOnMirage}/{@code failOnDoppelganger}. It
- * depends on three dedicated task instances - not {@code detectShadowApis}/{@code detectMirageApis}/
- * {@code detectDoppelgangerApis} themselves - configured identically except with their own
- * fail-on-gap property forced to {@code false}, so a shadow API found first can never prevent Mirage
- * or Doppelganger from running. Run the individual {@code detectShadowApis}/{@code detectMirageApis}/
- * {@code detectDoppelgangerApis} tasks directly (or wire them into {@code check} individually) when
- * you want the build to actually fail on a detected gap.</p>
+ * build, regardless of {@code failOnShadow}/{@code failOnMirage}/{@code failOnDoppelganger} -
+ * including when any of the three is {@code true} because of
+ * {@link ApiOnlySuiteExtension#getFailOnDetection()}. It depends on three dedicated task instances
+ * - not {@code detectShadowApis}/{@code detectMirageApis}/{@code detectDoppelgangerApis} themselves
+ * - configured identically except with their own fail-on-gap property forced to {@code false}, so a
+ * shadow API found first can never prevent Mirage or Doppelganger from running. Run the individual
+ * {@code detectShadowApis}/{@code detectMirageApis}/{@code detectDoppelgangerApis} tasks directly
+ * (or wire them into {@code check} individually) when you want the build to actually fail on a
+ * detected gap - {@code failOnDetection = true} is exactly how to make all three do so at once.</p>
  */
 public class ApiOnlySuitePlugin implements Plugin<Project> {
 
@@ -76,6 +78,7 @@ public class ApiOnlySuitePlugin implements Plugin<Project> {
     @Override
     public void apply(Project project) {
         ApiOnlySuiteExtension ext = project.getExtensions().create(ApiOnlySuiteExtension.NAME, ApiOnlySuiteExtension.class);
+        ext.getFailOnDetection().convention(false);
 
         // Registered before the three detector plugins are applied below, so this callback runs
         // before each detector's own afterEvaluate-based defaulting of controllerDirs (afterEvaluate
@@ -192,19 +195,26 @@ public class ApiOnlySuitePlugin implements Plugin<Project> {
     }
 
     /**
-     * Forwards {@link ApiOnlySuiteExtension#getRootDocument()} and
-     * {@link ApiOnlySuiteExtension#getControllerDirs()} into each of the three underlying
+     * Forwards {@link ApiOnlySuiteExtension#getRootDocument()},
+     * {@link ApiOnlySuiteExtension#getControllerDirs()}, and
+     * {@link ApiOnlySuiteExtension#getFailOnDetection()} into each of the three underlying
      * extensions, as a fallback that only applies where the consumer has not already configured
      * that property directly on the individual extension.
      *
-     * <p>{@code rootDocument} is forwarded via {@link org.gradle.api.provider.Property#convention},
-     * which - unlike {@link org.gradle.api.provider.Property#set} - always yields to an explicit
-     * value regardless of the order the two are configured in, exactly the way
-     * {@code ShadowApiDetectorPlugin} already uses {@code convention(...)} for its own defaulting.
-     * {@code ConfigurableFileCollection} has no equivalent lazy-fallback mechanism, so
-     * {@code controllerDirs} is forwarded with the same eager empty-check idiom the three detector
-     * plugins already use for their own {@code src/main/java} default - which is exactly why this
-     * method must run before those plugins' own defaulting does.</p>
+     * <p>{@code rootDocument} and {@code failOnDetection} are forwarded via
+     * {@link org.gradle.api.provider.Property#convention}, which - unlike
+     * {@link org.gradle.api.provider.Property#set} - always yields to an explicit value regardless
+     * of the order the two are configured in, exactly the way {@code ShadowApiDetectorPlugin}
+     * already uses {@code convention(...)} for its own defaulting. This replaces each plugin's own
+     * {@code false} convention for its fail-on-gap property with one that tracks
+     * {@code failOnDetection} instead - not a behavior change for the common case, since
+     * {@code failOnDetection} itself defaults to {@code false} too, but it means an individual
+     * plugin's own explicit fail-on-gap value (set before or after this callback runs) still always
+     * wins, per {@code Property#convention}'s own guarantee. {@code ConfigurableFileCollection} has
+     * no equivalent lazy-fallback mechanism, so {@code controllerDirs} is forwarded with the same
+     * eager empty-check idiom the three detector plugins already use for their own
+     * {@code src/main/java} default - which is exactly why this method must run before those
+     * plugins' own defaulting does.</p>
      */
     private void forwardSharedSettings(Project project, ApiOnlySuiteExtension ext) {
         ShadowApiDetectorExtension shadowExt = project.getExtensions().getByType(ShadowApiDetectorExtension.class);
@@ -215,6 +225,10 @@ public class ApiOnlySuitePlugin implements Plugin<Project> {
         shadowExt.getRootDocument().convention(ext.getRootDocument());
         mirageExt.getRootDocument().convention(ext.getRootDocument());
         doppelgangerExt.getRootDocument().convention(ext.getRootDocument());
+
+        shadowExt.getFailOnShadow().convention(ext.getFailOnDetection());
+        mirageExt.getFailOnMirage().convention(ext.getFailOnDetection());
+        doppelgangerExt.getFailOnDoppelganger().convention(ext.getFailOnDetection());
 
         if (shadowExt.getControllerDirs().isEmpty()) {
             shadowExt.getControllerDirs().from(ext.getControllerDirs());
