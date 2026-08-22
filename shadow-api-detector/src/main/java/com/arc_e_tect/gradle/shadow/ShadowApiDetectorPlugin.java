@@ -4,6 +4,8 @@ import org.gradle.api.Plugin;
 import org.gradle.api.Project;
 import org.gradle.api.tasks.TaskProvider;
 
+import java.util.List;
+
 /**
  * Gradle plugin that registers the {@code detectShadowApis} task and wires the
  * {@code shadowApiDetector} DSL extension into the project.
@@ -70,6 +72,9 @@ public class ShadowApiDetectorPlugin implements Plugin<Project> {
         // rather than snapshotting it at this point.
         ext.getUpdateContractHistory().convention(ext.getTrackContractHistory());
 
+        ext.getExcludePaths().convention(List.of());
+        ext.getExcludeWellKnown().convention(List.of());
+
         TaskProvider<DetectShadowApisTask> taskProvider =
                 project.getTasks().register(TASK_NAME, DetectShadowApisTask.class, task -> {
                     task.getControllerDirs().from(ext.getControllerDirs());
@@ -83,6 +88,9 @@ public class ShadowApiDetectorPlugin implements Plugin<Project> {
                     task.getContractHistoryFile().set(ext.getContractHistoryFile());
                     task.getUpdateContractHistory().set(ext.getUpdateContractHistory());
                     task.getProjectDirectory().set(project.getLayout().getProjectDirectory());
+                    task.getExcludePaths().set(ext.getExcludePaths());
+                    task.getExcludeFiles().from(ext.getExcludeFiles());
+                    task.getExcludeWellKnown().set(ext.getExcludeWellKnown());
                 });
 
         // Default to src/main/java only when the user has not configured any controller

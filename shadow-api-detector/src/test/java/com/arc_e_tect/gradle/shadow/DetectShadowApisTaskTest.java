@@ -14,6 +14,7 @@ import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -586,6 +587,116 @@ class DetectShadowApisTaskTest {
         public Logger getLogger() {
             return recordingLogger;
         }
+    }
+
+    @Test
+    @DisplayName("excludePaths moves a matching shadow into Excluded Implementations and it no longer fails the build")
+    void excludePathsMovesMatchingShadowToExcludedSection() throws Exception {
+        DetectShadowApisTask task = configuredTask(openApiFixture("single-endpoint.yaml"), true);
+        task.getExcludePaths().set(List.of("/users/{id}"));
+
+        task.generate();
+
+        String content = Files.readString(new File(reportDir, "shadow-apis.adoc").toPath());
+        assertThat(content)
+                .contains("None found.")
+                .contains("== Excluded Implementations")
+                .contains("/users/{id}");
+    }
+
+    @Test
+    @DisplayName("excludeFiles rules combine across more than one file")
+    void excludeFilesCombineAcrossMultipleFiles() throws Exception {
+        File exclusionsA = new File(tempDir.toFile(), "exclusions-a.yaml");
+        Files.writeString(exclusionsA.toPath(), "exclusions:\n  - \"/nowhere\"\n");
+        File exclusionsB = new File(tempDir.toFile(), "exclusions-b.yaml");
+        Files.writeString(exclusionsB.toPath(), "exclusions:\n  - \"/users/{id}\"\n");
+
+        DetectShadowApisTask task = configuredTask(openApiFixture("single-endpoint.yaml"), true);
+        task.getExcludeFiles().from(exclusionsA, exclusionsB);
+
+        task.generate();
+
+        String content = Files.readString(new File(reportDir, "shadow-apis.adoc").toPath());
+        assertThat(content).contains("None found.").contains("== Excluded Implementations");
+    }
+
+    @Test
+    @DisplayName("a missing excludeFiles entry warns but does not fail the build")
+    void missingExcludeFilesEntryWarns() throws Exception {
+        DetectShadowApisTask task = configuredTask(openApiFixture("single-endpoint.yaml"), false);
+        task.getExcludeFiles().from(new File(tempDir.toFile(), "does-not-exist.yaml"));
+
+        task.generate();
+
+        String content = Files.readString(new File(reportDir, "shadow-apis.adoc").toPath());
+        assertThat(content).contains("[WARNING]").contains("`excludeFiles` entry does not exist yet");
+    }
+
+    @Test
+    @DisplayName("excludeWellKnown flags a real implementation found at an excluded spring-boot-actuator path")
+    void excludeWellKnownFlagsImplementationAtActuatorPath() throws Exception {
+        File actuatorControllerDir = new File(tempDir.toFile(), "src/main/java/com/example/actuator");
+        Files.createDirectories(actuatorControllerDir.toPath());
+        Files.writeString(actuatorControllerDir.toPath().resolve("HealthController.java"), """
+                package com.example.actuator;
+
+                import org.springframework.web.bind.annotation.GetMapping;
+                import org.springframework.web.bind.annotation.RequestMapping;
+                import org.springframework.web.bind.annotation.RestController;
+
+                @RestController
+                @RequestMapping("/actuator/health")
+                public class HealthController {
+
+                    @GetMapping
+                    public String health() { return ""; }
+                }
+                """);
+
+        DetectShadowApisTask task = newTask();
+        task.getControllerDirs().from(controllerDir, actuatorControllerDir);
+        task.getRootDocument().set(openApiFixture("both-endpoints.yaml"));
+        task.getReportDir().set(reportDir);
+        task.getReportFileName().set("shadow-apis.adoc");
+        task.getFailOnShadow().set(true);
+        task.getSystemUnderTestVersion().set("1.0.0");
+        task.getExcludeWellKnown().set(List.of("spring-boot-actuator"));
+
+        task.generate();
+
+        String content = Files.readString(new File(reportDir, "shadow-apis.adoc").toPath());
+        assertThat(content)
+                .contains("None found.")
+                .contains("== Excluded Implementations")
+                .contains("/actuator/health");
+    }
+
+    @Test
+    @DisplayName("an unrecognised excludeWellKnown name fails the build")
+    void unrecognisedExcludeWellKnownNameFailsBuild() throws Exception {
+        DetectShadowApisTask task = configuredTask(openApiFixture("single-endpoint.yaml"), false);
+        task.getExcludeWellKnown().set(List.of("not-a-real-set"));
+
+        assertThatThrownBy(task::generate)
+                .isInstanceOf(GradleException.class)
+                .hasMessageContaining("not-a-real-set");
+    }
+
+    @Test
+    @DisplayName("an excluded endpoint never reaches the persisted contract history file")
+    void excludedEndpointNeverReachesContractHistory() throws Exception {
+        File historyFile = new File(tempDir.toFile(), "contract-history.ndjson");
+        DetectShadowApisTask task = configuredTask(openApiFixture("single-endpoint.yaml"), false);
+        task.getExcludePaths().set(List.of("/users/{id}"));
+        task.getTrackContractHistory().set(true);
+        task.getContractHistoryFile().set(historyFile);
+        task.getUpdateContractHistory().set(true);
+
+        task.generate();
+
+        String historyContent = Files.readString(historyFile.toPath());
+        assertThat(historyContent).doesNotContain("\"path\":\"/users/{id}\"");
     }
 
     private DetectShadowApisTask configuredTask(File rootDocument, boolean failOnShadow) {

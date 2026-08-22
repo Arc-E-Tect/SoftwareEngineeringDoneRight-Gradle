@@ -178,4 +178,50 @@ class ShadowApiReportWriterTest {
                 .contains("2026-01-14 09:02:11 UTC")
                 .doesNotContain("2026-01-14T09:02:11Z");
     }
+
+    @Test
+    @DisplayName("omits the Excluded Implementations section when there are none")
+    void omitsExcludedSectionWhenEmpty(@TempDir Path tempDir) throws Exception {
+        File output = new File(tempDir.toFile(), "report.adoc");
+
+        writer.write(output, 0, List.of(), List.of(), "1.0.0", List.of(), Map.of());
+
+        assertThat(Files.readString(output.toPath())).doesNotContain("== Excluded Implementations");
+    }
+
+    @Test
+    @DisplayName("lists an excluded implementation under Excluded Implementations")
+    void listsExcludedImplementation(@TempDir Path tempDir) throws Exception {
+        File output = new File(tempDir.toFile(), "report.adoc");
+        Endpoint health = new Endpoint(HttpVerb.GET, "/actuator/health", "com.example.HealthController",
+                "health()", "HealthController.java", 12);
+
+        writer.write(output, 1, List.of(), List.of(health), "1.0.0", List.of(), Map.of());
+
+        String content = Files.readString(output.toPath());
+        assertThat(content)
+                .contains("== Excluded Implementations")
+                .contains("/actuator/health")
+                .contains("com.example.HealthController")
+                .contains("health()");
+    }
+
+    @Test
+    @DisplayName("still writes the Excluded Implementations section when the main Shadow APIs list is also non-empty")
+    void writesExcludedSectionAlongsideNonEmptyMainList(@TempDir Path tempDir) throws Exception {
+        File output = new File(tempDir.toFile(), "report.adoc");
+        List<Endpoint> shadows = List.of(new Endpoint(HttpVerb.GET, "/api/orders", "com.example.OrderController",
+                "listOrders()", "OrderController.java", 10));
+        List<Endpoint> excluded = List.of(new Endpoint(HttpVerb.GET, "/actuator/health",
+                "com.example.HealthController", "health()", "HealthController.java", 12));
+
+        writer.write(output, 2, shadows, excluded, "1.0.0", List.of(), Map.of());
+
+        String content = Files.readString(output.toPath());
+        assertThat(content)
+                .contains("=== com.example.OrderController")
+                .contains("/api/orders")
+                .contains("== Excluded Implementations")
+                .contains("/actuator/health");
+    }
 }
