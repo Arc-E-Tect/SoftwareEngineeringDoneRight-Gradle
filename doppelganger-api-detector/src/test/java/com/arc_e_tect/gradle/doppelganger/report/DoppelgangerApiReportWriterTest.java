@@ -178,4 +178,50 @@ class DoppelgangerApiReportWriterTest {
                 .contains("* `rootDocument` is not configured yet.")
                 .contains("* Configured `testDirs` entry does not exist yet: `x`.");
     }
+
+    @Test
+    @DisplayName("omits the Excluded Doppelganger APIs section when there are none")
+    void omitsExcludedSectionWhenEmpty(@TempDir Path tempDir) throws Exception {
+        File output = new File(tempDir.toFile(), "report.adoc");
+
+        writer.write(output, 0, List.of(), List.of(), "1.0.0", List.of(), Map.of());
+
+        assertThat(Files.readString(output.toPath())).doesNotContain("== Excluded Doppelganger APIs");
+    }
+
+    @Test
+    @DisplayName("lists an excluded doppelganger under Excluded Doppelganger APIs")
+    void listsExcludedDoppelganger(@TempDir Path tempDir) throws Exception {
+        File output = new File(tempDir.toFile(), "report.adoc");
+        Endpoint health = new Endpoint(HttpVerb.GET, "/actuator/health", "com.example.HealthController",
+                "health()", "HealthController.java", 12);
+
+        writer.write(output, 1, List.of(), List.of(health), "1.0.0", List.of(), Map.of());
+
+        String content = Files.readString(output.toPath());
+        assertThat(content)
+                .contains("== Excluded Doppelganger APIs")
+                .contains("/actuator/health")
+                .contains("com.example.HealthController")
+                .contains("health()");
+    }
+
+    @Test
+    @DisplayName("still writes the Excluded Doppelganger APIs section when the main Doppelganger APIs list is also non-empty")
+    void writesExcludedSectionAlongsideNonEmptyMainList(@TempDir Path tempDir) throws Exception {
+        File output = new File(tempDir.toFile(), "report.adoc");
+        List<Endpoint> doppelgangers = List.of(new Endpoint(HttpVerb.GET, "/api/invoices",
+                "com.example.InvoiceController", "listInvoices()", "InvoiceController.java", 10));
+        List<Endpoint> excluded = List.of(new Endpoint(HttpVerb.GET, "/actuator/health",
+                "com.example.HealthController", "health()", "HealthController.java", 12));
+
+        writer.write(output, 2, doppelgangers, excluded, "1.0.0", List.of(), Map.of());
+
+        String content = Files.readString(output.toPath());
+        assertThat(content)
+                .contains("=== com.example.InvoiceController")
+                .contains("/api/invoices")
+                .contains("== Excluded Doppelganger APIs")
+                .contains("/actuator/health");
+    }
 }

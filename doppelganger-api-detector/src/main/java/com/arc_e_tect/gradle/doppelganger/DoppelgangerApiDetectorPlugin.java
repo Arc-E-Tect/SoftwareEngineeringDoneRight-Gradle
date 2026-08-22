@@ -6,6 +6,7 @@ import org.gradle.api.Project;
 import org.gradle.api.provider.Provider;
 import org.gradle.api.tasks.TaskProvider;
 
+import java.util.List;
 import java.util.Locale;
 
 /**
@@ -84,6 +85,9 @@ public class DoppelgangerApiDetectorPlugin implements Plugin<Project> {
         // rather than snapshotting it at this point.
         ext.getUpdateContractHistory().convention(ext.getTrackContractHistory());
 
+        ext.getExcludePaths().convention(List.of());
+        ext.getExcludeWellKnown().convention(List.of());
+
         // The -PdoppelgangerApiDetector.updateContractHistory=<true|false> project property, when
         // set, overrides updateContractHistory for every project in the build - regardless of what
         // any project's own extension configures - typically used to advance the committed history
@@ -110,6 +114,9 @@ public class DoppelgangerApiDetectorPlugin implements Plugin<Project> {
                     task.getContractHistoryFile().set(ext.getContractHistoryFile());
                     task.getUpdateContractHistory().set(
                             updateContractHistoryCliOverride.orElse(ext.getUpdateContractHistory()));
+                    task.getExcludePaths().set(ext.getExcludePaths());
+                    task.getExcludeFiles().from(ext.getExcludeFiles());
+                    task.getExcludeWellKnown().set(ext.getExcludeWellKnown());
                 });
 
         // Default controllerDirs/testDirs only when the user has not configured them themselves;
