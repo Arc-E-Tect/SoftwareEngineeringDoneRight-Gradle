@@ -1,3 +1,13 @@
+# [2.1.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/doppelganger-api-detector-v2.0.3...doppelganger-api-detector-v2.1.0) (2026-08-22)
+
+
+### ✨ New and updated features
+
+* **mirage-api-detector:** add exclusion rules for known-good gaps ([#207](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/207)) ([66bf220](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/66bf2201be8b9a7399772f95a168b6f3a6d1023c)), closes [#207](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/207)
+* **doppelganger-api-detector:** add exclusion rules for known-good gaps ([#208](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/208)) ([f15e916](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/f15e9164e9e1a68bd038bdccbe98c6675dd7fc82)), closes [#208](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/208)
+* **shadow-api-detector:** add exclusion rules for known-good implementations ([#206](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/206)) ([5c422ec](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/5c422ec7d0316d35d6c2534f8abff3b35578c1e6)), closes [#206](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/206)
+* **api-only-suite:** add failOnDetection convenience property ([#205](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/205)) ([cf6a569](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/cf6a5696e8d0fb4347eec1a0b36c040b483dde78)), closes [#205](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/205)
+
 ## [2.0.3](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/doppelganger-api-detector-v2.0.2...doppelganger-api-detector-v2.0.3) (2026-08-20)
 
 
