@@ -1,3 +1,13 @@
+# [3.2.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/api-only-suite-v3.1.0...api-only-suite-v3.2.0) (2026-08-22)
+
+
+### ✨ New and updated features
+
+* **mirage-api-detector:** add exclusion rules for known-good gaps ([#207](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/207)) ([66bf220](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/66bf2201be8b9a7399772f95a168b6f3a6d1023c)), closes [#207](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/207)
+* **doppelganger-api-detector:** add exclusion rules for known-good gaps ([#208](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/208)) ([f15e916](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/f15e9164e9e1a68bd038bdccbe98c6675dd7fc82)), closes [#208](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/208)
+* **shadow-api-detector:** add exclusion rules for known-good implementations ([#206](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/206)) ([5c422ec](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/5c422ec7d0316d35d6c2534f8abff3b35578c1e6)), closes [#206](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/206)
+* **api-only-suite:** forward exclusion rules to all three plugins ([#209](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/209)) ([c9656a3](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/c9656a39256d19e12aec4b4ce1a83e0faa6c36d8)), closes [#209](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/209) [Property#convention](https://github.com/Property/issues/convention)
+
 # [3.1.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/api-only-suite-v3.0.9...api-only-suite-v3.1.0) (2026-08-22)
 
 
