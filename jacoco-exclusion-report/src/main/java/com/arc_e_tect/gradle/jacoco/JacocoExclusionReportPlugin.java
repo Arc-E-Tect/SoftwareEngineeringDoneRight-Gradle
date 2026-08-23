@@ -37,6 +37,7 @@ import org.gradle.testing.jacoco.tasks.JacocoReport;
  *   <li>Sources: {@code sourceSets.main.java.srcDirs} (when the Java plugin is applied)</li>
  *   <li>Output: {@code build/reports/jacoco-exclusions/}</li>
  *   <li>Include configured JaCoCo DSL exclusions: {@code true}</li>
+ *   <li>Include tool-generated {@code @Generated} exclusions (e.g. Lombok): {@code false}</li>
  * </ul>
  */
 public class JacocoExclusionReportPlugin implements Plugin<Project> {
@@ -56,6 +57,7 @@ public class JacocoExclusionReportPlugin implements Plugin<Project> {
         // Sensible defaults
         ext.getAnnotationName().convention(JacocoExclusionReportExtension.DEFAULT_ANNOTATION);
         ext.getIncludeConfiguredExclusions().convention(true);
+        ext.getIncludeGeneratedAnnotationExclusions().convention(false);
         ext.getReportDir().convention(
                 project.getLayout().getBuildDirectory().dir("reports/jacoco-exclusions"));
 
@@ -65,6 +67,7 @@ public class JacocoExclusionReportPlugin implements Plugin<Project> {
                     task.dependsOn(project.getTasks().named("classes"));
                     task.getAnnotationName().set(ext.getAnnotationName());
                     task.getIncludeConfiguredExclusions().set(ext.getIncludeConfiguredExclusions());
+                    task.getIncludeGeneratedAnnotationExclusions().set(ext.getIncludeGeneratedAnnotationExclusions());
                     task.getReportDir().set(ext.getReportDir());
                     // sourceFiles lazily resolved so consumer can override ext.sourceDirs
                     task.getSourceFiles().setFrom(ext.getSourceDirs());
