@@ -627,6 +627,46 @@ existed): every `Feature`/`Scenario` number is recomputed from scratch on every 
 them had ever been numbered before - the third feature file above would instead become `1`, bumping
 `authentication.feature`/`invoice.feature` to `2`/`3`.
 
+=== Reindexing Colliding Numbers
+
+Two developers numbering features or scenarios independently on separate branches can easily end up
+assigning the *same* number - there's nothing in either branch alone to reveal the clash. Once both
+branches are merged, `generateFeatureDocs` detects the collision and resolves it automatically: whichever
+`Feature`/`Scenario` line is encountered first (in the same file/directory order described above) keeps
+the colliding number, and every other line claiming that same number is treated as unnumbered and given
+the next available one - exactly as if it had never been numbered at all. This applies at both levels:
+two features sharing a number, or two scenarios *within the same feature* sharing a number.
+
+For example, if `authentication.feature` and `invoice.feature` are merged from two branches that each
+independently numbered their own feature `1`:
+
+[source,gherkin]
+----
+Feature: 1 - User authentication
+----
+
+[source,gherkin]
+----
+Feature: 1 - Invoice payment
+----
+
+running `generateFeatureDocs` with `indexing = IndexingMode.FEATURE` leaves the first file (in file order)
+as `1` and renumbers the second to the next free number:
+
+[source,gherkin]
+----
+Feature: 1 - User authentication
+----
+
+[source,gherkin]
+----
+Feature: 2 - Invoice payment
+----
+
+This happens automatically on the next `generateFeatureDocs` run after the merge, with `forceRewrite`
+left at its default `false` - there's no need to set `forceRewrite = true` just to resolve a collision, and
+doing so would additionally renumber every other already-correctly-numbered line in the process.
+
 === Overriding `indexing`/`forceRewrite` from the Command Line
 
 A CI pipeline typically shouldn't have `generateFeatureDocs` rewrite committed `.feature` files during a

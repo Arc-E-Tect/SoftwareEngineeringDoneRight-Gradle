@@ -368,6 +368,84 @@ class FeatureIndexerTest {
                 .contains("Scenario: 2.2 - User logs in");
     }
 
+    @Test
+    @DisplayName("forceRewrite false: two features independently numbered with the same number - e.g. after "
+            + "merging branches maintained concurrently - only the first keeps that number, the second is "
+            + "reindexed to the next available one")
+    void collidingFeatureNumbersAreReindexed() throws IOException {
+        File auth = writeFeature("authentication.feature",
+                "Feature: 1 - User authentication\n\n  Scenario: User logs in\n    Given a user\n");
+        File invoice = writeFeature("invoice.feature",
+                "Feature: 1 - Invoice payment\n\n  Scenario: User pays an invoice\n    Given an invoice\n");
+
+        indexer.reindex(List.of(auth, invoice), IndexingMode.FEATURE, false);
+
+        assertThat(content(auth)).contains("Feature: 1 - User authentication");
+        assertThat(content(invoice)).contains("Feature: 2 - Invoice payment");
+    }
+
+    @Test
+    @DisplayName("forceRewrite false: three features independently numbered with the same number are "
+            + "reindexed so all three end up unique, not just the second")
+    void multipleCollidingFeatureNumbersAllEndUpUnique() throws IOException {
+        File first = writeFeature("a.feature",
+                "Feature: 1 - Feature A\n\n  Scenario: A scenario\n    Given a\n");
+        File second = writeFeature("b.feature",
+                "Feature: 1 - Feature B\n\n  Scenario: B scenario\n    Given b\n");
+        File third = writeFeature("c.feature",
+                "Feature: 1 - Feature C\n\n  Scenario: C scenario\n    Given c\n");
+
+        indexer.reindex(List.of(first, second, third), IndexingMode.FEATURE, false);
+
+        assertThat(content(first)).contains("Feature: 1 - Feature A");
+        assertThat(content(second)).contains("Feature: 2 - Feature B");
+        assertThat(content(third)).contains("Feature: 3 - Feature C");
+    }
+
+    @Test
+    @DisplayName("forceRewrite false: two scenarios within the same feature independently numbered with the "
+            + "same number - e.g. after merging branches maintained concurrently - only the first keeps that "
+            + "number, the second is reindexed")
+    void collidingScenarioNumbersWithinSameFeatureAreReindexed() throws IOException {
+        File file = writeFeature("sample.feature", """
+                Feature: Sample
+
+                  Scenario: 1 - First branch's scenario
+                    Given a user
+
+                  Scenario: 1 - Second branch's scenario
+                    Given a user
+                """);
+
+        indexer.reindex(List.of(file), IndexingMode.SCENARIO, false);
+
+        assertThat(content(file))
+                .contains("Scenario: 1 - First branch's scenario")
+                .contains("Scenario: 2 - Second branch's scenario");
+    }
+
+    @Test
+    @DisplayName("forceRewrite false: colliding ALL-mode scenario numbers within the same feature are "
+            + "reindexed, keeping the feature.scenario format")
+    void collidingAllModeScenarioNumbersWithinSameFeatureAreReindexed() throws IOException {
+        File file = writeFeature("sample.feature", """
+                Feature: 1 - Sample
+
+                  Scenario: 1.2 - First branch's scenario
+                    Given a user
+
+                  Scenario: 1.2 - Second branch's scenario
+                    Given a user
+                """);
+
+        indexer.reindex(List.of(file), IndexingMode.ALL, false);
+
+        assertThat(content(file))
+                .contains("Feature: 1 - Sample")
+                .contains("Scenario: 1.2 - First branch's scenario")
+                .contains("Scenario: 1.3 - Second branch's scenario");
+    }
+
     // --- reindex(..., Runnable) callback overload ---
 
     @Test
