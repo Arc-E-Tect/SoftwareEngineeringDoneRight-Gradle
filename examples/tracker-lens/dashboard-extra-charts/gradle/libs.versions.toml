@@ -6,7 +6,7 @@ tracker-lens = { id = "com.arc-e-tect.tracker-lens", version.ref = "tracker-lens
 
 [versions]
 
-tracker-lens = "1.5.1"
+tracker-lens = "2.0.0"
 
 [libraries]
 
