@@ -19,6 +19,8 @@ dependencies {
     implementation libs.spring.boot.starter.web
 
     testImplementation libs.spring.boot.starter.test
+    testImplementation libs.spring.boot.webmvc.test
+    testImplementation libs.spring.boot.restdocs
     testImplementation libs.spring.restdocs.mockmvc
 }
 
