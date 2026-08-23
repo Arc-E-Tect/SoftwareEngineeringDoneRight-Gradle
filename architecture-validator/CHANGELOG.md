@@ -1,3 +1,41 @@
+# [2.1.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/architecture-validator-v2.0.1...architecture-validator-v2.1.0) (2026-08-23)
+
+
+### ✨ New and updated features
+
+* **mirage-api-detector:** add exclusion rules for known-good gaps ([#207](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/207)) ([66bf220](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/66bf2201be8b9a7399772f95a168b6f3a6d1023c)), closes [#207](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/207)
+* **doppelganger-api-detector:** add exclusion rules for known-good gaps ([#208](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/208)) ([f15e916](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/f15e9164e9e1a68bd038bdccbe98c6675dd7fc82)), closes [#208](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/208)
+* **shadow-api-detector:** add exclusion rules for known-good implementations ([#206](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/206)) ([5c422ec](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/5c422ec7d0316d35d6c2534f8abff3b35578c1e6)), closes [#206](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/206)
+* **api-only-suite:** add failOnDetection convenience property ([#205](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/205)) ([cf6a569](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/cf6a5696e8d0fb4347eec1a0b36c040b483dde78)), closes [#205](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/205)
+* **jacoco-exclusion-report:** add Lombok generated-annotation example ([#212](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/212)) ([4cad2d1](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/4cad2d148958784a5454a5178023d2385f22229d)), closes [#212](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/212) [#211](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/211)
+* **api-only-suite:** forward exclusion rules to all three plugins ([#209](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/209)) ([c9656a3](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/c9656a39256d19e12aec4b4ce1a83e0faa6c36d8)), closes [#209](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/209) [Property#convention](https://github.com/Property/issues/convention)
+* **jacoco-exclusion-report:** report tool-generated exclusions (Lombok, etc.) ([#211](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/211)) ([f6fcccc](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/f6fcccca33bed0a2383d15f8b768342a509866fc)), closes [#211](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/211)
+
+
+### 🐛 Bug Fixes
+
+* **api-only-suite:** bump api-detector-core to 1.2.1 ([#201](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/201)) ([583fe41](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/583fe414057fc8dbffc33b5899447bb20fa4bd19)), closes [#201](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/201)
+* **shadow-api-detector:** bump api-detector-core to 1.2.1 ([#202](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/202)) ([5e9b098](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/5e9b098f0782ece963da1a15d73d84ae8e59d433)), closes [#202](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/202)
+* **mirage-api-detector:** bump api-detector-core to 1.2.1 ([#203](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/203)) ([5332ff9](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/5332ff9e2ef41b8850058a4aca20ae9d6f8e698f)), closes [#203](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/203)
+* **doppelganger-api-detector:** bump api-detector-core to 1.2.1 ([#204](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/204)) ([121b568](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/121b5689b7f91f951ace91d409eb5162dab48e04)), closes [#204](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/204)
+* **shadow-api-detector:** don't fail the build on a missing rootDocument or controllerDirs ([#198](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/198)) ([534aad9](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/534aad950b43dd7bb3eb5ca4de73b41ef9cbd8d2)), closes [#198](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/198)
+* **mirage-api-detector:** don't fail the build on a missing rootDocument or controllerDirs ([#199](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/199)) ([962d629](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/962d629a98c08512f01b21f2a94aa7761c83edac)), closes [#199](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/199)
+* **doppelganger-api-detector:** don't hard-fail on missing rootDocument/controllerDirs/testDirs/contractsDir ([#200](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/200)) ([6ca94ed](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/6ca94eda1ef95aead7b165f6be79c1f6ae23497a)), closes [#200](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/200) [#198](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/198) [#199](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/199)
+* **doppelganger-api-detector:** don't treat the plugin's own default testDirs as a bootstrapping gap ([#214](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/214)) ([0cfa6a2](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/0cfa6a2fb263a601b6dbcc254ec33cd4ad5f0459)), closes [#214](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/214)
+* **gherkin-to-asciidoc:** reindex colliding Feature/Scenario numbers instead of leaving them untouched ([#210](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/210)) ([aeccd02](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/aeccd026cfddb6d1c9322b24215bf61f4f0e154c)), closes [#210](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/210)
+* **example-mirage-scan-mocks:** restore expected-failure behavior for CI gate ([#189](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/189)) ([ddbbede](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/ddbbedeccb4f144d0459352a0d9f734a8a5bf8e5)), closes [#189](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/189)
+* **gherkin-to-asciidoc:** support And/But glue and full Gherkin step keywords ([#197](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/197)) ([7b88725](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/7b88725d1d606288301e31a0aed56a41bb34ba60)), closes [#197](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/197)
+
+
+### 📝 Documentation
+
+* **readme:** add plugin versions to each plugin ([e2fae93](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/e2fae933ce4901431dec2f570a3c8473b3357702))
+
+
+### 🔧 Misc
+
+* dependency updates for Gradle plugin repository ([#215](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/215)) ([40bb245](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/40bb245643207616d45738bb6ddc92584a3efd92)), closes [#215](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/215)
+
 ## [2.0.1](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/architecture-validator-v2.0.0...architecture-validator-v2.0.1) (2026-08-18)
 
 
