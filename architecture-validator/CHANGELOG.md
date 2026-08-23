@@ -1,3 +1,15 @@
+## [2.1.1](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/architecture-validator-v2.1.0...architecture-validator-v2.1.1) (2026-08-23)
+
+
+### 🐛 Bug Fixes
+
+* **ci:** stop treating a sibling-triggered no-op release as a failure ([#216](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/216)) ([ac53a54](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/ac53a54fd5ccf7cb843e8a573c0c93a45adf08c3)), closes [#216](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/216)
+
+
+### 🔧 Misc
+
+* dependency updates for Gradle plugin repository ([#217](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/217)) ([de0d5e8](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/de0d5e8f8983eb9b73449af89032d2fe4b35369c)), closes [#217](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/217)
+
 # [2.1.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/architecture-validator-v2.0.1...architecture-validator-v2.1.0) (2026-08-23)
 
 
