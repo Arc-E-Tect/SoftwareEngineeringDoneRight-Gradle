@@ -4,6 +4,7 @@ import com.arc_e_tect.gradle.jacoco.model.ExcludedElement;
 import com.arc_e_tect.gradle.jacoco.report.HtmlReportWriter;
 import com.arc_e_tect.gradle.jacoco.report.XmlReportWriter;
 import com.arc_e_tect.gradle.jacoco.scan.AnnotationScanner;
+import com.arc_e_tect.gradle.jacoco.scan.GeneratedAnnotationScanner;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.GradleException;
 import org.gradle.api.file.ConfigurableFileCollection;
@@ -32,11 +33,12 @@ import java.util.stream.Collectors;
 /**
  * Gradle task that scans Java source files for the exclusion annotation and,
  * optionally, derives exclusions from configured JaCoCo {@code classDirectories}
- * filters.
+ * filters and from compiled classes carrying a {@code Generated}-named
+ * annotation stamped by another tool (e.g. Lombok).
  *
  * <p>The task writes separate HTML and XML reports for annotation-based
- * exclusions and JaCoCo DSL-based exclusions to the configured output
- * directory.</p>
+ * exclusions, JaCoCo DSL-based exclusions, and — when enabled — tool-generated
+ * {@code @Generated} exclusions to the configured output directory.</p>
  *
  * <p>Registered automatically by {@link JacocoExclusionReportPlugin} under
  * the name {@code jacocoExclusionReport}.</p>
@@ -99,6 +101,16 @@ public abstract class JacocoExclusionReportTask extends DefaultTask {
     public abstract Property<Boolean> getIncludeConfiguredExclusions();
 
     /**
+     * Whether compiled classes should also be scanned for members carrying a
+     * {@code Generated}-named annotation stamped by another tool (e.g.
+     * Lombok's {@code @lombok.Generated}). Disabled unless explicitly set.
+     *
+     * @return mutable flag controlling tool-generated {@code @Generated} exclusion reporting
+     */
+    @Input
+    public abstract Property<Boolean> getIncludeGeneratedAnnotationExclusions();
+
+    /**
      * Creates the task. Instantiated by Gradle infrastructure via {@link javax.inject.Inject}.
      */
     @Inject
@@ -141,6 +153,11 @@ public abstract class JacocoExclusionReportTask extends DefaultTask {
                 ? collectJacocoDslExcludedClasses()
                 : List.of();
 
+        boolean scanForGeneratedAnnotations = getIncludeGeneratedAnnotationExclusions().getOrElse(false);
+        List<ExcludedElement> generatedElements = scanForGeneratedAnnotations
+                ? collectGeneratedAnnotationElements()
+                : List.of();
+
         File outputDir = getReportDir().get().getAsFile();
         try {
             htmlWriter.write(annotationElements, "@" + getAnnotationName().get(), "Annotation", outputDir, "index.html");
@@ -150,13 +167,31 @@ public abstract class JacocoExclusionReportTask extends DefaultTask {
                 htmlWriter.write(dslElements, "JaCoCo classDirectories excludes", "Source", outputDir, "index-jacoco-dsl.html");
                 xmlWriter.write(dslElements, "source: JaCoCo classDirectories excludes", outputDir, "jacoco-dsl-exclusions.xml");
             }
+
+            if (scanForGeneratedAnnotations) {
+                htmlWriter.write(generatedElements, "@Generated (e.g. Lombok)", "Auto-detected", outputDir, "index-generated.html");
+                xmlWriter.write(generatedElements, "auto-detected: @Generated (Lombok, etc.)", outputDir, "jacoco-generated-exclusions.xml");
+            }
         } catch (IOException e) {
             throw new GradleException("Failed to write exclusion report to " + outputDir, e);
         }
 
         getLogger().lifecycle(
-                "JaCoCo exclusion report: {} annotation element(s), {} DSL element(s). Report \u2192 {}",
-                annotationElements.size(), dslElements.size(), outputDir.getAbsolutePath());
+                "JaCoCo exclusion report: {} annotation element(s), {} DSL element(s), {} @Generated element(s). Report \u2192 {}",
+                annotationElements.size(), dslElements.size(), generatedElements.size(), outputDir.getAbsolutePath());
+    }
+
+    private List<ExcludedElement> collectGeneratedAnnotationElements() {
+        GeneratedAnnotationScanner scanner = new GeneratedAnnotationScanner();
+        List<ExcludedElement> elements = new ArrayList<>();
+        for (File classFile : collectClassFiles(getMainClassFiles().getFiles())) {
+            try {
+                elements.addAll(scanner.scan(classFile));
+            } catch (IOException e) {
+                throw new GradleException("Failed to scan " + classFile, e);
+            }
+        }
+        return elements;
     }
 
     private List<ExcludedElement> collectJacocoDslExcludedClasses() {

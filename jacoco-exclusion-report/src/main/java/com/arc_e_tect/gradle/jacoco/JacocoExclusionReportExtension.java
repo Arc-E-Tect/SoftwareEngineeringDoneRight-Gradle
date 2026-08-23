@@ -13,6 +13,7 @@ import org.gradle.api.provider.Property;
  *     sourceDirs.from(sourceSets.main.java.srcDirs)                // default
  *     reportDir  = layout.buildDirectory.dir('reports/jacoco-exclusions') // default
  *     includeConfiguredExclusions = true                            // default
+ *     includeGeneratedAnnotationExclusions = false                  // default (opt-in)
  * }
  * </pre>
  */
@@ -56,4 +57,20 @@ public abstract class JacocoExclusionReportExtension {
      * @return mutable flag controlling JaCoCo DSL exclusion reporting
      */
     public abstract Property<Boolean> getIncludeConfiguredExclusions();
+
+    /**
+     * Whether to additionally scan compiled classes for members that JaCoCo
+     * automatically excludes because they carry an annotation whose simple
+     * name is {@code Generated} but that was not written by hand — e.g.
+     * Lombok's {@code @lombok.Generated}, which Lombok stamps onto every
+     * getter, setter, constructor, and other member it synthesises. These
+     * members never appear in the {@code .java} source, so they can only be
+     * found by inspecting the compiled {@code .class} files.
+     *
+     * <p>Disabled by default: it only takes effect when set to {@code true}
+     * explicitly in the {@code jacocoExclusionReport} DSL block.</p>
+     *
+     * @return mutable flag controlling tool-generated {@code @Generated} exclusion reporting
+     */
+    public abstract Property<Boolean> getIncludeGeneratedAnnotationExclusions();
 }

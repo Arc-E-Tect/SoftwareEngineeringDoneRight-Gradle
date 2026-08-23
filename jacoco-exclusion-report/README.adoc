@@ -162,6 +162,15 @@ jacocoExclusionReport {
     // Include exclusions configured directly in JaCoCo classDirectories filters.
     // Default: true
     includeConfiguredExclusions = true
+
+    // Scan compiled classes for members carrying a `Generated`-named annotation
+    // stamped by another tool — e.g. Lombok's @lombok.Generated on every getter,
+    // setter, constructor, equals/hashCode/toString, and builder method it
+    // synthesises. These never appear in the .java source, so they can only be
+    // found by inspecting the compiled .class files. Opt-in: only takes effect
+    // when set to true explicitly.
+    // Default: false
+    includeGeneratedAnnotationExclusions = false
 }
 ----
 
@@ -173,8 +182,25 @@ jacocoExclusionReport {
     sourceDirs.from(sourceSets.main.java.srcDirs)
     reportDir = layout.buildDirectory.dir("reports/jacoco-exclusions")
     includeConfiguredExclusions = true
+    includeGeneratedAnnotationExclusions = false
 }
 ----
+
+[TIP]
+====
+*Why Lombok needs bytecode scanning, not source scanning*
+
+Lombok generates its getters, setters, constructors, and other boilerplate directly
+into the compiled `.class` file during annotation processing — they are never written
+to the `.java` source. Lombok stamps each one with `@lombok.Generated`, and JaCoCo's
+built-in filter automatically excludes any element whose annotation's simple name is
+`Generated`, so this code is already invisible to coverage without any configuration.
+Because these members do not exist in source, `includeGeneratedAnnotationExclusions`
+inspects compiled classes with a bytecode scanner instead of parsing `.java` files, and
+so picks up any tool that follows the same `@Generated` convention (Lombok, MapStruct,
+`javax.annotation.Generated`, `jakarta.annotation.Generated`, and custom code generators
+alike) — not just Lombok specifically.
+====
 
 == Task
 
@@ -204,8 +230,9 @@ Running as part of the standard verification suite:
 
 == Report output
 
-After the task runs, four files can be written to the configured `reportDir`
-(default: `build/reports/jacoco-exclusions/`):
+After the task runs, up to six files can be written to the configured `reportDir`
+(default: `build/reports/jacoco-exclusions/`). The last two are only written when
+`includeGeneratedAnnotationExclusions = true`:
 
 [cols="1,3",options="header"]
 |===
@@ -214,6 +241,8 @@ After the task runs, four files can be written to the configured `reportDir`
 | `jacoco-exclusions.xml` | Machine-readable JUnit-style XML listing every annotation-based excluded element with its type, line number, source file, and justification.
 | `index-jacoco-dsl.html` | Human-readable report of exclusions inferred from JaCoCo `classDirectories` filters.
 | `jacoco-dsl-exclusions.xml` | Machine-readable JUnit-style XML for exclusions inferred from JaCoCo `classDirectories` filters.
+| `index-generated.html` | Human-readable report of members auto-excluded because they carry a `Generated`-named annotation stamped by another tool (e.g. Lombok's `@lombok.Generated`).
+| `jacoco-generated-exclusions.xml` | Machine-readable JUnit-style XML for the same tool-generated `@Generated` exclusions.
 |===
 
 == Full example
