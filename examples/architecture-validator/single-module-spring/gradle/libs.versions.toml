@@ -2,9 +2,9 @@
 
 [versions]
 
-architecture-validator-hexagonal-spring-rules-iff = "1.0.0"
-spring-context-iff = "7.0.8"
-spring-web-iff = "7.0.8"
+architecture-validator-hexagonal-spring-rules-iff = "1.0.1"
+spring-context-iff = "7.0.9"
+spring-web-iff = "7.0.9"
 
 [libraries]
 

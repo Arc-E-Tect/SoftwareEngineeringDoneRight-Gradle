@@ -6,8 +6,8 @@ api-only-suite = { id = "com.arc-e-tect.api-only-suite", version.ref = "api-only
 
 [versions]
 
-api-only-suite = "3.0.1"
-spring-web = "7.0.8"
+api-only-suite = "3.3.0"
+spring-web = "7.0.9"
 
 [libraries]
 
