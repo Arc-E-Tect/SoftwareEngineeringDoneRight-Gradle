@@ -1,3 +1,17 @@
+# [3.3.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/api-only-suite-v3.2.0...api-only-suite-v3.3.0) (2026-08-23)
+
+
+### ✨ New and updated features
+
+* **jacoco-exclusion-report:** add Lombok generated-annotation example ([#212](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/212)) ([4cad2d1](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/4cad2d148958784a5454a5178023d2385f22229d)), closes [#212](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/212) [#211](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/211)
+* **jacoco-exclusion-report:** report tool-generated exclusions (Lombok, etc.) ([#211](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/211)) ([f6fcccc](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/f6fcccca33bed0a2383d15f8b768342a509866fc)), closes [#211](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/211)
+
+
+### 🐛 Bug Fixes
+
+* **doppelganger-api-detector:** don't treat the plugin's own default testDirs as a bootstrapping gap ([#214](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/214)) ([0cfa6a2](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/0cfa6a2fb263a601b6dbcc254ec33cd4ad5f0459)), closes [#214](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/214)
+* **gherkin-to-asciidoc:** reindex colliding Feature/Scenario numbers instead of leaving them untouched ([#210](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/210)) ([aeccd02](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/aeccd026cfddb6d1c9322b24215bf61f4f0e154c)), closes [#210](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/210)
+
 # [3.2.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/api-only-suite-v3.1.0...api-only-suite-v3.2.0) (2026-08-22)
 
 
