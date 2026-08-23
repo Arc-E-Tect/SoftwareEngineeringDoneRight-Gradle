@@ -1,0 +1,119 @@
+= JaCoCo Exclusion Report Generated-Annotation Example
+:toc: left
+
+== Description
+
+This example applies the JaCoCo Exclusion Report plugin with `includeGeneratedAnnotationExclusions = true`.
+It demonstrates how members synthesised by another tool — here, Lombok — are surfaced in a dedicated
+report, in addition to the annotation-based and DSL-based reports.
+Unlike the `standard` and `custom-annotation` examples, nothing in this project's source uses
+`@ExcludeFromJacocoGeneratedCodeCoverage` — the exclusions here are members that don't exist in source
+at all.
+
+== Intent
+
+JaCoCo automatically excludes any class, constructor, method, or field carrying an annotation whose
+simple name is `Generated` — this is how Lombok's `@lombok.Generated` (and similarly
+`javax`/`jakarta.annotation.Generated`, MapStruct, and other code generators) bypass coverage without any
+configuration. Lombok stamps that annotation onto every getter, setter, constructor, and
+`equals`/`hashCode`/`toString` it synthesises directly into the compiled `.class` file — none of it is
+ever written to the `.java` source, so the plugin's default annotation scanner (which parses source) has
+no way to see it.
+
+Use this example when your project relies on Lombok (or a similar generator) and you want the exclusion
+audit to explain *why* that boilerplate is missing from coverage, instead of leaving it undocumented.
+
+== The DSL Wiring
+
+[source,groovy]
+----
+dependencies {
+    compileOnly          libs.lombok
+    annotationProcessor  libs.lombok
+}
+
+jacocoExclusionReport {
+    // Opt-in: scans compiled classes for members carrying a Generated-named
+    // annotation stamped by another tool (here, Lombok's @lombok.Generated).
+    includeGeneratedAnnotationExclusions = true
+}
+----
+
+`includeGeneratedAnnotationExclusions` defaults to `false` and must be set explicitly. When enabled, the
+plugin reads the already-compiled `.class` files with a bytecode scanner (not the JavaParser-based source
+scanner used for `@ExcludeFromJacocoGeneratedCodeCoverage`) and reports every member whose annotation's
+simple name is `Generated`, together with the fully-qualified annotation that triggered the match.
+
+`Customer` — full source under
+`src/main/java/com/arc_e_tect/example/generated/Customer.java` — is annotated with Lombok's `@Data`,
+`@NoArgsConstructor`, and `@AllArgsConstructor`. Its hand-written `displayName()` method carries no such
+annotation and is ordinary, coverable code.
+
+== Build And Run
+
+[source,bash]
+----
+cd examples/jacoco-exclusion-report/generated-annotation
+./gradlew clean jacocoExclusionReport
+----
+
+== What To Expect
+
+The build should pass. The plugin writes reports under `build/reports/jacoco-exclusions/`.
+
+`index.html` and `jacoco-exclusions.xml` report *zero* exclusions, since this example has no
+`@ExcludeFromJacocoGeneratedCodeCoverage` usage.
+
+`index-generated.html` and `jacoco-generated-exclusions.xml` list every Lombok-synthesised member of
+`Customer`, each with `@lombok.Generated` as its justification:
+
+[source,xml]
+----
+<!-- JaCoCo Exclusion Report – auto-detected: @Generated (Lombok, etc.) -->
+<testsuite name="com.arc_e_tect.example.generated" tests="10" failures="0" errors="0" skipped="0" ...>
+  <testcase classname="com.arc_e_tect.example.generated.Customer"
+            name="[method] getCustomerId() – line 0" time="0"
+            justification="@lombok.Generated"/>
+  <testcase classname="com.arc_e_tect.example.generated.Customer"
+            name="[method] getFullName() – line 0" time="0"
+            justification="@lombok.Generated"/>
+  <testcase classname="com.arc_e_tect.example.generated.Customer"
+            name="[method] setCustomerId(String) – line 0" time="0"
+            justification="@lombok.Generated"/>
+  <testcase classname="com.arc_e_tect.example.generated.Customer"
+            name="[method] setFullName(String) – line 0" time="0"
+            justification="@lombok.Generated"/>
+  <testcase classname="com.arc_e_tect.example.generated.Customer"
+            name="[method] equals(Object) – line 0" time="0"
+            justification="@lombok.Generated"/>
+  <testcase classname="com.arc_e_tect.example.generated.Customer"
+            name="[method] canEqual(Object) – line 0" time="0"
+            justification="@lombok.Generated"/>
+  <testcase classname="com.arc_e_tect.example.generated.Customer"
+            name="[method] hashCode() – line 0" time="0"
+            justification="@lombok.Generated"/>
+  <testcase classname="com.arc_e_tect.example.generated.Customer"
+            name="[method] toString() – line 0" time="0"
+            justification="@lombok.Generated"/>
+  <testcase classname="com.arc_e_tect.example.generated.Customer"
+            name="[constructor] Customer() – line 0" time="0"
+            justification="@lombok.Generated"/>
+  <testcase classname="com.arc_e_tect.example.generated.Customer"
+            name="[constructor] Customer(String, String) – line 0" time="0"
+            justification="@lombok.Generated"/>
+</testsuite>
+----
+
+Lombok also generates a package-private `canEqual(Object)` helper alongside `equals()` — that shows up
+in the report too, with the same `@lombok.Generated` justification.
+
+Line numbers are always `0`: these members have no meaningful position in the `.java` source, since
+they were never written there.
+
+`displayName()` does not appear in either report — it is hand-written, uncovered-by-Lombok code.
+
+== Source Layout
+
+`src/main/java/com/arc_e_tect/example/generated/Customer.java` — the only source file in this example.
+Its Lombok-generated members are excluded via bytecode scanning; `displayName()` is ordinary source-level
+code.
