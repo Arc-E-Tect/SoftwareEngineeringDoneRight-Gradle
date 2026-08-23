@@ -19,6 +19,8 @@ dependencies {
     implementation libs.spring.boot.starter.web
 
     testImplementation libs.spring.boot.starter.test
+    testImplementation libs.spring.boot.webmvc.test
+    testImplementation libs.spring.boot.restdocs
     testImplementation libs.spring.restdocs.mockmvc
     testImplementation libs.rest.assured
     testImplementation libs.swagger.request.validator.restassured
@@ -30,6 +32,11 @@ test {
 
 doppelgangerApiDetector {
     rootDocument = file('src/main/resources/openapi/openapi.yaml')
+
+    // Only useRestDocs is enabled by default - opt in to the other two sources this example
+    // demonstrates alongside it.
+    useOpenApiRequestValidator = true
+    useSpringCloudContract = true
 
     // The plugin's defaults are src/testContract/java and src/testContract/resources/contracts;
     // this example's tests and contract file live under the standard src/test source set.
