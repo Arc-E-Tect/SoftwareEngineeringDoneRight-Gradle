@@ -1,3 +1,20 @@
+# [5.1.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/jacoco-exclusion-report-v5.0.0...jacoco-exclusion-report-v5.1.0) (2026-08-23)
+
+
+### ✨ New and updated features
+
+* **jacoco-exclusion-report:** add Lombok generated-annotation example ([#212](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/212)) ([4cad2d1](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/4cad2d148958784a5454a5178023d2385f22229d)), closes [#212](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/212) [#211](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/211)
+
+
+### 🐛 Bug Fixes
+
+* **doppelganger-api-detector:** don't treat the plugin's own default testDirs as a bootstrapping gap ([#214](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/214)) ([0cfa6a2](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/0cfa6a2fb263a601b6dbcc254ec33cd4ad5f0459)), closes [#214](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/214)
+
+
+### 🔧 Misc
+
+* dependency updates for Gradle plugin repository ([#215](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/215)) ([40bb245](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/40bb245643207616d45738bb6ddc92584a3efd92)), closes [#215](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/215)
+
 # [5.0.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/jacoco-exclusion-report-v4.0.0...jacoco-exclusion-report-v5.0.0) (2026-08-23)
 
 
