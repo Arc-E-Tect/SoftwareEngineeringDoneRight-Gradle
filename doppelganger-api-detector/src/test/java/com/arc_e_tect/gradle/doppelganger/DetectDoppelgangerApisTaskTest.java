@@ -213,6 +213,35 @@ class DetectDoppelgangerApisTaskTest {
     }
 
     @Test
+    @DisplayName("does not suppress detection when the missing testDirs entry is only the plugin's own default")
+    void doesNotSuppressWhenMissingTestDirIsOnlyThePluginsDefault() throws Exception {
+        File missing = new File(tempDir.toFile(), "src/testContract/java");
+        DetectDoppelgangerApisTask task = newTask();
+        task.getControllerDirs().from(controllerDir);
+        task.getTestDirs().from(missing);
+        task.getTestDirsUserConfigured().set(false);
+        task.getRootDocument().set(openApiFixture("both-endpoints.yaml"));
+        task.getReportDir().set(reportDir);
+        task.getReportFileName().set("doppelganger-apis.adoc");
+        task.getFailOnDoppelganger().set(true);
+        task.getUseRestDocs().set(true);
+        task.getUseOpenApiRequestValidator().set(false);
+        task.getUseSpringCloudContract().set(false);
+        task.getSystemUnderTestVersion().set("1.0.0");
+
+        assertThatThrownBy(task::generate)
+                .isInstanceOf(GradleException.class)
+                .hasMessageContaining("found 2 doppelganger API(s)");
+
+        String content = Files.readString(new File(reportDir, "doppelganger-apis.adoc").toPath());
+        assertThat(content)
+                .doesNotContain("[WARNING]")
+                .doesNotContain("None of the configured `testDirs` exist yet")
+                .contains("listOrders()")
+                .contains("getOrder()");
+    }
+
+    @Test
     @DisplayName("does not suppress detection when at least one enabled verification source is usable")
     void doesNotSuppressWhenAtLeastOneEnabledSourceIsUsable() throws Exception {
         File missing = new File(tempDir.toFile(), "src/test/java/does-not-exist");
