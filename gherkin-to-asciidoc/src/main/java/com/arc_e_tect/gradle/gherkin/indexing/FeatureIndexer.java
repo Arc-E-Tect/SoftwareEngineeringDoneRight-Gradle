@@ -32,6 +32,11 @@ import java.util.regex.Pattern;
  * numbers entirely and renumbers everything from scratch, exactly as if every file were being
  * numbered for the first time.</p>
  *
+ * <p>If two lines' existing numbers collide - e.g. two features or two scenarios within the same
+ * feature were each numbered independently on separate branches and now coexist after a merge -
+ * only the first one encountered keeps the pinned number; the other is treated as unnumbered and
+ * assigned a fresh one, so the collision is resolved instead of leaving both lines untouched.</p>
+ *
  * <p>Never called with {@link IndexingMode#CI}: the caller skips invoking this class entirely for
  * that mode, since {@code CI} means the feature files must be left completely untouched, not even
  * to strip prior numbering the way {@link IndexingMode#OFF} does.</p>
@@ -122,6 +127,12 @@ public class FeatureIndexer {
      * counting up from one past the highest pinned number (or from 1, if none are pinned), in list
      * order. Fresh numbers are never lower than an already-pinned one, so they read as a
      * continuation of the existing sequence rather than backfilling a gap earlier in it.
+     *
+     * <p>If two entries' titles claim the same number - e.g. because two features or scenarios were
+     * authored independently on separate branches and merged - only the first one encountered (in
+     * list order) keeps it pinned. Every later entry claiming an already-taken number is treated as
+     * unpinned instead and falls through to the fresh-number assignment below, so the collision is
+     * resolved rather than silently left in both files.</p>
      */
     private void resolveSequential(List<LineMatch> matches, boolean forceRewrite, Pattern pinPattern) {
         Set<Integer> taken = new HashSet<>();
@@ -129,8 +140,10 @@ public class FeatureIndexer {
             for (LineMatch match : matches) {
                 Matcher matcher = pinPattern.matcher(match.rawName);
                 if (matcher.matches()) {
-                    match.number = Integer.parseInt(matcher.group(1));
-                    taken.add(match.number);
+                    int candidate = Integer.parseInt(matcher.group(1));
+                    if (taken.add(candidate)) {
+                        match.number = candidate;
+                    }
                 }
             }
         }
