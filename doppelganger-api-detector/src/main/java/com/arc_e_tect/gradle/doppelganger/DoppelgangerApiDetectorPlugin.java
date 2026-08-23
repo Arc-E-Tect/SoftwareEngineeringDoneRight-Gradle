@@ -127,10 +127,16 @@ public class DoppelgangerApiDetectorPlugin implements Plugin<Project> {
                 taskProvider.configure(task -> task.getControllerDirs()
                         .from(p.file(DoppelgangerApiDetectorExtension.DEFAULT_CONTROLLER_DIR)));
             }
-            if (ext.getTestDirs().isEmpty()) {
+            boolean testDirsUserConfigured = !ext.getTestDirs().isEmpty();
+            if (!testDirsUserConfigured) {
                 taskProvider.configure(task -> task.getTestDirs()
                         .from(p.file(DoppelgangerApiDetectorExtension.DEFAULT_TEST_DIR)));
             }
+            // See DetectDoppelgangerApisTask#getTestDirsUserConfigured(): only a user-configured
+            // testDirs entry that doesn't exist yet is a bootstrapping gap worth suppressing
+            // detection for - the plugin's own default missing just means this project has no such
+            // evidence, by design.
+            taskProvider.configure(task -> task.getTestDirsUserConfigured().set(testDirsUserConfigured));
         });
     }
 

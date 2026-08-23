@@ -152,6 +152,31 @@ class DoppelgangerApiDetectorPluginTest {
     }
 
     @Test
+    @DisplayName("task's testDirsUserConfigured is false when testDirs falls back to the plugin's default")
+    void taskTestDirsUserConfiguredFalseWhenDefaulted() {
+        Project project = projectWithPlugin();
+
+        ((ProjectInternal) project).evaluate();
+
+        DetectDoppelgangerApisTask task = (DetectDoppelgangerApisTask)
+                project.getTasks().getByName(DoppelgangerApiDetectorPlugin.TASK_NAME);
+        assertThat(task.getTestDirsUserConfigured().get()).isFalse();
+    }
+
+    @Test
+    @DisplayName("task's testDirsUserConfigured is true when testDirs is configured explicitly by the user")
+    void taskTestDirsUserConfiguredTrueWhenSetExplicitly() {
+        Project project = projectWithPlugin();
+        extension(project).getTestDirs().from(new File(project.getProjectDir(), "src/test/java"));
+
+        ((ProjectInternal) project).evaluate();
+
+        DetectDoppelgangerApisTask task = (DetectDoppelgangerApisTask)
+                project.getTasks().getByName(DoppelgangerApiDetectorPlugin.TASK_NAME);
+        assertThat(task.getTestDirsUserConfigured().get()).isTrue();
+    }
+
+    @Test
     @DisplayName("does not override controllerDirs configured explicitly by the user")
     void doesNotOverrideExplicitControllerDirs() {
         Project project = projectWithPlugin();

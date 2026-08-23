@@ -78,6 +78,32 @@ public abstract class DetectDoppelgangerApisTask extends DefaultTask {
     public abstract ConfigurableFileCollection getTestDirs();
 
     /**
+     * Whether {@link #getTestDirs()} holds directories the user actually configured, as opposed to
+     * only {@link DoppelgangerApiDetectorExtension#DEFAULT_TEST_DIR} applied by
+     * {@link DoppelgangerApiDetectorPlugin} because the user configured none. Set by the plugin;
+     * defaults to {@code true} for tasks created without it (e.g. directly in a test), which keeps
+     * the conservative, pre-existing behavior of treating a missing {@link #getTestDirs()} entry as
+     * a bootstrapping gap.
+     *
+     * <p>This distinction matters because a missing {@code testDirs} entry means two very different
+     * things depending on where it came from. A user-configured path that doesn't exist yet is
+     * genuinely a bootstrapping gap - the team is going to add that test directory once the
+     * corresponding tests are written - and {@link #generate()} correctly suppresses detection for
+     * it, the same as a missing {@link #getContractsDir()}. The plugin's own default, by contrast,
+     * is applied whether or not the project will ever have a {@code src/testContract/java} - a
+     * project that deliberately has <em>no</em> Spring RestDocs or OpenAPI request validator
+     * evidence at all looks, on disk, identical to one that simply hasn't been bootstrapped yet.
+     * Suppressing detection in that case defeats the entire plugin for exactly the projects it
+     * exists to catch: one with zero verification evidence would never be flagged, because the
+     * absence of evidence is misread as "not built yet" rather than "genuinely absent".</p>
+     *
+     * @return mutable boolean property, {@code true} when {@link #getTestDirs()} reflects the
+     *         user's own configuration rather than only the plugin's default
+     */
+    @Input
+    public abstract Property<Boolean> getTestDirsUserConfigured();
+
+    /**
      * The root OpenAPI document describing the API.
      *
      * <p>Validated as {@code @InputFiles} rather than {@code @InputFile}, and {@code @Optional}:
@@ -270,6 +296,7 @@ public abstract class DetectDoppelgangerApisTask extends DefaultTask {
         setDescription("Scans OpenAPI documentation, @RestController implementations, and test-level "
                 + "verification evidence, and reports endpoints that are declared and implemented but never "
                 + "verified against their contract.");
+        getTestDirsUserConfigured().convention(true);
     }
 
     /**
@@ -279,16 +306,18 @@ public abstract class DetectDoppelgangerApisTask extends DefaultTask {
      * the build if any doppelganger API was found.
      *
      * <p>A missing {@link #getRootDocument()}, empty {@link #getControllerDirs()}, or - for an
-     * enabled verification source - a missing {@link #getTestDirs()}/{@link #getContractsDir()} it
-     * depends on with none of its currently-enabled sources able to gather any evidence at all - e.g.
+     * enabled verification source - a user-configured {@link #getTestDirs()}/{@link #getContractsDir()}
+     * it depends on with none of its currently-enabled sources able to gather any evidence at all - e.g.
      * a build script bootstrapped for a project whose OpenAPI documentation, controllers, or test
      * evidence don't exist yet - is <em>not</em> a build failure: it is recorded as a {@code WARNING}
      * admonition in the generated report instead, and doppelganger API detection (and, deliberately,
      * contract history advancement - see {@link #loadContractHistoryForDisplay()}) is skipped for
      * this run rather than computed from incomplete input and risking a false positive. A missing
-     * directory for a source that is <em>not</em> enabled, or {@link #getContractsDir()} left unset
-     * entirely while {@link #getUseSpringCloudContract()} is enabled, is a deliberate, complete
-     * configuration rather than a gap, and neither warns nor suppresses detection.</p>
+     * directory for a source that is <em>not</em> enabled, {@link #getContractsDir()} left unset
+     * entirely while {@link #getUseSpringCloudContract()} is enabled, or {@link #getTestDirs()}
+     * missing only because it was never configured by the user (see
+     * {@link #getTestDirsUserConfigured()}) is a deliberate, complete configuration rather than a
+     * gap, and neither warns nor suppresses detection.</p>
      *
      * <p>The build still fails when a doppelganger API is genuinely found and
      * {@link #getFailOnDoppelganger()} is {@code true} - the one failure condition this task ever
@@ -559,9 +588,11 @@ public abstract class DetectDoppelgangerApisTask extends DefaultTask {
      *
      * <p>{@link #getTestDirs()} is shared by the Spring RestDocs and OpenAPI request validator
      * sources: a missing entry is only reported, and only counts towards suppression, when at least
-     * one of those two sources is actually enabled. Both are still scanned - and announced - even
-     * when every {@code testDirs} entry is missing, since a directory that simply contains no
-     * matching evidence is indistinguishable from one that doesn't exist yet, at the scanner level.
+     * one of those two sources is actually enabled - and, per {@link #getTestDirsUserConfigured()},
+     * only when {@link #getTestDirs()} reflects the user's own configuration rather than only the
+     * plugin's unconfigured default. Both sources are still scanned - and announced - even when
+     * every {@code testDirs} entry is missing, since a directory that simply contains no matching
+     * evidence is indistinguishable from one that doesn't exist yet, at the scanner level.
      * Spring Cloud Contract's phase, by contrast, is only announced and scanned when
      * {@link #getContractsDir()} is both configured and exists - most projects have no
      * {@code contracts} directory at all, and {@link #getContractsDir()} being left entirely unset
@@ -581,6 +612,7 @@ public abstract class DetectDoppelgangerApisTask extends DefaultTask {
         boolean useSpringCloudContract = getUseSpringCloudContract().get();
 
         boolean testDirsNeeded = useRestDocs || useOpenApiRequestValidator;
+        boolean testDirsUserConfigured = getTestDirsUserConfigured().get();
         List<File> missingTestDirs = new ArrayList<>();
         boolean anyTestDirExists = false;
         if (testDirsNeeded) {
@@ -591,7 +623,11 @@ public abstract class DetectDoppelgangerApisTask extends DefaultTask {
                     missingTestDirs.add(dir);
                 }
             }
-            if (!missingTestDirs.isEmpty()) {
+            // A missing entry only warns, and only counts towards suppression below, when testDirs
+            // reflects the user's own configuration - see getTestDirsUserConfigured(). The plugin's
+            // own unconfigured default missing is a project with no such evidence by design, not a
+            // bootstrapping gap, and must not silently suppress detection.
+            if (testDirsUserConfigured && !missingTestDirs.isEmpty()) {
                 if (anyTestDirExists) {
                     for (File dir : missingTestDirs) {
                         warnings.add("Configured `testDirs` entry does not exist yet: `" + dir + "`.");
@@ -602,7 +638,8 @@ public abstract class DetectDoppelgangerApisTask extends DefaultTask {
                 }
             }
         }
-        boolean testDirsSourceMissing = testDirsNeeded && !missingTestDirs.isEmpty() && !anyTestDirExists;
+        boolean testDirsSourceMissing =
+                testDirsUserConfigured && testDirsNeeded && !missingTestDirs.isEmpty() && !anyTestDirExists;
 
         boolean contractsDirConfigured = getContractsDir().isPresent();
         File contractsDir = contractsDirConfigured ? getContractsDir().getAsFile().get() : null;
