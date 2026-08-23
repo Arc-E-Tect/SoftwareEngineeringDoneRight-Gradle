@@ -30,7 +30,23 @@ jobs:
     if: ${{ github.event_name == 'push' || github.event.workflow_run.conclusion == 'success' }}
     uses: ./.github/workflows/semantic-version-calculate.yml
     with:
-      fail_on_empty_version: true
+      # A direct push to api-only-suite's own files should always yield a new version - an empty
+      # result there means a conventional-commit mistake worth failing loudly on. A workflow_run
+      # trigger, by contrast, fires once for every sibling detector plugin release, and commits are
+      # analyzed repo-wide with no per-project scope filtering: whichever of those runs happens to
+      # execute first picks up every real fix/feat commit and genuinely releases, leaving every
+      # other sibling's run in the same burst with nothing new to find - a normal, expected no-op,
+      # not a failure. The jobs below already gate on next_version_empty instead of next_version
+      # itself, so there is nothing for a hard failure here to protect once that path is disabled.
+      #
+      # fail_on_existing_tag must be disabled the same way, and for the same reason every
+      # *-build.yml workflow already disables both together: when nothing new was calculated,
+      # next_version falls back to the *current* version, whose tag trivially already exists -
+      # that's not a real conflict, just what the fallback always looks like. Left enabled, it
+      # would misfire as a "tag conflict" every time this path finds nothing to release, exactly
+      # like fail_on_empty_version would.
+      fail_on_empty_version: ${{ github.event_name == 'push' }}
+      fail_on_existing_tag: ${{ github.event_name == 'push' }}
       project_dir: api-only-suite
       tag_format: 'api-only-suite-v${version}'
       DEBUG: true
@@ -96,7 +112,10 @@ jobs:
   Release-Plugin:
     name: Release API-Only Suite Plugin
     needs: [Calculate-Version, Build]
-    if: ${{ needs.Calculate-Version.outputs.next_version != '' }}
+    # next_version itself is never empty - it falls back to the current version so a build-only
+    # caller always has something to compile with - so next_version_empty is what actually signals
+    # "there is nothing new to release", not a string-emptiness check on next_version.
+    if: ${{ needs.Calculate-Version.outputs.next_version_empty == 'false' }}
     uses: ./.github/workflows/semantic-version-apply.yml
     with:
       project_dir: api-only-suite
@@ -106,7 +125,10 @@ jobs:
   Wait-For-Sibling-Releases:
     name: Wait for sibling detector plugin releases
     needs: Calculate-Version
-    if: ${{ needs.Calculate-Version.outputs.next_version != '' }}
+    # next_version itself is never empty - it falls back to the current version so a build-only
+    # caller always has something to compile with - so next_version_empty is what actually signals
+    # "there is nothing new to release", not a string-emptiness check on next_version.
+    if: ${{ needs.Calculate-Version.outputs.next_version_empty == 'false' }}
     runs-on: ubuntu-latest
 
     steps:
@@ -179,7 +201,10 @@ jobs:
   Publish:
     name: Publish API-Only Suite Plugin to Gradle Portal
     needs: [Calculate-Version, Release-Plugin, Wait-For-Sibling-Releases]
-    if: ${{ needs.Calculate-Version.outputs.next_version != '' }}
+    # next_version itself is never empty - it falls back to the current version so a build-only
+    # caller always has something to compile with - so next_version_empty is what actually signals
+    # "there is nothing new to release", not a string-emptiness check on next_version.
+    if: ${{ needs.Calculate-Version.outputs.next_version_empty == 'false' }}
     runs-on: ubuntu-latest
 
     env:
@@ -251,7 +276,10 @@ jobs:
 
   Determine-Release-Type:
     needs: [Calculate-Version]
-    if: ${{ needs.Calculate-Version.outputs.next_version != '' }}
+    # next_version itself is never empty - it falls back to the current version so a build-only
+    # caller always has something to compile with - so next_version_empty is what actually signals
+    # "there is nothing new to release", not a string-emptiness check on next_version.
+    if: ${{ needs.Calculate-Version.outputs.next_version_empty == 'false' }}
     uses: ./.github/workflows/determine-release-type.yml
 
   Workflow-Summary:
