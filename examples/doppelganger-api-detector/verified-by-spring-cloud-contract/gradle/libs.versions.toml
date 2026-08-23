@@ -6,7 +6,7 @@ doppelganger-api-detector = { id = "com.arc-e-tect.doppelganger-api-detector", v
 
 [versions]
 
-doppelganger-api-detector = "2.2.0"
+doppelganger-api-detector = "2.2.1"
 spring-web = "7.0.9"
 
 [libraries]
