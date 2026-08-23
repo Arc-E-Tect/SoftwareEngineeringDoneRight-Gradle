@@ -1,0 +1,41 @@
+plugins {
+    id 'java'
+    id 'jacoco'
+    alias(libs.plugins.jacoco.exclusion.report)
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // Lombok stamps every member it generates with @lombok.Generated, which is
+    // how JaCoCo already excludes that code from coverage without any config.
+    compileOnly     libs.lombok
+    annotationProcessor libs.lombok
+}
+
+test {
+    useJUnitPlatform()
+    finalizedBy jacocoTestReport
+}
+
+jacocoExclusionReport {
+    // Opt-in: scans compiled classes for members carrying a Generated-named
+    // annotation stamped by another tool (here, Lombok's @lombok.Generated).
+    includeGeneratedAnnotationExclusions = true
+}
+
+jacocoTestReport {
+    dependsOn test
+    reports {
+        xml.required  = true
+        html.required = true
+    }
+}
