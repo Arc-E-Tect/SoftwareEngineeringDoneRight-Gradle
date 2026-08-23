@@ -1,3 +1,25 @@
+# [3.2.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/shadow-api-detector-v3.1.0...shadow-api-detector-v3.2.0) (2026-08-23)
+
+
+### ✨ New and updated features
+
+* **mirage-api-detector:** add exclusion rules for known-good gaps ([#207](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/207)) ([66bf220](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/66bf2201be8b9a7399772f95a168b6f3a6d1023c)), closes [#207](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/207)
+* **doppelganger-api-detector:** add exclusion rules for known-good gaps ([#208](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/208)) ([f15e916](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/f15e9164e9e1a68bd038bdccbe98c6675dd7fc82)), closes [#208](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/208)
+* **jacoco-exclusion-report:** add Lombok generated-annotation example ([#212](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/212)) ([4cad2d1](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/4cad2d148958784a5454a5178023d2385f22229d)), closes [#212](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/212) [#211](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/211)
+* **api-only-suite:** forward exclusion rules to all three plugins ([#209](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/209)) ([c9656a3](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/c9656a39256d19e12aec4b4ce1a83e0faa6c36d8)), closes [#209](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/209) [Property#convention](https://github.com/Property/issues/convention)
+* **jacoco-exclusion-report:** report tool-generated exclusions (Lombok, etc.) ([#211](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/211)) ([f6fcccc](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/f6fcccca33bed0a2383d15f8b768342a509866fc)), closes [#211](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/211)
+
+
+### 🐛 Bug Fixes
+
+* **doppelganger-api-detector:** don't treat the plugin's own default testDirs as a bootstrapping gap ([#214](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/214)) ([0cfa6a2](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/0cfa6a2fb263a601b6dbcc254ec33cd4ad5f0459)), closes [#214](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/214)
+* **gherkin-to-asciidoc:** reindex colliding Feature/Scenario numbers instead of leaving them untouched ([#210](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/210)) ([aeccd02](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/aeccd026cfddb6d1c9322b24215bf61f4f0e154c)), closes [#210](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/210)
+
+
+### 🔧 Misc
+
+* dependency updates for Gradle plugin repository ([#215](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/215)) ([40bb245](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/40bb245643207616d45738bb6ddc92584a3efd92)), closes [#215](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/215)
+
 # [3.1.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/shadow-api-detector-v3.0.3...shadow-api-detector-v3.1.0) (2026-08-22)
 
 
