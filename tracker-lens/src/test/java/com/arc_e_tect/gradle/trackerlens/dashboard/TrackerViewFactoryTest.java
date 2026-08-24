@@ -319,4 +319,52 @@ class TrackerViewFactoryTest {
         assertThat(view.breakdownByDate().get(beforeRemovalIndex).get("listed")).isEqualTo(1);
         assertThat(view.breakdownByDate().get(afterRemovalIndex).get("listed")).isEqualTo(0);
     }
+
+    @Test
+    @DisplayName("buildShouldExcludeAnItemFromChartSeriesAfterItWasRemovedEvenThoughItReachedTheStageBeforeRemoval")
+    void buildShouldExcludeAnItemFromChartSeriesAfterItWasRemovedEvenThoughItReachedTheStageBeforeRemoval() {
+        // A record that reached "implemented" and was later removed must stop counting toward the
+        // "implemented" chart series from its removal date onward - otherwise a template computing
+        // an "unimplemented" gap as totalCount - implemented can go negative once enough
+        // formerly-tracked items are removed (see cumulativeCountAt's own javadoc).
+        LocalDate today = LocalDate.ofInstant(NOW, ZoneOffset.UTC);
+        LocalDate fiveDaysAgo = today.minusDays(5);
+        LocalDate twoDaysAgo = today.minusDays(2);
+        Instant implementedAt = fiveDaysAgo.atStartOfDay(ZoneOffset.UTC).toInstant();
+        Instant removedAt = twoDaysAgo.atStartOfDay(ZoneOffset.UTC).toInstant();
+        List<LifecycleRecord> records = List.of(new LifecycleRecord("1", "later-removed", null,
+                Map.of("listed", implementedAt, "implemented", implementedAt), NOW, removedAt));
+
+        TrackerView view = factory.build("t", STAGES, records, Optional.empty(), NOW, false);
+
+        int beforeRemovalIndex = view.chartDates().indexOf(twoDaysAgo.minusDays(1));
+        int afterRemovalIndex = view.chartDates().indexOf(twoDaysAgo);
+
+        assertThat(view.chartSeries().get("implemented").get(beforeRemovalIndex)).isEqualTo(1);
+        assertThat(view.chartSeries().get("implemented").get(afterRemovalIndex)).isEqualTo(0);
+    }
+
+    @Test
+    @DisplayName("buildShouldMakeTheLatestChartSeriesStageCountMatchTotalCountOnceAFormerlyImplementedItemIsRemoved")
+    void buildShouldMakeTheLatestChartSeriesStageCountMatchTotalCountOnceAFormerlyImplementedItemIsRemoved() {
+        // The regression this guards against: on the tracker's last real data date, a stage's
+        // cumulative chart-series count must never exceed totalCount (active-only) - a chart-series
+        // count is legitimately allowed to exceed today's totalCount on an *earlier* date, when more
+        // items were still active, but not on the latest one, or a template computing "totalCount -
+        // count" as an "un-X" gap goes negative right on the dashboard's current snapshot. Two items
+        // reach "implemented"; one is removed on what becomes the tracker's last real data date, so
+        // totalCount (active items) is 1 - "implemented" must read 1, not 2, on that same date.
+        Instant implementedAt = NOW.minus(Duration.ofDays(5));
+        Instant removedAt = NOW.minus(Duration.ofDays(1));
+        List<LifecycleRecord> records = List.of(
+                new LifecycleRecord("1", "still-active", null, Map.of("implemented", implementedAt), NOW, null),
+                new LifecycleRecord("2", "removed", null, Map.of("implemented", implementedAt), NOW, removedAt));
+
+        TrackerView view = factory.build("t", STAGES, records, Optional.empty(), NOW, false);
+
+        int lastRealIndex = view.chartDates().indexOf(LocalDate.ofInstant(removedAt, ZoneOffset.UTC));
+
+        assertThat(view.totalCount()).isEqualTo(1);
+        assertThat(view.chartSeries().get("implemented").get(lastRealIndex)).isEqualTo(1);
+    }
 }
