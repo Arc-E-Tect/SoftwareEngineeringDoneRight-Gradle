@@ -1,3 +1,16 @@
+# [2.2.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/tracker-lens-v2.1.2...tracker-lens-v2.2.0) (2026-08-24)
+
+
+### ✨ New and updated features
+
+* **doppelganger-api-detector:** add scanContracts task and response coverage tracking ([#221](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/221)) ([773cf7b](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/773cf7b3d6039d0d7277cefcdec83fb3e1067026)), closes [#221](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/221) [Arc-E-Tect/SoftwareEngineeringDoneRight-Library#75](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Library/issues/75)
+* **tracker-lens:** visualize Doppelganger response-code coverage ([#223](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/223)) ([23de77e](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/23de77eff3561e03534a241d075fedfd040c5627)), closes [#223](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/223) [#160](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/160)
+
+
+### 🐛 Bug Fixes
+
+* **api-only-suite:** bump api-detector-core to 1.4.0 ([#222](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/222)) ([3d79566](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/3d79566cbf4cb63796ac9f7f348c9fe49eed2be9)), closes [#222](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/222)
+
 ## [2.1.2](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/tracker-lens-v2.1.1...tracker-lens-v2.1.2) (2026-08-24)
 
 
