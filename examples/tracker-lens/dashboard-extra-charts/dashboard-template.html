@@ -78,12 +78,21 @@ white-space: nowrap;
 }
 .response-coverage-grid__cell--covered {
 background: #2f9e44;
+color: #fff;
+font-weight: 600;
 }
 .response-coverage-grid__cell--uncovered {
 background: #e03131;
+color: #fff;
+font-weight: 600;
 }
 .response-coverage-grid__cell--not-applicable {
 opacity: 0.35;
+}
+.coverage-depth-note {
+margin: 0 0 1rem;
+font-size: 0.85rem;
+opacity: 0.75;
 }
 </style>
 </head>
@@ -601,38 +610,45 @@ opacity: 0.35;
     return GROUP_COLORS[group] || stageColors[index % stageColors.length];
   }
 
-  // Per date, per response-code class: the segment height a 0-100% stack needs (that class's share
-  // of codes covered *that date*, across every class - the only reading that legitimately sums to
-  // 100%) and, independently, that class's *own* coverage ratio (declared vs. covered within just
-  // that class) - the number actually worth reading, surfaced only in the tooltip since it does not
+  // Per date: every response-code class's share of *all declared* response codes that date - so
+  // 2xx + 4xx + 5xx + Uncovered sums to 100%, and 100% only when every declared code is covered -
+  // plus, independently, each class's *own* coverage ratio (declared vs. covered within just that
+  // class) - the number actually worth reading, surfaced only in the tooltip since it does not
   // drive the bar's height. See this project's README for why these are deliberately two different
   // numbers rather than one.
   function computeResponseCoverageSeries(tracker) {
     var groups = Object.keys(tracker.seriesByGroup).sort();
-    var shareOfCovered = {};
+    var shareOfDeclared = {};
     var ownCoverageRatio = {};
     groups.forEach(function (group) {
-      shareOfCovered[group] = [];
+      shareOfDeclared[group] = [];
       ownCoverageRatio[group] = [];
     });
+    var uncoveredShare = [];
     tracker.dates.forEach(function (date, i) {
+      var totalDeclaredThisDate = groups.reduce(function (sum, group) {
+        return sum + (tracker.seriesByGroup[group].declared[i] || 0);
+      }, 0);
       var totalCoveredThisDate = groups.reduce(function (sum, group) {
         return sum + (tracker.seriesByGroup[group].covered[i] || 0);
       }, 0);
       groups.forEach(function (group) {
         var declared = tracker.seriesByGroup[group].declared[i] || 0;
         var covered = tracker.seriesByGroup[group].covered[i] || 0;
-        shareOfCovered[group].push(totalCoveredThisDate > 0 ? Math.round((100 * covered) / totalCoveredThisDate) : 0);
+        shareOfDeclared[group].push(totalDeclaredThisDate > 0 ? Math.round((100 * covered) / totalDeclaredThisDate) : 0);
         ownCoverageRatio[group].push(declared > 0 ? Math.round((100 * covered) / declared) : 0);
       });
+      uncoveredShare.push(totalDeclaredThisDate > 0
+          ? Math.round((100 * (totalDeclaredThisDate - totalCoveredThisDate)) / totalDeclaredThisDate) : 0);
     });
-    return { groups: groups, shareOfCovered: shareOfCovered, ownCoverageRatio: ownCoverageRatio };
+    return { groups: groups, shareOfDeclared: shareOfDeclared, ownCoverageRatio: ownCoverageRatio, uncoveredShare: uncoveredShare };
   }
 
   // Replaces the fixed bootstrap script's plain declared/covered line chart with a 0-100% stacked
-  // bar, one bar per date, segmented by response-code class - see computeResponseCoverageSeries for
-  // what drives segment height vs. tooltip content. No forecast segment here (unlike
-  // addForecastSegment above): a stacked composition chart has no single trend line to extrapolate.
+  // bar, one bar per date, segmented by response-code class plus an Uncovered segment - see
+  // computeResponseCoverageSeries for what drives segment height vs. tooltip content. No forecast
+  // segment here (unlike addForecastSegment above): a stacked composition chart has no single
+  // trend line to extrapolate.
   function renderResponseCoverageStackedBar(trackerId, tracker) {
     var section = document.querySelector('.tracker[data-tracker="' + trackerId + '"]');
     var canvas = section ? section.querySelector('.chart canvas') : null;
@@ -645,11 +661,12 @@ opacity: 0.35;
     var datasets = computed.groups.map(function (group, index) {
       return {
         label: group,
-        data: computed.shareOfCovered[group],
+        data: computed.shareOfDeclared[group],
         backgroundColor: groupColor(group, index),
         stack: 'coverage'
       };
     });
+    datasets.push({ label: 'Uncovered', data: computed.uncoveredShare, backgroundColor: MUTED_COLOR, stack: 'coverage' });
 
     existingChart.destroy();
     new Chart(canvas.getContext('2d'), {
@@ -669,6 +686,9 @@ opacity: 0.35;
             callbacks: {
               label: function (context) {
                 var group = context.dataset.label;
+                if (group === 'Uncovered') {
+                  return 'Uncovered: ' + computed.uncoveredShare[context.dataIndex] + '% of all declared codes';
+                }
                 var ownPercent = computed.ownCoverageRatio[group][context.dataIndex];
                 return group + ' covered: ' + ownPercent + '% (of ' + group + ' declared)';
               }
@@ -682,7 +702,9 @@ opacity: 0.35;
   // Snapshot pie, latest date only - absolute counts, four slices: every declared-but-uncovered
   // response code (all classes combined - "how much is left to do" is more useful here than a
   // per-class breakdown, which the stacked bar's tooltip already covers), then one covered-count
-  // slice per response-code class.
+  // slice per response-code class. The tooltip reports each slice as a fraction of the whole
+  // (e.g. "2xx covered: 74 / 1023"), matching the convention the other pies on this dashboard
+  // already use (see renderStagePie/renderApiContractBreakdownPie above).
   function renderResponseCoveragePie(tracker, container) {
     if (typeof Chart === 'undefined') {
       return;
@@ -699,26 +721,43 @@ opacity: 0.35;
     });
 
     var labels = ['Uncovered'].concat(groups.map(function (group) { return group + ' covered'; }));
-    var data = [uncovered].concat(groups.map(function (group) { return coveredByGroup[group]; }));
+    var values = [uncovered].concat(groups.map(function (group) { return coveredByGroup[group]; }));
     var colors = [MUTED_COLOR].concat(groups.map(function (group, index) { return groupColor(group, index); }));
+    var totalCount = values.reduce(function (sum, value) { return sum + value; }, 0);
 
     var canvas = document.createElement('canvas');
     container.appendChild(canvas);
     new Chart(canvas.getContext('2d'), {
       type: 'pie',
-      data: { labels: labels, datasets: [{ data: data, backgroundColor: colors }] },
-      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: true, position: 'left' } } }
+      data: { labels: labels, datasets: [{ data: values, backgroundColor: colors }] },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: true, position: 'left' },
+          tooltip: {
+            callbacks: {
+              label: function (context) {
+                return labels[context.dataIndex] + ': ' + values[context.dataIndex] + ' / ' + totalCount;
+              }
+            }
+          }
+        }
+      }
     });
   }
 
   // The coverage-depth grid: response codes as columns (small, bounded), endpoints as rows (the
   // dimension that explodes - narrowed by the filter input, live on every keystroke). Three states
-  // only, no color gradient by test count: more tests covering a response code isn't "more covered"
-  // than fewer, so testCount is surfaced only as each covered/uncovered cell's tooltip, never as a
-  // spatial or color-intensity encoding. Most-recent-scan only - tracker.matrix is a current-state
-  // snapshot with no preserved history to slide through (testCount is a live gauge the source data
-  // never keeps a time series of - see this project's README).
-  function renderResponseCoverageGrid(tracker, section) {
+  // only, no color *gradient* by test count: more tests covering a response code isn't "more
+  // covered" than fewer, so testCount never drives a cell's color or size - it's shown as the
+  // cell's own visible text instead, so the number is readable at a glance rather than hidden
+  // behind a hover. Most-recent-scan only - tracker.matrix is a current-state snapshot with no
+  // preserved history to slide through (testCount is a live gauge the source data never keeps a
+  // time series of - see this project's README). Takes the container to render into directly (its
+  // own synthesized section - see buildResponseCoverageDepthSection) rather than assuming it always
+  // belongs inside the bar/pie tracker's own section.
+  function renderResponseCoverageGrid(tracker, container) {
     var matrix = tracker.matrix || [];
     if (!matrix.length) {
       return;
@@ -780,6 +819,7 @@ opacity: 0.35;
           td.className = cell.covered
               ? 'response-coverage-grid__cell--covered'
               : 'response-coverage-grid__cell--uncovered';
+          td.textContent = cell.testCount;
           td.title = cell.testCount + (cell.testCount === 1 ? ' test' : ' tests');
         } else {
           td.className = 'response-coverage-grid__cell--not-applicable';
@@ -798,7 +838,31 @@ opacity: 0.35;
       });
     });
 
-    section.appendChild(wrapper);
+    container.appendChild(wrapper);
+  }
+
+  // A second, independent .tracker section for the coverage-depth grid, synthesized client-side and
+  // inserted right after response-coverage's own bar/pie section - the grid is a current-state
+  // snapshot table, not a time-series chart, so it doesn't belong crammed underneath the bar/pie the
+  // way it used to be. No metrics, chart, or forecast of its own: it has no single summary
+  // percentage to lead with (it's a per-endpoint x per-response-code detail table), and testCount
+  // has no preserved history to plot a trend from at all (see this project's README).
+  function buildResponseCoverageDepthSection(tracker, afterSection) {
+    if (!(tracker.matrix || []).length) {
+      return;
+    }
+    var wrapper = document.createElement('div');
+    wrapper.innerHTML =
+        '<section class="tracker" data-tracker="response-coverage-coverage-depth">'
+        + '<h2>response-coverage-coverage-depth</h2>'
+        + '<p class="coverage-depth-note">Every declared response code for every endpoint, most '
+        + 'recent scan only - green/red matches the bar, pie, and grid above, and the number in '
+        + 'each cell is the test count backing that response, shown as text rather than a color '
+        + 'gradient: more tests covering a response code isn\'t "more covered" than fewer.</p>'
+        + '</section>';
+    var section = wrapper.firstElementChild;
+    afterSection.parentNode.insertBefore(section, afterSection.nextSibling);
+    renderResponseCoverageGrid(tracker, section);
   }
 
   var responseCoverageTracker = trackersById['response-coverage'];
@@ -807,7 +871,7 @@ opacity: 0.35;
   if (responseCoverageTracker && responseCoverageContainer && responseCoverageSection) {
     renderResponseCoverageStackedBar('response-coverage', responseCoverageTracker);
     renderResponseCoveragePie(responseCoverageTracker, responseCoverageContainer);
-    renderResponseCoverageGrid(responseCoverageTracker, responseCoverageSection);
+    buildResponseCoverageDepthSection(responseCoverageTracker, responseCoverageSection);
   }
 })();
 </script>
