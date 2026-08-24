@@ -55,13 +55,16 @@ its own markup and its own script to derive additional views the plugin itself n
   declared-but-uncovered response code (all classes combined) plus one covered-count slice per
   class - each slice's tooltip a fraction of the whole (e.g. "2xx covered: 5 / 16"), matching the
   convention this template's other pies already use.
-* Underneath the whole `response-coverage` section, a *coverage-depth grid* - response codes as
-  columns, endpoints as rows, three states only (covered/uncovered/not-declared-for-this-endpoint,
-  never a color *gradient* by test count) - each covered/uncovered cell showing its own test count
-  as plain visible text, not hidden behind a hover, with a live text filter narrowing the rows by
-  path substring. Built from `#dashboard-data`'s `matrix` field, a raw current-state snapshot the
-  plugin computes separately from every timestamp-based field above it (see "The Coverage-Depth
-  Grid" below).
+* A second, independent tracker section - `response-coverage-coverage-depth` - synthesized right
+  after `response-coverage` and holding just a *coverage-depth grid*: response codes as columns,
+  endpoints as rows, three states only (covered/uncovered/not-declared-for-this-endpoint, never a
+  color *gradient* by test count) - each covered/uncovered cell showing its own test count as plain
+  visible text, not hidden behind a hover, with a live text filter narrowing the rows by path
+  substring. It's its own section rather than living underneath the bar/pie above it because it's a
+  fundamentally different view - a current-state snapshot table, not a time series - with no single
+  summary percentage, chart, or forecast of its own to lead with. Built from `#dashboard-data`'s
+  `matrix` field, a raw current-state snapshot the plugin computes separately from every
+  timestamp-based field above it (see "The Coverage-Depth Grid" below).
 
 === Why the Gherkin pie reads `stageBreakdown`, not `series`
 
@@ -177,7 +180,12 @@ appended to. `tracker-lens` keeps this snapshot in a field of its own, `matrix`,
 narrow, separate reader (`ResponseCoverageMatrixReader`) that never touches the `LifecycleRecord`
 pipeline at all - see the plugin's own README for why.
 
-This template pivots that flat `matrix` array into a grid entirely client-side: response codes
+This template pivots that flat `matrix` array into a grid entirely client-side, rendered into its
+own synthesized `response-coverage-coverage-depth` tracker section (inserted right after
+`response-coverage`'s own bar/pie section, the same way `buildResponseCoverageDepthSection`
+constructs it) rather than sharing that section - it's a current-state snapshot table, not a time
+series, with no metrics, chart, or forecast of its own to justify sharing a section with either:
+response codes
 become columns (a small, bounded set - every code declared by *any* endpoint in this tracker),
 endpoints become rows (the dimension that can genuinely explode on a real API), and each cell is
 one of three states - green (`covered: true`), red (`covered: false`), or simply absent from the
@@ -496,7 +504,8 @@ through regardless of which template rendered it. Open `build/reports/tracker-le
   "5xx covered: 0% (of 5xx declared)" - the `5xx` figure never leaves 0%, by design (see "The Sample
   Data" above). Beside it, a pie chart with four slices - 8 Uncovered, 5 `2xx covered`, 3
   `4xx covered`, 0 `5xx covered` - each slice's tooltip reading as a fraction of the whole (e.g.
-  "2xx covered: 5 / 16"). Underneath the whole section, the coverage-depth grid: 6 endpoint rows,
+  "2xx covered: 5 / 16"). Right after it, a second, independent
+  `response-coverage-coverage-depth` section holds the coverage-depth grid: 6 endpoint rows,
   8 response-code columns (`200`, `201`, `204`, `400`, `401`, `403`, `404`, `500`), green/red cells
   each showing their own test count as plain text (not hidden behind a hover), and dimmed cells
   everywhere a response code isn't declared for that row (e.g. `POST /api/orders` has no `204`

@@ -89,6 +89,11 @@ font-weight: 600;
 .response-coverage-grid__cell--not-applicable {
 opacity: 0.35;
 }
+.coverage-depth-note {
+margin: 0 0 1rem;
+font-size: 0.85rem;
+opacity: 0.75;
+}
 </style>
 </head>
 <body>
@@ -749,8 +754,10 @@ opacity: 0.35;
   // cell's own visible text instead, so the number is readable at a glance rather than hidden
   // behind a hover. Most-recent-scan only - tracker.matrix is a current-state snapshot with no
   // preserved history to slide through (testCount is a live gauge the source data never keeps a
-  // time series of - see this project's README).
-  function renderResponseCoverageGrid(tracker, section) {
+  // time series of - see this project's README). Takes the container to render into directly (its
+  // own synthesized section - see buildResponseCoverageDepthSection) rather than assuming it always
+  // belongs inside the bar/pie tracker's own section.
+  function renderResponseCoverageGrid(tracker, container) {
     var matrix = tracker.matrix || [];
     if (!matrix.length) {
       return;
@@ -831,7 +838,31 @@ opacity: 0.35;
       });
     });
 
-    section.appendChild(wrapper);
+    container.appendChild(wrapper);
+  }
+
+  // A second, independent .tracker section for the coverage-depth grid, synthesized client-side and
+  // inserted right after response-coverage's own bar/pie section - the grid is a current-state
+  // snapshot table, not a time-series chart, so it doesn't belong crammed underneath the bar/pie the
+  // way it used to be. No metrics, chart, or forecast of its own: it has no single summary
+  // percentage to lead with (it's a per-endpoint x per-response-code detail table), and testCount
+  // has no preserved history to plot a trend from at all (see this project's README).
+  function buildResponseCoverageDepthSection(tracker, afterSection) {
+    if (!(tracker.matrix || []).length) {
+      return;
+    }
+    var wrapper = document.createElement('div');
+    wrapper.innerHTML =
+        '<section class="tracker" data-tracker="response-coverage-coverage-depth">'
+        + '<h2>response-coverage-coverage-depth</h2>'
+        + '<p class="coverage-depth-note">Every declared response code for every endpoint, most '
+        + 'recent scan only - green/red matches the bar, pie, and grid above, and the number in '
+        + 'each cell is the test count backing that response, shown as text rather than a color '
+        + 'gradient: more tests covering a response code isn\'t "more covered" than fewer.</p>'
+        + '</section>';
+    var section = wrapper.firstElementChild;
+    afterSection.parentNode.insertBefore(section, afterSection.nextSibling);
+    renderResponseCoverageGrid(tracker, section);
   }
 
   var responseCoverageTracker = trackersById['response-coverage'];
@@ -840,7 +871,7 @@ opacity: 0.35;
   if (responseCoverageTracker && responseCoverageContainer && responseCoverageSection) {
     renderResponseCoverageStackedBar('response-coverage', responseCoverageTracker);
     renderResponseCoveragePie(responseCoverageTracker, responseCoverageContainer);
-    renderResponseCoverageGrid(responseCoverageTracker, responseCoverageSection);
+    buildResponseCoverageDepthSection(responseCoverageTracker, responseCoverageSection);
   }
 })();
 </script>
