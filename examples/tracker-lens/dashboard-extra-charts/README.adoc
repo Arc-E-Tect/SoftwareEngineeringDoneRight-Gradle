@@ -3,15 +3,17 @@
 
 == Description
 
-Two trackers - `bdd-scenarios` (Gherkin scenarios) and `api-contracts` (API contracts) - rendered by
-a project-supplied Mustache template, `dashboard-template.html`, overriding the plugin's own
-bundled `dashboard.html` via `trackerLens.template`. The template's structure and wording are
-identical to the bundled one (see `../custom-dashboard-template` for an example that changes those
-instead); the differences here are three additions built entirely from data the plugin already
-computes: an extra, non-contract chart under each tracker's built-in line chart; a muted, dashed
-forecast segment extending that line chart out to the tracker's projected completion date; and a
-fourth lens, `lens-colored`, that frames each tracker's numbers in a color reflecting how healthy
-they are.
+Three trackers - `bdd-scenarios` (Gherkin scenarios), `api-contracts` (API contracts), and
+`response-coverage` (Doppelganger API Detector's response-code coverage) - rendered by a
+project-supplied Mustache template, `dashboard-template.html`, overriding the plugin's own bundled
+`dashboard.html` via `trackerLens.template`. The template's structure and wording are identical to
+the bundled one (see `../custom-dashboard-template` for an example that changes those instead); the
+differences here are additions built entirely from data the plugin already computes: an extra,
+non-contract chart under each tracker's built-in line chart; a muted, dashed forecast segment
+extending that line chart out to the tracker's projected completion date; a fourth lens,
+`lens-colored`, that frames each tracker's numbers in a color reflecting how healthy they are; and,
+for `response-coverage` specifically, a 0-100% stacked coverage-by-response-code-class bar chart in
+place of its plain line chart, plus a filterable coverage-depth grid.
 
 == Intent
 
@@ -43,6 +45,20 @@ its own markup and its own script to derive additional views the plugin itself n
 * A fourth lens, `lens-colored`, published by a sibling project (`lens-colored-pack/`) and consumed
   as an ordinary `lensStyle` dependency via a Gradle composite build - the switcher lists it under
   its own real name, not a placeholder id - see "The lens-colored Lens" below.
+* In place of `response-coverage`'s plain declared/covered line chart, a *0-100% stacked bar chart*,
+  one bar per date, segmented by response-code class (`2xx`/`4xx`/`5xx`) - built from
+  `#dashboard-data`'s `seriesByGroup` field, which partitions the usual per-stage cumulative series
+  by `LifecycleRecord.group()` (see "Why The Coverage Bar's Segment Height And Its Tooltip Show
+  Two Different Numbers" below).
+* Beside it, a *snapshot pie chart*, latest date only, with four absolute-count slices: every
+  declared-but-uncovered response code (all classes combined) plus one covered-count slice per
+  class.
+* Underneath the whole `response-coverage` section, a *coverage-depth grid* - response codes as
+  columns, endpoints as rows, three states only (covered/uncovered/not-declared-for-this-endpoint,
+  never a color gradient by test count) - with a live text filter narrowing the rows by path
+  substring. Built from `#dashboard-data`'s `matrix` field, a raw current-state snapshot the plugin
+  computes separately from every timestamp-based field above it (see "The Coverage-Depth Grid"
+  below).
 
 === Why the Gherkin pie reads `stageBreakdown`, not `series`
 
@@ -103,6 +119,81 @@ The relationship between all four counts, and the two raw totals (`declared`/`im
 plugin itself reports, is fully determined - see
 link:../../../tracker-lens/DASHBOARD-THEMING.adoc#shadow-mirage-doppelganger-compliant-math[the
 tracker-lens documentation] for the worked formula.
+
+=== Why The Coverage Bar's Segment Height And Its Tooltip Show Two Different Numbers
+
+A stacked bar only means something as a 0-100% stack if its segments are parts of one common whole.
+For `response-coverage`, that whole is naturally "how many response codes are currently covered" -
+so each date's bar segments are sized by each class's *share of that date's total covered response
+codes* (`2xx covered / total covered`, `4xx covered / total covered`, and so on). That is a
+genuinely different number from "how well is `4xx` itself covered" (`4xx covered / 4xx declared`),
+which is the one actually worth reading on its own - it just doesn't sum to anything meaningful
+across classes, since each class has its own separate denominator.
+
+Rather than pick one number and lose the other, this template computes both from the same
+`seriesByGroup` data and shows each where it fits: the segment height drives the chart's shape, the
+tooltip (`mode: 'index'`, so hovering a date shows every class at once) reports each class's own
+ratio:
+
+[source,javascript]
+----
+tracker.dates.forEach(function (date, i) {
+  var totalCoveredThisDate = groups.reduce(function (sum, group) {
+    return sum + (tracker.seriesByGroup[group].covered[i] || 0);
+  }, 0);
+  groups.forEach(function (group) {
+    var declared = tracker.seriesByGroup[group].declared[i] || 0;
+    var covered = tracker.seriesByGroup[group].covered[i] || 0;
+    shareOfCovered[group].push(totalCoveredThisDate > 0 ? Math.round((100 * covered) / totalCoveredThisDate) : 0);
+    ownCoverageRatio[group].push(declared > 0 ? Math.round((100 * covered) / declared) : 0);
+  });
+});
+----
+
+No forecast segment is added to this chart, unlike `bdd-scenarios`' and `api-contracts`' line
+charts above: `extrapolateSeries` extends a single trend line per stage, but a stacked composition
+chart has no one line per class to extrapolate without also having to guess at a future *total*
+covered count to normalize against - a forecast here would be a second, independent projection this
+template doesn't attempt.
+
+=== The Coverage-Depth Grid
+
+`seriesByGroup` (and every other field on `TrackerView`) is fundamentally a milestone-timestamp
+concept - "when did this first happen" - because that is what `LifecycleRecord` models. A
+coverage-depth view needs something else entirely: for every currently-declared (endpoint, response
+code) pair, its live test count *right now* - a value with no preserved history to plot a trend
+from, since `doppelgangerApiDetector.scanContracts`' `testCount` is overwritten on every run, never
+appended to. `tracker-lens` keeps this snapshot in a field of its own, `matrix`, populated by a
+narrow, separate reader (`ResponseCoverageMatrixReader`) that never touches the `LifecycleRecord`
+pipeline at all - see the plugin's own README for why.
+
+This template pivots that flat `matrix` array into a grid entirely client-side: response codes
+become columns (a small, bounded set - every code declared by *any* endpoint in this tracker),
+endpoints become rows (the dimension that can genuinely explode on a real API), and each cell is
+one of three states - green (`covered: true`), red (`covered: false`), or simply absent from the
+row (that response code isn't declared for that endpoint, rendered as a dimmed cell rather than
+left blank, so an accidental gap in the data doesn't read the same as "not applicable"). Deliberately
+**not** a fourth, color-graded state by `testCount`: more tests covering a response code isn't "more
+covered" than fewer in any meaningful sense, so `testCount` only ever appears as a tooltip on cells
+that are already covered or uncovered, never as an additional visual dimension:
+
+[source,javascript]
+----
+if (cell) {
+  td.className = cell.covered
+      ? 'response-coverage-grid__cell--covered'
+      : 'response-coverage-grid__cell--uncovered';
+  td.title = cell.testCount + (cell.testCount === 1 ? ' test' : ' tests');
+} else {
+  td.className = 'response-coverage-grid__cell--not-applicable';
+}
+----
+
+The filter input above the grid narrows rows by a plain case-insensitive substring match against
+`"<VERB> <path>"`, live on every keystroke - the intended way to make a grid with many endpoints
+navigable, rather than a slider or any other historical view: since `matrix` is a single
+most-recent-scan snapshot with nothing to page through, narrowing *which rows are visible* is the
+only dimension this view can meaningfully offer.
 
 == The Template
 
@@ -301,6 +392,23 @@ declared: Undefined), `DELETE /api/orders/{id}/archive` (declared, never impleme
 Unimplemented), `PATCH /api/customers/{id}` (declared and implemented in June, still not verified:
 Unverified), and `GET /api/orders/{id}` (declared, implemented, and verified: Compliant).
 
+CAUTION: This fixture predates tracker-lens's own `stubbedAt` field
+(`ApiContractTrackerSource`'s current, 10-field line shape) and has not been regenerated since - as
+shipped, every one of its 20 lines is skipped as malformed, and `api-contracts` renders as an empty
+tracker (`0 / 0` on every card). This is a pre-existing gap in this example, not something either
+`response-coverage` or a fresh checkout introduces; regenerating this fixture in the current format
+is tracked separately from the `response-coverage` work this README otherwise documents.
+
+`response-coverage-history.ndjson` has 16 (endpoint, response code) rows across 6 endpoints - `GET`/
+`POST /api/orders`, `GET`/`DELETE /api/orders/{id}`, and `GET /api/invoices`/`GET /api/invoices/{id}`
+- deliberately weighted the way a real API's contract-test coverage tends to be: every `2xx` happy
+path but one is covered (5 of 6), a `4xx` error path only sometimes is (3 of 7), and no `5xx` path
+ever is (0 of 3) - the exact "not-so-happy-path" gap `includeResponseCoverage` exists to surface.
+`GET`/`DELETE /api/orders/{id}` share one path template but are tracked independently, since a
+response code's coverage is scoped to one HTTP verb, not the path alone. `GET /api/invoices/{id}`
+was declared and covered far more recently (2026-08-10/12) than everything else (June/July), to give
+the stacked bar's most recent bars a visible uptick.
+
 == Configuration
 
 `settings.gradle` brings in `lens-colored-pack` as a composite build (see "The lens-colored Lens"
@@ -327,6 +435,10 @@ trackerLens {
         register('api-contracts') {
             historyFiles.from(file('api-contract-history.ndjson'))
             source = com.arc_e_tect.gradle.trackerlens.TrackerSourceKind.API_CONTRACT
+        }
+        register('response-coverage') {
+            historyFiles.from(file('response-coverage-history.ndjson'))
+            source = com.arc_e_tect.gradle.trackerlens.TrackerSourceKind.RESPONSE_COVERAGE
         }
     }
 }
@@ -356,17 +468,29 @@ through regardless of which template rendered it. Open `build/reports/tracker-le
   it anymore), a pie chart with the same three slices: 1 (`listed` only), 1 (`defined` only), 4
   (`implemented`, including the skip-scenario). Hovering a slice shows "listed: 1 / 6", "defined:
   1 / 6", "implemented: 4 / 6".
-* `api-contracts` shows four metric cards - `UNDEFINED 4 / 13 (31%)`, `UNIMPLEMENTED 7 / 16 (44%)`,
-  `UNVERIFIED 5 / 20 (25%)`, and `COMPLIANT 4 / 20 (20%)` - each with a `?` badge; its usual line
-  chart (still labeled declared/implemented/verified - the raw history, unchanged), full width with
-  its own forecast segment; and underneath it, one pie with the same four names and counts, summing
-  visibly to 20, each a distinct color including `Compliant`'s violet.
+* `api-contracts` shows four metric cards, all `0 / 0 (0%)`, and an empty line chart - see the
+  `CAUTION` under "The Sample Data" above; this is `api-contract-history.ndjson`'s own pre-existing
+  staleness, unrelated to anything this README otherwise documents, so the specific numbers
+  (`UNDEFINED 4 / 13`, and so on) a fixed-format fixture *would* produce are not reproducible as
+  shipped.
+* `response-coverage` shows two metric cards, `DECLARED 8 / 16 (50%)` and `COVERED 8 / 16 (50%)` -
+  `stagesFormADependencyChain` counts, so these are mutually exclusive (8 declared-only, 8 that have
+  reached `covered`), not the two independent conditions `api-contracts`' own cards would show. In
+  place of its line chart, a stacked bar rising from left to right as more response codes gain
+  coverage over time; hovering the rightmost (most recent) bar shows a tooltip reading roughly
+  "2xx covered: 83% (of 2xx declared)", "4xx covered: 43% (of 4xx declared)", "5xx covered: 0% (of
+  5xx declared)" - the `5xx` line never leaves 0%, by design (see "The Sample Data" above). Beside
+  it, a pie chart with four slices: 8 Uncovered, 5 `2xx covered`, 3 `4xx covered`, 0 `5xx covered` -
+  summing visibly to 16. Underneath the whole section, the coverage-depth grid: 6 endpoint rows,
+  8 response-code columns (`200`, `201`, `204`, `400`, `401`, `403`, `404`, `500`), green/red cells
+  matching the pie's counts, and dimmed cells everywhere a response code isn't declared for that
+  row (e.g. `POST /api/orders` has no `204` column entry). Typing `invoices` into the filter above
+  the grid narrows it to just the two `/api/invoices` rows.
 * The lens switcher now offers four options - `dark-lens`, `high-contrast-lens`, `lens-colored`,
   `light-lens`. Selecting `lens-colored` frames `bdd-scenarios`' whole tracker box in green (67%
-  implemented lands in its top band) and colors each of `api-contracts`' four cards independently -
-  Undefined and Unimplemented amber (31% and 44%), Unverified yellow (exactly 25%), Compliant orange
-  (20%) - per the tables above. Every other lens leaves all of these frames at their normal,
-  uncolored border.
+  implemented lands in its top band); `api-contracts`' cards stay uncolored as shipped, since
+  `0 / 0` has no meaningful percent to band (see above). Every other lens leaves all of these frames
+  at their normal, uncolored border.
 
 Switching lenses otherwise still works exactly as in `../plain`, since the lens switcher and every
 contract-bound element are untouched - only the two added charts, the forecast segment, and

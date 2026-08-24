@@ -2,6 +2,7 @@ package com.arc_e_tect.gradle.trackerlens.dashboard;
 
 import com.arc_e_tect.gradle.trackerlens.lens.LensNaming;
 import com.arc_e_tect.gradle.trackerlens.lens.ResolvedLens;
+import com.arc_e_tect.gradle.trackerlens.tracker.ResponseCoverageCell;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -67,7 +68,43 @@ final class DashboardJson {
             }
             writeBreakdown(json, tracker.breakdownByDate().get(i));
         }
+        json.append("],\"seriesByGroup\":{");
+        boolean firstGroup = true;
+        for (Map.Entry<String, Map<String, List<Integer>>> groupEntry : tracker.seriesByGroup().entrySet()) {
+            if (!firstGroup) {
+                json.append(',');
+            }
+            firstGroup = false;
+            json.append(quote(groupEntry.getKey())).append(":{");
+            boolean firstStage = true;
+            for (Map.Entry<String, List<Integer>> stageEntry : groupEntry.getValue().entrySet()) {
+                if (!firstStage) {
+                    json.append(',');
+                }
+                firstStage = false;
+                json.append(quote(stageEntry.getKey())).append(":[")
+                        .append(stageEntry.getValue().stream().map(String::valueOf).collect(Collectors.joining(",")))
+                        .append(']');
+            }
+            json.append('}');
+        }
+        json.append("},\"matrix\":[");
+        for (int i = 0; i < tracker.matrix().size(); i++) {
+            if (i > 0) {
+                json.append(',');
+            }
+            writeMatrixCell(json, tracker.matrix().get(i));
+        }
         json.append("]}");
+    }
+
+    private static void writeMatrixCell(StringBuilder json, ResponseCoverageCell cell) {
+        json.append("{\"verb\":").append(quote(cell.verb()))
+                .append(",\"path\":").append(quote(cell.path()))
+                .append(",\"responseCode\":").append(quote(cell.responseCode()))
+                .append(",\"testCount\":").append(cell.testCount())
+                .append(",\"covered\":").append(cell.covered())
+                .append('}');
     }
 
     private static void writeBreakdown(StringBuilder json, Map<String, Integer> breakdown) {

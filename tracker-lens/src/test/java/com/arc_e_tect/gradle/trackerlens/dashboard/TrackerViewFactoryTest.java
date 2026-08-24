@@ -367,4 +367,49 @@ class TrackerViewFactoryTest {
         assertThat(view.totalCount()).isEqualTo(1);
         assertThat(view.chartSeries().get("implemented").get(lastRealIndex)).isEqualTo(1);
     }
+
+    @Test
+    @DisplayName("buildShouldReturnEmptySeriesByGroupWhenNoRecordCarriesAGroup")
+    void buildShouldReturnEmptySeriesByGroupWhenNoRecordCarriesAGroup() {
+        List<LifecycleRecord> records = List.of(
+                new LifecycleRecord("1", "a", null, Map.of("listed", NOW), NOW, null));
+
+        TrackerView view = factory.build("t", STAGES, records, Optional.empty(), NOW, false);
+
+        assertThat(view.seriesByGroup()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("buildShouldPartitionChartSeriesByGroupSoOneGroupsCountsNeverLeakIntoAnother")
+    void buildShouldPartitionChartSeriesByGroupSoOneGroupsCountsNeverLeakIntoAnother() {
+        List<LifecycleRecord> records = List.of(
+                new LifecycleRecord("1", "a", "2xx", Map.of("listed", NOW), NOW, null),
+                new LifecycleRecord("2", "b", "2xx", Map.of("listed", NOW), NOW, null),
+                new LifecycleRecord("3", "c", "4xx", Map.of("listed", NOW), NOW, null));
+
+        TrackerView view = factory.build("t", STAGES, records, Optional.empty(), NOW, false);
+
+        int todayIndex = view.chartDates().indexOf(LocalDate.ofInstant(NOW, ZoneOffset.UTC));
+
+        assertThat(view.seriesByGroup()).containsOnlyKeys("2xx", "4xx");
+        assertThat(view.seriesByGroup().get("2xx").get("listed").get(todayIndex)).isEqualTo(2);
+        assertThat(view.seriesByGroup().get("4xx").get("listed").get(todayIndex)).isEqualTo(1);
+        // The ungrouped chartSeries still reflects everything, regardless of group.
+        assertThat(view.chartSeries().get("listed").get(todayIndex)).isEqualTo(3);
+    }
+
+    @Test
+    @DisplayName("buildShouldExcludeRemovedItemsFromSeriesByGroupOnTheLatestDate")
+    void buildShouldExcludeRemovedItemsFromSeriesByGroupOnTheLatestDate() {
+        Instant listedAt = NOW.minus(Duration.ofDays(5));
+        List<LifecycleRecord> records = List.of(
+                new LifecycleRecord("1", "a", "2xx", Map.of("listed", listedAt), NOW, null),
+                new LifecycleRecord("2", "b", "2xx", Map.of("listed", listedAt), NOW, NOW));
+
+        TrackerView view = factory.build("t", STAGES, records, Optional.empty(), NOW, false);
+
+        int todayIndex = view.chartDates().indexOf(LocalDate.ofInstant(NOW, ZoneOffset.UTC));
+
+        assertThat(view.seriesByGroup().get("2xx").get("listed").get(todayIndex)).isEqualTo(1);
+    }
 }

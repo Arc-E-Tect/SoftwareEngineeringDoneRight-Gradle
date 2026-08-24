@@ -2,6 +2,7 @@ package com.arc_e_tect.gradle.trackerlens;
 
 import com.arc_e_tect.gradle.trackerlens.tracker.ApiContractTrackerSource;
 import com.arc_e_tect.gradle.trackerlens.tracker.GherkinScenarioTrackerSource;
+import com.arc_e_tect.gradle.trackerlens.tracker.ResponseCoverageTrackerSource;
 import com.arc_e_tect.gradle.trackerlens.tracker.TrackerSource;
 
 import java.util.List;
@@ -28,7 +29,14 @@ public enum TrackerSourceKind {
      * API contract progress history, stages {@code declared}, {@code implemented},
      * {@code stubbed}, {@code verified}.
      */
-    API_CONTRACT(List.of("declared", "implemented", "stubbed", "verified"), ApiContractTrackerSource::new, false);
+    API_CONTRACT(List.of("declared", "implemented", "stubbed", "verified"), ApiContractTrackerSource::new, false),
+
+    /**
+     * Doppelganger API Detector's response-coverage history, stages {@code declared},
+     * {@code covered}. Unlike {@link #API_CONTRACT}, this is a true dependency chain: a response
+     * code can never be covered by a contract test without first being declared.
+     */
+    RESPONSE_COVERAGE(List.of("declared", "covered"), ResponseCoverageTrackerSource::new, true);
 
     private final List<String> stages;
     private final Supplier<TrackerSource> factory;
