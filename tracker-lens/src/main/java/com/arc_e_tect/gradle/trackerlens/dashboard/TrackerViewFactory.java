@@ -87,9 +87,51 @@ public class TrackerViewFactory {
                 .filter(record -> mostRecentActivity(record).isBefore(now.minus(STALE_THRESHOLD)))
                 .toList();
 
+        Map<String, Map<String, List<Integer>>> seriesByGroup =
+                computeSeriesByGroup(records, stages, chartDates, lastDataDate);
+
         return new TrackerView(
                 trackerId, stages, metrics, totalCount, projection, chartDates, chartSeries, staleItems,
-                stageBreakdown, breakdownByDate);
+                stageBreakdown, breakdownByDate, seriesByGroup, List.of());
+    }
+
+    /**
+     * {@link #chartSeries}, partitioned by {@link LifecycleRecord#group()}: for every distinct
+     * non-null group present in {@code records}, the same per-stage cumulative-by-date computation
+     * {@code chartSeries} itself uses, restricted to that group's own records. Empty when no record
+     * carries a non-null group, so a tracker whose source never sets one (today, none do outside
+     * {@code API_CONTRACT} and {@code RESPONSE_COVERAGE}) pays no cost beyond the initial
+     * {@code null} check per record.
+     */
+    private Map<String, Map<String, List<Integer>>> computeSeriesByGroup(
+            List<LifecycleRecord> records, List<String> stages, List<LocalDate> chartDates,
+            Optional<LocalDate> lastDataDate) {
+        List<String> groups = records.stream()
+                .map(LifecycleRecord::group)
+                .filter(Objects::nonNull)
+                .distinct()
+                .sorted()
+                .toList();
+        if (groups.isEmpty()) {
+            return Map.of();
+        }
+
+        Map<String, Map<String, List<Integer>>> seriesByGroup = new LinkedHashMap<>();
+        for (String group : groups) {
+            List<LifecycleRecord> groupRecords = records.stream()
+                    .filter(record -> group.equals(record.group()))
+                    .toList();
+            Map<String, List<Integer>> series = new LinkedHashMap<>();
+            for (String stage : stages) {
+                List<Integer> counts = new ArrayList<>();
+                for (LocalDate date : chartDates) {
+                    counts.add(hasDataOn(date, lastDataDate) ? cumulativeCountAt(groupRecords, stage, date) : 0);
+                }
+                series.put(stage, counts);
+            }
+            seriesByGroup.put(group, series);
+        }
+        return seriesByGroup;
     }
 
     /**

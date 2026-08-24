@@ -15,6 +15,8 @@ import com.arc_e_tect.gradle.trackerlens.projection.ProgressProjector;
 import com.arc_e_tect.gradle.trackerlens.tracker.HistoryFileResolver;
 import com.arc_e_tect.gradle.trackerlens.tracker.LifecycleRecord;
 import com.arc_e_tect.gradle.trackerlens.tracker.LifecycleRecordMerger;
+import com.arc_e_tect.gradle.trackerlens.tracker.ResponseCoverageCell;
+import com.arc_e_tect.gradle.trackerlens.tracker.ResponseCoverageMatrixReader;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.GradleException;
 import org.gradle.api.file.ConfigurableFileCollection;
@@ -58,6 +60,7 @@ public abstract class GenerateTrackerLensTask extends DefaultTask {
     private final LensContractValidator contractValidator = new LensContractValidator();
     private final HistoryFileResolver historyFileResolver = new HistoryFileResolver();
     private final LifecycleRecordMerger recordMerger = new LifecycleRecordMerger();
+    private final ResponseCoverageMatrixReader responseCoverageMatrixReader = new ResponseCoverageMatrixReader();
 
     /** Creates a new task instance. Instantiated by Gradle infrastructure. */
     @Inject
@@ -199,10 +202,33 @@ public abstract class GenerateTrackerLensTask extends DefaultTask {
             int totalCount = (int) merged.stream().filter(record -> record.removedAt() == null).count();
             java.util.Optional<Projection> projection =
                     progressProjector.project(merged, spec.kind().finalStage(), totalCount, now);
-            views.add(trackerViewFactory.build(spec.id(), spec.kind().stages(), merged, projection, now,
-                    spec.kind().stagesFormADependencyChain()));
+            TrackerView view = trackerViewFactory.build(spec.id(), spec.kind().stages(), merged, projection, now,
+                    spec.kind().stagesFormADependencyChain());
+            if (spec.kind() == TrackerSourceKind.RESPONSE_COVERAGE) {
+                view = view.withMatrix(readResponseCoverageMatrix(spec));
+            }
+            views.add(view);
         }
         return views;
+    }
+
+    /**
+     * Re-reads every one of {@code spec}'s history files into {@link ResponseCoverageCell}s -
+     * the raw current-state snapshot a coverage-depth grid needs, which the milestone-shaped
+     * {@link LifecycleRecord}s {@link #readAll(TrackerSpec)} already produced cannot carry (no
+     * {@code testCount} field). A missing configured entry is silently skipped here exactly like
+     * {@link #readAll(TrackerSpec)} already does, for the same reason - the producing plugin may
+     * simply not have run yet.
+     */
+    private List<ResponseCoverageCell> readResponseCoverageMatrix(TrackerSpec spec) {
+        List<ResponseCoverageCell> cells = new ArrayList<>();
+        for (File file : historyFileResolver.resolve(spec.historyFiles())) {
+            if (!file.isFile()) {
+                continue;
+            }
+            cells.addAll(responseCoverageMatrixReader.read(file));
+        }
+        return cells;
     }
 
     private List<LifecycleRecord> readAll(TrackerSpec spec) {
