@@ -16,6 +16,10 @@ trackerLens {
             historyFiles.from(file('api-contract-history.ndjson'))
             source = com.arc_e_tect.gradle.trackerlens.TrackerSourceKind.API_CONTRACT
         }
+        register('response-coverage') {
+            historyFiles.from(file('response-coverage-history.ndjson'))
+            source = com.arc_e_tect.gradle.trackerlens.TrackerSourceKind.RESPONSE_COVERAGE
+        }
     }
 }
 

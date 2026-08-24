@@ -193,14 +193,17 @@ dependencies {
 == Registering Trackers
 
 A *tracker* pairs one or more NDJSON history files with the built-in reader that knows their shape.
-Two `TrackerSourceKind` values are built in.
+Three `TrackerSourceKind` values are built in.
 
 [cols="1,2,2",options="header"]
 |===
 | Kind | Producing plugin | Stages
 | `GHERKIN_SCENARIO` | `gherkin-to-asciidoc` (`trackProgress` history file) | `listed`, `defined`, `implemented`
 | `API_CONTRACT` | The Shadow/Mirage/Doppelganger API detectors' contract history file(s) | `declared`, `implemented`, `stubbed`, `verified`
+| `RESPONSE_COVERAGE` | Doppelganger API Detector's `responseCoverageHistoryFile` (only written when `includeResponseCoverage` is enabled) | `declared`, `covered`
 |===
+
+`RESPONSE_COVERAGE` is a true dependency chain (`stagesFormADependencyChain = true`) - a response code can never be `covered` without first being `declared` - unlike `API_CONTRACT`'s four independent conditions. Each record's `group` is the response code's class (`2xx`, `4xx`, `5xx`, ...), derived from its first character; see "The `seriesByGroup` And `matrix` Fields" below for what a template can build from that.
 
 === Splitting a tracker's history across files
 
@@ -508,7 +511,17 @@ neither `trackers.metrics` nor `trackers.projection` covers - see
 | `series` | `{stage: [count, ...]}` - cumulative "reached at least this stage" count per date, aligned index-for-index with `dates`. Two stages can both include the same item, so these do not sum to the tracker's total. A date after the tracker's last real data point (pure `dates` padding - see above) always reads `0` for every stage, never a flat repeat of the last real count: there is nothing in the history to compute a value from, and no forecasting feature (yet) to project one.
 | `stageBreakdown` | `{stage: count}` - the number of currently-active items whose *furthest* reached stage is each one, in `stages` order. Unlike `series`, these are mutually exclusive and always sum to the tracker's total - this is the field to read for a pie chart of "what stage is each item at right now", since naively subtracting consecutive `series` values back into exclusive buckets silently misattributes any item whose source skipped a stage (see `GherkinScenarioTrackerSource`'s "jumps straight from listed to implemented" case) - `stageBreakdown` is computed once, server-side, from each item's full history, and is never wrong the way that subtraction can be. Always reflects "now", regardless of any `dates` padding.
 | `breakdownByDate` | `[{stage: count}, ...]` - `stageBreakdown`, recomputed as of each date in `dates` instead of "now", aligned index-for-index with it. Each entry has the same mutually-exclusive, sums-to-that-date's-total shape as `stageBreakdown`; reading it is what makes a stacked bar chart or a hover-scrubbable pie possible without re-deriving history from `series` yourself, which has the same skipped-stage pitfall `stageBreakdown` avoids - see `examples/tracker-lens/dashboard-extra-charts` and the `sedr-tracker-lens-pack` external lens for worked examples of both. Same zero-fill rule as `series` applies past the tracker's last real data point - every stage reads `0` there, not a repeat of that last known breakdown.
+| `seriesByGroup` | `{group: {stage: [count, ...]}}` - `series`, partitioned by each record's `group` (e.g. `API_CONTRACT`'s `declaringClass`, `RESPONSE_COVERAGE`'s response-code class). Empty (`{}`) when no record in the tracker carries a non-null group. Same per-date shape and zero-fill rule as `series` itself, just one nested level deeper; see "The `seriesByGroup` And `matrix` Fields" below.
+| `matrix` | `[{verb, path, responseCode, testCount, covered}, ...]` - a flat, current-state snapshot, non-empty only for `RESPONSE_COVERAGE` trackers. Not derived from any timestamp field above it; see below.
 |===
+
+=== The `seriesByGroup` And `matrix` Fields
+
+Both exist to support `RESPONSE_COVERAGE` trackers specifically, though `seriesByGroup` is computed for every tracker kind whose records carry a `group` (today, that includes `API_CONTRACT`'s `declaringClass` too, at no extra cost - a template could chart per-controller coverage trends from it without this plugin needing another field).
+
+`seriesByGroup` is exactly `series`, computed once per distinct group instead of once overall - useful for a per-category stacked or grouped bar chart, e.g. coverage-by-response-code-class over time. `matrix` is fundamentally different: it is not a timestamp-derived view at all, but a raw re-read of the same NDJSON into `(verb, path, responseCode, testCount, covered)` rows, current state only. This exists because `testCount` is a *live gauge* Doppelganger API Detector's `responseCoverageHistoryFile` overwrites on every run - unlike every other field this plugin models, there is no preserved history of it to plot a trend from, so `matrix` can only ever reflect the most recent scan, and only currently-declared rows (a record with a non-null `removedAt` is excluded).
+
+See `examples/tracker-lens/dashboard-extra-charts` for a worked example building a 0-100% stacked coverage-by-class bar chart from `seriesByGroup` and a filterable coverage-depth grid from `matrix`.
 
 Every other value is HTML-escaped automatically by `{{variable}}`, including inside attributes (`data-tracker="{{id}}"` is safe even if an id ever contained a quote).
 
