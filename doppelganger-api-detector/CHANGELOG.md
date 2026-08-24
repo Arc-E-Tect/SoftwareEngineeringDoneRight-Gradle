@@ -1,3 +1,23 @@
+# [2.3.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/doppelganger-api-detector-v2.2.1...doppelganger-api-detector-v2.3.0) (2026-08-24)
+
+
+### ✨ New and updated features
+
+* **doppelganger-api-detector:** add scanContracts task and response coverage tracking ([#221](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/221)) ([773cf7b](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/773cf7b3d6039d0d7277cefcdec83fb3e1067026)), closes [#221](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/221) [Arc-E-Tect/SoftwareEngineeringDoneRight-Library#75](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Library/issues/75)
+
+
+### 🐛 Bug Fixes
+
+* **tracker-lens:** exclude removed items from chart-series cumulative counts ([#219](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/219)) ([ee35459](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/ee35459ca0f8085a610eb1ac8a18ef3ebd9f8b3a)), closes [#219](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/219)
+* **tracker-lens:** exclude removed items from progress-projection counts ([#220](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/220)) ([010f581](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/010f58112a4c04afbfaa55ebd29fd07ffacf936c)), closes [#220](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/220)
+* **examples:** migrate doppelganger-api-detector RestDocs examples to Spring Boot 4's split test modules ([#218](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/218)) ([2b3cd7b](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/2b3cd7b780cf4d09f073ee843b62760de761977a)), closes [#218](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/218) [#122](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/122)
+* **ci:** stop treating a sibling-triggered no-op release as a failure ([#216](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/216)) ([ac53a54](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/ac53a54fd5ccf7cb843e8a573c0c93a45adf08c3)), closes [#216](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/216)
+
+
+### 🔧 Misc
+
+* dependency updates for Gradle plugin repository ([#217](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/217)) ([de0d5e8](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/de0d5e8f8983eb9b73449af89032d2fe4b35369c)), closes [#217](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/217)
+
 ## [2.2.1](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/doppelganger-api-detector-v2.2.0...doppelganger-api-detector-v2.2.1) (2026-08-23)
 
 
