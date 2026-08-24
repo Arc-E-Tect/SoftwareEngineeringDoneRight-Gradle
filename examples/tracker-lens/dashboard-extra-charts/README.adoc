@@ -46,19 +46,22 @@ its own markup and its own script to derive additional views the plugin itself n
   as an ordinary `lensStyle` dependency via a Gradle composite build - the switcher lists it under
   its own real name, not a placeholder id - see "The lens-colored Lens" below.
 * In place of `response-coverage`'s plain declared/covered line chart, a *0-100% stacked bar chart*,
-  one bar per date, segmented by response-code class (`2xx`/`4xx`/`5xx`) - built from
-  `#dashboard-data`'s `seriesByGroup` field, which partitions the usual per-stage cumulative series
-  by `LifecycleRecord.group()` (see "Why The Coverage Bar's Segment Height And Its Tooltip Show
-  Two Different Numbers" below).
+  one bar per date, segmented by response-code class (`2xx`/`4xx`/`5xx`) plus an `Uncovered`
+  segment - so the stack reaches 100% only once every declared response code is covered - built
+  from `#dashboard-data`'s `seriesByGroup` field, which partitions the usual per-stage cumulative
+  series by `LifecycleRecord.group()` (see "Why The Coverage Bar's Segment Height And Its Tooltip
+  Show Two Different Numbers" below).
 * Beside it, a *snapshot pie chart*, latest date only, with four absolute-count slices: every
   declared-but-uncovered response code (all classes combined) plus one covered-count slice per
-  class.
+  class - each slice's tooltip a fraction of the whole (e.g. "2xx covered: 5 / 16"), matching the
+  convention this template's other pies already use.
 * Underneath the whole `response-coverage` section, a *coverage-depth grid* - response codes as
   columns, endpoints as rows, three states only (covered/uncovered/not-declared-for-this-endpoint,
-  never a color gradient by test count) - with a live text filter narrowing the rows by path
-  substring. Built from `#dashboard-data`'s `matrix` field, a raw current-state snapshot the plugin
-  computes separately from every timestamp-based field above it (see "The Coverage-Depth Grid"
-  below).
+  never a color *gradient* by test count) - each covered/uncovered cell showing its own test count
+  as plain visible text, not hidden behind a hover, with a live text filter narrowing the rows by
+  path substring. Built from `#dashboard-data`'s `matrix` field, a raw current-state snapshot the
+  plugin computes separately from every timestamp-based field above it (see "The Coverage-Depth
+  Grid" below).
 
 === Why the Gherkin pie reads `stageBreakdown`, not `series`
 
@@ -123,9 +126,11 @@ tracker-lens documentation] for the worked formula.
 === Why The Coverage Bar's Segment Height And Its Tooltip Show Two Different Numbers
 
 A stacked bar only means something as a 0-100% stack if its segments are parts of one common whole.
-For `response-coverage`, that whole is naturally "how many response codes are currently covered" -
-so each date's bar segments are sized by each class's *share of that date's total covered response
-codes* (`2xx covered / total covered`, `4xx covered / total covered`, and so on). That is a
+For `response-coverage`, that whole is "every currently declared response code" - so each date's
+bar segments are sized by each class's *share of that date's total declared response codes*
+(`2xx covered / total declared`, `4xx covered / total declared`, and so on), plus a fourth,
+`Uncovered` segment (`(total declared - total covered) / total declared`) that makes the whole
+thing sum to exactly 100% - and 100% only once every declared code is actually covered. That is a
 genuinely different number from "how well is `4xx` itself covered" (`4xx covered / 4xx declared`),
 which is the one actually worth reading on its own - it just doesn't sum to anything meaningful
 across classes, since each class has its own separate denominator.
@@ -138,15 +143,20 @@ ratio:
 [source,javascript]
 ----
 tracker.dates.forEach(function (date, i) {
+  var totalDeclaredThisDate = groups.reduce(function (sum, group) {
+    return sum + (tracker.seriesByGroup[group].declared[i] || 0);
+  }, 0);
   var totalCoveredThisDate = groups.reduce(function (sum, group) {
     return sum + (tracker.seriesByGroup[group].covered[i] || 0);
   }, 0);
   groups.forEach(function (group) {
     var declared = tracker.seriesByGroup[group].declared[i] || 0;
     var covered = tracker.seriesByGroup[group].covered[i] || 0;
-    shareOfCovered[group].push(totalCoveredThisDate > 0 ? Math.round((100 * covered) / totalCoveredThisDate) : 0);
+    shareOfDeclared[group].push(totalDeclaredThisDate > 0 ? Math.round((100 * covered) / totalDeclaredThisDate) : 0);
     ownCoverageRatio[group].push(declared > 0 ? Math.round((100 * covered) / declared) : 0);
   });
+  uncoveredShare.push(totalDeclaredThisDate > 0
+      ? Math.round((100 * (totalDeclaredThisDate - totalCoveredThisDate)) / totalDeclaredThisDate) : 0);
 });
 ----
 
@@ -172,10 +182,12 @@ become columns (a small, bounded set - every code declared by *any* endpoint in 
 endpoints become rows (the dimension that can genuinely explode on a real API), and each cell is
 one of three states - green (`covered: true`), red (`covered: false`), or simply absent from the
 row (that response code isn't declared for that endpoint, rendered as a dimmed cell rather than
-left blank, so an accidental gap in the data doesn't read the same as "not applicable"). Deliberately
-**not** a fourth, color-graded state by `testCount`: more tests covering a response code isn't "more
-covered" than fewer in any meaningful sense, so `testCount` only ever appears as a tooltip on cells
-that are already covered or uncovered, never as an additional visual dimension:
+left blank, so an accidental gap in the data doesn't read the same as "not applicable"). Each
+covered/uncovered cell shows its own `testCount` as plain, always-visible text - not hidden behind
+a hover - since the number is exactly what a reader scanning the grid wants to see at a glance.
+Deliberately **not** a color *gradient* by that same number, though: more tests covering a response
+code isn't "more covered" than fewer in any meaningful sense, so `testCount` never drives a cell's
+color or size, only its label:
 
 [source,javascript]
 ----
@@ -183,7 +195,7 @@ if (cell) {
   td.className = cell.covered
       ? 'response-coverage-grid__cell--covered'
       : 'response-coverage-grid__cell--uncovered';
-  td.title = cell.testCount + (cell.testCount === 1 ? ' test' : ' tests');
+  td.textContent = cell.testCount;
 } else {
   td.className = 'response-coverage-grid__cell--not-applicable';
 }
@@ -477,14 +489,18 @@ through regardless of which template rendered it. Open `build/reports/tracker-le
   `stagesFormADependencyChain` counts, so these are mutually exclusive (8 declared-only, 8 that have
   reached `covered`), not the two independent conditions `api-contracts`' own cards would show. In
   place of its line chart, a stacked bar rising from left to right as more response codes gain
-  coverage over time; hovering the rightmost (most recent) bar shows a tooltip reading roughly
-  "2xx covered: 83% (of 2xx declared)", "4xx covered: 43% (of 4xx declared)", "5xx covered: 0% (of
-  5xx declared)" - the `5xx` line never leaves 0%, by design (see "The Sample Data" above). Beside
-  it, a pie chart with four slices: 8 Uncovered, 5 `2xx covered`, 3 `4xx covered`, 0 `5xx covered` -
-  summing visibly to 16. Underneath the whole section, the coverage-depth grid: 6 endpoint rows,
+  coverage over time, its rightmost (most recent) bar reading roughly 31% `2xx`, 19% `4xx`, 0% `5xx`,
+  and 50% `Uncovered` - summing to 100%, and only reaching 100% once every declared code is covered.
+  Hovering that bar shows a different number per class - not the segment heights, but each class's
+  *own* coverage ratio: "2xx covered: 83% (of 2xx declared)", "4xx covered: 43% (of 4xx declared)",
+  "5xx covered: 0% (of 5xx declared)" - the `5xx` figure never leaves 0%, by design (see "The Sample
+  Data" above). Beside it, a pie chart with four slices - 8 Uncovered, 5 `2xx covered`, 3
+  `4xx covered`, 0 `5xx covered` - each slice's tooltip reading as a fraction of the whole (e.g.
+  "2xx covered: 5 / 16"). Underneath the whole section, the coverage-depth grid: 6 endpoint rows,
   8 response-code columns (`200`, `201`, `204`, `400`, `401`, `403`, `404`, `500`), green/red cells
-  matching the pie's counts, and dimmed cells everywhere a response code isn't declared for that
-  row (e.g. `POST /api/orders` has no `204` column entry). Typing `invoices` into the filter above
+  each showing their own test count as plain text (not hidden behind a hover), and dimmed cells
+  everywhere a response code isn't declared for that row (e.g. `POST /api/orders` has no `204`
+  column entry). Typing `invoices` into the filter above
   the grid narrows it to just the two `/api/invoices` rows.
 * The lens switcher now offers four options - `dark-lens`, `high-contrast-lens`, `lens-colored`,
   `light-lens`. Selecting `lens-colored` frames `bdd-scenarios`' whole tracker box in green (67%
