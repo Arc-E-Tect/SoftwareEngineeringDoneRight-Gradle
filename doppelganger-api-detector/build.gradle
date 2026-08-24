@@ -98,6 +98,7 @@ jacocoTestReport {
                 'com/arc_e_tect/gradle/doppelganger/DoppelgangerApiDetectorExtension.class',
                 'com/arc_e_tect/gradle/doppelganger/DoppelgangerApiDetectorPlugin.class',
                 'com/arc_e_tect/gradle/doppelganger/DetectDoppelgangerApisTask.class',
+                'com/arc_e_tect/gradle/doppelganger/ScanContractsTask.class',
             ])
         }))
     }
@@ -110,6 +111,7 @@ jacocoTestCoverageVerification {
                 'com/arc_e_tect/gradle/doppelganger/DoppelgangerApiDetectorExtension.class',
                 'com/arc_e_tect/gradle/doppelganger/DoppelgangerApiDetectorPlugin.class',
                 'com/arc_e_tect/gradle/doppelganger/DetectDoppelgangerApisTask.class',
+                'com/arc_e_tect/gradle/doppelganger/ScanContractsTask.class',
             ])
         }))
     }

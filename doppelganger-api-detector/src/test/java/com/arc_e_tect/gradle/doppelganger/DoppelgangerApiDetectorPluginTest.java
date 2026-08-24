@@ -313,6 +313,134 @@ class DoppelgangerApiDetectorPluginTest {
                 + "-PdoppelgangerApiDetector.updateContractHistory; expected 'true' or 'false'");
         }
 
+    @Test
+    @DisplayName("registers the scanContracts task when applied")
+    void registersScanContractsTask() {
+        Project project = projectWithPlugin();
+
+        assertThat(project.getTasks().findByName(DoppelgangerApiDetectorPlugin.SCAN_CONTRACTS_TASK_NAME)).isNotNull();
+    }
+
+    @Test
+    @DisplayName("extension default: includeResponseCoverage is false")
+    void extensionDefaultIncludeResponseCoverageIsFalse() {
+        Project project = projectWithPlugin();
+
+        assertThat(extension(project).getIncludeResponseCoverage().get()).isFalse();
+    }
+
+    @Test
+    @DisplayName("extension default: scanContractsReportFileName is contract-coverage.adoc")
+    void extensionDefaultScanContractsReportFileName() {
+        Project project = projectWithPlugin();
+
+        assertThat(extension(project).getScanContractsReportFileName().get()).isEqualTo("contract-coverage.adoc");
+    }
+
+    @Test
+    @DisplayName("extension default: trackResponseCoverageHistory is false")
+    void extensionDefaultTrackResponseCoverageHistoryIsFalse() {
+        Project project = projectWithPlugin();
+
+        assertThat(extension(project).getTrackResponseCoverageHistory().get()).isFalse();
+    }
+
+    @Test
+    @DisplayName("extension default: responseCoverageHistoryFile is doppelganger-api-detector-response-coverage-history.ndjson in the project directory")
+    void extensionDefaultResponseCoverageHistoryFile() {
+        Project project = projectWithPlugin();
+
+        assertThat(extension(project).getResponseCoverageHistoryFile().get().getAsFile())
+                .isEqualTo(new File(project.getProjectDir(),
+                        "doppelganger-api-detector-response-coverage-history.ndjson"));
+    }
+
+    @Test
+    @DisplayName("extension default: updateResponseCoverageHistory follows trackResponseCoverageHistory")
+    void extensionDefaultUpdateResponseCoverageHistoryFollowsTrackResponseCoverageHistory() {
+        Project project = projectWithPlugin();
+
+        extension(project).getTrackResponseCoverageHistory().set(true);
+
+        assertThat(extension(project).getUpdateResponseCoverageHistory().get()).isTrue();
+    }
+
+    @Test
+    @DisplayName("wires the scanContracts task's properties from the extension")
+    void wiresScanContractsTaskPropertiesFromExtension() {
+        Project project = projectWithPlugin();
+        project.setVersion("2.5.0");
+        extension(project).getIncludeResponseCoverage().set(true);
+        extension(project).getTrackResponseCoverageHistory().set(true);
+
+        ((ProjectInternal) project).evaluate();
+
+        ScanContractsTask task = (ScanContractsTask)
+                project.getTasks().getByName(DoppelgangerApiDetectorPlugin.SCAN_CONTRACTS_TASK_NAME);
+        assertThat(task.getSystemUnderTestVersion().get()).isEqualTo("2.5.0");
+        assertThat(task.getIncludeResponseCoverage().get()).isTrue();
+        assertThat(task.getTrackResponseCoverageHistory().get()).isTrue();
+        assertThat(task.getUpdateResponseCoverageHistory().get()).isTrue();
+        assertThat(task.getResponseCoverageHistoryFile().get().getAsFile())
+                .isEqualTo(new File(project.getProjectDir(),
+                        "doppelganger-api-detector-response-coverage-history.ndjson"));
+        assertThat(task.getReportFileName().get()).isEqualTo("contract-coverage.adoc");
+    }
+
+    @Test
+    @DisplayName("scanContracts also defaults controllerDirs/testDirs after evaluation when unset")
+    void scanContractsTaskDefaultsDirsAfterEvaluation() {
+        Project project = projectWithPlugin();
+
+        ((ProjectInternal) project).evaluate();
+
+        ScanContractsTask task = (ScanContractsTask)
+                project.getTasks().getByName(DoppelgangerApiDetectorPlugin.SCAN_CONTRACTS_TASK_NAME);
+        assertThat(task.getControllerDirs().getFiles())
+                .containsExactly(new File(project.getProjectDir(), "src/main/java"));
+        assertThat(task.getTestDirs().getFiles())
+                .containsExactly(new File(project.getProjectDir(), "src/testContract/java"));
+        assertThat(task.getTestDirsUserConfigured().get()).isFalse();
+    }
+
+    @Test
+    @DisplayName("the -PdoppelgangerApiDetector.updateResponseCoverageHistory property accepts trimmed, case-insensitive booleans")
+    void updateResponseCoverageHistoryPropertyAcceptsTrimmedCaseInsensitiveBooleans() throws Exception {
+        java.nio.file.Files.writeString(
+                tempDir.resolve("gradle.properties"),
+                "doppelgangerApiDetector.updateResponseCoverageHistory=  FaLsE  \n");
+
+        Project project = projectWithPlugin();
+        extension(project).getTrackResponseCoverageHistory().set(true);
+        extension(project).getUpdateResponseCoverageHistory().set(true);
+
+        ((ProjectInternal) project).evaluate();
+
+        ScanContractsTask task = (ScanContractsTask)
+                project.getTasks().getByName(DoppelgangerApiDetectorPlugin.SCAN_CONTRACTS_TASK_NAME);
+        assertThat(task.getUpdateResponseCoverageHistory().get()).isFalse();
+    }
+
+    @Test
+    @DisplayName("an invalid -PdoppelgangerApiDetector.updateResponseCoverageHistory value throws a descriptive GradleException")
+    void invalidUpdateResponseCoverageHistoryPropertyThrowsDescriptiveError() throws Exception {
+        java.nio.file.Files.writeString(
+                tempDir.resolve("gradle.properties"),
+                "doppelgangerApiDetector.updateResponseCoverageHistory=maybe\n");
+
+        Project project = projectWithPlugin();
+
+        ((ProjectInternal) project).evaluate();
+        ScanContractsTask task = (ScanContractsTask)
+                project.getTasks().getByName(DoppelgangerApiDetectorPlugin.SCAN_CONTRACTS_TASK_NAME);
+
+        assertThatThrownBy(() -> task.getUpdateResponseCoverageHistory().get())
+                .isInstanceOf(RuntimeException.class)
+                .hasRootCauseInstanceOf(org.gradle.api.GradleException.class)
+                .hasRootCauseMessage("doppelgangerApiDetector: invalid value 'maybe' for "
+                        + "-PdoppelgangerApiDetector.updateResponseCoverageHistory; expected 'true' or 'false'");
+    }
+
     private Project projectWithPlugin() {
         Project project = ProjectBuilder.builder().withProjectDir(tempDir.toFile()).build();
         project.getPluginManager().apply("java");

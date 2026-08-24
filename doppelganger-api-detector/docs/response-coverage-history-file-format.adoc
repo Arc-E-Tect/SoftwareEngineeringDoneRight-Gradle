@@ -1,0 +1,156 @@
+= Response Coverage History File Format
+:toc: left
+:toc-title: Contents
+:toclevels: 2
+
+This document is a complete, precise reference for the NDJSON file `doppelgangerApiDetector.responseCoverageHistoryFile` reads and writes.
+It is written for two audiences at once: a human maintainer, and an AI coding assistant (GitHub Copilot, JetBrains Junie, Claude, or similar) that needs to parse this file, reason about its semantics correctly, or build tooling around it.
+Every claim below is backed by the actual source referenced in <<source-of-truth>>; if this document and the source ever disagree, the source is authoritative.
+
+== What this file is
+
+`responseCoverageHistoryFile` is a durable, git-committed log of *how thoroughly each declared response code, for each endpoint, is covered by contract tests* - and when that coverage first appeared.
+It exists to answer questions a single build's report cannot: "has this endpoint's `404` response ever actually been exercised by a test?", "how many response codes gained test coverage in the last month?", "did a response code that used to be tested lose its coverage?"
+
+It is only written when `doppelgangerApiDetector.trackResponseCoverageHistory` is set to `true` (which itself requires `includeResponseCoverage = true` - see link:../README.adoc#_contract_response_coverage_scancontracts[the README's "Contract Response Coverage" section]).
+Unlike `contractHistoryFile`, this format is **not** shared with Shadow or Mirage API Detector - response coverage is a Doppelganger-only concern, since only Doppelganger's `scanContracts` task has any notion of contract tests or their asserted status codes.
+
+[#source-of-truth]
+== Source of truth
+
+The format, parsing, and update logic live entirely inside this plugin (not the shared `api-detector-core` library):
+
+[cols="1,3",options="header"]
+|===
+| Class | Responsibility
+| `com.arc_e_tect.gradle.doppelganger.progress.ResponseCoverageRecord` | The record type - one Java `record` per history entry, described field-by-field below.
+| `com.arc_e_tect.gradle.doppelganger.progress.ResponseCoverageHistoryStore` | Reads/writes the NDJSON file. Hand-rolled JSON serialization (no library dependency) via a fixed regex per line - the same approach `api-detector-core`'s `ContractHistoryStore` uses for `contractHistoryFile`.
+| `com.arc_e_tect.gradle.doppelganger.progress.ResponseCoverageHistoryUpdater` | Computes the *next* history map from the previous one plus the current run's `EndpointResponseCoverage` rows. This is where the "milestones stamped once" vs. "test count refreshed every run" distinction actually lives.
+| `com.arc_e_tect.gradle.doppelganger.report.ResponseCoverageTableWriter` | Renders the `== Response Coverage Over Time` section of the generated `contract-coverage.adoc` report *from* this file's loaded content.
+|===
+
+`ScanContractsTask` (`com.arc_e_tect.gradle.doppelganger.ScanContractsTask`) is a thin caller: it loads the file, calls the updater with this run's coverage rows, optionally saves the result, and passes it to the report writer. It never touches the file format directly.
+
+== Quick facts
+
+[cols="1,3",options="header"]
+|===
+| |
+| Format | Newline-delimited JSON (NDJSON) - exactly one JSON object per line, no enclosing array, no trailing comma.
+| Encoding | UTF-8.
+| Line ending | `\n` (written via `PrintWriter.println`, platform default - in practice `\n` on Linux/macOS CI).
+| Ordering | Every write sorts all records by `fingerprint` (lexicographic string sort) before writing, so re-saving an unchanged history byte-for-byte reproduces the same file.
+| Default location | `doppelganger-api-detector-response-coverage-history.ndjson`, directly in the project directory (**not** under `build/`) - deliberately, since the file is meant to be committed to version control.
+| Configurable via | `doppelgangerApiDetector.responseCoverageHistoryFile` (a `RegularFileProperty`).
+| Created when | The first time `scanContracts` runs with `includeResponseCoverage = true`, `trackResponseCoverageHistory = true`, and `updateResponseCoverageHistory` resolving to `true`, and the file does not already exist.
+| Missing file | Treated as an empty history - **not** an error.
+| Malformed line | Skipped with a `WARNING`-level `java.util.logging` message identifying the line number. Never fails the build.
+| Schema version field | The file's first line is always `{"schemaVersion":1}`, purely additive and never required on read - a file written before this existed simply has no such line.
+|===
+
+== When it is written
+
+`doppelgangerApiDetector.responseCoverageHistoryFile` is:
+
+* *Always read* when `trackResponseCoverageHistory` is `true`, on every run, regardless of `updateResponseCoverageHistory`.
+* *Written back* only when `trackResponseCoverageHistory` **and** `updateResponseCoverageHistory` are both `true`. `updateResponseCoverageHistory` defaults to the same value as `trackResponseCoverageHistory`, and is typically driven from CI via the `-PdoppelgangerApiDetector.updateResponseCoverageHistory` project property - independent of the `-PdoppelgangerApiDetector.updateContractHistory` override `contractHistoryFile` uses.
+
+`scanContracts` fails eagerly, before anything is scanned, if `trackResponseCoverageHistory` is `true` while `includeResponseCoverage` is `false` - there would be no per-response-code data to persist.
+
+== Record schema
+
+Every line is one JSON object with exactly these nine keys, always present (using JSON `null` for an absent value - never an omitted key):
+
+[cols="1,1,1,4",options="header"]
+|===
+| Key | JSON type | Nullable | Meaning
+| `fingerprint` | string | No | Stable identifier for this (endpoint, response code) pair. See <<fingerprint>>. Acts as this record's primary key.
+| `verb` | string (enum name) | No | The HTTP verb, e.g. `GET`, `POST`. Since every OpenAPI operation is described under exactly one concrete verb, `ANY` never appears here.
+| `path` | string | No | The endpoint's path template, e.g. `/v1/foobars`.
+| `responseCode` | string | No | The response code this record tracks, exactly as declared in the OpenAPI document - e.g. `"200"`, `"404"`, `"5XX"`, `"default"`.
+| `testCount` | integer | No | The number of contract tests detected to assert this response code, as of the most recent run that observed it. Unlike every timestamp field below, this is a *live gauge*, refreshed on every run - never a "first observed" value.
+| `firstDeclaredAt` | string (ISO-8601 instant) or `null` | Yes | The instant this response code was *first* observed declared in the OpenAPI documentation for this endpoint. Stamped once; never overwritten.
+| `firstCoveredAt` | string (ISO-8601 instant) or `null` | Yes | The instant `testCount` was *first* observed greater than zero for this response code. `null` while a declared response code has never once had a covering test. Stamped once; never overwritten, even if `testCount` later drops back to zero.
+| `lastSeenAt` | string (ISO-8601 instant) or `null` | Yes | The instant of the most recent run that observed this response code as still declared. Refreshed forward on every run it's seen in.
+| `removedAt` | string (ISO-8601 instant) or `null` | Yes | `null` while the response code is still declared. Set to the instant of the first run that no longer found it among the endpoint's declared response codes. Records are **never deleted**. If the same fingerprint reappears in a later run, `removedAt` reverts to `null` and the record resumes advancing normally.
+|===
+
+Instants are serialized via plain `Instant.toString()` - standard ISO-8601 UTC, e.g. `"2026-02-20T11:15:44Z"`.
+
+[#fingerprint]
+=== How `fingerprint` is computed
+
+`fingerprint` is `<endpoint fingerprint>-<responseCode>`, where `<endpoint fingerprint>` is computed exactly as `api-detector-core`'s `EndpointFingerprint.fingerprint(Described)` computes it for `contractHistoryFile` (the first 16 hex characters of `SHA-256("<VERB> <path>")`) - reused as-is, not recomputed independently:
+
+[source,text]
+----
+endpointFingerprint = sha256_hex(verb.name() + " " + path.trim())[0:16]
+fingerprint = endpointFingerprint + "-" + responseCode
+----
+
+A tool that already computes `contractHistoryFile` endpoint fingerprints for the same endpoint can derive this file's fingerprint directly by appending `-<responseCode>` - the two files are deliberately correlatable this way, even though they are never merged into one schema.
+
+=== JSON Schema
+
+[source,json]
+----
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://arc-e-tect.com/schemas/response-coverage-history-record.json",
+  "title": "ResponseCoverageRecord",
+  "description": "One line of a doppelgangerApiDetector responseCoverageHistoryFile.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["fingerprint", "verb", "path", "responseCode", "testCount", "firstDeclaredAt", "firstCoveredAt", "lastSeenAt", "removedAt"],
+  "properties": {
+    "fingerprint": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{16}-.+$",
+      "description": "'<16-hex-char endpoint fingerprint>-<responseCode>'."
+    },
+    "verb": {
+      "type": "string",
+      "enum": ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "TRACE"]
+    },
+    "path": { "type": "string", "minLength": 1 },
+    "responseCode": { "type": "string", "minLength": 1 },
+    "testCount": { "type": "integer", "minimum": 0 },
+    "firstDeclaredAt": { "type": ["string", "null"], "format": "date-time" },
+    "firstCoveredAt":  { "type": ["string", "null"], "format": "date-time" },
+    "lastSeenAt":      { "type": ["string", "null"], "format": "date-time" },
+    "removedAt":       { "type": ["string", "null"], "format": "date-time" }
+  }
+}
+----
+
+== Example file content
+
+A realistic `responseCoverageHistoryFile` for the worked example from the README - `GET /v1/foobars` declaring `200` and `404` - after several months of builds:
+
+[source,json]
+----
+{"schemaVersion":1}
+{"fingerprint":"a1f3c9d0e21b7f44-200","verb":"GET","path":"/v1/foobars","responseCode":"200","testCount":2,"firstDeclaredAt":"2026-01-14T09:02:11Z","firstCoveredAt":"2026-01-20T11:15:44Z","lastSeenAt":"2026-08-12T07:00:00Z","removedAt":null}
+{"fingerprint":"a1f3c9d0e21b7f44-404","verb":"GET","path":"/v1/foobars","responseCode":"404","testCount":1,"firstDeclaredAt":"2026-01-14T09:02:11Z","firstCoveredAt":"2026-02-01T08:30:00Z","lastSeenAt":"2026-08-12T07:00:00Z","removedAt":null}
+{"fingerprint":"a1f3c9d0e21b7f44-500","verb":"GET","path":"/v1/foobars","responseCode":"500","testCount":0,"firstDeclaredAt":"2026-06-01T08:00:00Z","firstCoveredAt":null,"lastSeenAt":"2026-08-12T07:00:00Z","removedAt":null}
+----
+
+Reading these three lines: `200` has been covered by two tests since shortly after it was declared; `404` gained its one covering test about two weeks after being declared; `500` was declared more recently and has never had a covering test at all (`firstCoveredAt` is still `null`, `testCount` is `0`) - exactly the kind of gap `includeResponseCoverage = true` exists to surface.
+
+== Relationship to the generated report
+
+Every `scanContracts` run that has `trackResponseCoverageHistory = true` and at least one record in the (loaded or just-updated) history renders a `== Response Coverage Over Time` section in `contract-coverage.adoc`, computed *entirely* from this file's content by `ResponseCoverageTableWriter`:
+
+[cols="1,3",options="header"]
+|===
+| Report row | Computed as
+| `Tracked since` | The minimum non-null value across `firstDeclaredAt`, `firstCoveredAt`, `lastSeenAt`, and `removedAt`, over every record in the file.
+| `Response codes currently tracked` | Count of records where `removedAt` is `null`.
+| `Response codes currently covered by at least one test` | Count of records where `removedAt` is `null` and `testCount > 0`.
+| `Newly covered in the last 7/30 days` | Count of records whose `firstCoveredAt` falls within `[now - 7 days, now]` / `[now - 30 days, now]`.
+| `Removed (no longer declared)` | Count of records where `removedAt` is non-null, as of this run.
+|===
+
+== Parsing this file yourself
+
+Since there is no JSON library dependency in the writer (`ResponseCoverageHistoryStore` hand-rolls its own line format via a fixed regular expression - see <<source-of-truth>>), a tool that wants strict format compatibility should mirror that same parser rather than assuming a generic JSON-lines parser behaves identically on every edge case. For everyday consumption, each line is valid standalone JSON, and any standard JSON parser applied line-by-line reads every well-formed record correctly; the only free-text fields are `path` and `responseCode` (backslash and double-quote are backslash-escaped, nothing else).

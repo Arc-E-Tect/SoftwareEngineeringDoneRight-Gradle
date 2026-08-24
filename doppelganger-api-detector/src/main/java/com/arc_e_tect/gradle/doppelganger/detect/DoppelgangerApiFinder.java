@@ -1,7 +1,6 @@
 package com.arc_e_tect.gradle.doppelganger.detect;
 
 import com.arc_e_tect.gradle.detector.core.model.Endpoint;
-import com.arc_e_tect.gradle.detector.core.model.HttpVerb;
 import com.arc_e_tect.gradle.detector.core.model.PathMatcher;
 
 import java.util.ArrayList;
@@ -44,24 +43,12 @@ public class DoppelgangerApiFinder {
     public List<Endpoint> findDoppelgangers(List<Endpoint> declaredAndImplemented, List<Endpoint> verified) {
         List<Endpoint> doppelgangers = new ArrayList<>();
         for (Endpoint candidate : declaredAndImplemented) {
-            boolean isVerified = verified.stream().anyMatch(verifiedEntry -> verifies(verifiedEntry, candidate));
+            boolean isVerified = verified.stream()
+                    .anyMatch(verifiedEntry -> ContractEvidenceMatcher.verifies(verifiedEntry, candidate));
             if (!isVerified) {
                 doppelgangers.add(candidate);
             }
         }
         return doppelgangers;
-    }
-
-    /**
-     * Returns whether {@code verifiedEntry} counts as verification evidence for
-     * {@code candidate}: same verb - or either side carries {@link HttpVerb#ANY}, the same
-     * ANY-verb tolerance the rest of the detector family applies - and {@code verifiedEntry}'s
-     * path is a valid instance of {@code candidate}'s path template.
-     */
-    private boolean verifies(Endpoint verifiedEntry, Endpoint candidate) {
-        boolean verbMatches = candidate.verb() == HttpVerb.ANY
-                || verifiedEntry.verb() == HttpVerb.ANY
-                || candidate.verb() == verifiedEntry.verb();
-        return verbMatches && PathMatcher.matchesConcrete(verifiedEntry.path(), candidate.path());
     }
 }

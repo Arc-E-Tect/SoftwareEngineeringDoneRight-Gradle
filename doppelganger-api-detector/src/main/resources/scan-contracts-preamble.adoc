@@ -1,0 +1,38 @@
+== What Does This Report Show?
+
+The Doppelganger API Detector's own report answers a binary question per endpoint: does it have
+*at least one* contract test at all? That collapses two more useful, more granular signals into a
+single yes/no. This report separates them out, for every endpoint both declared in the OpenAPI
+documentation and implemented by a `@RestController` method:
+
+* *Declared response codes* - how many distinct response codes (`200`, `404`, `422`, `500`, ...)
+  the OpenAPI operation actually documents.
+* *Contract test count* - how many distinct contract tests exist for the endpoint, across every
+  enabled verification source (Spring RestDocs, the Atlassian OpenAPI request validator, Spring
+  Cloud Contract).
+
+When `includeResponseCoverage` is enabled, a third, more expensive statistic is added: for every
+declared response code, how many of those contract tests were detected to actually assert it -
+including a response code declared but covered by *zero* tests, so a coverage gap is visible at a
+glance rather than hidden behind an aggregate "N tests" count.
+
+=== A Worked Example
+
+An endpoint `GET /v1/foobars` declares two response codes, `200` and `404`. Two contract tests
+assert a `200` response and one asserts a `404`. With `includeResponseCoverage` enabled, this
+report shows: `200` covered by 2 test(s), `404` covered by 1 test(s) - both declared codes have at
+least one covering test, but the relative depth of coverage between them is visible too.
+
+=== A Known Limitation
+
+A test's asserted status code is matched against a declared response code by *exact string
+equality only*: a test detected to assert `404` counts towards a declared `"404"` response, never
+towards a declared `"4XX"` range wildcard or a `"default"` response - even though either might, in
+the OpenAPI specification's own semantics, legitimately cover that same test. Such a test still
+counts towards the endpoint's overall contract test count; it simply isn't attributed to any single
+response code row.
+
+Status code detection itself is best-effort: a test that asserts its response status through a
+variable, a helper method, or a custom matcher this scanner does not recognise still counts towards
+the endpoint's overall contract test count, it just contributes no evidence to any specific response
+code's count.

@@ -4,6 +4,7 @@ import com.arc_e_tect.gradle.detector.core.model.Endpoint;
 import com.arc_e_tect.gradle.detector.core.model.HttpVerb;
 import com.arc_e_tect.gradle.detector.core.model.PathTemplates;
 import com.arc_e_tect.gradle.doppelganger.detect.ContractVerificationSource;
+import com.arc_e_tect.gradle.doppelganger.detect.VerifiedContractTest;
 
 import java.io.File;
 import java.io.IOException;
@@ -28,10 +29,14 @@ public class SpringCloudContractScanner implements ContractVerificationSource {
             Pattern.compile("method\\s*\\(?\\s*['\"]([A-Za-z]+)['\"]");
     private static final Pattern GROOVY_URL =
             Pattern.compile("url(?:Path)?\\s*\\(?\\s*['\"]([^'\"]+)['\"]");
+    private static final Pattern GROOVY_STATUS =
+            Pattern.compile("status\\s*\\(?\\s*(\\d{3})");
     private static final Pattern YAML_METHOD =
             Pattern.compile("(?i)^\\s*method\\s*:\\s*['\"]?([A-Za-z]+)['\"]?\\s*$");
     private static final Pattern YAML_URL =
             Pattern.compile("(?i)^\\s*url(?:Path)?\\s*:\\s*['\"]?([^'\"]+?)['\"]?\\s*$");
+    private static final Pattern YAML_STATUS =
+            Pattern.compile("(?i)^\\s*status\\s*:\\s*(\\d{3})\\s*$");
 
     /** Creates a new {@code SpringCloudContractScanner}. */
     public SpringCloudContractScanner() {}
@@ -40,24 +45,36 @@ public class SpringCloudContractScanner implements ContractVerificationSource {
     @Override
     public List<Endpoint> scan(File rootDir) throws IOException {
         List<Endpoint> endpoints = new ArrayList<>();
-        for (File contractFile : collectContractFiles(rootDir)) {
-            Endpoint endpoint = scanFile(contractFile, rootDir);
-            if (endpoint != null) {
-                endpoints.add(endpoint);
-            }
+        for (VerifiedContractTest test : scanWithStatusCodes(rootDir)) {
+            endpoints.add(test.endpoint());
         }
         return endpoints;
     }
 
-    private Endpoint scanFile(File file, File rootDir) throws IOException {
+    /** {@inheritDoc} */
+    @Override
+    public List<VerifiedContractTest> scanWithStatusCodes(File rootDir) throws IOException {
+        List<VerifiedContractTest> tests = new ArrayList<>();
+        for (File contractFile : collectContractFiles(rootDir)) {
+            VerifiedContractTest test = scanFile(contractFile, rootDir);
+            if (test != null) {
+                tests.add(test);
+            }
+        }
+        return tests;
+    }
+
+    private VerifiedContractTest scanFile(File file, File rootDir) throws IOException {
         boolean yaml = file.getName().endsWith(".yml");
         Pattern methodPattern = yaml ? YAML_METHOD : GROOVY_METHOD;
         Pattern urlPattern = yaml ? YAML_URL : GROOVY_URL;
+        Pattern statusPattern = yaml ? YAML_STATUS : GROOVY_STATUS;
 
         List<String> lines = Files.readAllLines(file.toPath(), StandardCharsets.UTF_8);
 
         HttpVerb verb = null;
         String path = null;
+        String status = null;
         int verbLine = 0;
 
         for (int i = 0; i < lines.size(); i++) {
@@ -75,6 +92,12 @@ public class SpringCloudContractScanner implements ContractVerificationSource {
                     path = PathTemplates.normalize(matcher.group(1));
                 }
             }
+            if (status == null) {
+                Matcher matcher = statusPattern.matcher(line);
+                if (matcher.find()) {
+                    status = matcher.group(1);
+                }
+            }
         }
 
         if (verb == null || path == null) {
@@ -83,7 +106,8 @@ public class SpringCloudContractScanner implements ContractVerificationSource {
 
         String declaringClass = relativeParentPath(rootDir, file);
         String methodSignature = stripExtension(file.getName());
-        return new Endpoint(verb, path, declaringClass, methodSignature, file.getName(), verbLine);
+        Endpoint endpoint = new Endpoint(verb, path, declaringClass, methodSignature, file.getName(), verbLine);
+        return new VerifiedContractTest(endpoint, status);
     }
 
     private HttpVerb parseVerb(String raw) {

@@ -2,6 +2,7 @@ package com.arc_e_tect.gradle.doppelganger.scan;
 
 import com.arc_e_tect.gradle.detector.core.model.Endpoint;
 import com.arc_e_tect.gradle.detector.core.model.HttpVerb;
+import com.arc_e_tect.gradle.doppelganger.detect.VerifiedContractTest;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -78,6 +79,28 @@ class OpenApiRequestValidatorScannerTest {
         File missing = new File(tempDir.toFile(), "does-not-exist");
 
         assertThat(scanner.scan(missing)).isEmpty();
+    }
+
+    @Test
+    @DisplayName("scanWithStatusCodes() detects the REST Assured .then().statusCode(...) assertion")
+    void scanWithStatusCodesDetectsStatusCode() throws Exception {
+        List<VerifiedContractTest> tests = scanner.scanWithStatusCodes(fixtureDir());
+
+        assertThat(tests)
+                .filteredOn(t -> t.endpoint().methodSignature().startsWith("getOrderWithFilter"))
+                .extracting(VerifiedContractTest::statusCode)
+                .containsExactly("200");
+    }
+
+    @Test
+    @DisplayName("scanWithStatusCodes() reports null when a validated request asserts no status")
+    void scanWithStatusCodesReportsNullWhenNoStatusAsserted() throws Exception {
+        List<VerifiedContractTest> tests = scanner.scanWithStatusCodes(fixtureDir());
+
+        assertThat(tests)
+                .filteredOn(t -> t.endpoint().methodSignature().startsWith("createOrderWithDirectValidation"))
+                .extracting(VerifiedContractTest::statusCode)
+                .containsExactly((String) null);
     }
 
     private static File fixtureDir() {
