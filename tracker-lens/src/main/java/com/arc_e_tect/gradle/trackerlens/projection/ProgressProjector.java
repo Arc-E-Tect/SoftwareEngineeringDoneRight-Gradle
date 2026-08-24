@@ -45,7 +45,8 @@ public class ProgressProjector {
      *
      * @param records    the tracker's current records
      * @param finalStage the stage that marks an item as complete
-     * @param totalCount total number of items the tracker is tracking
+     * @param totalCount total number of items the tracker is tracking - the caller's own active-only
+     *                   count, e.g. {@code TrackerViewFactory}'s {@code totalCount}
      * @param now        the instant to project from
      * @return the projection, or {@link java.util.Optional#empty()} when fewer than 7 days of
      *         lookback history is available, or when the resulting velocity is zero or negative
@@ -56,7 +57,15 @@ public class ProgressProjector {
         Objects.requireNonNull(finalStage, "finalStage");
         Objects.requireNonNull(now, "now");
 
+        // isActiveAsOf(now), not the raw record, so a record that reached finalStage and was later
+        // removed stops counting toward currentCount/velocityPerDay from its removal on - otherwise
+        // currentCount, built from every record that ever reached finalStage regardless of current
+        // removal, can exceed the caller's own active-only totalCount once enough formerly-tracked
+        // items are removed, understating "remaining" (line below) and rendering a currentCount past
+        // totalCount verbatim in the default template's own "{{currentCount}} of {{totalCount}}
+        // complete" line - the exact bug already fixed for chartSeries in TrackerViewFactory.
         List<Instant> reachedTimestamps = records.stream()
+                .filter(record -> record.isActiveAsOf(now))
                 .map(record -> record.stageReachedAt().get(finalStage))
                 .filter(Objects::nonNull)
                 .toList();

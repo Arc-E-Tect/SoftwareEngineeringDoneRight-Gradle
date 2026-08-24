@@ -108,6 +108,27 @@ class ProgressProjectorTest {
     }
 
     @Test
+    @DisplayName("projectShouldExcludeARecordFromCurrentCountAndVelocityOnceItIsRemoved")
+    void projectShouldExcludeARecordFromCurrentCountAndVelocityOnceItIsRemoved() {
+        // Same two active records as projectShouldComputeProjectedDateFromVelocityAndRemainingCount
+        // (velocity 0.2/day, 8 remaining of 10 total -> 56 calendar days out), plus a third record
+        // that also reached "implemented" within the lookback window but was later removed - it
+        // must not count toward currentCount or velocity, or the projection understates what's
+        // remaining and lands on an earlier, wrong date (the same class of bug already fixed for
+        // chartSeries in TrackerViewFactory).
+        List<LifecycleRecord> records = new ArrayList<>(recordsReachingStageAt(
+                "implemented", NOW.minus(Duration.ofDays(10)), NOW.minus(Duration.ofDays(1))));
+        records.add(new LifecycleRecord("removed", "label", null,
+                Map.of("implemented", NOW.minus(Duration.ofDays(5))), NOW, NOW.minus(Duration.ofDays(2))));
+
+        Optional<Projection> projection = projector.project(records, "implemented", 10, NOW);
+
+        assertThat(projection).isPresent().get()
+                .extracting(Projection::currentCount, Projection::projectedDate)
+                .containsExactly(2, NOW.plus(Duration.ofDays(56)));
+    }
+
+    @Test
     @DisplayName("projectShouldSkipWeekendsWhenConvertingBusinessDaysToACalendarProjectedDate")
     void projectShouldSkipWeekendsWhenConvertingBusinessDaysToACalendarProjectedDate() {
         // A Monday. 7 reached, all exactly at the 7-day lookback boundary -> velocity 7/7 = 1/day;
