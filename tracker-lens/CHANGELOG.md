@@ -1,3 +1,10 @@
+## [2.1.2](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/tracker-lens-v2.1.1...tracker-lens-v2.1.2) (2026-08-24)
+
+
+### 🐛 Bug Fixes
+
+* **tracker-lens:** exclude removed items from progress-projection counts ([#220](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/220)) ([010f581](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/010f58112a4c04afbfaa55ebd29fd07ffacf936c)), closes [#220](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/220)
+
 ## [2.1.1](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/tracker-lens-v2.1.0...tracker-lens-v2.1.1) (2026-08-24)
 
 
