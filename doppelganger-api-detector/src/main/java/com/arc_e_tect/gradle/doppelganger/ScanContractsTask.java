@@ -61,47 +61,87 @@ import java.util.Map;
 @DisableCachingByDefault(because = "Report depends on source, test, contract, and OpenAPI document content and is cheap to regenerate")
 public abstract class ScanContractsTask extends DefaultTask {
 
-    /** Directories to search recursively for {@code @RestController} classes. */
+    /**
+     * Directories to search recursively for {@code @RestController} classes.
+     *
+     * @return mutable file collection of controller source directories
+     */
     @InputFiles
     @PathSensitive(PathSensitivity.RELATIVE)
     public abstract ConfigurableFileCollection getControllerDirs();
 
-    /** Directories to search recursively for test classes. */
+    /**
+     * Directories to search recursively for test classes.
+     *
+     * @return mutable file collection of test source directories
+     */
     @InputFiles
     @PathSensitive(PathSensitivity.RELATIVE)
     public abstract ConfigurableFileCollection getTestDirs();
 
-    /** See {@link DetectDoppelgangerApisTask#getTestDirsUserConfigured()}. */
+    /**
+     * See {@link DetectDoppelgangerApisTask#getTestDirsUserConfigured()}.
+     *
+     * @return mutable boolean property, {@code true} when {@link #getTestDirs()} reflects the
+     *         user's own configuration rather than only the plugin's default
+     */
     @Input
     public abstract Property<Boolean> getTestDirsUserConfigured();
 
-    /** The root OpenAPI document describing the API. */
+    /**
+     * The root OpenAPI document describing the API.
+     *
+     * @return mutable file property for the root OpenAPI document
+     */
     @Optional
     @InputFiles
     @PathSensitive(PathSensitivity.RELATIVE)
     public abstract RegularFileProperty getRootDocument();
 
-    /** Directory where OpenAPI descriptions are stored. */
+    /**
+     * Directory where OpenAPI descriptions are stored.
+     *
+     * @return mutable directory property for the OpenAPI description directory
+     */
     @Optional
     @InputFiles
     @PathSensitive(PathSensitivity.RELATIVE)
     public abstract DirectoryProperty getOpenApiDir();
 
-    /** Directory searched for Spring Cloud Contract DSL files when {@link #getUseSpringCloudContract()} is {@code true}. */
+    /**
+     * Directory searched for Spring Cloud Contract DSL files when
+     * {@link #getUseSpringCloudContract()} is {@code true}.
+     *
+     * @return mutable directory property for the Spring Cloud Contract directory
+     */
     @Optional
     @InputFiles
     @PathSensitive(PathSensitivity.RELATIVE)
     public abstract DirectoryProperty getContractsDir();
 
-    /** Whether to treat Spring RestDocs test methods as verification evidence. */
+    /**
+     * Whether to treat Spring RestDocs test methods as verification evidence.
+     *
+     * @return mutable boolean property controlling whether the Spring RestDocs source is enabled
+     */
     @Input
     public abstract Property<Boolean> getUseRestDocs();
 
-    /** Whether to treat Atlassian OpenAPI request validator usage as verification evidence. */
+    /**
+     * Whether to treat Atlassian OpenAPI request validator usage as verification evidence.
+     *
+     * @return mutable boolean property controlling whether the OpenAPI request validator source
+     *         is enabled
+     */
     @Input
     public abstract Property<Boolean> getUseOpenApiRequestValidator();
 
-    /** Whether to treat Spring Cloud Contract DSL files as verification evidence. */
+    /**
+     * Whether to treat Spring Cloud Contract DSL files as verification evidence.
+     *
+     * @return mutable boolean property controlling whether the Spring Cloud Contract source is
+     *         enabled
+     */
     @Input
     public abstract Property<Boolean> getUseSpringCloudContract();
 
@@ -115,15 +155,27 @@ public abstract class ScanContractsTask extends DefaultTask {
     @Input
     public abstract Property<Boolean> getIncludeResponseCoverage();
 
-    /** Directory the AsciiDoc report is written to. */
+    /**
+     * Directory the AsciiDoc report is written to.
+     *
+     * @return mutable directory property for the report output directory
+     */
     @OutputDirectory
     public abstract DirectoryProperty getReportDir();
 
-    /** Name of the generated AsciiDoc report file (without path). */
+    /**
+     * Name of the generated AsciiDoc report file (without path).
+     *
+     * @return mutable string property for the report file name
+     */
     @Input
     public abstract Property<String> getReportFileName();
 
-    /** Version of the system under test whose {@code @RestController} classes were scanned. */
+    /**
+     * Version of the system under test whose {@code @RestController} classes were scanned.
+     *
+     * @return mutable string property for the system-under-test version
+     */
     @Input
     public abstract Property<String> getSystemUnderTestVersion();
 
@@ -131,6 +183,8 @@ public abstract class ScanContractsTask extends DefaultTask {
      * Whether to persist, across builds, a history of response code coverage. Only meaningful
      * together with {@link #getIncludeResponseCoverage()} - see {@link #generate()}'s eager
      * validation of that combination.
+     *
+     * @return mutable boolean property controlling whether response coverage history is tracked
      */
     @Input
     public abstract Property<Boolean> getTrackResponseCoverageHistory();
@@ -140,6 +194,8 @@ public abstract class ScanContractsTask extends DefaultTask {
      * {@link #getUpdateResponseCoverageHistory()} is {@code true}, written back to. See
      * {@link DetectDoppelgangerApisTask#getContractHistoryFile()} for why this is {@code @Internal}
      * rather than tracked through Gradle's file-content-based up-to-date checking.
+     *
+     * @return mutable file property for the response coverage history file
      */
     @Internal
     public abstract RegularFileProperty getResponseCoverageHistoryFile();
@@ -160,20 +216,36 @@ public abstract class ScanContractsTask extends DefaultTask {
      * Whether {@link #getResponseCoverageHistoryFile()} is written back to disk after being updated
      * with the current run's coverage. Only consulted when {@link #getTrackResponseCoverageHistory()}
      * is {@code true}; the history file is always read regardless.
+     *
+     * @return mutable boolean property controlling whether the response coverage history file is
+     *         written back
      */
     @Input
     public abstract Property<Boolean> getUpdateResponseCoverageHistory();
 
-    /** Exclusion rule strings - see {@link DoppelgangerApiDetectorExtension#getExcludePaths()}. */
+    /**
+     * Exclusion rule strings - see {@link DoppelgangerApiDetectorExtension#getExcludePaths()}.
+     *
+     * @return mutable list property of exclusion rule strings
+     */
     @Input
     public abstract ListProperty<String> getExcludePaths();
 
-    /** External exclusion rule files - see {@link DoppelgangerApiDetectorExtension#getExcludeFiles()}. */
+    /**
+     * External exclusion rule files - see {@link DoppelgangerApiDetectorExtension#getExcludeFiles()}.
+     *
+     * @return mutable file collection of exclusion rule files
+     */
     @InputFiles
     @PathSensitive(PathSensitivity.RELATIVE)
     public abstract ConfigurableFileCollection getExcludeFiles();
 
-    /** Bundled well-known exclusion set names - see {@link DoppelgangerApiDetectorExtension#getExcludeWellKnown()}. */
+    /**
+     * Bundled well-known exclusion set names - see
+     * {@link DoppelgangerApiDetectorExtension#getExcludeWellKnown()}.
+     *
+     * @return mutable list property of well-known exclusion set names
+     */
     @Input
     public abstract ListProperty<String> getExcludeWellKnown();
 

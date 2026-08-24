@@ -9,7 +9,8 @@ import java.util.Optional;
 
 /**
  * Best-effort detection of the HTTP status code a test method asserts, from the same
- * {@code List<MethodCallExpr>} a {@link ContractVerificationSource} AST scanner already collects
+ * {@code List<MethodCallExpr>} a {@link com.arc_e_tect.gradle.doppelganger.detect.ContractVerificationSource}
+ * AST scanner already collects
  * for that method - not exhaustive, since a test can assert a response's status in ways this
  * cannot recognise (a variable, a helper method, a custom matcher); such tests still count towards
  * an endpoint's overall contract test count, they simply contribute no evidence to any specific
