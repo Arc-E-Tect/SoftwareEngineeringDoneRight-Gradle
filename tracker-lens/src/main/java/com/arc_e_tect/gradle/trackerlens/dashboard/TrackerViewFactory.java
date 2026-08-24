@@ -206,9 +206,25 @@ public class TrackerViewFactory {
         return dates;
     }
 
+    /**
+     * The number of records that had reached {@code stage} by {@code date} and were still active
+     * as of that same date - i.e. not yet {@link LifecycleRecord#removedAt() removed} - using the
+     * same {@link #endOfDate(LocalDate)} bound {@link #computeStageBreakdown} uses for {@code asOf},
+     * so this series and {@code totalCount} (itself derived from {@code active}, see {@link #build})
+     * never disagree about which records currently count. A record removed before it reached
+     * {@code stage} correctly never counted anyway, since its {@code stageReachedAt} entry for a
+     * stage reached after removal would date from after {@code removedAt} - it is the opposite case,
+     * a record removed <em>after</em> reaching {@code stage}, that {@link LifecycleRecord#isActiveAsOf}
+     * is needed to exclude here: without it, a removed record that once reached {@code stage} would
+     * be counted forever, letting a later stage's cumulative count exceed {@code totalCount} once
+     * enough formerly-tracked items are removed - the count going negative downstream in any
+     * template computing an "un-X" gap as {@code totalCount - count}.
+     */
     private int cumulativeCountAt(List<LifecycleRecord> records, String stage, LocalDate date) {
         Instant endOfDay = date.plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant();
+        Instant asOf = endOfDate(date);
         return (int) records.stream()
+                .filter(record -> record.isActiveAsOf(asOf))
                 .map(record -> record.stageReachedAt().get(stage))
                 .filter(Objects::nonNull)
                 .filter(reachedAt -> reachedAt.isBefore(endOfDay))
