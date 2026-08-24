@@ -2,6 +2,7 @@ package com.arc_e_tect.gradle.doppelganger.scan;
 
 import com.arc_e_tect.gradle.detector.core.model.Endpoint;
 import com.arc_e_tect.gradle.detector.core.model.HttpVerb;
+import com.arc_e_tect.gradle.doppelganger.detect.VerifiedContractTest;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -217,6 +218,61 @@ class RestDocsScannerTest {
         List<Endpoint> endpoints = scanner.scan(fixtureDir());
 
         assertThat(endpoints).noneMatch(e -> e.methodSignature().startsWith("deleteItemDynamicPathWebTestClient"));
+    }
+
+    @Test
+    @DisplayName("scanWithStatusCodes() detects the MockMvc status().isOk() assertion")
+    void scanWithStatusCodesDetectsMockMvcIsOk() throws Exception {
+        List<VerifiedContractTest> tests = scanner.scanWithStatusCodes(fixtureDir());
+
+        assertThat(tests)
+                .filteredOn(t -> t.endpoint().methodSignature().startsWith("getOrder"))
+                .extracting(VerifiedContractTest::statusCode)
+                .containsExactly("200");
+    }
+
+    @Test
+    @DisplayName("scanWithStatusCodes() detects the MockMvc status().isCreated() assertion")
+    void scanWithStatusCodesDetectsMockMvcIsCreated() throws Exception {
+        List<VerifiedContractTest> tests = scanner.scanWithStatusCodes(fixtureDir());
+
+        assertThat(tests)
+                .filteredOn(t -> t.endpoint().methodSignature().startsWith("createOrder"))
+                .extracting(VerifiedContractTest::statusCode)
+                .containsExactly("201");
+    }
+
+    @Test
+    @DisplayName("scanWithStatusCodes() detects the WebTestClient expectStatus().isOk() assertion")
+    void scanWithStatusCodesDetectsWebTestClientIsOk() throws Exception {
+        List<VerifiedContractTest> tests = scanner.scanWithStatusCodes(fixtureDir());
+
+        assertThat(tests)
+                .filteredOn(t -> t.endpoint().methodSignature().startsWith("getItemWebTestClient"))
+                .extracting(VerifiedContractTest::statusCode)
+                .containsExactly("200");
+    }
+
+    @Test
+    @DisplayName("scanWithStatusCodes() reports null when a documented REST Assured test asserts no status")
+    void scanWithStatusCodesReportsNullWhenNoStatusAsserted() throws Exception {
+        List<VerifiedContractTest> tests = scanner.scanWithStatusCodes(fixtureDir());
+
+        assertThat(tests)
+                .filteredOn(t -> t.endpoint().methodSignature().startsWith("getItemRestAssured"))
+                .extracting(VerifiedContractTest::statusCode)
+                .containsExactly((String) null);
+    }
+
+    @Test
+    @DisplayName("scan() still returns the same endpoints as scanWithStatusCodes(), status codes aside")
+    void scanIsConsistentWithScanWithStatusCodes() throws Exception {
+        List<Endpoint> endpoints = scanner.scan(fixtureDir());
+        List<Endpoint> fromStatusCodes = scanner.scanWithStatusCodes(fixtureDir()).stream()
+                .map(VerifiedContractTest::endpoint)
+                .toList();
+
+        assertThat(endpoints).containsExactlyElementsOf(fromStatusCodes);
     }
 
     private static File fixtureDir() {

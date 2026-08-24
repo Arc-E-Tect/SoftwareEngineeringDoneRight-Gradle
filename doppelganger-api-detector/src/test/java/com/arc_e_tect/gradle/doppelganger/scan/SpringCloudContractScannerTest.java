@@ -2,6 +2,7 @@ package com.arc_e_tect.gradle.doppelganger.scan;
 
 import com.arc_e_tect.gradle.detector.core.model.Endpoint;
 import com.arc_e_tect.gradle.detector.core.model.HttpVerb;
+import com.arc_e_tect.gradle.doppelganger.detect.VerifiedContractTest;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -88,6 +89,39 @@ class SpringCloudContractScannerTest {
         File missing = new File(tempDir.toFile(), "does-not-exist");
 
         assertThat(scanner.scan(missing)).isEmpty();
+    }
+
+    @Test
+    @DisplayName("scanWithStatusCodes() reads status(...) from a Groovy contract's response block")
+    void scanWithStatusCodesReadsStatusFromGroovyContract() throws Exception {
+        List<VerifiedContractTest> tests = scanner.scanWithStatusCodes(fixtureDir());
+
+        assertThat(tests)
+                .filteredOn(t -> t.endpoint().methodSignature().equals("shouldReturnOrder"))
+                .extracting(VerifiedContractTest::statusCode)
+                .containsExactly("200");
+    }
+
+    @Test
+    @DisplayName("scanWithStatusCodes() reads status(...) written in call-argument style")
+    void scanWithStatusCodesReadsStatusInCallArgumentStyle() throws Exception {
+        List<VerifiedContractTest> tests = scanner.scanWithStatusCodes(fixtureDir());
+
+        assertThat(tests)
+                .filteredOn(t -> t.endpoint().methodSignature().equals("shouldCreateOrder"))
+                .extracting(VerifiedContractTest::statusCode)
+                .containsExactly("201");
+    }
+
+    @Test
+    @DisplayName("scanWithStatusCodes() reads status from a YAML contract's response block")
+    void scanWithStatusCodesReadsStatusFromYamlContract() throws Exception {
+        List<VerifiedContractTest> tests = scanner.scanWithStatusCodes(fixtureDir());
+
+        assertThat(tests)
+                .filteredOn(t -> t.endpoint().methodSignature().equals("shouldDeleteOrder"))
+                .extracting(VerifiedContractTest::statusCode)
+                .containsExactly("204");
     }
 
     private static File fixtureDir() {

@@ -52,8 +52,11 @@ import java.util.Locale;
  */
 public class DoppelgangerApiDetectorPlugin implements Plugin<Project> {
 
-    /** Name of the Gradle task registered by this plugin. */
+    /** Name of the doppelganger-detection Gradle task registered by this plugin. */
     public static final String TASK_NAME = "detectDoppelgangerApis";
+
+    /** Name of the contract-coverage-scanning Gradle task registered by this plugin. */
+    public static final String SCAN_CONTRACTS_TASK_NAME = "scanContracts";
 
     /** Creates a new plugin instance. Instantiated by Gradle infrastructure. */
     public DoppelgangerApiDetectorPlugin() {}
@@ -88,13 +91,31 @@ public class DoppelgangerApiDetectorPlugin implements Plugin<Project> {
         ext.getExcludePaths().convention(List.of());
         ext.getExcludeWellKnown().convention(List.of());
 
+        ext.getIncludeResponseCoverage().convention(false);
+        ext.getScanContractsReportFileName().convention(
+                DoppelgangerApiDetectorExtension.DEFAULT_SCAN_CONTRACTS_REPORT_FILE_NAME);
+        ext.getTrackResponseCoverageHistory().convention(false);
+        ext.getResponseCoverageHistoryFile().convention(project.getLayout().getProjectDirectory()
+                .file(DoppelgangerApiDetectorExtension.DEFAULT_RESPONSE_COVERAGE_HISTORY_FILE_NAME));
+        // updateResponseCoverageHistory defaults to trackResponseCoverageHistory's own value,
+        // tracking it live rather than snapshotting it at this point - same pattern as
+        // updateContractHistory above.
+        ext.getUpdateResponseCoverageHistory().convention(ext.getTrackResponseCoverageHistory());
+
         // The -PdoppelgangerApiDetector.updateContractHistory=<true|false> project property, when
         // set, overrides updateContractHistory for every project in the build - regardless of what
         // any project's own extension configures - typically used to advance the committed history
         // only from the branch(es) whose CI pipeline should, without touching the build script.
         Provider<Boolean> updateContractHistoryCliOverride = project.getProviders()
                 .gradleProperty(DoppelgangerApiDetectorExtension.UPDATE_CONTRACT_HISTORY_OVERRIDE_PROPERTY)
-                .map(DoppelgangerApiDetectorPlugin::parseUpdateContractHistory);
+                .map(value -> parseBooleanOverride(
+                        DoppelgangerApiDetectorExtension.UPDATE_CONTRACT_HISTORY_OVERRIDE_PROPERTY, value));
+        // Independent override for the response coverage history file - see
+        // getUpdateResponseCoverageHistory()'s own javadoc.
+        Provider<Boolean> updateResponseCoverageHistoryCliOverride = project.getProviders()
+                .gradleProperty(DoppelgangerApiDetectorExtension.UPDATE_RESPONSE_COVERAGE_HISTORY_OVERRIDE_PROPERTY)
+                .map(value -> parseBooleanOverride(
+                        DoppelgangerApiDetectorExtension.UPDATE_RESPONSE_COVERAGE_HISTORY_OVERRIDE_PROPERTY, value));
 
         TaskProvider<DetectDoppelgangerApisTask> taskProvider =
                 project.getTasks().register(TASK_NAME, DetectDoppelgangerApisTask.class, task -> {
@@ -119,17 +140,46 @@ public class DoppelgangerApiDetectorPlugin implements Plugin<Project> {
                     task.getExcludeWellKnown().set(ext.getExcludeWellKnown());
                 });
 
+        TaskProvider<ScanContractsTask> scanContractsTaskProvider =
+                project.getTasks().register(SCAN_CONTRACTS_TASK_NAME, ScanContractsTask.class, task -> {
+                    task.getControllerDirs().from(ext.getControllerDirs());
+                    task.getTestDirs().from(ext.getTestDirs());
+                    task.getRootDocument().set(ext.getRootDocument());
+                    task.getOpenApiDir().set(ext.getOpenApiDir());
+                    task.getContractsDir().set(ext.getContractsDir());
+                    task.getUseRestDocs().set(ext.getUseRestDocs());
+                    task.getUseOpenApiRequestValidator().set(ext.getUseOpenApiRequestValidator());
+                    task.getUseSpringCloudContract().set(ext.getUseSpringCloudContract());
+                    task.getIncludeResponseCoverage().set(ext.getIncludeResponseCoverage());
+                    task.getReportDir().set(ext.getReportDir());
+                    task.getReportFileName().set(ext.getScanContractsReportFileName());
+                    task.getSystemUnderTestVersion().set(ext.getSystemUnderTestVersion());
+                    task.getTrackResponseCoverageHistory().set(ext.getTrackResponseCoverageHistory());
+                    task.getResponseCoverageHistoryFile().set(ext.getResponseCoverageHistoryFile());
+                    task.getUpdateResponseCoverageHistory().set(updateResponseCoverageHistoryCliOverride
+                            .orElse(ext.getUpdateResponseCoverageHistory()));
+                    task.getExcludePaths().set(ext.getExcludePaths());
+                    task.getExcludeFiles().from(ext.getExcludeFiles());
+                    task.getExcludeWellKnown().set(ext.getExcludeWellKnown());
+                });
+
         // Default controllerDirs/testDirs only when the user has not configured them themselves;
         // deferred to afterEvaluate so the check happens once the build script has had a chance to
-        // configure the extension.
+        // configure the extension. Applied identically to both tasks' providers, since they share
+        // the same controllerDirs/testDirs configuration.
         project.afterEvaluate(p -> {
-            if (ext.getControllerDirs().isEmpty()) {
+            boolean controllerDirsUserConfigured = !ext.getControllerDirs().isEmpty();
+            boolean testDirsUserConfigured = !ext.getTestDirs().isEmpty();
+            if (!controllerDirsUserConfigured) {
                 taskProvider.configure(task -> task.getControllerDirs()
                         .from(p.file(DoppelgangerApiDetectorExtension.DEFAULT_CONTROLLER_DIR)));
+                scanContractsTaskProvider.configure(task -> task.getControllerDirs()
+                        .from(p.file(DoppelgangerApiDetectorExtension.DEFAULT_CONTROLLER_DIR)));
             }
-            boolean testDirsUserConfigured = !ext.getTestDirs().isEmpty();
             if (!testDirsUserConfigured) {
                 taskProvider.configure(task -> task.getTestDirs()
+                        .from(p.file(DoppelgangerApiDetectorExtension.DEFAULT_TEST_DIR)));
+                scanContractsTaskProvider.configure(task -> task.getTestDirs()
                         .from(p.file(DoppelgangerApiDetectorExtension.DEFAULT_TEST_DIR)));
             }
             // See DetectDoppelgangerApisTask#getTestDirsUserConfigured(): only a user-configured
@@ -137,14 +187,15 @@ public class DoppelgangerApiDetectorPlugin implements Plugin<Project> {
             // detection for - the plugin's own default missing just means this project has no such
             // evidence, by design.
             taskProvider.configure(task -> task.getTestDirsUserConfigured().set(testDirsUserConfigured));
+            scanContractsTaskProvider.configure(task -> task.getTestDirsUserConfigured().set(testDirsUserConfigured));
         });
     }
 
     /**
-     * Parses the {@code -PdoppelgangerApiDetector.updateContractHistory=<value>} project property's
-     * value, accepting {@code true}/{@code false} case-insensitively.
+     * Parses a {@code -PdoppelgangerApiDetector.<propertyName>=<value>} project property's value,
+     * accepting {@code true}/{@code false} case-insensitively.
      */
-    private static boolean parseUpdateContractHistory(String value) {
+    private static boolean parseBooleanOverride(String propertyName, String value) {
         String normalized = value.trim().toLowerCase(Locale.ROOT);
         if ("true".equals(normalized)) {
             return true;
@@ -153,8 +204,7 @@ public class DoppelgangerApiDetectorPlugin implements Plugin<Project> {
             return false;
         }
         throw new GradleException(
-                "doppelgangerApiDetector: invalid value '" + value + "' for -P"
-                + DoppelgangerApiDetectorExtension.UPDATE_CONTRACT_HISTORY_OVERRIDE_PROPERTY
+                "doppelgangerApiDetector: invalid value '" + value + "' for -P" + propertyName
                 + "; expected 'true' or 'false'");
     }
 }

@@ -4,6 +4,7 @@ import com.arc_e_tect.gradle.detector.core.model.Endpoint;
 import com.arc_e_tect.gradle.detector.core.model.HttpVerb;
 import com.arc_e_tect.gradle.detector.core.model.PathTemplates;
 import com.arc_e_tect.gradle.doppelganger.detect.ContractVerificationSource;
+import com.arc_e_tect.gradle.doppelganger.detect.VerifiedContractTest;
 import com.github.javaparser.JavaParser;
 import com.github.javaparser.ParseResult;
 import com.github.javaparser.ParserConfiguration;
@@ -47,20 +48,30 @@ public class OpenApiRequestValidatorScanner implements ContractVerificationSourc
     @Override
     public List<Endpoint> scan(File rootDir) throws IOException {
         List<Endpoint> endpoints = new ArrayList<>();
-        for (File javaFile : collectJavaFiles(rootDir)) {
-            endpoints.addAll(scanFile(javaFile));
+        for (VerifiedContractTest test : scanWithStatusCodes(rootDir)) {
+            endpoints.add(test.endpoint());
         }
         return endpoints;
     }
 
-    private List<Endpoint> scanFile(File sourceFile) throws IOException {
-        List<Endpoint> endpoints = new ArrayList<>();
+    /** {@inheritDoc} */
+    @Override
+    public List<VerifiedContractTest> scanWithStatusCodes(File rootDir) throws IOException {
+        List<VerifiedContractTest> tests = new ArrayList<>();
+        for (File javaFile : collectJavaFiles(rootDir)) {
+            tests.addAll(scanFile(javaFile));
+        }
+        return tests;
+    }
+
+    private List<VerifiedContractTest> scanFile(File sourceFile) throws IOException {
+        List<VerifiedContractTest> tests = new ArrayList<>();
 
         ParseResult<CompilationUnit> parseResult = new JavaParser(
                 new ParserConfiguration().setLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_21))
                 .parse(sourceFile);
         if (!parseResult.isSuccessful() || parseResult.getResult().isEmpty()) {
-            return endpoints;
+            return tests;
         }
 
         CompilationUnit cu = parseResult.getResult().get();
@@ -69,17 +80,17 @@ public class OpenApiRequestValidatorScanner implements ContractVerificationSourc
         cu.findAll(ClassOrInterfaceDeclaration.class).forEach(cls -> {
             String declaringClass = buildFqcn(cu, cls);
             cls.getMethods().forEach(method -> {
-                Endpoint endpoint = endpointForMethod(method, declaringClass, fileName);
-                if (endpoint != null) {
-                    endpoints.add(endpoint);
+                VerifiedContractTest test = verifiedTestForMethod(method, declaringClass, fileName);
+                if (test != null) {
+                    tests.add(test);
                 }
             });
         });
 
-        return endpoints;
+        return tests;
     }
 
-    private Endpoint endpointForMethod(MethodDeclaration method, String declaringClass, String fileName) {
+    private VerifiedContractTest verifiedTestForMethod(MethodDeclaration method, String declaringClass, String fileName) {
         List<MethodCallExpr> calls = method.findAll(MethodCallExpr.class);
 
         boolean validated = calls.stream().anyMatch(this::isValidationCall);
@@ -98,8 +109,9 @@ public class OpenApiRequestValidatorScanner implements ContractVerificationSourc
             if (verbAndPath != null) {
                 String signature = method.getNameAsString() + "()";
                 int line = method.getBegin().map(p -> p.line).orElse(0);
-                return new Endpoint(
+                Endpoint endpoint = new Endpoint(
                         verbAndPath.verb(), verbAndPath.path(), declaringClass, signature, fileName, line);
+                return new VerifiedContractTest(endpoint, StatusCodeDetector.detect(calls).orElse(null));
             }
         }
         return null;

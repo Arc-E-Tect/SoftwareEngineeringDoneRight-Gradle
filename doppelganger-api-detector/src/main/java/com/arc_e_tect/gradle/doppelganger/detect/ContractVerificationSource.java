@@ -4,6 +4,7 @@ import com.arc_e_tect.gradle.detector.core.model.Endpoint;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -33,4 +34,26 @@ public interface ContractVerificationSource {
      * @throws IOException if a file under {@code rootDir} cannot be read
      */
     List<Endpoint> scan(File rootDir) throws IOException;
+
+    /**
+     * Scans {@code rootDir} recursively, same as {@link #scan(File)}, but additionally reports the
+     * HTTP status code each piece of evidence was detected to assert, when a source is able to
+     * determine one.
+     *
+     * <p>The default implementation delegates to {@link #scan(File)} and reports every entry with
+     * no status code, so an implementation that has no meaningful way to detect one simply inherits
+     * correct, backward-compatible behavior without overriding anything.</p>
+     *
+     * @param rootDir the directory to scan recursively; scanning a non-existent or non-directory
+     *                path returns an empty list rather than failing
+     * @return possibly-empty list of verified contract tests, never {@code null}
+     * @throws IOException if a file under {@code rootDir} cannot be read
+     */
+    default List<VerifiedContractTest> scanWithStatusCodes(File rootDir) throws IOException {
+        List<VerifiedContractTest> results = new ArrayList<>();
+        for (Endpoint endpoint : scan(rootDir)) {
+            results.add(new VerifiedContractTest(endpoint, null));
+        }
+        return results;
+    }
 }

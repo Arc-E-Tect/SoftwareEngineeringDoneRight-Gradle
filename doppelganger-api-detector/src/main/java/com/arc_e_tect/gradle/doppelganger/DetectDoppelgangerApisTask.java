@@ -4,8 +4,6 @@ import com.arc_e_tect.gradle.detector.core.console.ScanProgressReporter;
 import com.arc_e_tect.gradle.detector.core.detect.ContractSetOperations;
 import com.arc_e_tect.gradle.detector.core.exclude.ExclusionFilter;
 import com.arc_e_tect.gradle.detector.core.exclude.ExclusionRule;
-import com.arc_e_tect.gradle.detector.core.exclude.ExclusionRuleFile;
-import com.arc_e_tect.gradle.detector.core.exclude.WellKnownExclusionSets;
 import com.arc_e_tect.gradle.detector.core.model.Endpoint;
 import com.arc_e_tect.gradle.detector.core.openapi.DescribedEndpoint;
 import com.arc_e_tect.gradle.detector.core.openapi.OpenApiEndpointCollector;
@@ -13,7 +11,6 @@ import com.arc_e_tect.gradle.detector.core.progress.ContractHistoryStore;
 import com.arc_e_tect.gradle.detector.core.progress.ContractHistoryUpdater;
 import com.arc_e_tect.gradle.detector.core.progress.ContractProgressRecord;
 import com.arc_e_tect.gradle.detector.core.progress.LegacyContractHistoryFormatException;
-import com.arc_e_tect.gradle.detector.core.scan.ControllerScanner;
 import com.arc_e_tect.gradle.doppelganger.detect.ContractVerificationSource;
 import com.arc_e_tect.gradle.doppelganger.detect.DoppelgangerApiFinder;
 import com.arc_e_tect.gradle.doppelganger.report.DoppelgangerApiReportWriter;
@@ -351,24 +348,15 @@ public abstract class DetectDoppelgangerApisTask extends DefaultTask {
 
         List<String> warnings = new ArrayList<>();
 
-        List<File> missingControllerDirs = new ArrayList<>();
-        List<File> controllerFiles = new ArrayList<>();
-        boolean anyControllerDirExists = false;
-        for (File dir : getControllerDirs()) {
-            if (dir.isDirectory()) {
-                anyControllerDirExists = true;
-                controllerFiles.addAll(collectJavaFiles(dir));
-            } else {
-                missingControllerDirs.add(dir);
-            }
-        }
+        ContractScanSupport.DirectoryScanResult controllerScan =
+                ContractScanSupport.scanJavaSourceDirs(getControllerDirs());
         // Deliberately distinct from "controllerDirs has zero entries at all", which is a valid,
         // complete input (nothing to scan by design) rather than a bootstrapping gap, and must not
         // silently skip detection below.
-        boolean controllerSourceMissing = !missingControllerDirs.isEmpty() && !anyControllerDirExists;
-        if (!missingControllerDirs.isEmpty()) {
-            if (anyControllerDirExists) {
-                for (File dir : missingControllerDirs) {
+        boolean controllerSourceMissing = controllerScan.allConfiguredDirsMissing();
+        if (!controllerScan.missingDirs().isEmpty()) {
+            if (controllerScan.anyDirExists()) {
+                for (File dir : controllerScan.missingDirs()) {
                     warnings.add("Configured `controllerDirs` entry does not exist yet: `" + dir + "`.");
                 }
             } else {
@@ -381,19 +369,7 @@ public abstract class DetectDoppelgangerApisTask extends DefaultTask {
         int phase = 0;
 
         phase = announcePhase(phase, totalPhases, "Scanning @RestController classes...");
-        ControllerScanner controllerScanner = new ControllerScanner();
-        List<Endpoint> implemented = new ArrayList<>();
-        ScanProgressReporter controllerScanProgress = ScanProgressReporter.determinate(
-                getLogger(), "Scanning @RestController classes", controllerFiles.size());
-        for (File javaFile : controllerFiles) {
-            try {
-                implemented.addAll(controllerScanner.scan(javaFile));
-            } catch (IOException e) {
-                throw new GradleException("doppelgangerApiDetector: failed to scan " + javaFile, e);
-            }
-            controllerScanProgress.step();
-        }
-        controllerScanProgress.complete();
+        List<Endpoint> implemented = ContractScanSupport.scanControllerFiles(controllerScan.javaFiles(), getLogger());
 
         phase = announcePhase(phase, totalPhases, "Collecting OpenAPI endpoints...");
         boolean openApiAvailable = isRootDocumentAvailable();
@@ -419,7 +395,8 @@ public abstract class DetectDoppelgangerApisTask extends DefaultTask {
         List<Endpoint> doppelgangers = inputComplete
                 ? new DoppelgangerApiFinder().findDoppelgangers(declaredAndImplemented, verified) : List.of();
 
-        List<ExclusionRule> exclusionRules = resolveExclusionRules(warnings);
+        List<ExclusionRule> exclusionRules = ContractScanSupport.resolveExclusionRules(
+                getExcludePaths(), getExcludeFiles(), getExcludeWellKnown(), warnings);
         List<Endpoint> reportableDoppelgangers = ExclusionFilter.excludeMatching(doppelgangers, exclusionRules);
         List<Endpoint> excludedDoppelgangers = ExclusionFilter.onlyMatching(doppelgangers, exclusionRules);
 
@@ -450,47 +427,6 @@ public abstract class DetectDoppelgangerApisTask extends DefaultTask {
                     + " doppelganger API(s) declared and implemented but not verified by any configured "
                     + "contract verification source. See " + outputFile);
         }
-    }
-
-    /**
-     * Resolves every configured exclusion rule - {@link #getExcludePaths()},
-     * {@link #getExcludeFiles()}, and {@link #getExcludeWellKnown()} - into one combined list. A
-     * missing {@code excludeFiles} entry only warns, the same way a missing {@code controllerDirs}
-     * or {@code testDirs} entry does; a malformed rule string or an unrecognised well-known set
-     * name fails the build outright, since those are build-script/file mistakes, not a
-     * "not built yet" bootstrapping gap.
-     */
-    private List<ExclusionRule> resolveExclusionRules(List<String> warnings) {
-        List<ExclusionRule> rules = new ArrayList<>();
-        for (String entry : getExcludePaths().get()) {
-            try {
-                rules.add(ExclusionRule.parse(entry));
-            } catch (IllegalArgumentException e) {
-                throw new GradleException(
-                        "doppelgangerApiDetector: invalid `excludePaths` entry: " + e.getMessage(), e);
-            }
-        }
-        for (File file : getExcludeFiles()) {
-            if (!file.isFile()) {
-                warnings.add("Configured `excludeFiles` entry does not exist yet: `" + file + "`.");
-                continue;
-            }
-            try {
-                rules.addAll(ExclusionRuleFile.load(file));
-            } catch (IOException e) {
-                throw new GradleException("doppelgangerApiDetector: failed to read excludeFiles entry " + file, e);
-            } catch (IllegalArgumentException e) {
-                throw new GradleException("doppelgangerApiDetector: " + e.getMessage(), e);
-            }
-        }
-        for (String name : getExcludeWellKnown().get()) {
-            try {
-                rules.addAll(WellKnownExclusionSets.resolve(name));
-            } catch (IllegalArgumentException e) {
-                throw new GradleException("doppelgangerApiDetector: " + e.getMessage(), e);
-            }
-        }
-        return rules;
     }
 
     /**
@@ -724,26 +660,4 @@ public abstract class DetectDoppelgangerApisTask extends DefaultTask {
         return results;
     }
 
-    private List<File> collectJavaFiles(File dir) {
-        List<File> files = new ArrayList<>();
-        collectJavaFiles(dir, files);
-        return files;
-    }
-
-    private void collectJavaFiles(File dir, List<File> files) {
-        if (!dir.isDirectory()) {
-            return;
-        }
-        File[] children = dir.listFiles();
-        if (children == null) {
-            return;
-        }
-        for (File child : children) {
-            if (child.isFile() && child.getName().endsWith(".java")) {
-                files.add(child);
-            } else if (child.isDirectory()) {
-                collectJavaFiles(child, files);
-            }
-        }
-    }
 }

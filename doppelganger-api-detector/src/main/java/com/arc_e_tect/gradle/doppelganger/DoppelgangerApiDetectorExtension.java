@@ -30,12 +30,22 @@ import org.gradle.api.provider.Property;
  *     // excludePaths.add('/actuator/health')                                 // default: empty
  *     // excludeFiles.from('doppelganger-exclusions.yaml')                    // default: empty
  *     // excludeWellKnown.add('spring-boot-actuator')                        // default: empty
+ *
+ *     // Configuration for the separate `scanContracts` task - reuses controllerDirs, testDirs,
+ *     // rootDocument, contractsDir, useRestDocs/useOpenApiRequestValidator/useSpringCloudContract,
+ *     // and the exclude* properties above.
+ *     includeResponseCoverage = false                                         // default
+ *     // scanContractsReportFileName = 'contract-coverage.adoc'               // default
+ *     trackResponseCoverageHistory = false                                    // default
+ *     // responseCoverageHistoryFile = file('doppelganger-api-detector-response-coverage-history.ndjson') // default
+ *     updateResponseCoverageHistory = trackResponseCoverageHistory            // default; see getUpdateResponseCoverageHistory()
  * }
  * </pre>
  *
  * <p>{@code updateContractHistory} can be overridden for the whole build from the command line,
  * e.g. {@code -PdoppelgangerApiDetector.updateContractHistory=true} - see
- * {@link #getUpdateContractHistory()}.</p>
+ * {@link #getUpdateContractHistory()}. {@code updateResponseCoverageHistory} has its own,
+ * independent override - see {@link #getUpdateResponseCoverageHistory()}.</p>
  */
 public abstract class DoppelgangerApiDetectorExtension {
 
@@ -73,6 +83,23 @@ public abstract class DoppelgangerApiDetectorExtension {
      */
     public static final String UPDATE_CONTRACT_HISTORY_OVERRIDE_PROPERTY =
             "doppelgangerApiDetector.updateContractHistory";
+
+    /** Default name of the {@code scanContracts} task's generated AsciiDoc report file. */
+    public static final String DEFAULT_SCAN_CONTRACTS_REPORT_FILE_NAME = "contract-coverage.adoc";
+
+    /** Default name of the persisted response coverage history file. */
+    public static final String DEFAULT_RESPONSE_COVERAGE_HISTORY_FILE_NAME =
+            "doppelganger-api-detector-response-coverage-history.ndjson";
+
+    /**
+     * Name of the Gradle project property that overrides
+     * {@link #getUpdateResponseCoverageHistory()} from the command line for every project in the
+     * build, e.g. {@code -PdoppelgangerApiDetector.updateResponseCoverageHistory=true}. Takes
+     * precedence over any project's own configured {@code updateResponseCoverageHistory} value.
+     * The value is parsed as a boolean.
+     */
+    public static final String UPDATE_RESPONSE_COVERAGE_HISTORY_OVERRIDE_PROPERTY =
+            "doppelgangerApiDetector.updateResponseCoverageHistory";
 
     /**
      * Directories to search recursively for {@code @RestController} classes. One or more
@@ -275,4 +302,72 @@ public abstract class DoppelgangerApiDetectorExtension {
      * @return mutable list property of well-known exclusion set names
      */
     public abstract ListProperty<String> getExcludeWellKnown();
+
+    /**
+     * Whether the {@code scanContracts} task additionally computes, for every declared response
+     * code, how many contract tests cover it. Defaults to {@code false}: the breakdown is not
+     * merely hidden when disabled, it is never computed - this is the more expensive of the two
+     * statistics {@code scanContracts} can report, since it requires detecting the asserted status
+     * code of every matching contract test, not just whether one exists.
+     *
+     * <p>For example, an endpoint {@code GET /v1/foobars} declaring response codes {@code 200} and
+     * {@code 404}, with two contract tests asserting {@code 200} and one asserting {@code 404},
+     * reports {@code 200} as covered by 2 test(s) and {@code 404} as covered by 1 test(s) when this
+     * is {@code true}.</p>
+     *
+     * @return mutable boolean property controlling whether response coverage is computed
+     */
+    public abstract Property<Boolean> getIncludeResponseCoverage();
+
+    /**
+     * Name of the {@code scanContracts} task's generated AsciiDoc report file (without path),
+     * written to the same {@link #getReportDir()}. Defaults to
+     * {@value #DEFAULT_SCAN_CONTRACTS_REPORT_FILE_NAME}.
+     *
+     * @return mutable string property for the scanContracts report file name
+     */
+    public abstract Property<String> getScanContractsReportFileName();
+
+    /**
+     * Whether to persist, across builds, a history of response code coverage - keyed by endpoint
+     * fingerprint and response code, tracking a live test-count gauge rather than milestone
+     * timestamps. Defaults to {@code false}. Only meaningful together with
+     * {@link #getIncludeResponseCoverage()} - {@code scanContracts} fails eagerly if this is
+     * {@code true} while that is {@code false}, since there would be no per-response-code data to
+     * persist.
+     *
+     * @return mutable boolean property controlling whether response coverage history is tracked
+     */
+    public abstract Property<Boolean> getTrackResponseCoverageHistory();
+
+    /**
+     * File that the persisted response coverage history is read from and, when
+     * {@link #getUpdateResponseCoverageHistory()} is {@code true}, written back to. Defaults to
+     * {@value #DEFAULT_RESPONSE_COVERAGE_HISTORY_FILE_NAME} directly in the project directory -
+     * deliberately not under {@code build/}, for the same reason as
+     * {@link #getContractHistoryFile()}. Only consulted when
+     * {@link #getTrackResponseCoverageHistory()} is {@code true}. Deliberately a separate file from
+     * {@link #getContractHistoryFile()}: response coverage is a Doppelganger-only concern with a
+     * different record schema, not shared with Shadow or Mirage API Detector.
+     *
+     * @return mutable file property for the response coverage history file
+     */
+    public abstract RegularFileProperty getResponseCoverageHistoryFile();
+
+    /**
+     * Whether {@link #getResponseCoverageHistoryFile()} is written back to disk after being updated
+     * with the current run's coverage. Defaults to the same value as
+     * {@link #getTrackResponseCoverageHistory()}. Only consulted when
+     * {@link #getTrackResponseCoverageHistory()} is {@code true}; the history file is always read
+     * regardless of this property's value.
+     *
+     * <p>The {@value #UPDATE_RESPONSE_COVERAGE_HISTORY_OVERRIDE_PROPERTY} project property, when
+     * set, overrides this property for every project in the build - the same
+     * per-branch-CI-pipeline pattern {@link #getUpdateContractHistory()} supports, independently of
+     * it.</p>
+     *
+     * @return mutable boolean property controlling whether the response coverage history file is
+     *         written back
+     */
+    public abstract Property<Boolean> getUpdateResponseCoverageHistory();
 }
