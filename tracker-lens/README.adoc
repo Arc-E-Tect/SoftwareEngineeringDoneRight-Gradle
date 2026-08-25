@@ -71,10 +71,10 @@ trackerLens {
             // appears on the dashboard, showing zero progress, once history starts being written.
             historyFiles.from(file('gherkin-progress-history.ndjson'))
 
-            // Which built-in reader knows this file's shape: GHERKIN_SCENARIO or API_CONTRACT
-            // (see "Registering Trackers" below for what each one reads and its stages).
-            // Fully qualified because Gradle's Groovy DSL does not auto-import a plugin's own
-            // classes into the build script - see the TIP below.
+            // Which built-in reader knows this file's shape: GHERKIN_SCENARIO, API_CONTRACT, or
+            // RESPONSE_COVERAGE (see "Registering Trackers" below for what each one reads and its
+            // stages). Fully qualified because Gradle's Groovy DSL does not auto-import a plugin's
+            // own classes into the build script - see the TIP below.
             source = com.arc_e_tect.gradle.trackerlens.TrackerSourceKind.GHERKIN_SCENARIO
         }
         register("api-contracts") {
@@ -86,6 +86,12 @@ trackerLens {
                 file('mirage-api-detector-contract-history.ndjson'),
                 file('doppelganger-api-detector-contract-history.ndjson'))
             source = com.arc_e_tect.gradle.trackerlens.TrackerSourceKind.API_CONTRACT
+        }
+        register("response-coverage") {
+            // Written by Doppelganger API Detector's scanContracts task, only when both
+            // includeResponseCoverage and trackResponseCoverageHistory are enabled on it.
+            historyFiles.from(file('doppelganger-api-detector-response-coverage-history.ndjson'))
+            source = com.arc_e_tect.gradle.trackerlens.TrackerSourceKind.RESPONSE_COVERAGE
         }
     }
 
@@ -157,6 +163,10 @@ trackerLens {
                 file("mirage-api-detector-contract-history.ndjson"),
                 file("doppelganger-api-detector-contract-history.ndjson"))
             source.set(TrackerSourceKind.API_CONTRACT)
+        }
+        register("response-coverage") {
+            historyFiles.from(file("doppelganger-api-detector-response-coverage-history.ndjson"))
+            source.set(TrackerSourceKind.RESPONSE_COVERAGE)
         }
     }
     // lensStylesheet.set(file("my-theme.css"))
