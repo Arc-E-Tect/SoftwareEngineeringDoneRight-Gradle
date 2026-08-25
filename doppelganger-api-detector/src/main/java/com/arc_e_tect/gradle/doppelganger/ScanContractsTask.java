@@ -1,5 +1,6 @@
 package com.arc_e_tect.gradle.doppelganger;
 
+import com.arc_e_tect.gradle.detector.core.console.DetectorStageReporter;
 import com.arc_e_tect.gradle.detector.core.console.ScanProgressReporter;
 import com.arc_e_tect.gradle.detector.core.detect.ContractSetOperations;
 import com.arc_e_tect.gradle.detector.core.exclude.ExclusionFilter;
@@ -310,13 +311,12 @@ public abstract class ScanContractsTask extends DefaultTask {
             }
         }
 
-        int totalPhases = countTotalPhases();
-        int phase = 0;
+        DetectorStageReporter stages = new DetectorStageReporter(getLogger(), "Contract Scan", countTotalPhases());
 
-        phase = announcePhase(phase, totalPhases, "Scanning @RestController classes...");
+        stages.stage("Scanning @RestController classes");
         List<Endpoint> implemented = ContractScanSupport.scanControllerFiles(controllerScan.javaFiles(), getLogger());
 
-        phase = announcePhase(phase, totalPhases, "Collecting OpenAPI endpoints...");
+        stages.stage("Collecting OpenAPI endpoints");
         boolean openApiAvailable = isRootDocumentAvailable();
         File rootDocument = openApiAvailable ? getRootDocument().getAsFile().get() : null;
         List<DescribedEndpoint> described;
@@ -334,7 +334,7 @@ public abstract class ScanContractsTask extends DefaultTask {
         // must be preserved here, since it's the one carrying responseCodes().
         List<DescribedEndpoint> declaredAndImplemented = ContractSetOperations.intersection(described, implemented);
 
-        VerificationTestScan verificationScan = collectVerifiedTests(phase, totalPhases, rootDocument, warnings);
+        VerificationTestScan verificationScan = collectVerifiedTests(stages, rootDocument, warnings);
 
         boolean inputComplete =
                 openApiAvailable && !controllerSourceMissing && !verificationScan.verificationInputMissing();
@@ -406,7 +406,7 @@ public abstract class ScanContractsTask extends DefaultTask {
     private record VerificationTestScan(List<VerifiedContractTest> tests, boolean verificationInputMissing) {}
 
     private VerificationTestScan collectVerifiedTests(
-            int phase, int totalPhases, File rootDocument, List<String> warnings) {
+            DetectorStageReporter stages, File rootDocument, List<String> warnings) {
         boolean useRestDocs = getUseRestDocs().get();
         boolean useOpenApiRequestValidator = getUseOpenApiRequestValidator().get();
         boolean useSpringCloudContract = getUseSpringCloudContract().get();
@@ -448,18 +448,27 @@ public abstract class ScanContractsTask extends DefaultTask {
         List<VerifiedContractTest> tests = new ArrayList<>();
         try {
             if (useRestDocs) {
-                phase = announcePhase(phase, totalPhases, "Scanning Spring RestDocs verification evidence...");
+                stages.stage("Scanning Spring RestDocs verification evidence");
                 String serverBasePath = rootDocument == null ? "" : OpenApiServerBasePath.resolve(rootDocument);
-                tests.addAll(scanTestDirsWithStatusCodes(new RestDocsScanner(serverBasePath)));
+                List<VerifiedContractTest> restDocsTests = scanTestDirsWithStatusCodes(new RestDocsScanner(serverBasePath));
+                tests.addAll(restDocsTests);
+                getLogger().lifecycle(
+                        "Scanning Spring RestDocs verification evidence: done, {} test(s) found", restDocsTests.size());
             }
             if (useOpenApiRequestValidator) {
-                phase = announcePhase(phase, totalPhases,
-                        "Scanning OpenAPI request validator verification evidence...");
-                tests.addAll(scanTestDirsWithStatusCodes(new OpenApiRequestValidatorScanner()));
+                stages.stage("Scanning OpenAPI request validator verification evidence");
+                List<VerifiedContractTest> requestValidatorTests =
+                        scanTestDirsWithStatusCodes(new OpenApiRequestValidatorScanner());
+                tests.addAll(requestValidatorTests);
+                getLogger().lifecycle("Scanning OpenAPI request validator verification evidence: done, {} test(s) found",
+                        requestValidatorTests.size());
             }
             if (useSpringCloudContract && contractsDirExists) {
-                announcePhase(phase, totalPhases, "Scanning Spring Cloud Contract verification evidence...");
-                tests.addAll(new SpringCloudContractScanner().scanWithStatusCodes(contractsDir));
+                stages.stage("Scanning Spring Cloud Contract verification evidence");
+                List<VerifiedContractTest> contractTests = new SpringCloudContractScanner().scanWithStatusCodes(contractsDir);
+                tests.addAll(contractTests);
+                getLogger().lifecycle("Scanning Spring Cloud Contract verification evidence: done, {} test(s) found",
+                        contractTests.size());
             }
         } catch (IOException e) {
             throw new GradleException("doppelgangerApiDetector: failed to scan verification evidence", e);
@@ -487,12 +496,6 @@ public abstract class ScanContractsTask extends DefaultTask {
             total++;
         }
         return total;
-    }
-
-    private int announcePhase(int phase, int totalPhases, String phaseLabel) {
-        int nextPhase = phase + 1;
-        getLogger().lifecycle("Contract Scan: [{}/{}] {}", nextPhase, totalPhases, phaseLabel);
-        return nextPhase;
     }
 
     private List<VerifiedContractTest> scanTestDirsWithStatusCodes(ContractVerificationSource source) throws IOException {
