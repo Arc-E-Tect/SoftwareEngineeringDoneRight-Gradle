@@ -591,15 +591,27 @@ public abstract class DetectDoppelgangerApisTask extends DefaultTask {
             if (useRestDocs) {
                 stages.stage("Scanning Spring RestDocs verification evidence");
                 String serverBasePath = rootDocument == null ? "" : OpenApiServerBasePath.resolve(rootDocument);
-                verified.addAll(scanTestDirs(new RestDocsScanner(serverBasePath)));
+                List<Endpoint> restDocsEndpoints = scanTestDirs(new RestDocsScanner(serverBasePath));
+                verified.addAll(restDocsEndpoints);
+                getLogger().lifecycle(
+                        "Scanning Spring RestDocs verification evidence: done, {} endpoint(s) found",
+                        restDocsEndpoints.size());
             }
             if (useOpenApiRequestValidator) {
                 stages.stage("Scanning OpenAPI request validator verification evidence");
-                verified.addAll(scanTestDirs(new OpenApiRequestValidatorScanner()));
+                List<Endpoint> requestValidatorEndpoints = scanTestDirs(new OpenApiRequestValidatorScanner());
+                verified.addAll(requestValidatorEndpoints);
+                getLogger().lifecycle(
+                        "Scanning OpenAPI request validator verification evidence: done, {} endpoint(s) found",
+                        requestValidatorEndpoints.size());
             }
             if (useSpringCloudContract && contractsDirExists) {
                 stages.stage("Scanning Spring Cloud Contract verification evidence");
-                verified.addAll(new SpringCloudContractScanner().scan(contractsDir));
+                List<Endpoint> contractEndpoints = new SpringCloudContractScanner().scan(contractsDir);
+                verified.addAll(contractEndpoints);
+                getLogger().lifecycle(
+                        "Scanning Spring Cloud Contract verification evidence: done, {} endpoint(s) found",
+                        contractEndpoints.size());
             }
         } catch (IOException e) {
             throw new GradleException("doppelgangerApiDetector: failed to scan verification evidence", e);
