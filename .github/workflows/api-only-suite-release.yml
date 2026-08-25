@@ -75,6 +75,14 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      # api-only-suite pulls shadow/mirage/doppelganger-api-detector in as subprojects, so they
+      # resolve api-detector-core from api-only-suite's own catalog rather than their own - a
+      # hand-copied pin here is easy to forget to bump and has broken this exact Build job three
+      # times in a row after the siblings adopted api-detector-core 1.5.0. Derive it instead of
+      # trusting a human to keep it in sync.
+      - name: Align api-only-suite's api-detector-core pin with sibling plugins
+        uses: ./.github/actions/align-api-detector-core-version
+
       - name: Setup Java
         uses: actions/setup-java@ad2b38190b15e4d6bdf0c97fb4fca8412226d287 # v5.3.0
         with:
@@ -218,6 +226,12 @@ jobs:
         with:
           fetch-depth: 0
           ref: ${{ github.ref_name }}
+
+      # Same reasoning as the Build job above - this job has its own separate checkout, so it
+      # needs the same alignment to publish a POM that references the api-detector-core version
+      # the siblings actually built against.
+      - name: Align api-only-suite's api-detector-core pin with sibling plugins
+        uses: ./.github/actions/align-api-detector-core-version
 
       - name: Setup Java
         uses: actions/setup-java@ad2b38190b15e4d6bdf0c97fb4fca8412226d287 # v5.3.0
