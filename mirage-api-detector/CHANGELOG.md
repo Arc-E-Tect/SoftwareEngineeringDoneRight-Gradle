@@ -1,3 +1,33 @@
+# [4.3.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/mirage-api-detector-v4.2.0...mirage-api-detector-v4.3.0) (2026-08-25)
+
+
+### ✨ New and updated features
+
+* **doppelganger-api-detector:** add scanContracts task and response coverage tracking ([#221](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/221)) ([773cf7b](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/773cf7b3d6039d0d7277cefcdec83fb3e1067026)), closes [#221](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/221) [Arc-E-Tect/SoftwareEngineeringDoneRight-Library#75](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Library/issues/75)
+* **detector-plugins:** adopt api-detector-core 1.5.0 and add scanContracts progress ([#227](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/227)) ([523e72d](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/523e72d8e5b27052419dabf50d87862b9c4a0fb7)), closes [#227](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/227)
+* **tracker-lens:** visualize Doppelganger response-code coverage ([#223](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/223)) ([23de77e](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/23de77eff3561e03534a241d075fedfd040c5627)), closes [#223](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/223) [#160](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/160)
+
+
+### 🐛 Bug Fixes
+
+* **api-only-suite:** bump api-detector-core to 1.4.0 ([#222](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/222)) ([3d79566](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/3d79566cbf4cb63796ac9f7f348c9fe49eed2be9)), closes [#222](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/222)
+* **examples:** correct response-coverage chart math and grid legibility ([#225](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/225)) ([9317796](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/93177967fb2309194c556c0bfa688ef1dfe6c71d)), closes [#225](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/225) [#224](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/224)
+* **tracker-lens:** exclude removed items from chart-series cumulative counts ([#219](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/219)) ([ee35459](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/ee35459ca0f8085a610eb1ac8a18ef3ebd9f8b3a)), closes [#219](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/219)
+* **tracker-lens:** exclude removed items from progress-projection counts ([#220](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/220)) ([010f581](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/010f58112a4c04afbfaa55ebd29fd07ffacf936c)), closes [#220](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/220)
+* **examples:** migrate doppelganger-api-detector RestDocs examples to Spring Boot 4's split test modules ([#218](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/218)) ([2b3cd7b](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/2b3cd7b780cf4d09f073ee843b62760de761977a)), closes [#218](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/218) [#122](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/122)
+* **ci:** stop treating a sibling-triggered no-op release as a failure ([#216](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/216)) ([ac53a54](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/ac53a54fd5ccf7cb843e8a573c0c93a45adf08c3)), closes [#216](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/216)
+
+
+### 📝 Documentation
+
+* **tracker-lens:** show response-coverage in the register() DSL examples ([#226](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/226)) ([f3217f7](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/f3217f7e164fc1c51ebd76bd3583504ae77c9665)), closes [#226](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/226)
+
+
+### 🔧 Misc
+
+* **examples:** bump dashboard-extra-charts to tracker-lens 2.2.0 ([#224](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/224)) ([beaa1a0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/beaa1a0bc04827c110ae2d2417855450fbe074a6)), closes [#224](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/224) [#223](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/223)
+* dependency updates for Gradle plugin repository ([#217](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/217)) ([de0d5e8](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/de0d5e8f8983eb9b73449af89032d2fe4b35369c)), closes [#217](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/217)
+
 # [4.2.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/mirage-api-detector-v4.1.0...mirage-api-detector-v4.2.0) (2026-08-23)
 
 
