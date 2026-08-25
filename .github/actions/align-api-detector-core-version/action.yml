@@ -1,0 +1,51 @@
+name: 'Align api-detector-core Version'
+description: >-
+  Derives api-only-suite's api-detector-core pin from the sibling detector
+  plugins instead of relying on it being hand-copied and kept in sync.
+author: 'Arc-E-Tect'
+
+outputs:
+  resolved_version:
+    description: 'The api-detector-core version the sibling plugins agree on'
+    value: ${{ steps.align.outputs.resolved_version }}
+
+runs:
+  using: 'composite'
+  steps:
+    # shadow/mirage/doppelganger-api-detector are pulled into api-only-suite's build as
+    # subprojects, so they resolve `libs.api.detector.core` from api-only-suite's own
+    # gradle/libs.versions.toml, not their own. A fourth, hand-copied pin of the same
+    # version is easy to forget to bump whenever the siblings adopt a new api-detector-core
+    # release - it has happened at least four times (1.2.0, 1.2.1, 1.4.0, 1.5.0), the last of
+    # which broke three consecutive "API-Only Suite Plugin - Release" runs in a row because
+    # doppelganger-api-detector's source had already moved on to a class (DetectorStageReporter)
+    # that api-only-suite's stale 1.4.0 pin didn't have.
+    #
+    # Rather than trust a human to keep that copy in sync, derive it here, in the checked-out
+    # working copy only (not committed back to git - same ephemeral-patch approach already used
+    # for the gradle.properties version bump elsewhere in this workflow).
+    - name: Align api-only-suite's api-detector-core pin with sibling plugins
+      id: align
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        get_version() {
+          grep -m1 -E '^api-detector-core[[:space:]]*=' "$1" | sed -E 's/^api-detector-core[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/'
+        }
+
+        SHADOW=$(get_version shadow-api-detector/gradle/libs.versions.toml)
+        MIRAGE=$(get_version mirage-api-detector/gradle/libs.versions.toml)
+        DOPPELGANGER=$(get_version doppelganger-api-detector/gradle/libs.versions.toml)
+
+        if [[ "$SHADOW" != "$MIRAGE" || "$SHADOW" != "$DOPPELGANGER" ]]; then
+          echo "::error::Sibling plugins disagree on api-detector-core version - shadow-api-detector=$SHADOW mirage-api-detector=$MIRAGE doppelganger-api-detector=$DOPPELGANGER. Align them before api-only-suite can build."
+          exit 1
+        fi
+
+        CURRENT=$(get_version api-only-suite/gradle/libs.versions.toml)
+        echo "Sibling plugins agree on api-detector-core ${SHADOW} (api-only-suite's own catalog currently pins ${CURRENT})"
+        sed -i "s/^api-detector-core[[:space:]]*=[[:space:]]*\"[^\"]*\"/api-detector-core = \"${SHADOW}\"/" api-only-suite/gradle/libs.versions.toml
+
+        echo "resolved_version=${SHADOW}" >> "$GITHUB_OUTPUT"
+        echo "::notice title=Resolved api-detector-core Version::api-only-suite aligned to api-detector-core ${SHADOW} (was ${CURRENT})"
