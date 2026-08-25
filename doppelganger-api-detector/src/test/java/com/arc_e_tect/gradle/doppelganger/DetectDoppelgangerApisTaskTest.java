@@ -674,7 +674,7 @@ class DetectDoppelgangerApisTaskTest {
         assertThat(recordingLogger.lifecycleMessages())
                 .anyMatch(message -> message.contains("Scanning @RestController classes"));
         assertThat(recordingLogger.lifecycleMessages())
-                .anyMatch(message -> message.contains("Doppelganger API Detector: [{}/{}]"));
+                .anyMatch(message -> message.contains("Doppelganger API Detector: [1/3]"));
     }
 
     /**

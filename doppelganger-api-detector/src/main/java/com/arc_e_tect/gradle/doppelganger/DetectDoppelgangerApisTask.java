@@ -1,5 +1,6 @@
 package com.arc_e_tect.gradle.doppelganger;
 
+import com.arc_e_tect.gradle.detector.core.console.DetectorStageReporter;
 import com.arc_e_tect.gradle.detector.core.console.ScanProgressReporter;
 import com.arc_e_tect.gradle.detector.core.detect.ContractSetOperations;
 import com.arc_e_tect.gradle.detector.core.exclude.ExclusionFilter;
@@ -365,13 +366,13 @@ public abstract class DetectDoppelgangerApisTask extends DefaultTask {
             }
         }
 
-        int totalPhases = countTotalPhases();
-        int phase = 0;
+        DetectorStageReporter stages =
+                new DetectorStageReporter(getLogger(), "Doppelganger API Detector", countTotalPhases());
 
-        phase = announcePhase(phase, totalPhases, "Scanning @RestController classes...");
+        stages.stage("Scanning @RestController classes");
         List<Endpoint> implemented = ContractScanSupport.scanControllerFiles(controllerScan.javaFiles(), getLogger());
 
-        phase = announcePhase(phase, totalPhases, "Collecting OpenAPI endpoints...");
+        stages.stage("Collecting OpenAPI endpoints");
         boolean openApiAvailable = isRootDocumentAvailable();
         File rootDocument = openApiAvailable ? getRootDocument().getAsFile().get() : null;
         List<DescribedEndpoint> described;
@@ -387,7 +388,7 @@ public abstract class DetectDoppelgangerApisTask extends DefaultTask {
 
         List<Endpoint> declaredAndImplemented = ContractSetOperations.intersection(implemented, described);
 
-        VerificationScan verificationScan = collectVerifiedEndpoints(phase, totalPhases, rootDocument, warnings);
+        VerificationScan verificationScan = collectVerifiedEndpoints(stages, rootDocument, warnings);
         List<Endpoint> verified = verificationScan.endpoints();
 
         boolean inputComplete =
@@ -542,7 +543,7 @@ public abstract class DetectDoppelgangerApisTask extends DefaultTask {
      * contributes no evidence this run, same as if it had found none).</p>
      */
     private VerificationScan collectVerifiedEndpoints(
-            int phase, int totalPhases, File rootDocument, List<String> warnings) {
+            DetectorStageReporter stages, File rootDocument, List<String> warnings) {
         boolean useRestDocs = getUseRestDocs().get();
         boolean useOpenApiRequestValidator = getUseOpenApiRequestValidator().get();
         boolean useSpringCloudContract = getUseSpringCloudContract().get();
@@ -588,18 +589,29 @@ public abstract class DetectDoppelgangerApisTask extends DefaultTask {
         List<Endpoint> verified = new ArrayList<>();
         try {
             if (useRestDocs) {
-                phase = announcePhase(phase, totalPhases, "Scanning Spring RestDocs verification evidence...");
+                stages.stage("Scanning Spring RestDocs verification evidence");
                 String serverBasePath = rootDocument == null ? "" : OpenApiServerBasePath.resolve(rootDocument);
-                verified.addAll(scanTestDirs(new RestDocsScanner(serverBasePath)));
+                List<Endpoint> restDocsEndpoints = scanTestDirs(new RestDocsScanner(serverBasePath));
+                verified.addAll(restDocsEndpoints);
+                getLogger().lifecycle(
+                        "Scanning Spring RestDocs verification evidence: done, {} endpoint(s) found",
+                        restDocsEndpoints.size());
             }
             if (useOpenApiRequestValidator) {
-                phase = announcePhase(phase, totalPhases,
-                        "Scanning OpenAPI request validator verification evidence...");
-                verified.addAll(scanTestDirs(new OpenApiRequestValidatorScanner()));
+                stages.stage("Scanning OpenAPI request validator verification evidence");
+                List<Endpoint> requestValidatorEndpoints = scanTestDirs(new OpenApiRequestValidatorScanner());
+                verified.addAll(requestValidatorEndpoints);
+                getLogger().lifecycle(
+                        "Scanning OpenAPI request validator verification evidence: done, {} endpoint(s) found",
+                        requestValidatorEndpoints.size());
             }
             if (useSpringCloudContract && contractsDirExists) {
-                announcePhase(phase, totalPhases, "Scanning Spring Cloud Contract verification evidence...");
-                verified.addAll(new SpringCloudContractScanner().scan(contractsDir));
+                stages.stage("Scanning Spring Cloud Contract verification evidence");
+                List<Endpoint> contractEndpoints = new SpringCloudContractScanner().scan(contractsDir);
+                verified.addAll(contractEndpoints);
+                getLogger().lifecycle(
+                        "Scanning Spring Cloud Contract verification evidence: done, {} endpoint(s) found",
+                        contractEndpoints.size());
             }
         } catch (IOException e) {
             throw new GradleException("doppelgangerApiDetector: failed to scan verification evidence", e);
@@ -634,22 +646,6 @@ public abstract class DetectDoppelgangerApisTask extends DefaultTask {
             total++;
         }
         return total;
-    }
-
-    /**
-     * Emits a one-line {@code LIFECYCLE} phase banner, e.g.
-     * {@code "Doppelganger API Detector: [2/5] Collecting OpenAPI endpoints..."}, and returns the
-     * incremented phase number.
-     *
-     * @param phase       the previous phase number (0 before the first phase)
-     * @param totalPhases total number of phases, from {@link #countTotalPhases()}
-     * @param phaseLabel  human-readable description of the phase that is starting
-     * @return {@code phase + 1}
-     */
-    private int announcePhase(int phase, int totalPhases, String phaseLabel) {
-        int nextPhase = phase + 1;
-        getLogger().lifecycle("Doppelganger API Detector: [{}/{}] {}", nextPhase, totalPhases, phaseLabel);
-        return nextPhase;
     }
 
     private List<Endpoint> scanTestDirs(ContractVerificationSource source) throws IOException {
