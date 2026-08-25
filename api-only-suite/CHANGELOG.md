@@ -1,3 +1,27 @@
+# [3.5.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/api-only-suite-v3.4.0...api-only-suite-v3.5.0) (2026-08-25)
+
+
+### ✨ New and updated features
+
+* **detector-plugins:** adopt api-detector-core 1.5.0 and add scanContracts progress ([#227](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/227)) ([523e72d](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/523e72d8e5b27052419dabf50d87862b9c4a0fb7)), closes [#227](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/227)
+* **tracker-lens:** visualize Doppelganger response-code coverage ([#223](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/223)) ([23de77e](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/23de77eff3561e03534a241d075fedfd040c5627)), closes [#223](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/223) [#160](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/160)
+
+
+### 🐛 Bug Fixes
+
+* **api-only-suite:** bump api-detector-core to 1.5.0 ([#228](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/228)) ([aedfabb](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/aedfabb87e2dc6a4018e53a0e3c74ec1465d9a5f)), closes [#228](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/228) [#227](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/227)
+* **examples:** correct response-coverage chart math and grid legibility ([#225](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/225)) ([9317796](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/93177967fb2309194c556c0bfa688ef1dfe6c71d)), closes [#225](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/225) [#224](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/224)
+
+
+### 📝 Documentation
+
+* **tracker-lens:** show response-coverage in the register() DSL examples ([#226](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/226)) ([f3217f7](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/f3217f7e164fc1c51ebd76bd3583504ae77c9665)), closes [#226](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/226)
+
+
+### 🔧 Misc
+
+* **examples:** bump dashboard-extra-charts to tracker-lens 2.2.0 ([#224](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/224)) ([beaa1a0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/beaa1a0bc04827c110ae2d2417855450fbe074a6)), closes [#224](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/224) [#223](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/223)
+
 # [3.4.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/api-only-suite-v3.3.1...api-only-suite-v3.4.0) (2026-08-24)
 
 
