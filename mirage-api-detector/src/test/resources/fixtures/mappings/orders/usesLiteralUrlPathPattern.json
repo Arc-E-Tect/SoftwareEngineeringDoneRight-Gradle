@@ -1,0 +1,9 @@
+{
+  "request": {
+    "method": "GET",
+    "urlPathPattern": "/orders/summary"
+  },
+  "response": {
+    "status": 200
+  }
+}

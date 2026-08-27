@@ -22,12 +22,32 @@ import java.util.regex.Pattern;
  * stub, the common convention for files stored under a {@code mappings} directory: the first
  * {@code method} field and the first {@code url}/{@code urlPath}/{@code urlPattern}/
  * {@code urlPathPattern} field found in the file are used.</p>
+ *
+ * <p>{@code urlPattern}/{@code urlPathPattern} are WireMock regular expressions, not Spring/
+ * OpenAPI path templates - see {@link #normalizePattern(String)} for how a regex path-variable
+ * segment (e.g. {@code "[0-9]+"}) is recognised and rewritten into the {@code "{id}"}-style
+ * placeholder a declared/implemented endpoint's path actually uses, so this scanner's stub
+ * evidence can be recognised as evidence for that endpoint instead of accumulating as a
+ * permanently unmatched, orphaned path in its own right. {@code url}/{@code urlPath} are literal
+ * WireMock matchers, never regular expressions, and are used as-is (beyond
+ * {@link PathTemplates#normalize(String)}'s own formatting normalisation).</p>
  */
 public class WireMockStubScanner {
 
     private static final Pattern METHOD = Pattern.compile("\"method\"\\s*:\\s*\"([A-Za-z]+)\"");
     private static final Pattern URL =
-            Pattern.compile("\"url(?:Path(?:Pattern)?|Pattern)?\"\\s*:\\s*\"([^\"]+)\"");
+            Pattern.compile("\"(url(?:Path)?(?:Pattern)?)\"\\s*:\\s*\"([^\"]+)\"");
+
+    /**
+     * A {@code "/"}-delimited segment recognised as a plain literal, as opposed to a regular
+     * expression fragment: letters, digits, underscore, dot, colon, and hyphen only. Deliberately
+     * conservative - matching WireMock's own regex syntax precisely is out of scope for a
+     * plain-text scanner that never parses the pattern as an actual regular expression - so a
+     * segment containing any character outside this set (e.g. {@code "["}, {@code "+"},
+     * {@code "\"}, {@code "."} used as a wildcard) is instead treated as a path-variable
+     * placeholder by {@link #normalizePattern(String)}.
+     */
+    private static final Pattern LITERAL_SEGMENT = Pattern.compile("[A-Za-z0-9_.:-]*");
 
     /** Creates a new {@code WireMockStubScanner}. */
     public WireMockStubScanner() {}
@@ -70,7 +90,10 @@ public class WireMockStubScanner {
             if (path == null) {
                 Matcher matcher = URL.matcher(line);
                 if (matcher.find()) {
-                    path = PathTemplates.normalize(matcher.group(1));
+                    String fieldName = matcher.group(1);
+                    String rawValue = matcher.group(2);
+                    path = fieldName.endsWith("Pattern")
+                            ? normalizePattern(rawValue) : PathTemplates.normalize(rawValue);
                 }
             }
         }
@@ -82,6 +105,41 @@ public class WireMockStubScanner {
         String declaringGroup = relativeParentPath(rootDir, file);
         String stubName = stripExtension(file.getName());
         return new Endpoint(verb, path, declaringGroup, stubName, file.getName(), methodLine);
+    }
+
+    /**
+     * Rewrites a WireMock {@code urlPattern}/{@code urlPathPattern} regular expression into an
+     * OpenAPI-comparable path template: every {@code "/"}-delimited segment that isn't a plain
+     * literal per {@link #LITERAL_SEGMENT} - e.g. {@code "[0-9]+"}, matching WireMock's own
+     * idiomatic way to express "any numeric id here" - is replaced with a single {@code "{id}"}
+     * placeholder segment, the same shape a Spring-mapped controller method or an
+     * OpenAPI-declared path uses for a path variable.
+     *
+     * <p>Without this, a stub matched by regular expression would never be recognised as evidence
+     * for its corresponding {@code "{customerId}"}-style declared/implemented endpoint - both
+     * {@link com.arc_e_tect.gradle.detector.core.model.PathMatcher}, used to compare this run's
+     * scanned endpoints, and the fingerprint persisted contract history is keyed by, are looking
+     * for a placeholder segment, not a literal regular expression fragment. It would instead
+     * accumulate as its own, permanently unmatched, orphaned path.</p>
+     *
+     * @param rawPattern the raw regular expression from a {@code urlPattern}/
+     *                    {@code urlPathPattern} field
+     * @return the pattern with every non-literal segment replaced by {@code "{id}"}, normalized
+     */
+    private String normalizePattern(String rawPattern) {
+        String normalized = PathTemplates.normalize(rawPattern);
+        StringBuilder result = new StringBuilder();
+        for (String segment : normalized.split("/")) {
+            if (segment.isEmpty()) {
+                continue;
+            }
+            result.append('/').append(isLiteralSegment(segment) ? segment : "{id}");
+        }
+        return result.length() == 0 ? "/" : result.toString();
+    }
+
+    private boolean isLiteralSegment(String segment) {
+        return LITERAL_SEGMENT.matcher(segment).matches();
     }
 
     private HttpVerb parseVerb(String raw) {

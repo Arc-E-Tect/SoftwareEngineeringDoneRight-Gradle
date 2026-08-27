@@ -42,14 +42,36 @@ class WireMockStubScannerTest {
     }
 
     @Test
-    @DisplayName("recognises the urlPattern field name")
+    @DisplayName("recognises the urlPattern field name, rewriting a regex id segment into a {id} placeholder")
     void recognisesUrlPatternFieldName() throws Exception {
         List<Endpoint> endpoints = scanner.scan(fixtureDir());
 
         assertThat(endpoints)
                 .filteredOn(e -> e.methodSignature().equals("usesUrlPattern"))
                 .extracting(Endpoint::verb, Endpoint::path)
-                .containsExactly(tuple(HttpVerb.PUT, "/orders/[0-9]+"));
+                .containsExactly(tuple(HttpVerb.PUT, "/orders/{id}"));
+    }
+
+    @Test
+    @DisplayName("rewrites every non-literal segment of a urlPathPattern into its own {id} placeholder")
+    void rewritesEveryNonLiteralSegmentOfUrlPathPattern() throws Exception {
+        List<Endpoint> endpoints = scanner.scan(fixtureDir());
+
+        assertThat(endpoints)
+                .filteredOn(e -> e.methodSignature().equals("usesUrlPathPatternMultiSegment"))
+                .extracting(Endpoint::verb, Endpoint::path)
+                .containsExactly(tuple(HttpVerb.PATCH, "/orders/{id}/items/{id}"));
+    }
+
+    @Test
+    @DisplayName("leaves a urlPathPattern with no regex metacharacters unchanged")
+    void leavesLiteralUrlPathPatternUnchanged() throws Exception {
+        List<Endpoint> endpoints = scanner.scan(fixtureDir());
+
+        assertThat(endpoints)
+                .filteredOn(e -> e.methodSignature().equals("usesLiteralUrlPathPattern"))
+                .extracting(Endpoint::verb, Endpoint::path)
+                .containsExactly(tuple(HttpVerb.GET, "/orders/summary"));
     }
 
     @Test
