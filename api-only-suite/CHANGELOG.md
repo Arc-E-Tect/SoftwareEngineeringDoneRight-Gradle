@@ -1,3 +1,12 @@
+## [3.6.3](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/api-only-suite-v3.6.2...api-only-suite-v3.6.3) (2026-08-27)
+
+
+### 🐛 Bug Fixes
+
+* **shadow-api-detector:** bump api-detector-core to 1.5.1 ([#233](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/233)) ([dcc9be8](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/dcc9be8cde8657fa2a060fddc725f6f37cc55139)), closes [#233](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/233)
+* **mirage-api-detector:** bump api-detector-core to 1.5.1 ([#234](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/234)) ([bbb028b](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/bbb028b85e66dfe3c5bd5f47133d0f0ec6beab63)), closes [#234](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/234)
+* **doppelganger-api-detector:** bump api-detector-core to 1.5.1 ([#235](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/235)) ([ca0d4cf](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/ca0d4cf59d2be4e9a86ad2c5fa3a0d3141259f2c)), closes [#235](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/235)
+
 ## [3.6.2](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/api-only-suite-v3.6.1...api-only-suite-v3.6.2) (2026-08-27)
 
 
