@@ -368,7 +368,7 @@ public abstract class DetectMirageApisTask extends DefaultTask {
         File outputFile = new File(outputDir, getReportFileName().get());
         try {
             new MirageApiReportWriter().write(outputFile, described.size(), reportableMirages, excludedMirages,
-                    getSystemUnderTestVersion().get(), warnings, contractHistory);
+                    getSystemUnderTestVersion().get(), warnings, contractHistory, scanMocks);
         } catch (IOException e) {
             throw new GradleException("mirageApiDetector: failed to write report to " + outputFile, e);
         }

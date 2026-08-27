@@ -553,6 +553,8 @@ After the task runs, an AsciiDoc report is written to the configured `reportDir`
 
 Every report opens with a preamble explaining what a mirage API is, how it differs from a shadow API and a zombie API, what the risks are, and a link to the https://owasp.org/API-Security/editions/2023/en/0x11-t10/[OWASP API Security Top 10] (specifically https://owasp.org/API-Security/editions/2023/en/0xa9-improper-inventory-management/[API9:2023 Improper Inventory Management]). The preamble text lives in its own bundled resource - `mirage-api-preamble.adoc` in the plugin's `src/main/resources` - so it can be revised independently of the report-writing code.
 
+When `scanMocks` is `true`, a second preamble - `== About Stub Evidence`, from `mirage-api-stub-scanning-preamble.adoc` - follows it, covering the same ground as "Matching a stub's id segment..." and "Interpreting a stub whose evidence never merges..." above directly in the report itself: what the stub scan looks at, what it can and cannot match, shadow stubs, and multiple stub files legitimately covering one endpoint. This is deliberate - a reader looking at a generated report's `Stubbed` figures shouldn't need to go find this README to understand what they mean.
+
 When `failOnMirage` is `true` and at least one mirage API was found, the task fails the build after writing the report, so the report is always available for inspection regardless of build outcome.
 
 == Full example

@@ -23,12 +23,22 @@ import java.util.stream.Collectors;
  *
  * <p>Every report opens with a preamble explaining what a mirage API is, loaded from the
  * {@value #PREAMBLE_RESOURCE} classpath resource so that explanatory text can be revised without
- * touching this class.</p>
+ * touching this class. When {@code scanMocks} was {@code true} for the run, a second preamble -
+ * {@value #STUB_SCANNING_PREAMBLE_RESOURCE} - explaining what the stub scan can and cannot match,
+ * shadow stubs, and multiple stub files covering one endpoint, is written right after it, since
+ * every {@code Stubbed} figure the rest of the report shows depends on understanding those
+ * limits.</p>
  */
 public class MirageApiReportWriter {
 
     /** Classpath resource holding the "what is a mirage API" preamble, bundled with the plugin. */
     static final String PREAMBLE_RESOURCE = "mirage-api-preamble.adoc";
+
+    /**
+     * Classpath resource holding the "about stub evidence" preamble, bundled with the plugin -
+     * written only when {@code scanMocks} was {@code true} for the run.
+     */
+    static final String STUB_SCANNING_PREAMBLE_RESOURCE = "mirage-api-stub-scanning-preamble.adoc";
 
     /** Group heading used for mirage APIs whose OpenAPI operation declares no tags. */
     static final String UNTAGGED_GROUP = "(untagged)";
@@ -132,6 +142,44 @@ public class MirageApiReportWriter {
             List<ExcludedMirage> excludedMirages, String systemUnderTestVersion, List<String> warnings,
             Map<String, ContractProgressRecord> contractHistory)
             throws IOException {
+        write(outputFile, totalDescribedCount, mirages, excludedMirages, systemUnderTestVersion, warnings,
+                contractHistory, false);
+    }
+
+    /**
+     * Writes the report to {@code outputFile}, creating its parent directory if necessary.
+     *
+     * @param outputFile             target AsciiDoc file
+     * @param totalDescribedCount    total number of endpoints described by the OpenAPI documentation
+     * @param mirages                the described endpoints with no matching {@code @RestController}
+     *                               implementation, excluding any matched by a configured exclusion
+     *                               rule - these are the endpoints that can fail {@code failOnMirage}
+     * @param excludedMirages        described-but-unimplemented endpoints matched by a configured
+     *                                exclusion rule, paired with their current-run WireMock stub
+     *                                status; rendered under {@code == Excluded Mirage APIs} instead
+     *                                of {@code == Mirage APIs}, never fails the build, and never
+     *                                appears in contract history - when empty, no such section is
+     *                                written
+     * @param systemUnderTestVersion version of the system under test that was scanned
+     * @param warnings               non-fatal configuration gaps to render as a {@code WARNING}
+     *                                admonition right after the report header - e.g. a configured
+     *                                {@code rootDocument} or {@code controllerDirs} entry that
+     *                                doesn't exist yet; when empty, no such admonition is written
+     * @param contractHistory        contract progress history to render as a {@code == Progress Over
+     *                                Time} section, keyed by fingerprint; when empty, no such
+     *                                section is written
+     * @param scanMocks              whether stub mapping/Java DSL scanning was enabled for this run -
+     *                                when {@code true}, an additional preamble explaining what the
+     *                                stub scan can and cannot match, shadow stubs, and multiple stub
+     *                                files covering one endpoint is written right after the main
+     *                                preamble
+     * @throws IOException if the output file cannot be written
+     */
+    public void write(
+            File outputFile, int totalDescribedCount, List<DescribedEndpoint> mirages,
+            List<ExcludedMirage> excludedMirages, String systemUnderTestVersion, List<String> warnings,
+            Map<String, ContractProgressRecord> contractHistory, boolean scanMocks)
+            throws IOException {
         File parent = outputFile.getParentFile();
         if (parent != null && !parent.exists() && !parent.mkdirs()) {
             throw new IOException("Could not create output directory: " + parent);
@@ -158,6 +206,10 @@ public class MirageApiReportWriter {
             writer.println();
             writer.print(loadPreamble());
             writer.println();
+            if (scanMocks) {
+                writer.print(loadStubScanningPreamble());
+                writer.println();
+            }
             progressTableWriter.write(writer, contractHistory);
             writer.println("== Mirage APIs");
             writer.println();
@@ -290,9 +342,25 @@ public class MirageApiReportWriter {
      * @throws IOException if the {@value #PREAMBLE_RESOURCE} resource is missing or cannot be read
      */
     private String loadPreamble() throws IOException {
-        try (InputStream stream = MirageApiReportWriter.class.getClassLoader().getResourceAsStream(PREAMBLE_RESOURCE)) {
+        return loadResource(PREAMBLE_RESOURCE);
+    }
+
+    /**
+     * Loads the "about stub evidence" preamble bundled with the plugin as a classpath resource -
+     * see {@value #STUB_SCANNING_PREAMBLE_RESOURCE}.
+     *
+     * @return the preamble's AsciiDoc content
+     * @throws IOException if the {@value #STUB_SCANNING_PREAMBLE_RESOURCE} resource is missing or
+     *                      cannot be read
+     */
+    private String loadStubScanningPreamble() throws IOException {
+        return loadResource(STUB_SCANNING_PREAMBLE_RESOURCE);
+    }
+
+    private String loadResource(String resourceName) throws IOException {
+        try (InputStream stream = MirageApiReportWriter.class.getClassLoader().getResourceAsStream(resourceName)) {
             if (stream == null) {
-                throw new IOException("Missing bundled resource: " + PREAMBLE_RESOURCE);
+                throw new IOException("Missing bundled resource: " + resourceName);
             }
             return new String(stream.readAllBytes(), StandardCharsets.UTF_8);
         }
