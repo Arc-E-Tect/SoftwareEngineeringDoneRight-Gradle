@@ -183,6 +183,8 @@ public class ProgressReportWriter {
 
         writer.println("== Progress Over Time");
         writer.println();
+        writer.println(ReportText.REMOVED_BLURB);
+        writer.println();
         writer.println("[cols=\"1,1\",options=\"header\"]");
         writer.println("|===");
         writer.println("| Metric | Value");

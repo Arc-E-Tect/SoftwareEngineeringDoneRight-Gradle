@@ -344,6 +344,30 @@ class ProgressReportWriterTest {
     }
 
     @Test
+    @DisplayName("explains why a scenario becomes removed, right before the Removed row")
+    void explainsWhyAScenarioBecomesRemoved(@TempDir Path tempDir) throws IOException {
+        ScenarioInfo implemented = new ScenarioInfo(
+                "Authentication", "Scenario: Fully wired up", List.of("an implemented step"));
+        List<Expression> glueCode = List.of(expression("an implemented step"));
+        Map<String, ScenarioProgressRecord> history = Map.of("fp1", new ScenarioProgressRecord(
+                "fp1", "Fully wired up", "Authentication",
+                Instant.parse("2026-01-01T00:00:00Z"), null, Instant.parse("2026-01-05T00:00:00Z"),
+                Instant.parse("2026-01-05T00:00:00Z"), null));
+
+        File outputFile = tempDir.resolve("features.adoc").toFile();
+        writer.write(outputFile, List.of(implemented), glueCode,
+                new ProgressReportOptions(true, tempDir.resolve("snippets").toFile(), null, "1.0.0", history));
+
+        String content = Files.readString(outputFile.toPath(), StandardCharsets.UTF_8);
+        int progressOverTimeIndex = content.indexOf("Progress Over Time");
+        int blurbIndex = content.indexOf(ReportText.REMOVED_BLURB);
+        int removedRowIndex = content.indexOf("Removed (no longer seen)");
+        assertThat(blurbIndex).isGreaterThan(progressOverTimeIndex);
+        assertThat(removedRowIndex).isGreaterThan(blurbIndex);
+        assertThat(content).contains("taken out of scope").contains("duplicate another scenario");
+    }
+
+    @Test
     @DisplayName("counts records with a non-null removedAt as removed")
     void countsRecordsWithNonNullRemovedAtAsRemoved(@TempDir Path tempDir) throws IOException {
         ScenarioInfo implemented = new ScenarioInfo(

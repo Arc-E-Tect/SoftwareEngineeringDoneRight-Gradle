@@ -1088,6 +1088,11 @@ Both are persisted with the same keyword/index-prefix stripping the fingerprint 
 A previously persisted record whose fingerprint is no longer present in the current scan is *never deleted* - it's kept exactly as it was, except its `removedAt` is stamped with the current time the first time it goes missing (and left alone on every subsequent run, once set).
 If a scenario with the same fingerprint reappears in a later run (e.g. a revert), its `removedAt` is cleared and its other fields resume advancing normally.
 
+[IMPORTANT]
+====
+A scenario becoming removed is expected, ongoing churn - not necessarily a mistake, and not something this plugin can tell apart on its own. Feature files are often written ahead of time to scope an upcoming release, and it's common for scenarios to be taken out of scope - postponed to a later release - and for others to be taken back into scope at a later stage; both show up exactly the same way in `progressHistoryFile`. A scenario can equally become removed because it was considered obsolete, turned out to duplicate another scenario after all, or was rewritten to fix an error in its own definition - which then reappears as a *new* scenario rather than a continuation of the old one, since a changed name means a changed fingerprint (see "How Scenarios Are Matched Across Runs" above). Before treating a `Removed (no longer seen)` count as a problem, check which of these it actually is.
+====
+
 === File Format
 
 `progressHistoryFile` is newline-delimited JSON (NDJSON) - one line per scenario - sorted by fingerprint so that git diffs stay minimal and stable regardless of how scenarios are reordered or moved between feature files.
