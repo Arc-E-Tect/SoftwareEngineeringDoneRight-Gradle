@@ -491,6 +491,11 @@ A missing `contractHistoryFile` is treated as an empty history, not an error.
 A line that fails to parse (e.g. hand-edited into something invalid) is skipped with a `WARNING`-level `java.util.logging` message identifying its line number; it never fails the build.
 A previously persisted record whose fingerprint is no longer present in the current scan is *never deleted* - it's kept exactly as it was, except its `removedAt` is stamped the first time it goes missing.
 
+[IMPORTANT]
+====
+An endpoint becoming removed is not, by itself, a sign of a problem. It commonly means the endpoint was scoped for an upcoming release and postponed to a later one - a common outcome when an OpenAPI document is written ahead of the code it describes, to plan a release before implementation begins - or that it was considered obsolete and deliberately dropped, or that it had an error in its original definition (a wrong path, a typo, an inconsistent verb) and was replaced by a corrected declaration, which then appears as its own new record rather than a continuation of the old one, since the two have different fingerprints. If an endpoint with the same verb and path reappears in a later run, its `removedAt` is cleared automatically and its progress resumes from where it left off. See "About Removed Endpoints" in the generated report itself for the same explanation, written directly next to the `Removed (no longer seen)` figure it applies to.
+====
+
 The generated report reflects the loaded (and possibly just-advanced) history as a `== Progress Over Time` section, once `trackContractHistory` finds at least one record: a human-friendly `Tracked since` timestamp, how many endpoints were declared/implemented/stubbed/verified in the last 7 and 30 days, and how many previously tracked endpoints are no longer seen in the current run.
 
 [#migrating-legacy-contract-history]

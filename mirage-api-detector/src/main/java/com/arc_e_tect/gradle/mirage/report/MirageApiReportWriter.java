@@ -27,7 +27,10 @@ import java.util.stream.Collectors;
  * {@value #STUB_SCANNING_PREAMBLE_RESOURCE} - explaining what the stub scan can and cannot match,
  * shadow stubs, and multiple stub files covering one endpoint, is written right after it, since
  * every {@code Stubbed} figure the rest of the report shows depends on understanding those
- * limits.</p>
+ * limits. Whenever {@code contractHistory} is non-empty - i.e. whenever the
+ * {@code == Progress Over Time} section itself is written - a third preamble,
+ * {@value #REMOVED_PREAMBLE_RESOURCE}, explains why an endpoint becomes removed (postponed,
+ * obsolete, or replaced after an error in its original definition), right before that section.</p>
  */
 public class MirageApiReportWriter {
 
@@ -39,6 +42,13 @@ public class MirageApiReportWriter {
      * written only when {@code scanMocks} was {@code true} for the run.
      */
     static final String STUB_SCANNING_PREAMBLE_RESOURCE = "mirage-api-stub-scanning-preamble.adoc";
+
+    /**
+     * Classpath resource holding the "about removed endpoints" preamble, bundled with the plugin -
+     * written only when {@code contractHistory} is non-empty, i.e. whenever the
+     * {@code == Progress Over Time} section it explains is itself written.
+     */
+    static final String REMOVED_PREAMBLE_RESOURCE = "mirage-api-removed-preamble.adoc";
 
     /** Group heading used for mirage APIs whose OpenAPI operation declares no tags. */
     static final String UNTAGGED_GROUP = "(untagged)";
@@ -210,6 +220,10 @@ public class MirageApiReportWriter {
                 writer.print(loadStubScanningPreamble());
                 writer.println();
             }
+            if (!contractHistory.isEmpty()) {
+                writer.print(loadRemovedPreamble());
+                writer.println();
+            }
             progressTableWriter.write(writer, contractHistory);
             writer.println("== Mirage APIs");
             writer.println();
@@ -355,6 +369,18 @@ public class MirageApiReportWriter {
      */
     private String loadStubScanningPreamble() throws IOException {
         return loadResource(STUB_SCANNING_PREAMBLE_RESOURCE);
+    }
+
+    /**
+     * Loads the "about removed endpoints" preamble bundled with the plugin as a classpath
+     * resource - see {@value #REMOVED_PREAMBLE_RESOURCE}.
+     *
+     * @return the preamble's AsciiDoc content
+     * @throws IOException if the {@value #REMOVED_PREAMBLE_RESOURCE} resource is missing or cannot
+     *                      be read
+     */
+    private String loadRemovedPreamble() throws IOException {
+        return loadResource(REMOVED_PREAMBLE_RESOURCE);
     }
 
     private String loadResource(String resourceName) throws IOException {

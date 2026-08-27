@@ -328,6 +328,70 @@ class MirageApiReportWriterTest {
     }
 
     @Test
+    @DisplayName("omits the removed-endpoints preamble when contract history is empty")
+    void omitsRemovedPreambleWhenContractHistoryIsEmpty(@TempDir Path tempDir) throws Exception {
+        File output = new File(tempDir.toFile(), "report.adoc");
+
+        writer.write(output, 0, List.of(), List.of(), "1.0.0", List.of(), Map.of(), false);
+
+        assertThat(Files.readString(output.toPath())).doesNotContain("About Removed Endpoints");
+    }
+
+    @Test
+    @DisplayName("includes the bundled removed-endpoints preamble when contract history is non-empty")
+    void includesRemovedPreambleWhenContractHistoryIsNonEmpty(@TempDir Path tempDir) throws Exception {
+        File output = new File(tempDir.toFile(), "report.adoc");
+        Map<String, ContractProgressRecord> history = Map.of("fp1", new ContractProgressRecord(
+                "fp1", HttpVerb.GET, "/orders/{id}", null, null, null, null, null,
+                Instant.parse("2026-02-20T11:15:44Z"), null));
+
+        writer.write(output, 0, List.of(), List.of(), "1.0.0", List.of(), history, false);
+
+        String content = Files.readString(output.toPath());
+        assertThat(content)
+                .contains("About Removed Endpoints")
+                .contains("postponed")
+                .contains("obsolete");
+    }
+
+    @Test
+    @DisplayName("removed-endpoints preamble content matches the bundled mirage-api-removed-preamble.adoc resource verbatim")
+    void removedPreambleMatchesBundledResource(@TempDir Path tempDir) throws Exception {
+        File output = new File(tempDir.toFile(), "report.adoc");
+        Map<String, ContractProgressRecord> history = Map.of("fp1", new ContractProgressRecord(
+                "fp1", HttpVerb.GET, "/orders/{id}", null, null, null, null, null,
+                Instant.parse("2026-02-20T11:15:44Z"), null));
+
+        writer.write(output, 0, List.of(), List.of(), "1.0.0", List.of(), history, false);
+
+        String content = Files.readString(output.toPath());
+        String preamble;
+        try (var stream = getClass().getClassLoader()
+                .getResourceAsStream(MirageApiReportWriter.REMOVED_PREAMBLE_RESOURCE)) {
+            preamble = new String(stream.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+        }
+
+        assertThat(content).contains(preamble);
+    }
+
+    @Test
+    @DisplayName("writes the removed-endpoints preamble right before Progress Over Time, independently of scanMocks")
+    void writesRemovedPreambleBeforeProgressOverTimeIndependentlyOfScanMocks(@TempDir Path tempDir) throws Exception {
+        File output = new File(tempDir.toFile(), "report.adoc");
+        Map<String, ContractProgressRecord> history = Map.of("fp1", new ContractProgressRecord(
+                "fp1", HttpVerb.GET, "/orders/{id}", null, null, null, null, null,
+                Instant.parse("2026-02-20T11:15:44Z"), null));
+
+        writer.write(output, 0, List.of(), List.of(), "1.0.0", List.of(), history, false);
+
+        String content = Files.readString(output.toPath());
+        int removedPreambleIndex = content.indexOf("About Removed Endpoints");
+        int progressIndex = content.indexOf("== Progress Over Time");
+        assertThat(removedPreambleIndex).isPositive();
+        assertThat(progressIndex).isGreaterThan(removedPreambleIndex);
+    }
+
+    @Test
     @DisplayName("still writes the Excluded Mirage APIs section when the main Mirage APIs list is also non-empty")
     void writesExcludedSectionAlongsideNonEmptyMainList(@TempDir Path tempDir) throws Exception {
         File output = new File(tempDir.toFile(), "report.adoc");
