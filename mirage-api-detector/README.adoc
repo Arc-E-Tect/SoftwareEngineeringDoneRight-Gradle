@@ -103,6 +103,11 @@ Stub evidence never counts as implementation evidence. An endpoint stubbed by Wi
 
 The plugin looks for `*.json` files, recursively, under `stubDirs` (default `src/test/resources/mappings`, WireMock's own conventional mapping directory). One file is expected to describe one stub - the common convention for files stored under a `mappings` directory. Each file is read structurally for its first `method` field and its first `url`, `urlPath`, `urlPattern`, or `urlPathPattern` field - deliberately without a JSON parser or the WireMock library itself on this plugin's classpath, the same "read the file as data, not code" approach the companion link:../doppelganger-api-detector/README.adoc[Doppelganger API Detector] plugin uses for Spring Cloud Contract files.
 
+[IMPORTANT]
+====
+`urlPattern`/`urlPathPattern` are WireMock regular expressions, not Spring/OpenAPI path templates. A regex id segment - e.g. `"/customers/[0-9]+"`, WireMock's own idiomatic way to express "any numeric id here" - is rewritten into a `{id}` placeholder segment before comparison, e.g. `/customers/{id}`, the same shape a declared/implemented endpoint's path variable uses. Without this, that stub would never be recognised as evidence for its corresponding `{customerId}`-style endpoint - it would instead accumulate as its own, permanently unmatched, orphaned path, both in this run's `Stubbed: Yes`/`No` display and in `contractHistoryFile`. A segment with no regex metacharacters (letters, digits, `_`, `.`, `:`, and `-` only) is left unchanged - only a segment that actually looks like a pattern, not every segment, is rewritten. `url`/`urlPath` are literal WireMock matchers, never regular expressions, and are never rewritten this way.
+====
+
 .Example stub mapping file (`src/test/resources/mappings/getItem.json`)
 [source,json]
 ----
