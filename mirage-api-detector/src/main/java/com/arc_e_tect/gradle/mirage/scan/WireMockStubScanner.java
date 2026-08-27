@@ -10,6 +10,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -28,9 +29,20 @@ import java.util.regex.Pattern;
  * segment (e.g. {@code "[0-9]+"}) is recognised and rewritten into the {@code "{id}"}-style
  * placeholder a declared/implemented endpoint's path actually uses, so this scanner's stub
  * evidence can be recognised as evidence for that endpoint instead of accumulating as a
- * permanently unmatched, orphaned path in its own right. {@code url}/{@code urlPath} are literal
- * WireMock matchers, never regular expressions, and are used as-is (beyond
- * {@link PathTemplates#normalize(String)}'s own formatting normalisation).</p>
+ * permanently unmatched, orphaned path in its own right.</p>
+ *
+ * <p>{@code url}/{@code urlPath} are literal WireMock matchers, never regular expressions - but a
+ * purely numeric segment (e.g. {@code "700336"} in {@code "/persons/700336"}) is, just as
+ * heuristically, rewritten into a {@code "{id}"} placeholder too, by
+ * {@link #normalizeLiteral(String)}: a hand-written literal stub overwhelmingly picks an arbitrary
+ * example value to stand in for a path variable, the same way {@link #normalizePattern(String)}
+ * already treats a regular expression's own numeric-id shape. This is a deliberately imprecise
+ * heuristic, not a certainty, and it is not reversible for a specific stub - a genuinely numeric
+ * literal path segment that isn't a path variable at all (e.g. a year in a URL) is
+ * indistinguishable from an example id by shape alone, and is rewritten the same way, which then
+ * fails to match that segment's own, genuinely literal, declared/implemented path instead. See the
+ * plugin README's "Matching a stub's id segment to its declared/implemented endpoint's path
+ * variable" section for the accepted trade-off this represents.</p>
  */
 public class WireMockStubScanner {
 
@@ -48,6 +60,12 @@ public class WireMockStubScanner {
      * placeholder by {@link #normalizePattern(String)}.
      */
     private static final Pattern LITERAL_SEGMENT = Pattern.compile("[A-Za-z0-9_.:-]*");
+
+    /**
+     * A {@code "/"}-delimited segment recognised as a probable example id value in a literal
+     * {@code url}/{@code urlPath} matcher: digits only. See {@link #normalizeLiteral(String)}.
+     */
+    private static final Pattern NUMERIC_SEGMENT = Pattern.compile("[0-9]+");
 
     /** Creates a new {@code WireMockStubScanner}. */
     public WireMockStubScanner() {}
@@ -93,7 +111,7 @@ public class WireMockStubScanner {
                     String fieldName = matcher.group(1);
                     String rawValue = matcher.group(2);
                     path = fieldName.endsWith("Pattern")
-                            ? normalizePattern(rawValue) : PathTemplates.normalize(rawValue);
+                            ? normalizePattern(rawValue) : normalizeLiteral(rawValue);
                 }
             }
         }
@@ -127,19 +145,40 @@ public class WireMockStubScanner {
      * @return the pattern with every non-literal segment replaced by {@code "{id}"}, normalized
      */
     private String normalizePattern(String rawPattern) {
-        String normalized = PathTemplates.normalize(rawPattern);
+        return rewriteSegments(rawPattern, segment -> !isLiteralSegment(segment));
+    }
+
+    /**
+     * Rewrites a literal {@code url}/{@code urlPath} matcher's own probable example-id segments
+     * (digits only, e.g. {@code "700336"}) into a {@code "{id}"} placeholder, the same shape
+     * {@link #normalizePattern(String)} rewrites a regular expression's numeric-id shape into -
+     * see this class's own javadoc for why, and for the imprecision this deliberately accepts.
+     *
+     * @param rawValue the raw literal value from a {@code url}/{@code urlPath} field
+     * @return the value with every purely numeric segment replaced by {@code "{id}"}, normalized
+     */
+    private String normalizeLiteral(String rawValue) {
+        return rewriteSegments(rawValue, this::isNumericSegment);
+    }
+
+    private String rewriteSegments(String rawPath, Predicate<String> isPlaceholderCandidate) {
+        String normalized = PathTemplates.normalize(rawPath);
         StringBuilder result = new StringBuilder();
         for (String segment : normalized.split("/")) {
             if (segment.isEmpty()) {
                 continue;
             }
-            result.append('/').append(isLiteralSegment(segment) ? segment : "{id}");
+            result.append('/').append(isPlaceholderCandidate.test(segment) ? "{id}" : segment);
         }
         return result.length() == 0 ? "/" : result.toString();
     }
 
     private boolean isLiteralSegment(String segment) {
         return LITERAL_SEGMENT.matcher(segment).matches();
+    }
+
+    private boolean isNumericSegment(String segment) {
+        return NUMERIC_SEGMENT.matcher(segment).matches();
     }
 
     private HttpVerb parseVerb(String raw) {

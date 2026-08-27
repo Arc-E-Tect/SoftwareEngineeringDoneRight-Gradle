@@ -103,11 +103,6 @@ Stub evidence never counts as implementation evidence. An endpoint stubbed by Wi
 
 The plugin looks for `*.json` files, recursively, under `stubDirs` (default `src/test/resources/mappings`, WireMock's own conventional mapping directory). One file is expected to describe one stub - the common convention for files stored under a `mappings` directory. Each file is read structurally for its first `method` field and its first `url`, `urlPath`, `urlPattern`, or `urlPathPattern` field - deliberately without a JSON parser or the WireMock library itself on this plugin's classpath, the same "read the file as data, not code" approach the companion link:../doppelganger-api-detector/README.adoc[Doppelganger API Detector] plugin uses for Spring Cloud Contract files.
 
-[IMPORTANT]
-====
-`urlPattern`/`urlPathPattern` are WireMock regular expressions, not Spring/OpenAPI path templates. A regex id segment - e.g. `"/customers/[0-9]+"`, WireMock's own idiomatic way to express "any numeric id here" - is rewritten into a `{id}` placeholder segment before comparison, e.g. `/customers/{id}`, the same shape a declared/implemented endpoint's path variable uses. Without this, that stub would never be recognised as evidence for its corresponding `{customerId}`-style endpoint - it would instead accumulate as its own, permanently unmatched, orphaned path, both in this run's `Stubbed: Yes`/`No` display and in `contractHistoryFile`. A segment with no regex metacharacters (letters, digits, `_`, `.`, `:`, and `-` only) is left unchanged - only a segment that actually looks like a pattern, not every segment, is rewritten. `url`/`urlPath` are literal WireMock matchers, never regular expressions, and are never rewritten this way.
-====
-
 .Example stub mapping file (`src/test/resources/mappings/getItem.json`)
 [source,json]
 ----
@@ -121,6 +116,29 @@ The plugin looks for `*.json` files, recursively, under `stubDirs` (default `src
   }
 }
 ----
+
+=== Matching a stub's id segment to its declared/implemented endpoint's path variable
+
+A stub mapping file has no concept of a named path variable the way an OpenAPI document or a `@RequestMapping` does - it only ever records either a regular expression (`urlPattern`/`urlPathPattern`) or a literal example value (`url`/`urlPath`) for the request path it matches. Left as-is, neither would ever be recognised as evidence for the corresponding `{customerId}`-style declared/implemented endpoint - each would instead accumulate as its own, permanently unmatched, orphaned path, both in this run's `Stubbed: Yes`/`No` display and in `contractHistoryFile`. So every `"/"`-delimited path segment that *looks like* it stands in for a path variable is rewritten into a `{id}` placeholder before comparison - the same shape a declared/implemented endpoint's own path variable uses - by two separate heuristics, one per matcher kind:
+
+[cols="1,2,2",options="header"]
+|===
+| Field | Segment rewritten when... | Example
+| `urlPattern` / `urlPathPattern` | it contains a regular-expression metacharacter - i.e. any character other than a letter, digit, `_`, `.`, `:`, or `-` | `"/customers/[0-9]+"` → `/customers/{id}`
+| `url` / `urlPath` | it consists of digits only | `"/customers/700336"` → `/customers/{id}`
+|===
+
+A segment that doesn't match either shape - e.g. `orders`, `post`, or a mixed alphanumeric identifier like `ord-2026-001` - is left exactly as written.
+
+[IMPORTANT]
+====
+Both heuristics are deliberately imprecise, not a certainty, and this is a known, accepted trade-off rather than an oversight:
+
+* A WireMock regular expression can express far more than "any numeric id here", and this scanner doesn't attempt to parse it as one - it only recognises the *shape* of a segment (does it contain a regex metacharacter at all), not what the expression actually matches.
+* A **literal, purely numeric path segment that genuinely is not a path variable** - e.g. a year in a URL such as `/reports/2026` - is indistinguishable, by shape alone, from an example id standing in for one, and is rewritten into `/reports/{id}` all the same. If that endpoint's real declared/implemented path is truly the literal `/reports/2026`, this stub's evidence will now fail to match *that* - the same "orphaned, unmatched path" failure mode this rewriting exists to fix, just triggered in the opposite direction.
+
+There is currently no way to opt a specific stub file or segment out of either rewrite - a genuinely literal numeric path segment has no way to signal that it means exactly what it says. In practice, a stub matching a truly fixed, non-variable numeric path is rare enough - and the alternative of leaving every numeric-id stub permanently unmatched is common enough - that this plugin accepts the trade-off by default.
+====
 
 [source,groovy]
 ----
