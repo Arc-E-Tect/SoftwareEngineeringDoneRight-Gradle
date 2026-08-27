@@ -1,3 +1,10 @@
+## [3.6.2](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/api-only-suite-v3.6.1...api-only-suite-v3.6.2) (2026-08-27)
+
+
+### 🐛 Bug Fixes
+
+* **mirage-api-detector:** rewrite a WireMock urlPattern/urlPathPattern regex id segment into a {id} placeholder ([#232](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/232)) ([ea9441e](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/ea9441e15015ffc807540c08085d61a6a0f29ea6)), closes [#232](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/232)
+
 ## [3.6.1](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/api-only-suite-v3.6.0...api-only-suite-v3.6.1) (2026-08-27)
 
 
