@@ -1,0 +1,22 @@
+== About Removed Endpoints
+
+`Removed (no longer seen)` in the table below counts every endpoint this plugin - and any sibling
+detector sharing the same `contractHistoryFile` - once found declared, implemented, stubbed, or
+verified, but no longer finds anywhere at all. A removed endpoint's record is never deleted; it stays
+in `contractHistoryFile` with its earlier progress intact, and `removedAt` is stamped the first time it
+went missing.
+
+An endpoint becomes removed for reasons that have nothing to do with a bug in this plugin, in your
+OpenAPI documentation, or in your code:
+
+* It was scoped for an upcoming release and postponed to a later one - a common outcome when an
+  OpenAPI document is written ahead of the code it describes, to plan a release before implementation
+  begins.
+* It's considered obsolete and was deliberately dropped from the API surface.
+* It had an error in its original definition - a wrong path, a typo, an inconsistent verb - and was
+  replaced by a corrected declaration, which then appears as its own *new* record rather than a
+  continuation of the old one, since the two have different fingerprints.
+
+If an endpoint with the same verb and path reappears in a later run - e.g. a postponed operation makes
+it into a subsequent release after all - its `removedAt` is cleared automatically and its progress
+resumes from where it left off.

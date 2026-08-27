@@ -20,14 +20,14 @@ class WireMockStubScannerTest {
     private final WireMockStubScanner scanner = new WireMockStubScanner();
 
     @Test
-    @DisplayName("reads method and urlPath from a stub mapping")
+    @DisplayName("reads method and urlPath from a stub mapping, rewriting a numeric literal id segment into a {id} placeholder")
     void readsMethodAndUrlPathFromStub() throws Exception {
         List<Endpoint> endpoints = scanner.scan(fixtureDir());
 
         assertThat(endpoints)
                 .filteredOn(e -> e.methodSignature().equals("shouldReturnOrder"))
                 .extracting(Endpoint::verb, Endpoint::path)
-                .containsExactly(tuple(HttpVerb.GET, "/orders/1"));
+                .containsExactly(tuple(HttpVerb.GET, "/orders/{id}"));
     }
 
     @Test
@@ -39,6 +39,28 @@ class WireMockStubScannerTest {
                 .filteredOn(e -> e.methodSignature().equals("shouldCreateOrder"))
                 .extracting(Endpoint::verb, Endpoint::path)
                 .containsExactly(tuple(HttpVerb.POST, "/orders"));
+    }
+
+    @Test
+    @DisplayName("rewrites every purely numeric segment of a literal urlPath into its own {id} placeholder")
+    void rewritesEveryNumericSegmentOfLiteralUrlPath() throws Exception {
+        List<Endpoint> endpoints = scanner.scan(fixtureDir());
+
+        assertThat(endpoints)
+                .filteredOn(e -> e.methodSignature().equals("usesUrlPathWithMultipleNumericIds"))
+                .extracting(Endpoint::verb, Endpoint::path)
+                .containsExactly(tuple(HttpVerb.PUT, "/orders/{id}/items/{id}"));
+    }
+
+    @Test
+    @DisplayName("leaves a literal urlPath segment that mixes letters and digits unchanged")
+    void leavesAlphanumericLiteralUrlPathSegmentUnchanged() throws Exception {
+        List<Endpoint> endpoints = scanner.scan(fixtureDir());
+
+        assertThat(endpoints)
+                .filteredOn(e -> e.methodSignature().equals("usesUrlPathWithAlphanumericSegment"))
+                .extracting(Endpoint::verb, Endpoint::path)
+                .containsExactly(tuple(HttpVerb.GET, "/orders/ord-2026-001"));
     }
 
     @Test
@@ -72,6 +94,17 @@ class WireMockStubScannerTest {
                 .filteredOn(e -> e.methodSignature().equals("usesLiteralUrlPathPattern"))
                 .extracting(Endpoint::verb, Endpoint::path)
                 .containsExactly(tuple(HttpVerb.GET, "/orders/summary"));
+    }
+
+    @Test
+    @DisplayName("rewrites a purely numeric segment in a urlPathPattern field even when the value has no regex metacharacters at all")
+    void rewritesNumericSegmentInLiteralValuedUrlPathPatternField() throws Exception {
+        List<Endpoint> endpoints = scanner.scan(fixtureDir());
+
+        assertThat(endpoints)
+                .filteredOn(e -> e.methodSignature().equals("usesUrlPathPatternWithLiteralNumericId"))
+                .extracting(Endpoint::verb, Endpoint::path)
+                .containsExactly(tuple(HttpVerb.DELETE, "/orders/{id}/items/{id}"));
     }
 
     @Test

@@ -1,0 +1,9 @@
+{
+  "request": {
+    "method": "DELETE",
+    "urlPathPattern": "/orders/123/items/456"
+  },
+  "response": {
+    "status": 400
+  }
+}

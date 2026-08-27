@@ -103,11 +103,6 @@ Stub evidence never counts as implementation evidence. An endpoint stubbed by Wi
 
 The plugin looks for `*.json` files, recursively, under `stubDirs` (default `src/test/resources/mappings`, WireMock's own conventional mapping directory). One file is expected to describe one stub - the common convention for files stored under a `mappings` directory. Each file is read structurally for its first `method` field and its first `url`, `urlPath`, `urlPattern`, or `urlPathPattern` field - deliberately without a JSON parser or the WireMock library itself on this plugin's classpath, the same "read the file as data, not code" approach the companion link:../doppelganger-api-detector/README.adoc[Doppelganger API Detector] plugin uses for Spring Cloud Contract files.
 
-[IMPORTANT]
-====
-`urlPattern`/`urlPathPattern` are WireMock regular expressions, not Spring/OpenAPI path templates. A regex id segment - e.g. `"/customers/[0-9]+"`, WireMock's own idiomatic way to express "any numeric id here" - is rewritten into a `{id}` placeholder segment before comparison, e.g. `/customers/{id}`, the same shape a declared/implemented endpoint's path variable uses. Without this, that stub would never be recognised as evidence for its corresponding `{customerId}`-style endpoint - it would instead accumulate as its own, permanently unmatched, orphaned path, both in this run's `Stubbed: Yes`/`No` display and in `contractHistoryFile`. A segment with no regex metacharacters (letters, digits, `_`, `.`, `:`, and `-` only) is left unchanged - only a segment that actually looks like a pattern, not every segment, is rewritten. `url`/`urlPath` are literal WireMock matchers, never regular expressions, and are never rewritten this way.
-====
-
 .Example stub mapping file (`src/test/resources/mappings/getItem.json`)
 [source,json]
 ----
@@ -122,6 +117,30 @@ The plugin looks for `*.json` files, recursively, under `stubDirs` (default `src
 }
 ----
 
+=== Matching a stub's id segment to its declared/implemented endpoint's path variable
+
+A stub mapping file has no concept of a named path variable the way an OpenAPI document or a `@RequestMapping` does - it only ever records either a regular expression (`urlPattern`/`urlPathPattern`) or a literal example value (`url`/`urlPath`) for the request path it matches. Left as-is, neither would ever be recognised as evidence for the corresponding `{customerId}`-style declared/implemented endpoint - each would instead accumulate as its own, permanently unmatched, orphaned path, both in this run's `Stubbed: Yes`/`No` display and in `contractHistoryFile`. So every `"/"`-delimited path segment that *looks like* it stands in for a path variable is rewritten into a `{id}` placeholder before comparison - the same shape a declared/implemented endpoint's own path variable uses - by two separate heuristics, one per matcher kind:
+
+[cols="1,2,2",options="header"]
+|===
+| Field | Segment rewritten when... | Example
+| `urlPattern` / `urlPathPattern` | it contains a regular-expression metacharacter, *or* it's purely numeric even without one - a `urlPathPattern` value is free to be a plain literal instead of an actual regular expression, and gets the same numeric-id treatment `url`/`urlPath` does below | `"/customers/[0-9]+"` → `/customers/{id}` +
+`"/customers/123"` → `/customers/{id}`
+| `url` / `urlPath` | it consists of digits only | `"/customers/700336"` → `/customers/{id}`
+|===
+
+A segment that doesn't match either shape - e.g. `orders`, `post`, or a mixed alphanumeric identifier like `ord-2026-001` - is left exactly as written.
+
+[IMPORTANT]
+====
+Both heuristics are deliberately imprecise, not a certainty, and this is a known, accepted trade-off rather than an oversight:
+
+* A WireMock regular expression can express far more than "any numeric id here", and this scanner doesn't attempt to parse it as one - it only recognises the *shape* of a segment (does it contain a regex metacharacter at all), not what the expression actually matches.
+* A **literal, purely numeric path segment that genuinely is not a path variable** - e.g. a year in a URL such as `/reports/2026` - is indistinguishable, by shape alone, from an example id standing in for one, and is rewritten into `/reports/{id}` all the same. If that endpoint's real declared/implemented path is truly the literal `/reports/2026`, this stub's evidence will now fail to match *that* - the same "orphaned, unmatched path" failure mode this rewriting exists to fix, just triggered in the opposite direction.
+
+There is currently no way to opt a specific stub file or segment out of either rewrite - a genuinely literal numeric path segment has no way to signal that it means exactly what it says. In practice, a stub matching a truly fixed, non-variable numeric path is rare enough - and the alternative of leaving every numeric-id stub permanently unmatched is common enough - that this plugin accepts the trade-off by default.
+====
+
 [source,groovy]
 ----
 mirageApiDetector {
@@ -129,6 +148,32 @@ mirageApiDetector {
     stubDirs.from('src/test/resources/mappings')
 }
 ----
+
+=== Interpreting a stub whose evidence never merges with a declared/implemented endpoint
+
+A stub's evidence staying permanently unmerged is visible directly in `contractHistoryFile`: its own record, with `stubbedAt` set but `declaringClass`, `declaredAt`, and `implementedAt` all `null`, never joining the record for the endpoint it was actually meant to exercise. The heuristics above are one reason this happens, but not the only one - and this plugin has no way to tell the difference on its own. Before assuming the scanner is wrong, check for these, in roughly the order they're worth ruling out:
+
+[cols="1,3",options="header"]
+|===
+| Cause | What it looks like
+
+| A regex/id-segment mismatch (see above)
+| The stub's path, after canonicalisation, still doesn't structurally match its endpoint's declared/implemented path - a different segment count, a different literal segment, or the false-positive/false-negative case the heuristics above knowingly accept.
+
+| The endpoint is a genuine Shadow API
+| The `@RestController` method the stub is meant to exercise really exists, but was never added to the OpenAPI documentation. `scanMocks` only ever compares stub evidence against what *this* plugin (and any sibling detector sharing the same `contractHistoryFile`) has found declared or implemented - an undeclared endpoint has no `declaredAt` evidence to merge with, no matter how precisely the stub's path is written. Run the companion link:../shadow-api-detector/README.adoc[Shadow API Detector] against the same `controllerDirs` to check directly: if it reports the endpoint, the stub is correct and the gap is in your OpenAPI documentation, not your stub suite.
+
+| The stub itself has a bug
+| The stub file is simply describing a request that doesn't correspond to what you think it does - nothing heuristic about it. A doubled base path (`"/crm-service/crm-service/v1/..."`), a copy-pasted URL left over from a different endpoint, a typo in a `urlPathPattern` regex, or a `method` that doesn't match what the endpoint actually accepts, are all real examples found in the wild. The raw stub file is the place to look.
+
+| The stub and the documentation have drifted apart
+| A stub written against an earlier shape of the API - a path since renamed, restructured, or removed - describes a request nothing in the current codebase or documentation recognises any more. This isn't a bug in the stub or the scanner; it's a signal that the stub suite needs updating to track the current contract.
+|===
+
+[TIP]
+====
+To list every currently-orphaned stub record, look for a line in `contractHistoryFile` containing both `"stubbedAt":"` and `"declaredAt":null` - each one is a stub whose evidence has never merged with anything, and a candidate for one of the four causes above.
+====
 
 === Scanning stubs created at run time by WireMock's Java DSL
 
@@ -446,6 +491,11 @@ A missing `contractHistoryFile` is treated as an empty history, not an error.
 A line that fails to parse (e.g. hand-edited into something invalid) is skipped with a `WARNING`-level `java.util.logging` message identifying its line number; it never fails the build.
 A previously persisted record whose fingerprint is no longer present in the current scan is *never deleted* - it's kept exactly as it was, except its `removedAt` is stamped the first time it goes missing.
 
+[IMPORTANT]
+====
+An endpoint becoming removed is not, by itself, a sign of a problem. It commonly means the endpoint was scoped for an upcoming release and postponed to a later one - a common outcome when an OpenAPI document is written ahead of the code it describes, to plan a release before implementation begins - or that it was considered obsolete and deliberately dropped, or that it had an error in its original definition (a wrong path, a typo, an inconsistent verb) and was replaced by a corrected declaration, which then appears as its own new record rather than a continuation of the old one, since the two have different fingerprints. If an endpoint with the same verb and path reappears in a later run, its `removedAt` is cleared automatically and its progress resumes from where it left off. See "About Removed Endpoints" in the generated report itself for the same explanation, written directly next to the `Removed (no longer seen)` figure it applies to.
+====
+
 The generated report reflects the loaded (and possibly just-advanced) history as a `== Progress Over Time` section, once `trackContractHistory` finds at least one record: a human-friendly `Tracked since` timestamp, how many endpoints were declared/implemented/stubbed/verified in the last 7 and 30 days, and how many previously tracked endpoints are no longer seen in the current run.
 
 [#migrating-legacy-contract-history]
@@ -507,6 +557,8 @@ mirageApiDetector {
 After the task runs, an AsciiDoc report is written to the configured `reportDir` (default: `build/reports/mirage-api-detector/mirage-apis.adoc`), listing every mirage API grouped by its OpenAPI tag (or `(untagged)` when the operation declares none), with its HTTP verb, path, and `operationId`.
 
 Every report opens with a preamble explaining what a mirage API is, how it differs from a shadow API and a zombie API, what the risks are, and a link to the https://owasp.org/API-Security/editions/2023/en/0x11-t10/[OWASP API Security Top 10] (specifically https://owasp.org/API-Security/editions/2023/en/0xa9-improper-inventory-management/[API9:2023 Improper Inventory Management]). The preamble text lives in its own bundled resource - `mirage-api-preamble.adoc` in the plugin's `src/main/resources` - so it can be revised independently of the report-writing code.
+
+When `scanMocks` is `true`, a second preamble - `== About Stub Evidence`, from `mirage-api-stub-scanning-preamble.adoc` - follows it, covering the same ground as "Matching a stub's id segment..." and "Interpreting a stub whose evidence never merges..." above directly in the report itself: what the stub scan looks at, what it can and cannot match, shadow stubs, and multiple stub files legitimately covering one endpoint. This is deliberate - a reader looking at a generated report's `Stubbed` figures shouldn't need to go find this README to understand what they mean.
 
 When `failOnMirage` is `true` and at least one mirage API was found, the task fails the build after writing the report, so the report is always available for inspection regardless of build outcome.
 
