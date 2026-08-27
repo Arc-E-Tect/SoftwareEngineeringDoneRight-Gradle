@@ -1,3 +1,11 @@
+## [4.4.1](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/mirage-api-detector-v4.4.0...mirage-api-detector-v4.4.1) (2026-08-27)
+
+
+### 🐛 Bug Fixes
+
+* **api-only-suite:** forward mirage's stubSourceDirs and doppelganger's testDirsUserConfigured to detectAllApiGaps's task instances ([#231](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/231)) ([89c235c](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/89c235cfbe8e9929a89a88432f85b8599cc35069)), closes [#231](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/231)
+* **mirage-api-detector:** rewrite a WireMock urlPattern/urlPathPattern regex id segment into a {id} placeholder ([#232](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/232)) ([ea9441e](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/ea9441e15015ffc807540c08085d61a6a0f29ea6)), closes [#232](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/232)
+
 # [4.4.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/mirage-api-detector-v4.3.0...mirage-api-detector-v4.4.0) (2026-08-27)
 
 
