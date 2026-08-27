@@ -16,6 +16,7 @@ import org.gradle.api.provider.Property;
  *     // openApiDir  = rootDocument.get().asFile.parentFile                  // default
  *     scanMocks      = false                                                  // default
  *     // stubDirs.from('src/test/resources/mappings')                       // default; used only when scanMocks = true
+ *     // stubSourceDirs.from('src/test/java')                               // default (every source set except main); used only when scanMocks = true
  *     // basePath     = '/crm-service'   // optional; used only when scanMocks = true - see getBasePath()
  *     failOnMirage   = false                                                  // default
  *     reportDir      = layout.buildDirectory.dir('reports/mirage-api-detector') // default
@@ -94,10 +95,33 @@ public abstract class MirageApiDetectorExtension {
     public abstract ConfigurableFileCollection getStubDirs();
 
     /**
-     * The base path to strip from every path found under {@link #getStubDirs()} before comparing
-     * it against the OpenAPI documentation, used only when {@link #getScanMocks()} is
-     * {@code true}. A WireMock stub mapping records the full request path a client actually
-     * sends - including whatever deployment-time context path the server runs under, e.g.
+     * Directories to search recursively for Java source files that create WireMock stubs
+     * programmatically at test run time - e.g. via {@code stubFor(get(urlEqualTo("/orders/1"))
+     * .willReturn(...))} - scanned for stub evidence when {@link #getScanMocks()} is {@code true}.
+     * This is evidence {@link #getStubDirs()} cannot see, since no {@code *.json} stub mapping
+     * file exists on disk for a stub registered this way. Results from both are merged into the
+     * same stub evidence.
+     *
+     * <p>One or more directories may be configured. Left unconfigured (the default) while
+     * {@link #getScanMocks()} is {@code true}, this defaults to the Java directories of
+     * <em>every</em> source set except {@code main}, when the {@code java} plugin is applied -
+     * not just the conventional {@code test} source set, but every additional test suite a
+     * project defines too (e.g. via the {@code jvm-test-suite} plugin's {@code testing.suites},
+     * such as an integration- or system-test suite), since stub-creating code may live in any of
+     * them. Scanning them all by default avoids every project having to enumerate its own test
+     * suites explicitly. Since a project's full set of test suites can be large, set this
+     * explicitly to restrict the scan to only the directories that actually create stubs.</p>
+     *
+     * @return mutable file collection of Java source directories to scan for WireMock's Java DSL
+     */
+    public abstract ConfigurableFileCollection getStubSourceDirs();
+
+    /**
+     * The base path to strip from every path found under {@link #getStubDirs()} and
+     * {@link #getStubSourceDirs()} before comparing it against the OpenAPI documentation, used
+     * only when {@link #getScanMocks()} is {@code true}. A WireMock stub mapping records the full
+     * request path a client actually sends - including whatever deployment-time context path the
+     * server runs under, e.g.
      * {@code /crm-service} - while an OpenAPI-declared path never includes one. Left unconfigured
      * (the default), this is instead read automatically from {@link #getRootDocument()}'s own
      * first {@code servers} entry's {@code url}, e.g. {@code http://localhost:9011/crm-service}

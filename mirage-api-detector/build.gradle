@@ -37,6 +37,7 @@ dependencyCheck {
 
 dependencies {
     implementation libs.api.detector.core
+    implementation libs.javaparser.core
 
     testImplementation libs.junit.jupiter
     testImplementation libs.assertj.core

@@ -19,6 +19,7 @@ import com.arc_e_tect.gradle.mirage.detect.MirageApiFinder;
 import com.arc_e_tect.gradle.mirage.report.ExcludedMirage;
 import com.arc_e_tect.gradle.mirage.report.MirageApiReportWriter;
 import com.arc_e_tect.gradle.mirage.report.StubStatus;
+import com.arc_e_tect.gradle.mirage.scan.WireMockJavaDslScanner;
 import com.arc_e_tect.gradle.mirage.scan.WireMockStubScanner;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.GradleException;
@@ -92,6 +93,18 @@ public abstract class DetectMirageApisTask extends DefaultTask {
     @InputFiles
     @PathSensitive(PathSensitivity.RELATIVE)
     public abstract ConfigurableFileCollection getStubDirs();
+
+    /**
+     * Directories to search recursively for Java source files that create WireMock stubs
+     * programmatically at test run time, scanned for stub evidence when {@link #getScanMocks()}
+     * is {@code true} - see {@link MirageApiDetectorExtension#getStubSourceDirs()}. Not scanned
+     * otherwise. Results are merged with {@link #getStubDirs()}'s into the same stub evidence.
+     *
+     * @return mutable file collection of Java source directories to scan for WireMock's Java DSL
+     */
+    @InputFiles
+    @PathSensitive(PathSensitivity.RELATIVE)
+    public abstract ConfigurableFileCollection getStubSourceDirs();
 
     /**
      * The base path to strip from every path found under {@link #getStubDirs()} before comparing
@@ -512,32 +525,10 @@ public abstract class DetectMirageApisTask extends DefaultTask {
     }
 
     private List<Endpoint> scanStubs(OpenApiEndpointCollector openApiCollector, File rootDocument, List<String> warnings) {
-        WireMockStubScanner scanner = new WireMockStubScanner();
         List<Endpoint> endpoints = new ArrayList<>();
-        List<File> missingStubDirs = new ArrayList<>();
-        boolean anyStubDirExists = false;
-        for (File dir : getStubDirs()) {
-            if (dir.isDirectory()) {
-                anyStubDirExists = true;
-            } else {
-                missingStubDirs.add(dir);
-            }
-            try {
-                endpoints.addAll(scanner.scan(dir));
-            } catch (IOException e) {
-                throw new GradleException("mirageApiDetector: failed to scan " + dir, e);
-            }
-        }
-        if (!missingStubDirs.isEmpty()) {
-            if (anyStubDirExists) {
-                for (File dir : missingStubDirs) {
-                    warnings.add("Configured `stubDirs` entry does not exist yet: `" + dir + "`.");
-                }
-            } else {
-                warnings.add("None of the configured `stubDirs` exist yet, so no WireMock stub evidence "
-                        + "could be gathered for this run.");
-            }
-        }
+        endpoints.addAll(scanStubSource(getStubDirs(), "stubDirs", new WireMockStubScanner()::scan, warnings));
+        endpoints.addAll(scanStubSource(
+                getStubSourceDirs(), "stubSourceDirs", new WireMockJavaDslScanner()::scan, warnings));
 
         String basePath = resolveBasePath(openApiCollector, rootDocument);
         if (basePath == null) {
@@ -549,6 +540,54 @@ public abstract class DetectMirageApisTask extends DefaultTask {
                     endpoint.declaringClass(), endpoint.methodSignature(), endpoint.sourceFile(), endpoint.lineNumber()));
         }
         return stripped;
+    }
+
+    /**
+     * Scans every directory in {@code dirs} with {@code scanFn}, collecting stub evidence and
+     * warning - non-fatally - about any configured entry that does not exist yet. Shared between
+     * {@link #getStubDirs()} (WireMock stub mapping files) and {@link #getStubSourceDirs()}
+     * (WireMock Java DSL source), which differ only in what they scan for, not in how missing
+     * directories are handled.
+     *
+     * @param dirs         the configured directories to scan
+     * @param propertyName the DSL property name {@code dirs} came from, used in warning messages
+     * @param scanFn       the scanner to apply to each directory
+     * @param warnings     appended to with a non-fatal warning per missing directory
+     */
+    private List<Endpoint> scanStubSource(
+            Iterable<File> dirs, String propertyName, StubDirScanner scanFn, List<String> warnings) {
+        List<Endpoint> endpoints = new ArrayList<>();
+        List<File> missingDirs = new ArrayList<>();
+        boolean anyDirExists = false;
+        for (File dir : dirs) {
+            if (dir.isDirectory()) {
+                anyDirExists = true;
+            } else {
+                missingDirs.add(dir);
+            }
+            try {
+                endpoints.addAll(scanFn.scan(dir));
+            } catch (IOException e) {
+                throw new GradleException("mirageApiDetector: failed to scan " + dir, e);
+            }
+        }
+        if (!missingDirs.isEmpty()) {
+            if (anyDirExists) {
+                for (File dir : missingDirs) {
+                    warnings.add("Configured `" + propertyName + "` entry does not exist yet: `" + dir + "`.");
+                }
+            } else {
+                warnings.add("None of the configured `" + propertyName + "` exist yet, so no WireMock stub "
+                        + "evidence could be gathered from them for this run.");
+            }
+        }
+        return endpoints;
+    }
+
+    /** A stub scanner's {@code scan(File)} method, shared by {@link #scanStubSource}. */
+    @FunctionalInterface
+    private interface StubDirScanner {
+        List<Endpoint> scan(File dir) throws IOException;
     }
 
     /**

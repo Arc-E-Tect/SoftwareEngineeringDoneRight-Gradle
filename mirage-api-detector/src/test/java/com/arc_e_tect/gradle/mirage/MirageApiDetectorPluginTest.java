@@ -214,6 +214,90 @@ class MirageApiDetectorPluginTest {
     }
 
     @Test
+    @DisplayName("extension default: stubSourceDirs is empty before evaluation")
+    void extensionDefaultStubSourceDirsEmptyBeforeEvaluation() {
+        Project project = projectWithPlugin();
+
+        assertThat(extension(project).getStubSourceDirs().isEmpty()).isTrue();
+    }
+
+    @Test
+    @DisplayName("task defaults stubSourceDirs to the test source set's Java directories when scanMocks is true and unset")
+    void taskDefaultsStubSourceDirsAfterEvaluationWhenScanningMocks() {
+        Project project = projectWithPlugin();
+        extension(project).getScanMocks().set(true);
+
+        ((ProjectInternal) project).evaluate();
+
+        DetectMirageApisTask task = (DetectMirageApisTask)
+                project.getTasks().getByName(MirageApiDetectorPlugin.TASK_NAME);
+        assertThat(task.getStubSourceDirs().getFiles())
+                .containsExactly(new File(project.getProjectDir(), "src/test/java"));
+    }
+
+    @Test
+    @DisplayName("task defaults stubSourceDirs to every source set's Java directories except main, not just test")
+    void taskDefaultsStubSourceDirsToEveryNonMainSourceSet() {
+        Project project = projectWithPlugin();
+        File testSystemJavaDir = new File(project.getProjectDir(), "src/testSystem/java");
+        project.getExtensions().getByType(org.gradle.api.plugins.JavaPluginExtension.class)
+                .getSourceSets().create("testSystem", sourceSet -> sourceSet.getJava().setSrcDirs(
+                        java.util.List.of(testSystemJavaDir)));
+        extension(project).getScanMocks().set(true);
+
+        ((ProjectInternal) project).evaluate();
+
+        DetectMirageApisTask task = (DetectMirageApisTask)
+                project.getTasks().getByName(MirageApiDetectorPlugin.TASK_NAME);
+        assertThat(task.getStubSourceDirs().getFiles())
+                .contains(new File(project.getProjectDir(), "src/test/java"), testSystemJavaDir)
+                .doesNotContain(new File(project.getProjectDir(), "src/main/java"));
+    }
+
+    @Test
+    @DisplayName("does not default stubSourceDirs when scanMocks is false")
+    void doesNotDefaultStubSourceDirsWhenNotScanningMocks() {
+        Project project = projectWithPlugin();
+
+        ((ProjectInternal) project).evaluate();
+
+        DetectMirageApisTask task = (DetectMirageApisTask)
+                project.getTasks().getByName(MirageApiDetectorPlugin.TASK_NAME);
+        assertThat(task.getStubSourceDirs().getFiles()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("does not override stubSourceDirs configured explicitly by the user")
+    void doesNotOverrideExplicitStubSourceDirs() {
+        Project project = projectWithPlugin();
+        extension(project).getScanMocks().set(true);
+        File custom = new File(project.getProjectDir(), "src/test/java-wiremock");
+        extension(project).getStubSourceDirs().from(custom);
+
+        ((ProjectInternal) project).evaluate();
+
+        DetectMirageApisTask task = (DetectMirageApisTask)
+                project.getTasks().getByName(MirageApiDetectorPlugin.TASK_NAME);
+        assertThat(task.getStubSourceDirs().getFiles()).containsExactly(custom);
+    }
+
+    @Test
+    @DisplayName("does not default stubSourceDirs when the java plugin is not applied")
+    void doesNotDefaultStubSourceDirsWithoutJavaPlugin() {
+        Project project = ProjectBuilder.builder().withProjectDir(tempDir.toFile()).build();
+        project.getPluginManager().apply(MirageApiDetectorPlugin.class);
+        MirageApiDetectorExtension ext = extension(project);
+        ext.getScanMocks().set(true);
+        ext.getControllerDirs().from(new File(project.getProjectDir(), "src/main/java"));
+
+        ((ProjectInternal) project).evaluate();
+
+        DetectMirageApisTask task = (DetectMirageApisTask)
+                project.getTasks().getByName(MirageApiDetectorPlugin.TASK_NAME);
+        assertThat(task.getStubSourceDirs().getFiles()).isEmpty();
+    }
+
+    @Test
     @DisplayName("wires the task's scanMocks from the extension")
     void wiresTaskScanMocksFromExtension() {
         Project project = projectWithPlugin();
