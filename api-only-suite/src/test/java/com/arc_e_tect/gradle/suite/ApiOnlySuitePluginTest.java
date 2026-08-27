@@ -146,14 +146,16 @@ class ApiOnlySuitePluginTest {
     }
 
     @Test
-    @DisplayName("wires mirageApiGapsForSuite identically to detectMirageApis otherwise, including scanMocks/stubDirs/basePath")
+    @DisplayName("wires mirageApiGapsForSuite identically to detectMirageApis otherwise, including scanMocks/stubDirs/stubSourceDirs/basePath")
     void nonFailingMirageTaskMirrorsPrimaryConfiguration() {
         Project project = projectWithPlugin();
         File rootDocument = new File(tempDir.toFile(), "openapi.yaml");
         File stubDir = new File(project.getProjectDir(), "src/test/resources/mappings");
+        File stubSourceDir = new File(project.getProjectDir(), "src/test/java");
         suiteExtension(project).getRootDocument().set(rootDocument);
         mirageExtension(project).getScanMocks().set(true);
         mirageExtension(project).getStubDirs().from(stubDir);
+        mirageExtension(project).getStubSourceDirs().from(stubSourceDir);
         mirageExtension(project).getBasePath().set("/crm-service");
         mirageExtension(project).getExcludeWellKnown().add("spring-boot-actuator");
 
@@ -167,6 +169,9 @@ class ApiOnlySuitePluginTest {
                 .isEqualTo(mirageTask(project).getScanMocks().get());
         assertThat(mirageForSuiteTask(project).getStubDirs().getFiles())
                 .isEqualTo(mirageTask(project).getStubDirs().getFiles());
+        assertThat(mirageForSuiteTask(project).getStubSourceDirs().getFiles())
+                .isEqualTo(mirageTask(project).getStubSourceDirs().getFiles())
+                .containsExactly(stubSourceDir);
         assertThat(mirageForSuiteTask(project).getBasePath().get())
                 .isEqualTo(mirageTask(project).getBasePath().get());
         assertThat(mirageForSuiteTask(project).getReportDir().get().getAsFile())
@@ -175,6 +180,36 @@ class ApiOnlySuitePluginTest {
                 .isEqualTo(mirageTask(project).getReportFileName().get());
         assertThat(mirageForSuiteTask(project).getExcludeWellKnown().get())
                 .isEqualTo(mirageTask(project).getExcludeWellKnown().get());
+    }
+
+    @Test
+    @DisplayName("wires doppelgangerApiGapsForSuite identically to detectDoppelgangerApis otherwise, including testDirs/testDirsUserConfigured")
+    void nonFailingDoppelgangerTaskMirrorsPrimaryConfiguration() {
+        Project project = projectWithPlugin();
+        File rootDocument = new File(tempDir.toFile(), "openapi.yaml");
+        File testDir = new File(project.getProjectDir(), "src/testContract/java");
+        suiteExtension(project).getRootDocument().set(rootDocument);
+        doppelgangerExtension(project).getTestDirs().from(testDir);
+        doppelgangerExtension(project).getExcludeWellKnown().add("spring-boot-actuator");
+
+        ((ProjectInternal) project).evaluate();
+
+        assertThat(doppelgangerForSuiteTask(project).getRootDocument().getAsFile().get())
+                .isEqualTo(doppelgangerTask(project).getRootDocument().getAsFile().get());
+        assertThat(doppelgangerForSuiteTask(project).getControllerDirs().getFiles())
+                .isEqualTo(doppelgangerTask(project).getControllerDirs().getFiles());
+        assertThat(doppelgangerForSuiteTask(project).getTestDirs().getFiles())
+                .isEqualTo(doppelgangerTask(project).getTestDirs().getFiles())
+                .containsExactly(testDir);
+        assertThat(doppelgangerForSuiteTask(project).getTestDirsUserConfigured().get())
+                .isEqualTo(doppelgangerTask(project).getTestDirsUserConfigured().get())
+                .isTrue();
+        assertThat(doppelgangerForSuiteTask(project).getReportDir().get().getAsFile())
+                .isEqualTo(doppelgangerTask(project).getReportDir().get().getAsFile());
+        assertThat(doppelgangerForSuiteTask(project).getReportFileName().get())
+                .isEqualTo(doppelgangerTask(project).getReportFileName().get());
+        assertThat(doppelgangerForSuiteTask(project).getExcludeWellKnown().get())
+                .isEqualTo(doppelgangerTask(project).getExcludeWellKnown().get());
     }
 
     @Test

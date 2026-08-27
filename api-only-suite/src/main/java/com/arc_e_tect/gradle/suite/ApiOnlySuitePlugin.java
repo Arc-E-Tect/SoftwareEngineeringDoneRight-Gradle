@@ -156,6 +156,7 @@ public class ApiOnlySuitePlugin implements Plugin<Project> {
             task.getControllerDirs().from(source.getControllerDirs());
             task.getScanMocks().set(source.getScanMocks());
             task.getStubDirs().from(source.getStubDirs());
+            task.getStubSourceDirs().from(source.getStubSourceDirs());
             task.getBasePath().set(source.getBasePath());
             task.getRootDocument().set(source.getRootDocument());
             task.getOpenApiDir().set(source.getOpenApiDir());
@@ -188,6 +189,7 @@ public class ApiOnlySuitePlugin implements Plugin<Project> {
             DetectDoppelgangerApisTask source = primary.get();
             task.getControllerDirs().from(source.getControllerDirs());
             task.getTestDirs().from(source.getTestDirs());
+            task.getTestDirsUserConfigured().set(source.getTestDirsUserConfigured());
             task.getRootDocument().set(source.getRootDocument());
             task.getOpenApiDir().set(source.getOpenApiDir());
             task.getContractsDir().set(source.getContractsDir());
