@@ -1,3 +1,23 @@
+# [3.4.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/shadow-api-detector-v3.3.0...shadow-api-detector-v3.4.0) (2026-08-27)
+
+
+### ✨ New and updated features
+
+* **mirage-api-detector:** scan WireMock stubs created at run time by Java code ([#230](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/230)) ([3c12eee](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/3c12eee655efc5936c1db0d7b6a776b041839da2)), closes [#230](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/230)
+
+
+### 🐛 Bug Fixes
+
+* **api-only-suite:** bump api-detector-core to 1.5.0 ([#228](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/228)) ([aedfabb](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/aedfabb87e2dc6a4018e53a0e3c74ec1465d9a5f)), closes [#228](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/228) [#227](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/227)
+* **shadow-api-detector:** bump api-detector-core to 1.5.1 ([#233](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/233)) ([dcc9be8](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/dcc9be8cde8657fa2a060fddc725f6f37cc55139)), closes [#233](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/233)
+* **api-only-suite:** forward mirage's stubSourceDirs and doppelganger's testDirsUserConfigured to detectAllApiGaps's task instances ([#231](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/231)) ([89c235c](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/89c235cfbe8e9929a89a88432f85b8599cc35069)), closes [#231](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/231)
+* **mirage-api-detector:** rewrite a WireMock urlPattern/urlPathPattern regex id segment into a {id} placeholder ([#232](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/232)) ([ea9441e](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/ea9441e15015ffc807540c08085d61a6a0f29ea6)), closes [#232](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/232)
+
+
+### 👷 CI/CD
+
+* **api-only-suite:** derive api-detector-core version from sibling plugins ([#229](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/229)) ([cca417d](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/cca417de5f9c88df7d4dca836bbecd4920ffb73d)), closes [#229](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/229)
+
 # [3.3.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/shadow-api-detector-v3.2.0...shadow-api-detector-v3.3.0) (2026-08-25)
 
 
