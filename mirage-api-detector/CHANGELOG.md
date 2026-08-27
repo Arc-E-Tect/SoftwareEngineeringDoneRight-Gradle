@@ -1,3 +1,20 @@
+# [4.4.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/mirage-api-detector-v4.3.0...mirage-api-detector-v4.4.0) (2026-08-27)
+
+
+### ✨ New and updated features
+
+* **mirage-api-detector:** scan WireMock stubs created at run time by Java code ([#230](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/230)) ([3c12eee](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/3c12eee655efc5936c1db0d7b6a776b041839da2)), closes [#230](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/230)
+
+
+### 🐛 Bug Fixes
+
+* **api-only-suite:** bump api-detector-core to 1.5.0 ([#228](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/228)) ([aedfabb](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/aedfabb87e2dc6a4018e53a0e3c74ec1465d9a5f)), closes [#228](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/228) [#227](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/227)
+
+
+### 👷 CI/CD
+
+* **api-only-suite:** derive api-detector-core version from sibling plugins ([#229](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/229)) ([cca417d](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/cca417de5f9c88df7d4dca836bbecd4920ffb73d)), closes [#229](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/229)
+
 # [4.3.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/mirage-api-detector-v4.2.0...mirage-api-detector-v4.3.0) (2026-08-25)
 
 
