@@ -3,7 +3,9 @@ package com.arc_e_tect.gradle.mirage;
 import org.gradle.api.GradleException;
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
+import org.gradle.api.plugins.JavaPluginExtension;
 import org.gradle.api.provider.Provider;
+import org.gradle.api.tasks.SourceSet;
 import org.gradle.api.tasks.TaskProvider;
 
 import java.util.List;
@@ -31,6 +33,9 @@ import java.util.Locale;
  *   <li>Additionally scan WireMock stubs: {@code false}</li>
  *   <li>WireMock stub directories: {@code src/test/resources/mappings} (used only when scanning
  *       mocks)</li>
+ *   <li>WireMock stub source directories: the Java directories of every source set except
+ *       {@code main} (every test suite a project defines, not just {@code test}), when the
+ *       {@code java} plugin is applied (used only when scanning mocks)</li>
  *   <li>Fail on mirage APIs: {@code false}</li>
  *   <li>Report directory: {@code build/reports/mirage-api-detector}</li>
  *   <li>Report file name: {@code mirage-apis.adoc}</li>
@@ -98,6 +103,7 @@ public class MirageApiDetectorPlugin implements Plugin<Project> {
                     task.getControllerDirs().from(ext.getControllerDirs());
                     task.getScanMocks().set(ext.getScanMocks());
                     task.getStubDirs().from(ext.getStubDirs());
+                    task.getStubSourceDirs().from(ext.getStubSourceDirs());
                     task.getBasePath().set(ext.getBasePath());
                     task.getRootDocument().set(ext.getRootDocument());
                     task.getOpenApiDir().set(ext.getOpenApiDir());
@@ -128,6 +134,34 @@ public class MirageApiDetectorPlugin implements Plugin<Project> {
                         task.getStubDirs().from(p.file(MirageApiDetectorExtension.DEFAULT_STUB_DIR)));
             }
         });
+
+        // stubSourceDirs defaults to every source set's own Java directories except "main" -
+        // every test suite a project defines (e.g. via the jvm-test-suite plugin's
+        // testing.suites), not just the conventional "test" one, since stub-creating code may
+        // live in any of them - rather than a hardcoded path, since a source set may itself be
+        // configured with non-default directories. Only possible once the java plugin is applied,
+        // and only meaningful (like stubDirs) when stub scanning is actually active and the user
+        // has not configured the directory themselves.
+        project.getPlugins().withId("java", ignored -> project.afterEvaluate(p -> {
+            if (ext.getScanMocks().get() && ext.getStubSourceDirs().isEmpty()) {
+                JavaPluginExtension java = p.getExtensions().findByType(JavaPluginExtension.class);
+                if (java != null) {
+                    taskProvider.configure(task -> {
+                        for (SourceSet sourceSet : java.getSourceSets()) {
+                            if (!SourceSet.MAIN_SOURCE_SET_NAME.equals(sourceSet.getName())) {
+                                // .getSrcDirs(), not the SourceDirectorySet itself: stubSourceDirs
+                                // (like stubDirs/controllerDirs) is a collection of directories to
+                                // recursively scan, whereas a SourceDirectorySet resolves as a
+                                // FileTree of the individual .java files already found under its
+                                // srcDirs - which would be empty for a project whose test sources
+                                // don't exist on disk yet.
+                                task.getStubSourceDirs().from(sourceSet.getJava().getSrcDirs());
+                            }
+                        }
+                    });
+                }
+            }
+        }));
 
         TaskProvider<MigrateContractHistoryTask> migrateTaskProvider = project.getTasks().register(
                 MIGRATE_CONTRACT_HISTORY_TASK_NAME, MigrateContractHistoryTask.class, task -> {

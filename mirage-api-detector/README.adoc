@@ -11,7 +11,7 @@ image:https://img.shields.io/github/v/release/Arc-E-Tect/SoftwareEngineeringDone
 image:https://img.shields.io/badge/Java-21%2B-blue[Java 21+,link=https://adoptium.net]
 image:https://img.shields.io/badge/Gradle-8.x%2B-02303A?logo=gradle[Gradle 8+,link=https://gradle.org]
 
-A Gradle plugin that scans your OpenAPI documentation for operations, compares them against the endpoints exposed by scanned Spring Boot `@RestController` classes, and reports every operation that has no match - a "mirage API". Set `scanMocks = true` to additionally scan WireMock stub mapping files for stub evidence, recorded into contract history and the report alongside the real implementation evidence above - see "Additionally scanning WireMock stubs" below.
+A Gradle plugin that scans your OpenAPI documentation for operations, compares them against the endpoints exposed by scanned Spring Boot `@RestController` classes, and reports every operation that has no match - a "mirage API". Set `scanMocks = true` to additionally scan WireMock stub mapping files - and Java source that creates WireMock stubs at run time - for stub evidence, recorded into contract history and the report alongside the real implementation evidence above - see "Additionally scanning WireMock stubs" below.
 
 Mirage APIs are endpoints that exist on paper but not in code: documented, reviewed, and visible to API consumers, yet unreachable at runtime. This is the mirror image of the companion link:../shadow-api-detector/README.adoc[Shadow API Detector] plugin, which catches the opposite drift - implemented but undocumented endpoints.
 
@@ -125,6 +125,27 @@ mirageApiDetector {
 }
 ----
 
+=== Scanning stubs created at run time by WireMock's Java DSL
+
+A stub mapping file only exists on disk when a stub is created statically, ahead of time. A stub created programmatically at test run time - via WireMock's fluent Java DSL, e.g. `stubFor(get(urlEqualTo("/orders/1")).willReturn(aResponse().withStatus(200)))` - has no such file, and so is invisible to `stubDirs`. Set `scanMocks = true` to *additionally* scan `stubSourceDirs` for this shape of call: every match contributes the exact same `stubbedAt` stub evidence as a `stubDirs` match, merged into the same run.
+
+[source,groovy]
+----
+mirageApiDetector {
+    scanMocks = true
+    stubSourceDirs.from('src/test/java')
+}
+----
+
+Left unconfigured (the default) while `scanMocks` is `true`, `stubSourceDirs` defaults to the Java directories of *every* source set except `main` - not just the conventional `test` source set, but every additional test suite a project defines too, e.g. `testIntegration`/`testSystem`/`testSystemWireMock` registered via the `jvm-test-suite` plugin's `testing.suites` - since stub-creating code may live in any of them. Most projects need no configuration here at all. Since a project's full set of test suites can be large to re-parse on every run, set `stubSourceDirs` explicitly to restrict the scan to only the directories that actually create stubs, e.g. a dedicated `src/testStubs/java` source set.
+
+The scanner recognises a call to a method named `stubFor(...)` - regardless of its scope, so both the statically-imported `stubFor(...)` and an instance call like `wireMockServer.stubFor(...)` are matched - whose single argument is a fluent chain built from one of WireMock's verb builders (`get`/`post`/`put`/`delete`/`patch`/`head`/`options`/`trace`) applied to one of its URL matchers (`urlEqualTo`/`urlPathEqualTo`/`urlMatching`/`urlPathMatching`/`urlPathTemplate`) with a literal string argument. Any other builder calls chained in between - `.willReturn(...)`, `.atPriority(...)`, `.inScenario(...)`, etc. - are walked through transparently. Matching is by simple method name only, the same "read the code structurally, without the library on the classpath" approach `controllerDirs` and `stubDirs` already use - this scanner needs neither WireMock nor Spring on this plugin's own classpath.
+
+[IMPORTANT]
+====
+A `stubFor(...)` call whose argument isn't shaped this way - e.g. the mapping builder was assembled in a local variable first, the URL matcher argument is not a string literal, or the matcher is a dynamic one like `anyUrl()` - is silently skipped, the same way a stub mapping file missing a recognised `method`/`url` field is skipped under `stubDirs`.
+====
+
 === Stripping a base path from stub-scanned paths
 
 A WireMock stub mapping records the full request path a client actually sends - including whatever deployment-time context path the server runs under, e.g. `/crm-service` - while an OpenAPI-declared path never includes one (a server's `paths` are always relative to its own `servers` entry). Left unaccounted for, this mismatch means a stub's path never matches its corresponding OpenAPI operation: the stub is still found, but ends up as an orphaned, unmatched entry instead of being recognised as evidence for the declared endpoint.
@@ -209,7 +230,7 @@ this run, whether that stub actually exists.
 An unrecognised `excludeWellKnown` name, or a malformed rule string (in `excludePaths` or an
 exclusion file), fails the build - both are build-script/file mistakes, not a "not built yet"
 bootstrapping gap. A configured `excludeFiles` entry that doesn't exist yet only warns, the same
-way a missing `controllerDirs`/`stubDirs` entry does.
+way a missing `controllerDirs`/`stubDirs`/`stubSourceDirs` entry does.
 
 == Configuration
 
@@ -234,6 +255,12 @@ mirageApiDetector {
     // for stub evidence when scanMocks is true.
     // Default: src/test/resources/mappings
     // stubDirs.from('src/test/resources/mappings')
+
+    // One or more directories to search recursively for Java source files that create WireMock
+    // stubs programmatically at test run time, scanned for stub evidence when scanMocks is true.
+    // See "Scanning stubs created at run time by WireMock's Java DSL".
+    // Default: every source set's Java directories except main (every test suite, not just test)
+    // stubSourceDirs.from('src/test/java')
 
     // The base path to strip from every stub-scanned path before comparing it against the
     // OpenAPI documentation, used only when scanMocks is true. Left unset, this is instead read
@@ -299,6 +326,7 @@ mirageApiDetector {
     controllerDirs.from("src/main/java")
     scanMocks.set(false)
     // stubDirs.from("src/test/resources/mappings")
+    // stubSourceDirs.from("src/test/java")
     // basePath.set("/crm-service")
     rootDocument.set(file("src/main/resources/openapi/openapi.yaml"))
     failOnMirage.set(false)
@@ -379,7 +407,7 @@ NOTE: For a complete field-by-field reference to `contractHistoryFile` - its exa
 
 Setting `trackContractHistory = true` persists, across builds, a history of when each endpoint first reached each stage of its contract lifecycle - declared, implemented, stubbed, verified.
 The history is keyed by a fingerprint of the endpoint's own HTTP verb and path, not by which plugin observed it, so Shadow, Mirage, and Doppelganger API Detector can all advance the *same* record when pointed at the same `contractHistoryFile` - useful if you run more than one of these plugins against the same API.
-Mirage API Detector always has evidence for the `declared` and `implemented` stages, from the OpenAPI documentation and `controllerDirs` respectively, and additionally for `stubbed`, from `stubDirs`, whenever `scanMocks` is `true` - all three can advance from the very same run. It never advances `verifiedAt`, since it has no visibility into contract verification evidence.
+Mirage API Detector always has evidence for the `declared` and `implemented` stages, from the OpenAPI documentation and `controllerDirs` respectively, and additionally for `stubbed`, from `stubDirs` and `stubSourceDirs` merged together, whenever `scanMocks` is `true` - all three can advance from the very same run. It never advances `verifiedAt`, since it has no visibility into contract verification evidence.
 The plugin itself has no dependency on git or any other version control system - branch-based control over when to advance the history (e.g. "only on `main`") is entirely a CI concern, expressed through `updateContractHistory`.
 
 [CAUTION]

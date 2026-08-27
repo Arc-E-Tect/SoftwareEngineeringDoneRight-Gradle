@@ -403,6 +403,113 @@ class DetectMirageApisTaskTest {
     }
 
     @Test
+    @DisplayName("recognises a stub created by WireMock's Java DSL under stubSourceDirs")
+    void recognisesStubCreatedByWireMockJavaDslUnderStubSourceDirs() throws Exception {
+        // No controller implements /users (controllerDirs is left unconfigured on purpose), so
+        // this endpoint's only possible evidence is the programmatically-created stub below -
+        // proving stubSourceDirs is actually scanned, not just accepted as a no-op property.
+        File stubSourceDir = new File(tempDir.toFile(), "src/test/java/com/example");
+        Files.createDirectories(stubSourceDir.toPath());
+        Files.writeString(stubSourceDir.toPath().resolve("UserStubs.java"), """
+                package com.example;
+
+                class UserStubs {
+                    void stubListUsers() {
+                        stubFor(get(urlEqualTo("/users")).willReturn(aResponse().withStatus(200)));
+                    }
+                }
+                """);
+        File historyFile = new File(tempDir.toFile(), "contract-history.ndjson");
+
+        DetectMirageApisTask task = newTask();
+        task.getScanMocks().set(true);
+        task.getStubSourceDirs().from(stubSourceDir);
+        task.getRootDocument().set(openApiFixture("single-endpoint.yaml"));
+        task.getReportDir().set(reportDir);
+        task.getReportFileName().set("mirage-apis.adoc");
+        task.getFailOnMirage().set(false);
+        task.getSystemUnderTestVersion().set("1.0.0");
+        task.getTrackContractHistory().set(true);
+        task.getContractHistoryFile().set(historyFile);
+        task.getUpdateContractHistory().set(true);
+
+        task.generate();
+
+        String historyContent = Files.readString(historyFile.toPath());
+        assertThat(historyContent)
+                .contains("\"implementedAt\":null")
+                .doesNotContain("\"stubbedAt\":null");
+    }
+
+    @Test
+    @DisplayName("merges stub evidence from stubDirs and stubSourceDirs into the same run")
+    void mergesStubEvidenceFromStubDirsAndStubSourceDirs() throws Exception {
+        // /users is stubbed via a JSON mapping file (stubDirs), /orders via WireMock's Java DSL
+        // (stubSourceDirs) - both must contribute stubbedAt evidence from the very same run.
+        File stubDir = new File(tempDir.toFile(), "src/test/resources/mappings");
+        Files.createDirectories(stubDir.toPath());
+        Files.writeString(stubDir.toPath().resolve("listUsers.json"), """
+                {
+                  "request": { "method": "GET", "urlPath": "/users" },
+                  "response": { "status": 200 }
+                }
+                """);
+        File stubSourceDir = new File(tempDir.toFile(), "src/test/java/com/example");
+        Files.createDirectories(stubSourceDir.toPath());
+        Files.writeString(stubSourceDir.toPath().resolve("OrderStubs.java"), """
+                package com.example;
+
+                class OrderStubs {
+                    void stubListOrders() {
+                        stubFor(get(urlEqualTo("/orders")).willReturn(aResponse().withStatus(200)));
+                    }
+                }
+                """);
+        File historyFile = new File(tempDir.toFile(), "contract-history.ndjson");
+
+        DetectMirageApisTask task = newTask();
+        task.getScanMocks().set(true);
+        task.getStubDirs().from(stubDir);
+        task.getStubSourceDirs().from(stubSourceDir);
+        task.getRootDocument().set(openApiFixture("users-and-orders.yaml"));
+        task.getReportDir().set(reportDir);
+        task.getReportFileName().set("mirage-apis.adoc");
+        task.getFailOnMirage().set(false);
+        task.getSystemUnderTestVersion().set("1.0.0");
+        task.getTrackContractHistory().set(true);
+        task.getContractHistoryFile().set(historyFile);
+        task.getUpdateContractHistory().set(true);
+
+        task.generate();
+
+        List<String> lines = Files.readAllLines(historyFile.toPath());
+        assertThat(lines)
+                .filteredOn(line -> line.contains("\"path\":\"/users\"") || line.contains("\"path\":\"/orders\""))
+                .hasSize(2)
+                .allSatisfy(line -> assertThat(line).doesNotContain("\"stubbedAt\":null"));
+    }
+
+    @Test
+    @DisplayName("does not throw when a configured stubSourceDirs entry does not exist, and writes a WARNING instead")
+    void doesNotThrowWhenStubSourceDirDoesNotExist() throws Exception {
+        DetectMirageApisTask task = newTask();
+        task.getScanMocks().set(true);
+        task.getStubSourceDirs().from(new File(tempDir.toFile(), "src/test/java/does-not-exist"));
+        task.getRootDocument().set(openApiFixture("single-endpoint.yaml"));
+        task.getReportDir().set(reportDir);
+        task.getReportFileName().set("mirage-apis.adoc");
+        task.getFailOnMirage().set(false);
+        task.getSystemUnderTestVersion().set("1.0.0");
+
+        task.generate();
+
+        String content = Files.readString(new File(reportDir, "mirage-apis.adoc").toPath());
+        assertThat(content)
+                .contains("[WARNING]")
+                .contains("None of the configured `stubSourceDirs` exist yet");
+    }
+
+    @Test
     @DisplayName("throws with migration guidance when contractHistoryFile is in the legacy 9-field format")
     void throwsWithMigrationGuidanceOnLegacyContractHistoryFormat() throws Exception {
         File historyFile = new File(tempDir.toFile(), "contract-history.ndjson");
