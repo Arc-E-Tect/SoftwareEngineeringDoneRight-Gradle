@@ -140,12 +140,24 @@ public class WireMockStubScanner {
      * for a placeholder segment, not a literal regular expression fragment. It would instead
      * accumulate as its own, permanently unmatched, orphaned path.</p>
      *
-     * @param rawPattern the raw regular expression from a {@code urlPattern}/
-     *                    {@code urlPathPattern} field
-     * @return the pattern with every non-literal segment replaced by {@code "{id}"}, normalized
+     * <p>A segment that reads as a plain literal (no regex metacharacter) is <em>also</em> rewritten
+     * when it's purely numeric, exactly like {@link #normalizeLiteral(String)} treats one - a
+     * {@code urlPattern}/{@code urlPathPattern} field is free to contain a plain literal value
+     * instead of an actual regular expression (WireMock imposes no such restriction), and a stub
+     * author reaches for that field name as often out of habit as out of an actual need for regex
+     * matching. Without this, a {@code urlPathPattern} value like
+     * {@code "/customers/123/signatories/111"} - fully literal, no regex metacharacter anywhere -
+     * would be left completely untouched, the exact orphaned-path failure this method exists to
+     * fix in the first place, just for the field name that most looks like it should already be
+     * covered.</p>
+     *
+     * @param rawPattern the raw regular expression - or plain literal value - from a
+     *                    {@code urlPattern}/{@code urlPathPattern} field
+     * @return the pattern with every non-literal or purely numeric segment replaced by
+     *         {@code "{id}"}, normalized
      */
     private String normalizePattern(String rawPattern) {
-        return rewriteSegments(rawPattern, segment -> !isLiteralSegment(segment));
+        return rewriteSegments(rawPattern, segment -> !isLiteralSegment(segment) || isNumericSegment(segment));
     }
 
     /**

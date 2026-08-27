@@ -97,6 +97,17 @@ class WireMockStubScannerTest {
     }
 
     @Test
+    @DisplayName("rewrites a purely numeric segment in a urlPathPattern field even when the value has no regex metacharacters at all")
+    void rewritesNumericSegmentInLiteralValuedUrlPathPatternField() throws Exception {
+        List<Endpoint> endpoints = scanner.scan(fixtureDir());
+
+        assertThat(endpoints)
+                .filteredOn(e -> e.methodSignature().equals("usesUrlPathPatternWithLiteralNumericId"))
+                .extracting(Endpoint::verb, Endpoint::path)
+                .containsExactly(tuple(HttpVerb.DELETE, "/orders/{id}/items/{id}"));
+    }
+
+    @Test
     @DisplayName("skips a stub file missing a url/urlPath entry")
     void skipsStubMissingUrl() throws Exception {
         List<Endpoint> endpoints = scanner.scan(fixtureDir());
