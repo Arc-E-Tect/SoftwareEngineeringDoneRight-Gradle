@@ -1,3 +1,10 @@
+## [3.6.1](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/api-only-suite-v3.6.0...api-only-suite-v3.6.1) (2026-08-27)
+
+
+### 🐛 Bug Fixes
+
+* **api-only-suite:** forward mirage's stubSourceDirs and doppelganger's testDirsUserConfigured to detectAllApiGaps's task instances ([#231](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/231)) ([89c235c](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/89c235cfbe8e9929a89a88432f85b8599cc35069)), closes [#231](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/231)
+
 # [3.6.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/api-only-suite-v3.5.0...api-only-suite-v3.6.0) (2026-08-27)
 
 
