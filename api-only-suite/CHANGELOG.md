@@ -1,3 +1,15 @@
+# [3.6.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/api-only-suite-v3.5.0...api-only-suite-v3.6.0) (2026-08-27)
+
+
+### ✨ New and updated features
+
+* **mirage-api-detector:** scan WireMock stubs created at run time by Java code ([#230](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/230)) ([3c12eee](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/3c12eee655efc5936c1db0d7b6a776b041839da2)), closes [#230](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/230)
+
+
+### 👷 CI/CD
+
+* **api-only-suite:** derive api-detector-core version from sibling plugins ([#229](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/229)) ([cca417d](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/cca417de5f9c88df7d4dca836bbecd4920ffb73d)), closes [#229](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/229)
+
 # [3.5.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/api-only-suite-v3.4.0...api-only-suite-v3.5.0) (2026-08-25)
 
 
