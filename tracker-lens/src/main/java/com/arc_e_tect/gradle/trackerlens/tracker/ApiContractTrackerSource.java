@@ -40,12 +40,22 @@ public class ApiContractTrackerSource implements TrackerSource {
     private static final Logger LOGGER = Logging.getLogger(ApiContractTrackerSource.class);
 
     /**
-     * Matches an optional file-level {@code {"schemaVersion":N}} marker line, silently skipped
-     * rather than logged as malformed if present as this file's first line. {@code api-detector-core}
-     * does not write this marker yet - this is forward-compatible tolerance only, so that whenever
-     * it does start writing one, this reader already handles it without another release here.
+     * Matches the legacy, bare-integer {@code {"schemaVersion":N}} marker line
+     * {@code api-detector-core} wrote before it tracked a semver format version, silently skipped
+     * rather than logged as malformed if present as this file's first line.
      */
-    private static final Pattern SCHEMA_VERSION_LINE = Pattern.compile("^\\{\"schemaVersion\":(\\d+)\\}$");
+    private static final Pattern LEGACY_SCHEMA_VERSION_LINE = Pattern.compile("^\\{\"schemaVersion\":(\\d+)\\}$");
+
+    /**
+     * Matches the current {@code {"schemaVersion":"x.y.z"[,"migrations":[...]]}} marker line
+     * {@code api-detector-core}'s {@code ContractHistoryStore} writes - a semver format version,
+     * optionally followed by its own persisted migration audit trail. Skipped the same way
+     * {@link #LEGACY_SCHEMA_VERSION_LINE} is; this reader has no need for either the version or
+     * the audit trail itself, only for not misreading the line that carries them as a malformed
+     * record.
+     */
+    private static final Pattern SCHEMA_VERSION_LINE = Pattern.compile(
+            "^\\{\"schemaVersion\":\"[^\"]+\"(?:,\"migrations\":\\[.*])?}$");
 
     private static final String STRING_FIELD = "\"((?:[^\"\\\\]|\\\\.)*)\"";
     private static final String NULLABLE_STRING_FIELD = "(?:null|" + STRING_FIELD + ")";
@@ -82,7 +92,8 @@ public class ApiContractTrackerSource implements TrackerSource {
             if (line.isBlank()) {
                 continue;
             }
-            if (i == 0 && SCHEMA_VERSION_LINE.matcher(line).matches()) {
+            if (i == 0 && (LEGACY_SCHEMA_VERSION_LINE.matcher(line).matches()
+                    || SCHEMA_VERSION_LINE.matcher(line).matches())) {
                 continue;
             }
             LifecycleRecord record = parseLine(line);

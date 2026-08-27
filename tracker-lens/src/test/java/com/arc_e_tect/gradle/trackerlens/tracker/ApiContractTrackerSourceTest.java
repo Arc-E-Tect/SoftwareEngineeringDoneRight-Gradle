@@ -159,6 +159,40 @@ class ApiContractTrackerSourceTest {
         assertThat(records).extracting(LifecycleRecord::id).containsExactly("ep4");
     }
 
+    @Test
+    @DisplayName("readShouldSkipALeadingSemverSchemaVersionMarkerLineWithoutLoggingItAsMalformed")
+    void readShouldSkipALeadingSemverSchemaVersionMarkerLineWithoutLoggingItAsMalformed() throws IOException {
+        Path file = writeFile(
+                "{\"schemaVersion\":\"1.1.0\"}",
+                "{\"fingerprint\":\"ep4\",\"verb\":\"GET\",\"path\":\"/orders\","
+                + "\"declaringClass\":null,"
+                + "\"declaredAt\":\"2026-01-01T00:00:00Z\",\"implementedAt\":null,"
+                + "\"stubbedAt\":null,"
+                + "\"verifiedAt\":null,\"lastSeenAt\":null,\"removedAt\":null}");
+
+        List<LifecycleRecord> records = source.read(file.toFile());
+
+        assertThat(records).extracting(LifecycleRecord::id).containsExactly("ep4");
+    }
+
+    @Test
+    @DisplayName("readShouldSkipALeadingSemverSchemaVersionMarkerLineWithAMigrationAuditTrailWithoutLoggingItAsMalformed")
+    void readShouldSkipALeadingSemverSchemaVersionMarkerLineWithMigrationsWithoutLoggingItAsMalformed()
+            throws IOException {
+        Path file = writeFile(
+                "{\"schemaVersion\":\"1.1.0\",\"migrations\":[{\"fromVersion\":\"1.0.0\","
+                + "\"toVersion\":\"1.1.0\",\"migratedAt\":\"2026-08-27T00:00:00Z\"}]}",
+                "{\"fingerprint\":\"ep4\",\"verb\":\"GET\",\"path\":\"/orders\","
+                + "\"declaringClass\":null,"
+                + "\"declaredAt\":\"2026-01-01T00:00:00Z\",\"implementedAt\":null,"
+                + "\"stubbedAt\":null,"
+                + "\"verifiedAt\":null,\"lastSeenAt\":null,\"removedAt\":null}");
+
+        List<LifecycleRecord> records = source.read(file.toFile());
+
+        assertThat(records).extracting(LifecycleRecord::id).containsExactly("ep4");
+    }
+
     private Path writeFile(String... lines) throws IOException {
         Path file = tempDir.resolve("history.ndjson");
         Files.write(file, List.of(lines));
