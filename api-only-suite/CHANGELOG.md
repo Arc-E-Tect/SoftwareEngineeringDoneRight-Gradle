@@ -1,3 +1,10 @@
+# [3.8.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/api-only-suite-v3.7.1...api-only-suite-v3.8.0) (2026-08-30)
+
+
+### ✨ New and updated features
+
+* **doppelganger-api-detector:** add ignore5xx to exclude 5xx codes from response coverage ([#251](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/251)) ([98dfa68](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/98dfa680d271a55d34a62c9913f732cb42f657b9)), closes [#251](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/251)
+
 ## [3.7.1](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/api-only-suite-v3.7.0...api-only-suite-v3.7.1) (2026-08-30)
 
 
