@@ -1,3 +1,15 @@
+## [4.4.4](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/mirage-api-detector-v4.4.3...mirage-api-detector-v4.4.4) (2026-08-30)
+
+
+### 🐛 Bug Fixes
+
+* **doppelganger-api-detector:** resolve a request path argument that names a literal-initialized constant ([#239](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/239)) ([016fbde](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/016fbdee6c3d414fd3029119edada22ac9c8dbac)), closes [#239](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/239) [#79](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/79) [#79](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/79) [#79](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/79)
+
+
+### 🔧 Misc
+
+* **mirage-api-detector:** bump api-detector-core to 1.5.2 ([#240](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/240)) ([fb3744b](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/fb3744b07ae7f11a4572b78511bb6032e7d7e70b)), closes [#240](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/240) [#79](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/79)
+
 ## [4.4.3](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/mirage-api-detector-v4.4.2...mirage-api-detector-v4.4.3) (2026-08-27)
 
 
