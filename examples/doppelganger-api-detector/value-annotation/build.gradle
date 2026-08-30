@@ -1,0 +1,52 @@
+plugins {
+    id 'java'
+    alias(libs.plugins.spring.boot)
+    alias(libs.plugins.spring.dependency.management)
+    alias(libs.plugins.doppelganger.api.detector)
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation libs.spring.boot.starter.web
+
+    testImplementation libs.spring.boot.starter.test
+    testImplementation libs.spring.boot.webmvc.test
+    testImplementation libs.spring.boot.restdocs
+    testImplementation libs.spring.restdocs.mockmvc
+}
+
+test {
+    useJUnitPlatform()
+}
+
+doppelgangerApiDetector {
+    rootDocument = file('src/main/resources/openapi/openapi.yaml')
+
+    // The plugin's default testDirs is src/testContract/java; this example's test lives in the
+    // standard src/test/java source set so Gradle actually compiles and runs it.
+    testDirs.from('src/test/java')
+
+    // The test resolves its request path via a field annotated @Value("${users.by-username}"),
+    // injected by Spring from application.properties - not a string literal, so without the
+    // configuration below the scanner would never see this and getUserByUsername would be
+    // reported as a doppelganger API despite having a real, passing test.
+    propertyFiles.from('src/test/resources/application.properties')
+
+    // Fail the build if anything is still unverified. getUserByUsername is exercised by a real,
+    // passing Spring RestDocs test - see src/test/java - so this is expected to pass.
+    failOnDoppelganger = true
+}
+
+// detectDoppelgangerApis is not wired into check/build automatically - opt in explicitly.
+tasks.named('check') {
+    dependsOn 'detectDoppelgangerApis'
+}

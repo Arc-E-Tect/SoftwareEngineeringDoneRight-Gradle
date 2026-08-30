@@ -8,6 +8,7 @@ import com.arc_e_tect.gradle.detector.core.exclude.ExclusionRule;
 import com.arc_e_tect.gradle.detector.core.model.Endpoint;
 import com.arc_e_tect.gradle.detector.core.openapi.DescribedEndpoint;
 import com.arc_e_tect.gradle.detector.core.openapi.OpenApiEndpointCollector;
+import com.arc_e_tect.gradle.detector.core.scan.PropertyResolutionContext;
 import com.arc_e_tect.gradle.doppelganger.detect.ContractVerificationSource;
 import com.arc_e_tect.gradle.doppelganger.detect.EndpointResponseCoverage;
 import com.arc_e_tect.gradle.doppelganger.detect.ResponseCoverageAnalyzer;
@@ -250,6 +251,25 @@ public abstract class ScanContractsTask extends DefaultTask {
     @Input
     public abstract ListProperty<String> getExcludeWellKnown();
 
+    /**
+     * Property files used to resolve indirectly-referenced request paths in contract tests - see
+     * {@link DoppelgangerApiDetectorExtension#getPropertyFiles()}.
+     *
+     * @return mutable file collection of {@code .properties}/{@code .yml}/{@code .yaml} files
+     */
+    @InputFiles
+    @PathSensitive(PathSensitivity.RELATIVE)
+    public abstract ConfigurableFileCollection getPropertyFiles();
+
+    /**
+     * Helper-method conventions used to resolve indirectly-referenced request paths in contract
+     * tests - see {@link DoppelgangerApiDetectorExtension#getPathResolverHelperMethods()}.
+     *
+     * @return mutable list property of {@code "ClassName.methodName"} conventions
+     */
+    @Input
+    public abstract ListProperty<String> getPathResolverHelperMethods();
+
     /** Creates the task. Instantiated by Gradle infrastructure via {@link javax.inject.Inject}. */
     @Inject
     public ScanContractsTask() {
@@ -446,11 +466,14 @@ public abstract class ScanContractsTask extends DefaultTask {
         }
 
         List<VerifiedContractTest> tests = new ArrayList<>();
+        PropertyResolutionContext propertyResolutionContext =
+                PropertyResolutionContextFactory.create(getPropertyFiles(), getPathResolverHelperMethods());
         try {
             if (useRestDocs) {
                 stages.stage("Scanning Spring RestDocs verification evidence");
                 String serverBasePath = rootDocument == null ? "" : OpenApiServerBasePath.resolve(rootDocument);
-                List<VerifiedContractTest> restDocsTests = scanTestDirsWithStatusCodes(new RestDocsScanner(serverBasePath));
+                List<VerifiedContractTest> restDocsTests =
+                        scanTestDirsWithStatusCodes(new RestDocsScanner(serverBasePath, propertyResolutionContext));
                 tests.addAll(restDocsTests);
                 getLogger().lifecycle(
                         "Scanning Spring RestDocs verification evidence: done, {} test(s) found", restDocsTests.size());
@@ -458,7 +481,7 @@ public abstract class ScanContractsTask extends DefaultTask {
             if (useOpenApiRequestValidator) {
                 stages.stage("Scanning OpenAPI request validator verification evidence");
                 List<VerifiedContractTest> requestValidatorTests =
-                        scanTestDirsWithStatusCodes(new OpenApiRequestValidatorScanner());
+                        scanTestDirsWithStatusCodes(new OpenApiRequestValidatorScanner(propertyResolutionContext));
                 tests.addAll(requestValidatorTests);
                 getLogger().lifecycle("Scanning OpenAPI request validator verification evidence: done, {} test(s) found",
                         requestValidatorTests.size());

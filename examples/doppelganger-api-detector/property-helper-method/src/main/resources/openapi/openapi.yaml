@@ -1,0 +1,23 @@
+openapi: 3.2.0
+info:
+  title: Property Helper Method OpenAPI Test API
+  version: "1.0"
+paths:
+  /v1/users:
+    get:
+      operationId: listUsers
+      responses:
+        '200':
+          description: OK
+  /v1/users/{username}:
+    get:
+      operationId: getUserByUsername
+      parameters:
+        - name: username
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK

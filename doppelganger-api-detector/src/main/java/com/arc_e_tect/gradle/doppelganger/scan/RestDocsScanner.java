@@ -4,6 +4,7 @@ import com.arc_e_tect.gradle.detector.core.model.Endpoint;
 import com.arc_e_tect.gradle.detector.core.model.HttpVerb;
 import com.arc_e_tect.gradle.detector.core.model.PathTemplates;
 import com.arc_e_tect.gradle.detector.core.scan.LiteralPathResolver;
+import com.arc_e_tect.gradle.detector.core.scan.PropertyResolutionContext;
 import com.arc_e_tect.gradle.doppelganger.detect.ContractVerificationSource;
 import com.arc_e_tect.gradle.doppelganger.detect.VerifiedContractTest;
 import com.github.javaparser.JavaParser;
@@ -51,6 +52,7 @@ public class RestDocsScanner implements ContractVerificationSource {
             "patch", HttpVerb.PATCH);
 
     private final String basePathToStrip;
+    private final PropertyResolutionContext propertyResolutionContext;
 
     /** Creates a new {@code RestDocsScanner} that strips no base path from captured paths. */
     public RestDocsScanner() {
@@ -69,8 +71,24 @@ public class RestDocsScanner implements ContractVerificationSource {
      *                         {@code null} disables stripping
      */
     public RestDocsScanner(String basePathToStrip) {
+        this(basePathToStrip, PropertyResolutionContext.empty());
+    }
+
+    /**
+     * Creates a new {@code RestDocsScanner} that additionally resolves a request-builder call's
+     * path argument against {@code propertyResolutionContext} when it is a configured
+     * helper-method call or an {@code @Value}-annotated field, in addition to the literal/
+     * literal-initialized-constant shapes {@link LiteralPathResolver} always resolves.
+     *
+     * @param basePathToStrip           see {@link #RestDocsScanner(String)}
+     * @param propertyResolutionContext out-of-band property knowledge; pass
+     *                                  {@link PropertyResolutionContext#empty()} for none
+     */
+    public RestDocsScanner(String basePathToStrip, PropertyResolutionContext propertyResolutionContext) {
         this.basePathToStrip = basePathToStrip == null || basePathToStrip.isBlank()
                 ? "" : PathTemplates.normalize(basePathToStrip);
+        this.propertyResolutionContext = propertyResolutionContext == null
+                ? PropertyResolutionContext.empty() : propertyResolutionContext;
     }
 
     /** {@inheritDoc} */
@@ -224,7 +242,7 @@ public class RestDocsScanner implements ContractVerificationSource {
             if (verb == null) {
                 return null;
             }
-            return LiteralPathResolver.resolve(call.getArgument(0))
+            return LiteralPathResolver.resolve(call.getArgument(0), propertyResolutionContext)
                     .map(path -> new VerbAndPath(verb, PathTemplates.normalize(path)))
                     .orElse(null);
         }
@@ -233,7 +251,7 @@ public class RestDocsScanner implements ContractVerificationSource {
         if (verb == null || call.getArguments().isEmpty()) {
             return null;
         }
-        return LiteralPathResolver.resolve(call.getArgument(0))
+        return LiteralPathResolver.resolve(call.getArgument(0), propertyResolutionContext)
                 .map(path -> new VerbAndPath(verb, PathTemplates.normalize(path)))
                 .orElse(null);
     }

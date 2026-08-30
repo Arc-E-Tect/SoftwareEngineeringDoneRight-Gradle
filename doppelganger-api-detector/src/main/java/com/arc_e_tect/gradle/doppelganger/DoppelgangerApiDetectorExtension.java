@@ -19,6 +19,8 @@ import org.gradle.api.provider.Property;
  *     useRestDocs                 = true                                      // default
  *     useOpenApiRequestValidator  = false                                     // default
  *     useSpringCloudContract      = false                                     // default
+ *     // propertyFiles.from('src/testCommon/resources/api-endpoints.properties') // default: empty
+ *     // pathResolverHelperMethods.add('ApiEndpoints.get')                   // default: empty
  *     failOnDoppelganger = false                                              // default
  *     reportDir      = layout.buildDirectory.dir('reports/doppelganger-api-detector') // default
  *     reportFileName = 'doppelganger-apis.adoc'                               // default
@@ -149,6 +151,37 @@ public abstract class DoppelgangerApiDetectorExtension {
      * @return mutable directory property for the Spring Cloud Contract directory
      */
     public abstract DirectoryProperty getContractsDir();
+
+    /**
+     * Property files ({@code .properties}, {@code .yml}, or {@code .yaml}) merged into a single
+     * key/value map used to resolve a test's request-path argument when it is not a literal or a
+     * literal-initialized constant - specifically, a configured
+     * {@link #getPathResolverHelperMethods()} call whose literal argument is a property key, or a
+     * field annotated {@code @Value("${key}")}/{@code @Value("${key:default}")}. Keys from nested
+     * YAML mappings are flattened to dotted form (e.g. {@code users: { by-username: /v1/users/{username} }}
+     * becomes the key {@code users.by-username}), matching Spring's own property-resolution
+     * convention. Later files take precedence over earlier ones on key collision. Defaults to
+     * empty, in which case neither helper-method calls nor {@code @Value} fields are resolved
+     * (unchanged from previous plugin versions).
+     *
+     * @return mutable file collection of property files to merge for path resolution
+     */
+    public abstract ConfigurableFileCollection getPropertyFiles();
+
+    /**
+     * Static helper-method conventions recognised when resolving a test's request-path argument,
+     * each given as {@code "SimpleClassName.methodName"} (e.g. {@code "ApiEndpoints.get"} for a
+     * shared {@code ApiEndpoints.get("users.by-username")} helper backed by a properties file). A
+     * call matching one of these conventions, with a single literal-string argument, has that
+     * literal looked up as a key in the merged map built from {@link #getPropertyFiles()}; the
+     * resolved value is then treated exactly as a literal path would be. Matching is by simple
+     * name only - no classpath is consulted, consistent with every other scanner in this plugin.
+     * Defaults to empty, in which case no helper-method call is resolved (unchanged from previous
+     * plugin versions).
+     *
+     * @return mutable list property of {@code "ClassName.methodName"} helper-method conventions
+     */
+    public abstract ListProperty<String> getPathResolverHelperMethods();
 
     /**
         * Whether to treat Spring RestDocs test methods as verification evidence: either a
