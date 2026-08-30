@@ -1,3 +1,21 @@
+## [3.4.1](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/shadow-api-detector-v3.4.0...shadow-api-detector-v3.4.1) (2026-08-30)
+
+
+### 🐛 Bug Fixes
+
+* **mirage-api-detector:** bump api-detector-core to 1.5.1 ([#234](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/234)) ([bbb028b](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/bbb028b85e66dfe3c5bd5f47133d0f0ec6beab63)), closes [#234](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/234)
+* **doppelganger-api-detector:** bump api-detector-core to 1.5.1 ([#235](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/235)) ([ca0d4cf](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/ca0d4cf59d2be4e9a86ad2c5fa3a0d3141259f2c)), closes [#235](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/235)
+* **gherkin-to-asciidoc:** explain why a scenario becomes removed ([#238](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/238)) ([66ae18b](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/66ae18b25bbd19a6642d30f6854c932a12b2b488)), closes [#238](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/238)
+* **tracker-lens:** recognise api-detector-core's current semver schemaVersion header line ([#236](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/236)) ([7aaf30c](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/7aaf30c3cebc44e0dc7497dfc0051907fbc8e969)), closes [#236](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/236)
+* **doppelganger-api-detector:** resolve a request path argument that names a literal-initialized constant ([#239](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/239)) ([016fbde](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/016fbdee6c3d414fd3029119edada22ac9c8dbac)), closes [#239](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/239) [#79](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/79) [#79](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/79) [#79](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/79)
+* **mirage-api-detector:** rewrite a literal urlPath/url purely numeric id segment into a {id} placeholder ([#237](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/237)) ([df6d205](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/df6d205ba9777d44d81c42be17f5f5001a9d07b2)), closes [#237](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/237) [#232](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/232)
+
+
+### 🔧 Misc
+
+* **mirage-api-detector:** bump api-detector-core to 1.5.2 ([#240](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/240)) ([fb3744b](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/fb3744b07ae7f11a4572b78511bb6032e7d7e70b)), closes [#240](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/240) [#79](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/79)
+* **shadow-api-detector:** bump api-detector-core to 1.5.2 ([#241](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/241)) ([df42c02](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/df42c02ab7bf1ff177ea923abd2bd67059ae3255)), closes [#241](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/241) [#79](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/79)
+
 # [3.4.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/shadow-api-detector-v3.3.0...shadow-api-detector-v3.4.0) (2026-08-27)
 
 
