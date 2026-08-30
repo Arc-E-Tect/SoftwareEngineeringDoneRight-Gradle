@@ -1,3 +1,22 @@
+# [6.4.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/gherkin-to-asciidoc-v6.3.0...gherkin-to-asciidoc-v6.4.0) (2026-08-30)
+
+
+### ✨ New and updated features
+
+* **gherkin-to-asciidoc:** add consolidatedIndex to scope indexing per project in multi-project builds ([#243](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/243)) ([64f6f5e](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/64f6f5eddc357d6d460404568e27d17d67338ad6)), closes [#243](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/243)
+
+
+### 🐛 Bug Fixes
+
+* **doppelganger-api-detector:** resolve a request path argument that names a literal-initialized constant ([#239](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/239)) ([016fbde](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/016fbdee6c3d414fd3029119edada22ac9c8dbac)), closes [#239](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/239) [#79](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/79) [#79](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/79) [#79](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/79)
+
+
+### 🔧 Misc
+
+* **mirage-api-detector:** bump api-detector-core to 1.5.2 ([#240](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/240)) ([fb3744b](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/fb3744b07ae7f11a4572b78511bb6032e7d7e70b)), closes [#240](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/240) [#79](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/79)
+* **shadow-api-detector:** bump api-detector-core to 1.5.2 ([#241](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/241)) ([df42c02](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/df42c02ab7bf1ff177ea923abd2bd67059ae3255)), closes [#241](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/241) [#79](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/79)
+* **api-only-suite:** bump api-detector-core to 1.5.2 ([#242](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/242)) ([6e777a2](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/6e777a2e0c6aeb8766d13a9fc6551ca0f52c426e)), closes [#242](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/242) [#239](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/239) [#240](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/240) [#241](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/241) [#79](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/79)
+
 # [6.3.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/gherkin-to-asciidoc-v6.2.0...gherkin-to-asciidoc-v6.3.0) (2026-08-27)
 
 
