@@ -9,7 +9,7 @@ owasp-dependency-check      = { id = "org.owasp.dependencycheck",     version.re
 
 owasp-dependency-check = "13.0.0"
 
-api-detector-core = "1.6.0"
+api-detector-core = "1.6.1"
 javaparser      = "3.28.2"
 swagger-parser  = "2.1.46"
 junit-jupiter = "6.1.3"
