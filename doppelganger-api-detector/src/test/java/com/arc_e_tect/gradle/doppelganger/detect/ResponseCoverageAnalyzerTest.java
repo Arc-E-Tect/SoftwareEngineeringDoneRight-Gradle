@@ -130,6 +130,63 @@ class ResponseCoverageAnalyzerTest {
         assertThat(results.get(1).contractTestCount()).isEqualTo(2);
     }
 
+    @Test
+    @DisplayName("when ignore5xx is false (the default), 5xx response codes are tracked as before")
+    void tracksFiveXxResponseCodesWhenIgnore5xxIsFalse() {
+        DescribedEndpoint endpoint = new DescribedEndpoint(
+                HttpVerb.GET, "/orders", null, List.of(), List.of("200", "500"));
+        List<VerifiedContractTest> tests = List.of(verified(HttpVerb.GET, "/orders", "200"));
+
+        List<EndpointResponseCoverage> results = analyzer.analyze(List.of(endpoint), tests, true, false);
+
+        EndpointResponseCoverage row = results.get(0);
+        assertThat(row.declaredResponseCodes()).containsExactly("200", "500");
+        assertThat(row.testCountByResponseCode()).containsExactly(
+                Map.entry("200", 1), Map.entry("500", 0));
+    }
+
+    @Test
+    @DisplayName("when ignore5xx is true, an exact 5xx response code is excluded from declared codes and the breakdown")
+    void excludesExactFiveXxResponseCodeWhenIgnore5xxIsTrue() {
+        DescribedEndpoint endpoint = new DescribedEndpoint(
+                HttpVerb.POST, "/orders", null, List.of(), List.of("201", "500"));
+        List<VerifiedContractTest> tests = List.of(verified(HttpVerb.POST, "/orders", "201"));
+
+        List<EndpointResponseCoverage> results = analyzer.analyze(List.of(endpoint), tests, true, true);
+
+        EndpointResponseCoverage row = results.get(0);
+        assertThat(row.declaredResponseCodes()).containsExactly("201");
+        assertThat(row.testCountByResponseCode()).containsExactly(Map.entry("201", 1));
+    }
+
+    @Test
+    @DisplayName("when ignore5xx is true, the 5XX range wildcard is also excluded")
+    void excludesFiveXxWildcardWhenIgnore5xxIsTrue() {
+        DescribedEndpoint endpoint = new DescribedEndpoint(
+                HttpVerb.GET, "/orders", null, List.of(), List.of("200", "5XX"));
+
+        List<EndpointResponseCoverage> results = analyzer.analyze(List.of(endpoint), List.of(), true, true);
+
+        assertThat(results.get(0).declaredResponseCodes()).containsExactly("200");
+    }
+
+    @Test
+    @DisplayName("when ignore5xx is true, a test asserting a 5xx status is neither attributed to a code nor counted as untracked, but still counts towards the total")
+    void excludesFiveXxAssertingTestFromBreakdownWhenIgnore5xxIsTrue() {
+        DescribedEndpoint endpoint = new DescribedEndpoint(
+                HttpVerb.GET, "/orders", null, List.of(), List.of("200"));
+        List<VerifiedContractTest> tests = List.of(
+                verified(HttpVerb.GET, "/orders", "200"),
+                verified(HttpVerb.GET, "/orders", "503"));
+
+        List<EndpointResponseCoverage> results = analyzer.analyze(List.of(endpoint), tests, true, true);
+
+        EndpointResponseCoverage row = results.get(0);
+        assertThat(row.contractTestCount()).isEqualTo(2);
+        assertThat(row.untrackedTestCount()).isZero();
+        assertThat(row.testCountByResponseCode()).containsExactly(Map.entry("200", 1));
+    }
+
     private VerifiedContractTest verified(HttpVerb verb, String path, String statusCode) {
         return new VerifiedContractTest(new Endpoint(verb, path, "TestClass", "test()", "Test.java", 1), statusCode);
     }

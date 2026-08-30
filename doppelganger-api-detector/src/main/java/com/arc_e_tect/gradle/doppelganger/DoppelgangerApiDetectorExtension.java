@@ -37,6 +37,7 @@ import org.gradle.api.provider.Property;
  *     // rootDocument, contractsDir, useRestDocs/useOpenApiRequestValidator/useSpringCloudContract,
  *     // and the exclude* properties above.
  *     includeResponseCoverage = false                                         // default
+ *     ignore5xx = false                                                       // default
  *     // scanContractsReportFileName = 'contract-coverage.adoc'               // default
  *     trackResponseCoverageHistory = false                                    // default
  *     // responseCoverageHistoryFile = file('doppelganger-api-detector-response-coverage-history.ndjson') // default
@@ -351,6 +352,28 @@ public abstract class DoppelgangerApiDetectorExtension {
      * @return mutable boolean property controlling whether response coverage is computed
      */
     public abstract Property<Boolean> getIncludeResponseCoverage();
+
+    /**
+     * Whether {@code scanContracts} excludes 5xx response codes - both an exact code (e.g.
+     * {@code "500"}, {@code "503"}) and the {@code "5XX"} range wildcard - from the per-response-code
+     * breakdown entirely: neither reported as a declared response code needing coverage nor
+     * attributed a test count, and a contract test detected to assert a 5xx status contributes to
+     * neither a specific code's count nor {@link com.arc_e_tect.gradle.doppelganger.detect.EndpointResponseCoverage#untrackedTestCount()}
+     * - though it's still counted in {@link com.arc_e_tect.gradle.doppelganger.detect.EndpointResponseCoverage#contractTestCount()}.
+     * Most 5xx responses document a genuine server failure that can't be triggered honestly from
+     * outside a black-box contract test without a fault-injection seam most projects don't have yet,
+     * so a perpetually-uncovered {@code 500} row is often not a real gap so much as a known,
+     * structural limitation of what black-box contract testing alone can verify.
+     *
+     * <p>Defaults to {@code false}, so every declared response code is considered by default - the
+     * largest test surface. Enable this once a project has deliberately decided 5xx coverage isn't
+     * being pursued at the contract-test level, rather than adding an exclusion rule per 5xx code
+     * per endpoint.</p>
+     *
+     * @return mutable boolean property controlling whether 5xx response codes are excluded from the
+     *         response coverage breakdown
+     */
+    public abstract Property<Boolean> getIgnore5xx();
 
     /**
      * Name of the {@code scanContracts} task's generated AsciiDoc report file (without path),
