@@ -39,6 +39,7 @@ dependencies {
     implementation libs.api.detector.core
     implementation libs.javaparser.core
     implementation libs.swagger.parser
+    implementation libs.snakeyaml
 
     testImplementation libs.junit.jupiter
     testImplementation libs.assertj.core

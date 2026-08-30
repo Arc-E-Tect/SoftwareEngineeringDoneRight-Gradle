@@ -49,4 +49,35 @@ public class OpenApiRequestValidatorScannerFixture {
     private static String buildPath() {
         return "/dynamic";
     }
+
+    void getUserByUsernamePropertyHelperMethod() {
+        given()
+                .filter(new OpenApiValidationFilter(spec))
+                .when()
+                .get(ApiEndpoints.path("users.by-username"))
+                .then()
+                .statusCode(200);
+    }
+
+    @Value("${users.by-username}")
+    private String usersByUsernamePath;
+
+    void getUserByUsernameValueAnnotation() {
+        given()
+                .filter(new OpenApiValidationFilter(spec))
+                .when()
+                .get(usersByUsernamePath)
+                .then()
+                .statusCode(200);
+    }
+
+    static class ApiEndpoints {
+        static String path(String key) {
+            return null;
+        }
+    }
+
+    @interface Value {
+        String value();
+    }
 }

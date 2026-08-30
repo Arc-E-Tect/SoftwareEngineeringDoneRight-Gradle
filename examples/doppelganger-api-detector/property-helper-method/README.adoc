@@ -1,0 +1,155 @@
+= Doppelganger API Detector — Property Helper Method Example
+:toc: left
+
+== Description
+
+This example applies the Doppelganger API Detector plugin to a `UserController` with two
+endpoints:
+
+[cols="1,3",options="header"]
+|===
+| Endpoint      | Verified by
+| `GET /v1/users/{username}` (`getUserByUsername`) | A real, passing Spring RestDocs test (`UserControllerRestDocsTest`) that resolves its request path via `ApiEndpoints.get("users.by-username")` — a static helper method backed by `api-endpoints.properties`, not a string literal.
+| `GET /v1/users` (`listUsers`) | **Nothing.** No test at all - deliberately left unverified.
+|===
+
+`failOnDoppelganger` is enabled; the build is expected to **fail**, on exactly `listUsers`.
+
+== Intent
+
+By default the scanners only resolve request paths that are string literals, local
+variables/fields initialized with a literal, or class constants — anything produced by a
+method call is invisible to them. Real-world contract tests commonly resolve endpoint paths
+indirectly instead, e.g. via a static helper method backed by a `.properties` file loaded from
+the classpath. This is exactly the pattern used by the User Account microservice in the
+accompanying book's example code: an `ApiEndpoints.get(key)` helper reads
+`api-endpoints.properties`, so a path-prefix change touches one file instead of every call
+site.
+
+Without the plugin knowing about this convention, `getUserByUsername`'s test would be
+invisible to it, and the endpoint would be wrongly reported as a doppelganger API despite
+being genuinely covered — a false positive. Configuring `propertyFiles` (the same
+`.properties` file the test itself reads at runtime) and `pathResolverHelperMethods`
+(`'ApiEndpoints.get'`) tells the plugin, out of band, how to resolve this call the same way
+the application does — without giving the scanner a symbol solver or classpath access.
+
+This example proves two things at once: that `ApiEndpoints.get("users.by-username")` is
+recognised as verification evidence for `getUserByUsername` (it does *not* appear in the
+failure below), and that the detector genuinely still catches `listUsers`, which has no
+evidence anywhere. A build that always succeeds proves nothing about whether detection
+actually works - this example is designed to fail on exactly one endpoint, so the failure
+itself is the demonstration.
+
+== The Controller, Properties File, Helper, And Test
+
+[source,java]
+----
+@RestController
+@RequestMapping("/v1/users")
+public class UserController {
+
+    @GetMapping("/{username}")
+    public String getUserByUsername(@PathVariable String username) { return "{}"; }
+
+    @GetMapping
+    public String listUsers() { return "[]"; }
+}
+----
+
+[source,properties]
+----
+# src/test/resources/api-endpoints.properties
+users.by-username=/v1/users/{username}
+----
+
+[source,java]
+----
+public final class ApiEndpoints {
+
+    private static final Properties ENDPOINTS = load();
+
+    public static String get(String key) {
+        String value = ENDPOINTS.getProperty(key);
+        if (value == null) {
+            throw new IllegalArgumentException("No api-endpoints.properties entry for key '" + key + "'");
+        }
+        return value;
+    }
+    // ... loads api-endpoints.properties from the classpath at class-init time
+}
+----
+
+[source,java]
+----
+@WebMvcTest(UserController.class)
+@AutoConfigureRestDocs
+class UserControllerRestDocsTest {
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @Test
+    void getUserByUsername() throws Exception {
+        mockMvc.perform(get(ApiEndpoints.get("users.by-username"), "alice"))
+                .andExpect(status().isOk())
+                .andDo(document("get-user-by-username"));
+    }
+}
+----
+
+`openapi.yaml` declares both `GET /v1/users/{username}` and `GET /v1/users`, matching the
+controller. Only `getUserByUsername` has a test.
+
+[source,groovy]
+----
+doppelgangerApiDetector {
+    rootDocument = file('src/main/resources/openapi/openapi.yaml')
+    testDirs.from('src/test/java')
+
+    propertyFiles.from('src/test/resources/api-endpoints.properties')
+    pathResolverHelperMethods = ['ApiEndpoints.get']
+
+    failOnDoppelganger = true
+}
+----
+
+== Build And Run
+
+[source,bash]
+----
+cd examples/doppelganger-api-detector/property-helper-method
+./gradlew build
+----
+
+`detectDoppelgangerApis` runs before the test suite in this build's task graph and fails first,
+so `./gradlew build` stops there without reaching `test`. To confirm the real RestDocs test
+genuinely passes on its own, run:
+
+[source,bash]
+----
+./gradlew test
+----
+
+== What To Expect
+
+`./gradlew build` fails on exactly `listUsers`:
+
+[source]
+----
+> Task :detectDoppelgangerApis FAILED
+Doppelganger API Detector: scanned 2 declared-and-implemented endpoint(s), found 1 doppelganger API(s).
+doppelgangerApiDetector: found 1 doppelganger API(s) declared and implemented but not verified by any configured contract verification source.
+----
+
+`build/reports/doppelganger-api-detector/doppelganger-apis.adoc` lists exactly `GET /v1/users`
+(`listUsers`) - `getUserByUsername` does not appear, since `propertyFiles` +
+`pathResolverHelperMethods` let the scanner resolve its test's request path and recognise it as
+real verification evidence.
+
+`./gradlew test` succeeds independently, confirming the RestDocs test is genuinely working
+code.
+
+== Suggested Fix
+
+Add a RestDocs test for `listUsers`, or remove it from `openapi.yaml` if it was never meant to
+be covered by this mechanism.

@@ -62,6 +62,24 @@ include::mirage-api-detector/openapi-3-2/README.adoc[leveloffset=+2]
 
 include::mirage-api-detector/request-mapping-composed/README.adoc[leveloffset=+2]
 
+== Doppelganger API Detector Examples
+
+include::doppelganger-api-detector/verified-by-restdocs/README.adoc[leveloffset=+2]
+
+include::doppelganger-api-detector/verified-by-restdocs-restassured/README.adoc[leveloffset=+2]
+
+include::doppelganger-api-detector/verified-by-openapi-request-validator/README.adoc[leveloffset=+2]
+
+include::doppelganger-api-detector/verified-by-spring-cloud-contract/README.adoc[leveloffset=+2]
+
+include::doppelganger-api-detector/verified-by-all-three/README.adoc[leveloffset=+2]
+
+include::doppelganger-api-detector/with-doppelganger-apis/README.adoc[leveloffset=+2]
+
+include::doppelganger-api-detector/property-helper-method/README.adoc[leveloffset=+2]
+
+include::doppelganger-api-detector/value-annotation/README.adoc[leveloffset=+2]
+
 == Tracker Lens Examples
 
 include::tracker-lens/plain/README.adoc[leveloffset=+2]

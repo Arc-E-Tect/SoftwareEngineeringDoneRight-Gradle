@@ -2,6 +2,7 @@ package com.arc_e_tect.gradle.doppelganger.scan;
 
 import com.arc_e_tect.gradle.detector.core.model.Endpoint;
 import com.arc_e_tect.gradle.detector.core.model.HttpVerb;
+import com.arc_e_tect.gradle.detector.core.scan.PropertyResolutionContext;
 import com.arc_e_tect.gradle.doppelganger.detect.VerifiedContractTest;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -12,6 +13,8 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -295,6 +298,52 @@ class RestDocsScannerTest {
                 .toList();
 
         assertThat(endpoints).containsExactlyElementsOf(fromStatusCodes);
+    }
+
+    @Test
+    @DisplayName("ignores a helper-method call when no propertyResolutionContext is configured")
+    void ignoresHelperMethodCallWithoutContext() throws Exception {
+        List<Endpoint> endpoints = scanner.scan(fixtureDir());
+
+        assertThat(endpoints).noneMatch(e -> e.methodSignature().startsWith("getUserByUsernamePropertyHelperMethod"));
+    }
+
+    @Test
+    @DisplayName("ignores an @Value-annotated field path argument when no propertyResolutionContext is configured")
+    void ignoresValueAnnotatedFieldWithoutContext() throws Exception {
+        List<Endpoint> endpoints = scanner.scan(fixtureDir());
+
+        assertThat(endpoints).noneMatch(e -> e.methodSignature().startsWith("getUserByUsernameValueAnnotation"));
+    }
+
+    @Test
+    @DisplayName("resolves a configured helper-method call's argument against a propertyResolutionContext")
+    void resolvesHelperMethodCallWithContext() throws Exception {
+        PropertyResolutionContext context = PropertyResolutionContext.of(
+                Map.of("users.by-username", "/v1/users/{username}"), Set.of("ApiEndpoints.path"));
+        RestDocsScanner scannerWithContext = new RestDocsScanner("", context);
+
+        List<Endpoint> endpoints = scannerWithContext.scan(fixtureDir());
+
+        assertThat(endpoints)
+                .filteredOn(e -> e.methodSignature().startsWith("getUserByUsernamePropertyHelperMethod"))
+                .extracting(Endpoint::verb, Endpoint::path)
+                .containsExactly(tuple(HttpVerb.GET, "/v1/users/{username}"));
+    }
+
+    @Test
+    @DisplayName("resolves an @Value-annotated field path argument against a propertyResolutionContext")
+    void resolvesValueAnnotatedFieldWithContext() throws Exception {
+        PropertyResolutionContext context = PropertyResolutionContext.of(
+                Map.of("users.by-username", "/v1/users/{username}"), Set.of());
+        RestDocsScanner scannerWithContext = new RestDocsScanner("", context);
+
+        List<Endpoint> endpoints = scannerWithContext.scan(fixtureDir());
+
+        assertThat(endpoints)
+                .filteredOn(e -> e.methodSignature().startsWith("getUserByUsernameValueAnnotation"))
+                .extracting(Endpoint::verb, Endpoint::path)
+                .containsExactly(tuple(HttpVerb.GET, "/v1/users/{username}"));
     }
 
     private static File fixtureDir() {

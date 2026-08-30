@@ -195,6 +195,67 @@ exclusion file), fails the build - both are build-script/file mistakes, not a "n
 bootstrapping gap. A configured `excludeFiles` entry that doesn't exist yet only warns, the same
 way a missing `controllerDirs`/`testDirs` entry does.
 
+== Resolving indirectly-referenced request paths
+
+The Spring RestDocs and OpenAPI request validator verification sources both work by parsing a
+test method's request-builder call (e.g. `mockMvc.perform(get("/v1/users"))`) and reading the
+path argument out of the parsed source - they never execute the test. That works unmodified when
+the argument is a string literal, a local variable initialized with one, or a field initialized
+with one anywhere in the same file. It does **not** work out of the box when the path is produced
+by a method call, since resolving an arbitrary method call would require actually running the
+code (or a full classpath/symbol solver, which every scanner in this plugin deliberately avoids -
+see "How this works" above). Two such patterns are common enough in real projects that this
+plugin can be told about them explicitly:
+
+* A shared static helper method backed by a properties file, e.g. `ApiEndpoints.get("users.by-username")`
+  where `ApiEndpoints` loads `api-endpoints.properties` from the classpath and looks up the given key.
+* A field annotated `@Value("${users.by-username}")` (optionally `@Value("${users.by-username:/v1/users}")`
+  with a fallback default), injected by Spring from `application.properties`/`application.yml`.
+
+`propertyFiles` and `pathResolverHelperMethods` close this gap without requiring the plugin to run
+any code:
+
+[source,groovy]
+----
+doppelgangerApiDetector {
+    // One or more .properties/.yml/.yaml files, merged into a single key/value map. Nested YAML
+    // mappings are flattened to dotted keys (users: { by-username: /v1/users/{username} } becomes
+    // users.by-username), matching Spring's own convention. Later files win on key collision.
+    propertyFiles.from('src/testContract/resources/api-endpoints.properties')
+
+    // "SimpleClassName.methodName" conventions for a static helper method whose single
+    // literal-string argument should be looked up as a key in the merged propertyFiles map.
+    pathResolverHelperMethods.add('ApiEndpoints.get')
+}
+----
+
+With this configuration, both of the following test-side patterns resolve to the same value -
+whatever `users.by-username` maps to in the merged `propertyFiles` - and are treated exactly as a
+literal path argument would be:
+
+[source,java]
+----
+// Helper-method pattern (pathResolverHelperMethods), backed by api-endpoints.properties:
+//   users.by-username=/v1/users/{username}
+mockMvc.perform(get(ApiEndpoints.get("users.by-username"), "alice"));
+
+// @Value pattern - only propertyFiles needs to be configured; no helper-method convention
+// is required, since the annotation itself identifies the field as property-driven.
+@Value("${users.by-username}")
+private String usersByUsernamePath;
+...
+mockMvc.perform(get(usersByUsernamePath, "alice"));
+----
+
+Matching is by simple class/method name only, exactly like every other scanner in this plugin -
+no classpath is consulted, so `ApiEndpoints` never needs to be on the plugin's own classpath.
+Both `propertyFiles` and `pathResolverHelperMethods` default to empty, so a project that doesn't
+configure them sees no behaviour change from previous plugin versions.
+
+See `examples/doppelganger-api-detector/property-helper-method` and
+`examples/doppelganger-api-detector/value-annotation` for complete, runnable examples of both
+patterns.
+
 == Configuration
 
 The plugin registers a `doppelgangerApiDetector` extension.
@@ -271,6 +332,12 @@ doppelgangerApiDetector {
     // excludeFiles.from('doppelganger-exclusions.yaml')
     // excludeWellKnown.add('spring-boot-actuator')
 
+    // Property files and helper-method conventions used to resolve a test's request-path
+    // argument when it's not a literal or literal-initialized constant - see "Resolving
+    // indirectly-referenced request paths" below. Both default to empty.
+    // propertyFiles.from('src/testContract/resources/api-endpoints.properties')
+    // pathResolverHelperMethods.add('ApiEndpoints.get')
+
     // Configuration for the separate `scanContracts` task (see "Contract Response Coverage"
     // below) - reuses controllerDirs, testDirs, rootDocument, contractsDir, the useXxx source
     // flags, and the exclude* properties above.
@@ -319,6 +386,8 @@ doppelgangerApiDetector {
     // excludePaths.add("/actuator/health")
     // excludeFiles.from("doppelganger-exclusions.yaml")
     // excludeWellKnown.add("spring-boot-actuator")
+    // propertyFiles.from("src/testContract/resources/api-endpoints.properties")
+    // pathResolverHelperMethods.add("ApiEndpoints.get")
 
     includeResponseCoverage.set(false)
     // scanContractsReportFileName.set("contract-coverage.adoc")

@@ -90,6 +90,7 @@ public class DoppelgangerApiDetectorPlugin implements Plugin<Project> {
 
         ext.getExcludePaths().convention(List.of());
         ext.getExcludeWellKnown().convention(List.of());
+        ext.getPathResolverHelperMethods().convention(List.of());
 
         ext.getIncludeResponseCoverage().convention(false);
         ext.getScanContractsReportFileName().convention(
@@ -138,6 +139,8 @@ public class DoppelgangerApiDetectorPlugin implements Plugin<Project> {
                     task.getExcludePaths().set(ext.getExcludePaths());
                     task.getExcludeFiles().from(ext.getExcludeFiles());
                     task.getExcludeWellKnown().set(ext.getExcludeWellKnown());
+                    task.getPropertyFiles().from(ext.getPropertyFiles());
+                    task.getPathResolverHelperMethods().set(ext.getPathResolverHelperMethods());
                 });
 
         TaskProvider<ScanContractsTask> scanContractsTaskProvider =
@@ -161,6 +164,8 @@ public class DoppelgangerApiDetectorPlugin implements Plugin<Project> {
                     task.getExcludePaths().set(ext.getExcludePaths());
                     task.getExcludeFiles().from(ext.getExcludeFiles());
                     task.getExcludeWellKnown().set(ext.getExcludeWellKnown());
+                    task.getPropertyFiles().from(ext.getPropertyFiles());
+                    task.getPathResolverHelperMethods().set(ext.getPathResolverHelperMethods());
                 });
 
         // Default controllerDirs/testDirs only when the user has not configured them themselves;

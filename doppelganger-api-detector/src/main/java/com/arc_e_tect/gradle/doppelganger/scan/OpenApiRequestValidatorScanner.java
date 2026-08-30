@@ -4,6 +4,7 @@ import com.arc_e_tect.gradle.detector.core.model.Endpoint;
 import com.arc_e_tect.gradle.detector.core.model.HttpVerb;
 import com.arc_e_tect.gradle.detector.core.model.PathTemplates;
 import com.arc_e_tect.gradle.detector.core.scan.LiteralPathResolver;
+import com.arc_e_tect.gradle.detector.core.scan.PropertyResolutionContext;
 import com.arc_e_tect.gradle.doppelganger.detect.ContractVerificationSource;
 import com.arc_e_tect.gradle.doppelganger.detect.VerifiedContractTest;
 import com.github.javaparser.JavaParser;
@@ -42,8 +43,27 @@ public class OpenApiRequestValidatorScanner implements ContractVerificationSourc
             "delete", HttpVerb.DELETE,
             "patch", HttpVerb.PATCH);
 
-    /** Creates a new {@code OpenApiRequestValidatorScanner}. */
-    public OpenApiRequestValidatorScanner() {}
+    private final PropertyResolutionContext propertyResolutionContext;
+
+    /** Creates a new {@code OpenApiRequestValidatorScanner} that resolves no configured
+     * helper-method calls or {@code @Value}-annotated fields. */
+    public OpenApiRequestValidatorScanner() {
+        this(PropertyResolutionContext.empty());
+    }
+
+    /**
+     * Creates a new {@code OpenApiRequestValidatorScanner} that additionally resolves a
+     * request-builder call's path argument against {@code propertyResolutionContext} when it is a
+     * configured helper-method call or an {@code @Value}-annotated field, in addition to the
+     * literal/literal-initialized-constant shapes {@link LiteralPathResolver} always resolves.
+     *
+     * @param propertyResolutionContext out-of-band property knowledge; pass
+     *                                  {@link PropertyResolutionContext#empty()} for none
+     */
+    public OpenApiRequestValidatorScanner(PropertyResolutionContext propertyResolutionContext) {
+        this.propertyResolutionContext = propertyResolutionContext == null
+                ? PropertyResolutionContext.empty() : propertyResolutionContext;
+    }
 
     /** {@inheritDoc} */
     @Override
@@ -136,7 +156,7 @@ public class OpenApiRequestValidatorScanner implements ContractVerificationSourc
         if (verb == null || call.getArguments().isEmpty()) {
             return null;
         }
-        return LiteralPathResolver.resolve(call.getArgument(0))
+        return LiteralPathResolver.resolve(call.getArgument(0), propertyResolutionContext)
                 .map(path -> new VerbAndPath(verb, PathTemplates.normalize(path)))
                 .orElse(null);
     }

@@ -12,6 +12,7 @@ import com.arc_e_tect.gradle.detector.core.progress.ContractHistoryStore;
 import com.arc_e_tect.gradle.detector.core.progress.ContractHistoryUpdater;
 import com.arc_e_tect.gradle.detector.core.progress.ContractProgressRecord;
 import com.arc_e_tect.gradle.detector.core.progress.LegacyContractHistoryFormatException;
+import com.arc_e_tect.gradle.detector.core.scan.PropertyResolutionContext;
 import com.arc_e_tect.gradle.doppelganger.detect.ContractVerificationSource;
 import com.arc_e_tect.gradle.doppelganger.detect.DoppelgangerApiFinder;
 import com.arc_e_tect.gradle.doppelganger.report.DoppelgangerApiReportWriter;
@@ -284,6 +285,25 @@ public abstract class DetectDoppelgangerApisTask extends DefaultTask {
      */
     @Input
     public abstract ListProperty<String> getExcludeWellKnown();
+
+    /**
+     * Property files used to resolve indirectly-referenced request paths in contract tests - see
+     * {@link DoppelgangerApiDetectorExtension#getPropertyFiles()}.
+     *
+     * @return mutable file collection of {@code .properties}/{@code .yml}/{@code .yaml} files
+     */
+    @InputFiles
+    @PathSensitive(PathSensitivity.RELATIVE)
+    public abstract ConfigurableFileCollection getPropertyFiles();
+
+    /**
+     * Helper-method conventions used to resolve indirectly-referenced request paths in contract
+     * tests - see {@link DoppelgangerApiDetectorExtension#getPathResolverHelperMethods()}.
+     *
+     * @return mutable list property of {@code "ClassName.methodName"} conventions
+     */
+    @Input
+    public abstract ListProperty<String> getPathResolverHelperMethods();
 
     /**
      * Creates the task. Instantiated by Gradle infrastructure via {@link javax.inject.Inject}.
@@ -587,11 +607,14 @@ public abstract class DetectDoppelgangerApisTask extends DefaultTask {
         }
 
         List<Endpoint> verified = new ArrayList<>();
+        PropertyResolutionContext propertyResolutionContext =
+                PropertyResolutionContextFactory.create(getPropertyFiles(), getPathResolverHelperMethods());
         try {
             if (useRestDocs) {
                 stages.stage("Scanning Spring RestDocs verification evidence");
                 String serverBasePath = rootDocument == null ? "" : OpenApiServerBasePath.resolve(rootDocument);
-                List<Endpoint> restDocsEndpoints = scanTestDirs(new RestDocsScanner(serverBasePath));
+                List<Endpoint> restDocsEndpoints =
+                        scanTestDirs(new RestDocsScanner(serverBasePath, propertyResolutionContext));
                 verified.addAll(restDocsEndpoints);
                 getLogger().lifecycle(
                         "Scanning Spring RestDocs verification evidence: done, {} endpoint(s) found",
@@ -599,7 +622,8 @@ public abstract class DetectDoppelgangerApisTask extends DefaultTask {
             }
             if (useOpenApiRequestValidator) {
                 stages.stage("Scanning OpenAPI request validator verification evidence");
-                List<Endpoint> requestValidatorEndpoints = scanTestDirs(new OpenApiRequestValidatorScanner());
+                List<Endpoint> requestValidatorEndpoints =
+                        scanTestDirs(new OpenApiRequestValidatorScanner(propertyResolutionContext));
                 verified.addAll(requestValidatorEndpoints);
                 getLogger().lifecycle(
                         "Scanning OpenAPI request validator verification evidence: done, {} endpoint(s) found",

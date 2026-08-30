@@ -119,4 +119,29 @@ public class RestDocsScannerFixture {
                 .andExpect(status().isCreated())
                 .andDo(document("create-ticket-local-variable"));
     }
+
+    void getUserByUsernamePropertyHelperMethod() throws Exception {
+        mockMvc.perform(get(ApiEndpoints.path("users.by-username"), "alice"))
+                .andExpect(status().isOk())
+                .andDo(document("get-user-by-username-property-helper-method"));
+    }
+
+    @Value("${users.by-username}")
+    private String usersByUsernamePath;
+
+    void getUserByUsernameValueAnnotation() throws Exception {
+        mockMvc.perform(get(usersByUsernamePath, "alice"))
+                .andExpect(status().isOk())
+                .andDo(document("get-user-by-username-value-annotation"));
+    }
+
+    static class ApiEndpoints {
+        static String path(String key) {
+            return null;
+        }
+    }
+
+    @interface Value {
+        String value();
+    }
 }
