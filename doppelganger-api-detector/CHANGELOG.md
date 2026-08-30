@@ -1,3 +1,13 @@
+## [2.5.1](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/doppelganger-api-detector-v2.5.0...doppelganger-api-detector-v2.5.1) (2026-08-30)
+
+
+### 🐛 Bug Fixes
+
+* **gherkin-to-asciidoc:** explain why a scenario becomes removed ([#238](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/238)) ([66ae18b](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/66ae18b25bbd19a6642d30f6854c932a12b2b488)), closes [#238](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/238)
+* **tracker-lens:** recognise api-detector-core's current semver schemaVersion header line ([#236](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/236)) ([7aaf30c](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/7aaf30c3cebc44e0dc7497dfc0051907fbc8e969)), closes [#236](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/236)
+* **doppelganger-api-detector:** resolve a request path argument that names a literal-initialized constant ([#239](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/239)) ([016fbde](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/016fbdee6c3d414fd3029119edada22ac9c8dbac)), closes [#239](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/239) [#79](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/79) [#79](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/79) [#79](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/79)
+* **mirage-api-detector:** rewrite a literal urlPath/url purely numeric id segment into a {id} placeholder ([#237](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/237)) ([df6d205](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/df6d205ba9777d44d81c42be17f5f5001a9d07b2)), closes [#237](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/237) [#232](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/232)
+
 # [2.5.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/doppelganger-api-detector-v2.4.0...doppelganger-api-detector-v2.5.0) (2026-08-27)
 
 
