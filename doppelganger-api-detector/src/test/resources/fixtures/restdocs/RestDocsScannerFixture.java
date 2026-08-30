@@ -101,4 +101,22 @@ public class RestDocsScannerFixture {
                 .when()
                 .get("crm-service/items/{id}");
     }
+
+    static final String USER_BY_USERNAME_PATH = "/v1/users/{username}";
+
+    void getUserByUsernameConstantPathWebTestClient() {
+        webTestClient.get()
+                .uri(USER_BY_USERNAME_PATH, "alice")
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .consumeWith(document("get-user-by-username"));
+    }
+
+    void createTicketLocalVariablePath() throws Exception {
+        String path = "/tickets";
+        mockMvc.perform(post(path))
+                .andExpect(status().isCreated())
+                .andDo(document("create-ticket-local-variable"));
+    }
 }

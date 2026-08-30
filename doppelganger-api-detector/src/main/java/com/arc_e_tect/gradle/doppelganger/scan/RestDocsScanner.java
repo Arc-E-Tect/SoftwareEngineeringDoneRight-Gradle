@@ -3,6 +3,7 @@ package com.arc_e_tect.gradle.doppelganger.scan;
 import com.arc_e_tect.gradle.detector.core.model.Endpoint;
 import com.arc_e_tect.gradle.detector.core.model.HttpVerb;
 import com.arc_e_tect.gradle.detector.core.model.PathTemplates;
+import com.arc_e_tect.gradle.detector.core.scan.LiteralPathResolver;
 import com.arc_e_tect.gradle.doppelganger.detect.ContractVerificationSource;
 import com.arc_e_tect.gradle.doppelganger.detect.VerifiedContractTest;
 import com.github.javaparser.JavaParser;
@@ -220,22 +221,21 @@ public class RestDocsScanner implements ContractVerificationSource {
                 return null;
             }
             HttpVerb verb = VERB_BUILDER_METHODS.get(scope.getNameAsString());
-            Expression first = call.getArgument(0);
-            if (verb == null || !first.isStringLiteralExpr()) {
+            if (verb == null) {
                 return null;
             }
-            return new VerbAndPath(verb, PathTemplates.normalize(first.asStringLiteralExpr().asString()));
+            return LiteralPathResolver.resolve(call.getArgument(0))
+                    .map(path -> new VerbAndPath(verb, PathTemplates.normalize(path)))
+                    .orElse(null);
         }
 
         HttpVerb verb = VERB_BUILDER_METHODS.get(call.getNameAsString());
         if (verb == null || call.getArguments().isEmpty()) {
             return null;
         }
-        Expression first = call.getArgument(0);
-        if (!first.isStringLiteralExpr()) {
-            return null;
-        }
-        return new VerbAndPath(verb, PathTemplates.normalize(first.asStringLiteralExpr().asString()));
+        return LiteralPathResolver.resolve(call.getArgument(0))
+                .map(path -> new VerbAndPath(verb, PathTemplates.normalize(path)))
+                .orElse(null);
     }
 
     private List<File> collectJavaFiles(File dir) {
