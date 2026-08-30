@@ -1,3 +1,19 @@
+# [3.5.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/shadow-api-detector-v3.4.1...shadow-api-detector-v3.5.0) (2026-08-30)
+
+
+### ✨ New and updated features
+
+* **gherkin-to-asciidoc:** add consolidatedIndex to scope indexing per project in multi-project builds ([#243](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/243)) ([64f6f5e](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/64f6f5eddc357d6d460404568e27d17d67338ad6)), closes [#243](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/243)
+* **doppelganger-api-detector:** resolve indirect request paths via property files and @Value ([#244](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/244)) ([f921c16](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/f921c160cdc97096f8ec19bc7e8a95ea1abc6354)), closes [#244](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/244)
+
+
+### 🔧 Misc
+
+* **examples:** align doppelganger examples to 2.6.0 ([#245](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/245)) ([4674164](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/46741641ae9a0a31880a004fed6f1354d654e557)), closes [#245](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/245)
+* **api-only-suite:** bump api-detector-core to 1.5.2 ([#242](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/242)) ([6e777a2](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/6e777a2e0c6aeb8766d13a9fc6551ca0f52c426e)), closes [#242](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/242) [#239](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/239) [#240](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/240) [#241](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/241) [#79](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/79)
+* **mirage-api-detector:** bump api-detector-core to 1.6.0 ([#246](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/246)) ([e00ed4a](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/e00ed4a739c5329e076aaeb2e809d470147c3129)), closes [#246](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/246)
+* **shadow-api-detector:** bump api-detector-core to 1.6.0 ([#247](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/247)) ([f59c164](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/f59c164d3e1a9d7a014182c818d92a869e613e5b)), closes [#247](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/247)
+
 ## [3.4.1](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/shadow-api-detector-v3.4.0...shadow-api-detector-v3.4.1) (2026-08-30)
 
 
