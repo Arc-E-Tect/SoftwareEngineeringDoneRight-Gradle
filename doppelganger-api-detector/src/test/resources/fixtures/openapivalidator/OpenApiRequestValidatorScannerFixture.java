@@ -25,4 +25,28 @@ public class OpenApiRequestValidatorScannerFixture {
         validator.validateRequest(someRequest);
         client.delete("/orders/{id}", 1);
     }
+
+    private static final String ITEMS_PATH = "/items";
+
+    void listItemsWithConstantPath() {
+        given()
+                .filter(new OpenApiValidationFilter(spec))
+                .when()
+                .get(ITEMS_PATH)
+                .then()
+                .statusCode(200);
+    }
+
+    void listItemsWithDynamicPath() {
+        given()
+                .filter(new OpenApiValidationFilter(spec))
+                .when()
+                .get(buildPath())
+                .then()
+                .statusCode(200);
+    }
+
+    private static String buildPath() {
+        return "/dynamic";
+    }
 }

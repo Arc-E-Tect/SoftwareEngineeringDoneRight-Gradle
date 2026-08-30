@@ -59,6 +59,25 @@ class OpenApiRequestValidatorScannerTest {
     }
 
     @Test
+    @DisplayName("resolves a path argument that references a literal-initialized field constant")
+    void resolvesFieldConstantPathArgument() throws Exception {
+        List<Endpoint> endpoints = scanner.scan(fixtureDir());
+
+        assertThat(endpoints)
+                .filteredOn(e -> e.methodSignature().startsWith("listItemsWithConstantPath"))
+                .extracting(Endpoint::verb, Endpoint::path)
+                .containsExactly(tuple(HttpVerb.GET, "/items"));
+    }
+
+    @Test
+    @DisplayName("still ignores a path argument computed by a method call")
+    void ignoresMethodCallPathArgument() throws Exception {
+        List<Endpoint> endpoints = scanner.scan(fixtureDir());
+
+        assertThat(endpoints).noneMatch(e -> e.methodSignature().startsWith("listItemsWithDynamicPath"));
+    }
+
+    @Test
     @DisplayName("sets the declaring class, source file, and a positive line number")
     void setsDeclaringClassSourceFileAndLineNumber() throws Exception {
         List<Endpoint> endpoints = scanner.scan(fixtureDir());

@@ -221,6 +221,28 @@ class RestDocsScannerTest {
     }
 
     @Test
+    @DisplayName("resolves a WebTestClient .uri(...) argument that references a literal-initialized field constant")
+    void resolvesFieldConstantPathArgumentWebTestClient() throws Exception {
+        List<Endpoint> endpoints = scanner.scan(fixtureDir());
+
+        assertThat(endpoints)
+                .filteredOn(e -> e.methodSignature().startsWith("getUserByUsernameConstantPathWebTestClient"))
+                .extracting(Endpoint::verb, Endpoint::path)
+                .containsExactly(tuple(HttpVerb.GET, "/v1/users/{username}"));
+    }
+
+    @Test
+    @DisplayName("resolves a mockMvc.perform(...) argument that references a local variable initialized with a literal")
+    void resolvesLocalVariablePathArgumentMockMvc() throws Exception {
+        List<Endpoint> endpoints = scanner.scan(fixtureDir());
+
+        assertThat(endpoints)
+                .filteredOn(e -> e.methodSignature().startsWith("createTicketLocalVariablePath"))
+                .extracting(Endpoint::verb, Endpoint::path)
+                .containsExactly(tuple(HttpVerb.POST, "/tickets"));
+    }
+
+    @Test
     @DisplayName("scanWithStatusCodes() detects the MockMvc status().isOk() assertion")
     void scanWithStatusCodesDetectsMockMvcIsOk() throws Exception {
         List<VerifiedContractTest> tests = scanner.scanWithStatusCodes(fixtureDir());
