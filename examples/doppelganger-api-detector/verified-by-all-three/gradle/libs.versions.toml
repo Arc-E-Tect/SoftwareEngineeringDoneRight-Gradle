@@ -8,7 +8,7 @@ spring-dependency-management = { id = "io.spring.dependency-management", version
 
 [versions]
 
-doppelganger-api-detector = "2.2.1"
+doppelganger-api-detector = "2.6.0"
 spring-boot = "4.1.1"
 spring-dependency-management = "1.1.7"
 spring-restdocs = "4.0.1"

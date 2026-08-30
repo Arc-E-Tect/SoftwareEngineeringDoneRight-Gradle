@@ -10,7 +10,7 @@ spring-dependency-management = { id = "io.spring.dependency-management", version
 
 # 0.4.0 contains the fix from PR #140 (RestDocsScanner recognising
 # spring-restdocs-restassured, plus OpenAPI server base path stripping).
-doppelganger-api-detector = "2.2.1"
+doppelganger-api-detector = "2.6.0"
 spring-boot = "4.1.1"
 spring-dependency-management = "1.1.7"
 spring-restdocs = "3.0.6"

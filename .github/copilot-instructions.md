@@ -118,6 +118,8 @@ All secrets must be used through variable names which can be mapped to environme
 - Every example project under `examples/` must have its own README.adoc that explains the purpose of the example, how to build and run it, and the expected outcome.
 - Every example README.adoc under `examples/` must be included from `examples/README.adoc` so the examples index stays complete.
 - Every example project under `examples/` must have its own dedicated GitHub Actions workflow in `.github/workflows/` that is triggered by source and build configuration changes for that example and performs at least a sanity `./gradlew build` (or an explicit expected-failure assertion for intentionally failing examples).
+- Examples and plugin code changes may never be in the same PR. Example projects that depend on newly released plugin versions must be kept in a follow-up PR after the plugin is published, so CI reflects the release state rather than unreleased code.
+- If any Detector plugin updates its dependency on `api-detector-core`, the other Detector plugins must be updated in the same change set as well; otherwise the API-Only-Suite plugin will fail to build because sibling plugins must agree on the shared core dependency version.
 - Prefer good examples over prescriptive snippets: show what to avoid (e.g., inline coordinates, manual Test tasks) and what to adopt (catalog aliases, test suites DSL).
 - Treat the root `README.adoc` as the top-level documentation index.
 - The root `README.adoc` must include both plugin READMEs via `include::jacoco-exclusion-report/README.adoc[]` and `include::gherkin-to-asciidoc/README.adoc[]` so the repository docs stay centralized.
