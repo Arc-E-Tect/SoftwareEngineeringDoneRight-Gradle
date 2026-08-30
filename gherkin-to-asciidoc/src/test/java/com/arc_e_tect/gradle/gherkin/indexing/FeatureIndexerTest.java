@@ -446,6 +446,110 @@ class FeatureIndexerTest {
                 .contains("Scenario: 1.3 - Second branch's scenario");
     }
 
+    // --- reindex(..., List<File> projectDirectories, Runnable) overload: multi-project scoping ---
+
+    @Test
+    @DisplayName("empty projectDirectories numbers every file as one continuous sequence, same as the "
+            + "overloads that don't accept projectDirectories at all")
+    void emptyProjectDirectoriesTreatsEveryFileAsOneGroup() throws IOException {
+        File projA = projectDir("projA");
+        File projB = projectDir("projB");
+        File a = writeFeatureIn(projA, "a.feature",
+                "Feature: A Feature\n\n  Scenario: A scenario\n    Given a\n");
+        File b = writeFeatureIn(projB, "b.feature",
+                "Feature: B Feature\n\n  Scenario: B scenario\n    Given b\n");
+
+        indexer.reindex(List.of(a, b), IndexingMode.FEATURE, false, List.of(), () -> { });
+
+        assertThat(content(a)).contains("Feature: 1 - A Feature");
+        assertThat(content(b)).contains("Feature: 2 - B Feature");
+    }
+
+    @Test
+    @DisplayName("non-empty projectDirectories scopes FEATURE numbering to each project, so every "
+            + "project's own features start at 1 independently of every other project's")
+    void projectDirectoriesResetsFeatureNumberingPerProject() throws IOException {
+        File projA = projectDir("projA");
+        File projB = projectDir("projB");
+        File a1 = writeFeatureIn(projA, "a1.feature",
+                "Feature: First A Feature\n\n  Scenario: A scenario\n    Given a\n");
+        File a2 = writeFeatureIn(projA, "a2.feature",
+                "Feature: Second A Feature\n\n  Scenario: A scenario\n    Given a\n");
+        File b = writeFeatureIn(projB, "b.feature",
+                "Feature: B Feature\n\n  Scenario: B scenario\n    Given b\n");
+
+        indexer.reindex(List.of(a1, a2, b), IndexingMode.FEATURE, false, List.of(projA, projB), () -> { });
+
+        assertThat(content(a1)).contains("Feature: 1 - First A Feature");
+        assertThat(content(a2)).contains("Feature: 2 - Second A Feature");
+        assertThat(content(b)).contains("Feature: 1 - B Feature");
+    }
+
+    @Test
+    @DisplayName("non-empty projectDirectories scopes SCENARIO mode's cross-file numbering to each "
+            + "project the same way it scopes FEATURE numbering")
+    void projectDirectoriesResetsScenarioNumberingPerProjectInScenarioMode() throws IOException {
+        File projA = projectDir("projA");
+        File projB = projectDir("projB");
+        File a = writeFeatureIn(projA, "a.feature", """
+                Feature: A Feature
+
+                  Scenario: First A scenario
+                    Given a
+
+                  Scenario: Second A scenario
+                    Given a
+                """);
+        File b = writeFeatureIn(projB, "b.feature",
+                "Feature: B Feature\n\n  Scenario: B scenario\n    Given b\n");
+
+        indexer.reindex(List.of(a, b), IndexingMode.SCENARIO, false, List.of(projA, projB), () -> { });
+
+        assertThat(content(a))
+                .contains("Scenario: 1 - First A scenario")
+                .contains("Scenario: 2 - Second A scenario");
+        assertThat(content(b)).contains("Scenario: 1 - B scenario");
+    }
+
+    @Test
+    @DisplayName("non-empty projectDirectories doesn't affect ALL mode's Scenario numbering: it's already "
+            + "scoped per Feature, strictly finer-grained than per-project")
+    void allModeScenarioNumberingUnaffectedByProjectDirectories() throws IOException {
+        File projA = projectDir("projA");
+        File a = writeFeatureIn(projA, "a.feature", """
+                Feature: A Feature
+
+                  Scenario: First A scenario
+                    Given a
+
+                  Scenario: Second A scenario
+                    Given a
+                """);
+
+        indexer.reindex(List.of(a), IndexingMode.ALL, false, List.of(projA), () -> { });
+
+        assertThat(content(a))
+                .contains("Feature: 1 - A Feature")
+                .contains("Scenario: 1.1 - First A scenario")
+                .contains("Scenario: 1.2 - Second A scenario");
+    }
+
+    @Test
+    @DisplayName("a feature file that isn't under any of projectDirectories becomes its own single-file "
+            + "group instead of being folded into an unrelated project's numbering")
+    void fileNotUnderAnyProjectDirectoryBecomesItsOwnGroup() throws IOException {
+        File projA = projectDir("projA");
+        File orphan = writeFeature("orphan.feature",
+                "Feature: Orphan Feature\n\n  Scenario: Orphan scenario\n    Given o\n");
+        File a = writeFeatureIn(projA, "a.feature",
+                "Feature: A Feature\n\n  Scenario: A scenario\n    Given a\n");
+
+        indexer.reindex(List.of(orphan, a), IndexingMode.FEATURE, false, List.of(projA), () -> { });
+
+        assertThat(content(orphan)).contains("Feature: 1 - Orphan Feature");
+        assertThat(content(a)).contains("Feature: 1 - A Feature");
+    }
+
     // --- reindex(..., Runnable) callback overload ---
 
     @Test
@@ -486,6 +590,18 @@ class FeatureIndexerTest {
 
     private File writeFeature(String name, String content) throws IOException {
         File file = tempDir.resolve(name).toFile();
+        Files.writeString(file.toPath(), content, StandardCharsets.UTF_8);
+        return file;
+    }
+
+    private File projectDir(String name) throws IOException {
+        Path dir = tempDir.resolve(name);
+        Files.createDirectories(dir);
+        return dir.toFile();
+    }
+
+    private File writeFeatureIn(File dir, String name, String content) throws IOException {
+        File file = new File(dir, name);
         Files.writeString(file.toPath(), content, StandardCharsets.UTF_8);
         return file;
     }

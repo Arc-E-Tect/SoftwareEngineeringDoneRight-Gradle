@@ -23,6 +23,7 @@ import org.gradle.api.provider.Property;
  *     // systemUnderTestVersion = 'v1.0.0'          // optional; default: project.version
  *     indexing       = IndexingMode.OFF                                             // default; requires includeSubDirs = true
  *     forceRewrite   = false                                                        // default; see getForceRewrite()
+ *     consolidatedIndex = false                                                     // default; see getConsolidatedIndex()
  *     trackProgressHistory  = false                                                 // default; requires trackProgress = true
  *     // progressHistoryFile = layout.projectDirectory.file('gherkin-progress-history.ndjson') // default
  *     updateProgressHistory = trackProgressHistory                                  // default; see getUpdateProgressHistory()
@@ -265,6 +266,38 @@ public abstract class GherkinToAsciidocExtension {
      * @return mutable boolean property controlling whether existing numbering is preserved
      */
     public abstract Property<Boolean> getForceRewrite();
+
+    /**
+     * In a multi-project Gradle build, whether {@link #getIndexing()}'s {@code Feature} numbering
+     * (and, for {@link IndexingMode#SCENARIO}, its cross-file {@code Scenario} numbering too) is one
+     * continuous sequence spanning every project in the build, or an independent sequence - starting
+     * at 1 again - for each project. Defaults to {@code false}. Has no effect when
+     * {@link #getIndexing()} is {@link IndexingMode#OFF} or {@link IndexingMode#CI} (neither numbers
+     * anything), and no effect on {@link IndexingMode#ALL}'s {@code Scenario} numbering, which is
+     * already scoped per {@code Feature} - strictly finer-grained than per-project - regardless.
+     *
+     * <ul>
+     *   <li>{@code false} (default) - every project numbers its own features (and, in
+     *       {@link IndexingMode#SCENARIO} mode, scenarios) from 1, independently of every other
+     *       project in the build - so two projects maintained concurrently never fight over the same
+     *       numbers, and a project's own numbers don't shift just because another project gained or
+     *       lost a feature file.</li>
+     *   <li>{@code true} - every project's features (and {@link IndexingMode#SCENARIO} scenarios)
+     *       instead share one number space across the whole build, exactly as if every project's
+     *       feature files had been passed to a single project's own {@code generateFeatureDocs} -
+     *       the behaviour every version of this plugin had before this property existed. Set this
+     *       when existing numbers already reference this shared, build-wide sequence and
+     *       renumbering every project's features to start at 1 would be disruptive.</li>
+     * </ul>
+     *
+     * <p>Like {@link #getIndexing()} and {@link #getForceRewrite()}, this property is inherited from
+     * the root project's own {@code gherkinToAsciidoc} extension by default; a sub-project that
+     * configures it itself overrides that inherited default for itself only.</p>
+     *
+     * @return mutable boolean property controlling whether indexing is consolidated build-wide or
+     *         scoped per project
+     */
+    public abstract Property<Boolean> getConsolidatedIndex();
 
     /**
      * Whether to persist, across builds, a per-scenario history of when each scenario first

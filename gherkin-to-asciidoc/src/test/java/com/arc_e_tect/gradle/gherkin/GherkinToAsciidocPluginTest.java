@@ -176,6 +176,15 @@ class GherkinToAsciidocPluginTest {
     }
 
     @Test
+    @DisplayName("extension default: consolidatedIndex is false")
+    void extensionDefaultConsolidatedIndexIsFalse() {
+        Project project = projectWithPlugin();
+        GherkinToAsciidocExtension ext = extension(project);
+
+        assertThat(ext.getConsolidatedIndex().get()).isFalse();
+    }
+
+    @Test
     @DisplayName("extension default: trackProgressHistory is false")
     void extensionDefaultTrackProgressHistoryIsFalse() {
         Project project = projectWithPlugin();
@@ -1481,6 +1490,7 @@ class GherkinToAsciidocPluginTest {
         task.getSystemUnderTestVersion().set("1.0.0");
         task.getIndexing().set(IndexingMode.OFF);
         task.getForceRewrite().set(false);
+        task.getConsolidatedIndex().set(false);
         task.getTrackProgressHistory().set(false);
         task.getUpdateProgressHistory().set(false);
         task.getProjectDirectory().set(project.getLayout().getProjectDirectory());
