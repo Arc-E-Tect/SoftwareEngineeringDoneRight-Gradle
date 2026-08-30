@@ -1,3 +1,12 @@
+## [3.5.1](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/shadow-api-detector-v3.5.0...shadow-api-detector-v3.5.1) (2026-08-30)
+
+
+### 🔧 Misc
+
+* align api-detector-core versions ([#248](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/248)) ([fc07032](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/fc0703236944ff53d93f4e7c9efeb53c982a013e)), closes [#248](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/248)
+* **doppelganger-api-detector:** bump api-detector-core to 1.6.1 ([#249](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/249)) ([2695235](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/26952358adc46d224a5afc792eddd17c15c28762)), closes [#249](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/249)
+* **shadow-api-detector,mirage-api-detector:** bump api-detector-core to 1.6.1 ([#250](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/250)) ([67cb790](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/67cb79048d802a33362fdd450a599b85153dfb71)), closes [#250](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/250)
+
 # [3.5.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/shadow-api-detector-v3.4.1...shadow-api-detector-v3.5.0) (2026-08-30)
 
 
