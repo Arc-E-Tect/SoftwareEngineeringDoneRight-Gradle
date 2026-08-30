@@ -1,3 +1,15 @@
+# [2.7.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/doppelganger-api-detector-v2.6.1...doppelganger-api-detector-v2.7.0) (2026-08-30)
+
+
+### ✨ New and updated features
+
+* **doppelganger-api-detector:** add ignore5xx to exclude 5xx codes from response coverage ([#251](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/251)) ([98dfa68](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/98dfa680d271a55d34a62c9913f732cb42f657b9)), closes [#251](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/251)
+
+
+### 🔧 Misc
+
+* **shadow-api-detector,mirage-api-detector:** bump api-detector-core to 1.6.1 ([#250](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/250)) ([67cb790](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/67cb79048d802a33362fdd450a599b85153dfb71)), closes [#250](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/250)
+
 ## [2.6.1](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/doppelganger-api-detector-v2.6.0...doppelganger-api-detector-v2.6.1) (2026-08-30)
 
 
