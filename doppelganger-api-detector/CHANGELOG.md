@@ -1,3 +1,14 @@
+## [2.6.1](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/doppelganger-api-detector-v2.6.0...doppelganger-api-detector-v2.6.1) (2026-08-30)
+
+
+### 🔧 Misc
+
+* align api-detector-core versions ([#248](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/248)) ([fc07032](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/fc0703236944ff53d93f4e7c9efeb53c982a013e)), closes [#248](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/248)
+* **examples:** align doppelganger examples to 2.6.0 ([#245](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/245)) ([4674164](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/46741641ae9a0a31880a004fed6f1354d654e557)), closes [#245](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/245)
+* **mirage-api-detector:** bump api-detector-core to 1.6.0 ([#246](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/246)) ([e00ed4a](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/e00ed4a739c5329e076aaeb2e809d470147c3129)), closes [#246](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/246)
+* **shadow-api-detector:** bump api-detector-core to 1.6.0 ([#247](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/247)) ([f59c164](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/f59c164d3e1a9d7a014182c818d92a869e613e5b)), closes [#247](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/247)
+* **doppelganger-api-detector:** bump api-detector-core to 1.6.1 ([#249](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/249)) ([2695235](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/26952358adc46d224a5afc792eddd17c15c28762)), closes [#249](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/249)
+
 # [2.6.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/doppelganger-api-detector-v2.5.1...doppelganger-api-detector-v2.6.0) (2026-08-30)
 
 
