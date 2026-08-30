@@ -12,6 +12,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.stream.Collectors;
 
 /**
  * Gradle plugin that registers the {@code generateFeatureDocs} task and wires
@@ -98,6 +99,7 @@ public class GherkinToAsciidocPlugin implements Plugin<Project> {
             ext.getSystemUnderTestVersion().convention(rootExt.getSystemUnderTestVersion());
             ext.getIndexing().convention(rootExt.getIndexing());
             ext.getForceRewrite().convention(rootExt.getForceRewrite());
+            ext.getConsolidatedIndex().convention(rootExt.getConsolidatedIndex());
             ext.getTrackProgressHistory().convention(rootExt.getTrackProgressHistory());
         } else {
             ext.getTrackProgress().convention(false);
@@ -106,6 +108,7 @@ public class GherkinToAsciidocPlugin implements Plugin<Project> {
                     project.provider(() -> String.valueOf(project.getVersion())));
             ext.getIndexing().convention(IndexingMode.OFF);
             ext.getForceRewrite().convention(false);
+            ext.getConsolidatedIndex().convention(false);
             ext.getTrackProgressHistory().convention(false);
         }
 
@@ -166,6 +169,13 @@ public class GherkinToAsciidocPlugin implements Plugin<Project> {
             task.getSystemUnderTestVersion().set(ext.getSystemUnderTestVersion());
             task.getIndexing().set(indexingCliOverride.orElse(ext.getIndexing()));
             task.getForceRewrite().set(forceRewriteCliOverride.orElse(ext.getForceRewrite()));
+            task.getConsolidatedIndex().set(ext.getConsolidatedIndex());
+            // Every project's own directory, so a task can - when consolidatedIndex is false - scope
+            // its own numbering to whichever of these directories each feature file lives under,
+            // instead of numbering every file it's given as one flat, project-unaware sequence.
+            task.getProjectDirectories().addAll(project.getRootProject().getAllprojects().stream()
+                    .map(Project::getProjectDir)
+                    .collect(Collectors.toList()));
             task.getTrackProgressHistory().set(ext.getTrackProgressHistory());
             task.getProgressHistoryFile().set(ext.getProgressHistoryFile());
             task.getUpdateProgressHistory().set(updateProgressHistoryCliOverride.orElse(ext.getUpdateProgressHistory()));

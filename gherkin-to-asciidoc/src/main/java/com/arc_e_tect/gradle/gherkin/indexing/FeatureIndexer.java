@@ -6,10 +6,14 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -36,6 +40,19 @@ import java.util.regex.Pattern;
  * feature were each numbered independently on separate branches and now coexist after a merge -
  * only the first one encountered keeps the pinned number; the other is treated as unnumbered and
  * assigned a fresh one, so the collision is resolved instead of leaving both lines untouched.</p>
+ *
+ * <p>{@code Feature} numbering (and, for {@link IndexingMode#SCENARIO}, {@code Scenario} numbering
+ * too) is additionally scoped by {@code projectDirectories} when given a non-empty list: each
+ * feature file is assigned to whichever directory in that list is its nearest enclosing ancestor,
+ * and every such group is numbered as its own independent 1-based sequence, completely unaware of
+ * every other group's numbers - so, in a multi-project Gradle build, passing every project's own
+ * directory numbers each project's features from 1 rather than continuing one build-wide count
+ * across all of them. An empty list (the default for the overloads that don't accept one) instead
+ * treats {@code featureFiles} as a single group, exactly as if every file belonged to the same
+ * project - today's only behaviour, and the one still used for a build-wide consolidated count.
+ * {@link IndexingMode#ALL}'s {@code Scenario} numbering is unaffected either way: it's already
+ * scoped per {@code Feature} - strictly finer-grained than per-project - by resetting to 1 within
+ * every feature regardless of {@code projectDirectories}.</p>
  *
  * <p>Never called with {@link IndexingMode#CI}: the caller skips invoking this class entirely for
  * that mode, since {@code CI} means the feature files must be left completely untouched, not even
@@ -65,7 +82,7 @@ public class FeatureIndexer {
      *                     scratch; when {@code false}, leaves already-correctly-numbered lines alone
      */
     public void reindex(List<File> featureFiles, IndexingMode mode, boolean forceRewrite) {
-        reindex(featureFiles, mode, forceRewrite, () -> { });
+        reindex(featureFiles, mode, forceRewrite, List.of(), () -> { });
     }
 
     /**
@@ -83,6 +100,29 @@ public class FeatureIndexer {
      *                        {@code null}
      */
     public void reindex(List<File> featureFiles, IndexingMode mode, boolean forceRewrite, Runnable onFileReindexed) {
+        reindex(featureFiles, mode, forceRewrite, List.of(), onFileReindexed);
+    }
+
+    /**
+     * Same as {@link #reindex(List, IndexingMode, boolean, Runnable)}, additionally scoping
+     * {@code Feature}/cross-file {@code Scenario} numbering to each of {@code projectDirectories} -
+     * see the class documentation for exactly how. Passing an empty list is equivalent to
+     * {@link #reindex(List, IndexingMode, boolean, Runnable)}.
+     *
+     * @param featureFiles       the feature files collected for this run, in the order to number
+     *                           them in
+     * @param mode               the indexing mode to apply
+     * @param forceRewrite       when {@code true}, ignores existing numbers and renumbers everything
+     *                           from scratch; when {@code false}, leaves already-correctly-numbered
+     *                           lines alone
+     * @param projectDirectories the directories numbering is independently scoped to, or empty for
+     *                           a single build-wide sequence
+     * @param onFileReindexed    invoked once per file in {@code featureFiles}, in order; never
+     *                           {@code null}
+     */
+    public void reindex(
+            List<File> featureFiles, IndexingMode mode, boolean forceRewrite,
+            List<File> projectDirectories, Runnable onFileReindexed) {
         List<ParsedFile> parsedFiles = new ArrayList<>();
         for (File featureFile : featureFiles) {
             parsedFiles.add(parse(featureFile));
@@ -90,19 +130,23 @@ public class FeatureIndexer {
 
         boolean numberFeatures = mode == IndexingMode.FEATURE || mode == IndexingMode.ALL;
         if (numberFeatures) {
-            List<LineMatch> allFeatures = new ArrayList<>();
-            for (ParsedFile parsedFile : parsedFiles) {
-                allFeatures.addAll(parsedFile.featureMatches);
+            for (List<ParsedFile> group : partitionByProject(parsedFiles, projectDirectories)) {
+                List<LineMatch> groupFeatures = new ArrayList<>();
+                for (ParsedFile parsedFile : group) {
+                    groupFeatures.addAll(parsedFile.featureMatches);
+                }
+                resolveSequential(groupFeatures, forceRewrite, SINGLE_INDEX);
             }
-            resolveSequential(allFeatures, forceRewrite, SINGLE_INDEX);
         }
 
         if (mode == IndexingMode.SCENARIO) {
-            List<LineMatch> allScenarios = new ArrayList<>();
-            for (ParsedFile parsedFile : parsedFiles) {
-                allScenarios.addAll(parsedFile.scenarioMatches);
+            for (List<ParsedFile> group : partitionByProject(parsedFiles, projectDirectories)) {
+                List<LineMatch> groupScenarios = new ArrayList<>();
+                for (ParsedFile parsedFile : group) {
+                    groupScenarios.addAll(parsedFile.scenarioMatches);
+                }
+                resolveSequential(groupScenarios, forceRewrite, SINGLE_INDEX);
             }
-            resolveSequential(allScenarios, forceRewrite, SINGLE_INDEX);
         } else if (mode == IndexingMode.ALL) {
             for (ParsedFile parsedFile : parsedFiles) {
                 if (parsedFile.featureMatches.isEmpty()) {
@@ -117,6 +161,62 @@ public class FeatureIndexer {
         for (ParsedFile parsedFile : parsedFiles) {
             applyAndWrite(parsedFile, mode);
             onFileReindexed.run();
+        }
+    }
+
+    /**
+     * Groups {@code parsedFiles} by nearest enclosing directory in {@code projectDirectories},
+     * preserving each group's relative order of first appearance in {@code parsedFiles} - so
+     * numbering a group in that order matches the overall {@code featureFiles} order, exactly as
+     * it always has for a single, ungrouped list. A file that isn't under any of
+     * {@code projectDirectories} (shouldn't normally happen, since callers are expected to supply
+     * every project directory in the build) becomes its own single-file group rather than being
+     * silently folded into an unrelated one. An empty {@code projectDirectories} yields a single
+     * group containing every file, unchanged from before this method existed.
+     */
+    private List<List<ParsedFile>> partitionByProject(List<ParsedFile> parsedFiles, List<File> projectDirectories) {
+        if (projectDirectories.isEmpty()) {
+            return List.of(parsedFiles);
+        }
+        List<File> byPathLengthDescending = new ArrayList<>(projectDirectories);
+        byPathLengthDescending.sort(
+                Comparator.comparingInt((File dir) -> dir.getAbsolutePath().length()).reversed());
+
+        Map<File, List<ParsedFile>> groups = new LinkedHashMap<>();
+        for (ParsedFile parsedFile : parsedFiles) {
+            File owner = owningProjectDirectory(parsedFile.file, byPathLengthDescending);
+            groups.computeIfAbsent(owner, key -> new ArrayList<>()).add(parsedFile);
+        }
+        return new ArrayList<>(groups.values());
+    }
+
+    /**
+     * The most specific (longest path) entry in {@code byPathLengthDescending} that is an ancestor
+     * of {@code featureFile}, or {@code featureFile} itself if none is - see
+     * {@link #partitionByProject(List, List)}.
+     */
+    private File owningProjectDirectory(File featureFile, List<File> byPathLengthDescending) {
+        Path filePath = canonicalPath(featureFile);
+        for (File candidate : byPathLengthDescending) {
+            if (filePath.startsWith(canonicalPath(candidate))) {
+                return candidate;
+            }
+        }
+        return featureFile;
+    }
+
+    /**
+     * {@code file}'s canonical path - symlinks resolved, so e.g. macOS's {@code /tmp} ->
+     * {@code /private/tmp} doesn't make a feature file look like it lives outside every candidate
+     * project directory just because one side of the comparison went through the symlink and the
+     * other didn't. Falls back to the plain absolute, normalized path on the rare I/O failure
+     * (e.g. the file was deleted mid-run) rather than letting {@link #owningProjectDirectory} throw.
+     */
+    private Path canonicalPath(File file) {
+        try {
+            return file.getCanonicalFile().toPath();
+        } catch (IOException e) {
+            return file.getAbsoluteFile().toPath().normalize();
         }
     }
 

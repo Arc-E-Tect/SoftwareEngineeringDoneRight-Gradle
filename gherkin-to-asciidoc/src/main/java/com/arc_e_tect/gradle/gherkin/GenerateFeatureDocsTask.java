@@ -18,6 +18,7 @@ import org.gradle.api.GradleException;
 import org.gradle.api.file.ConfigurableFileCollection;
 import org.gradle.api.file.DirectoryProperty;
 import org.gradle.api.file.RegularFileProperty;
+import org.gradle.api.provider.ListProperty;
 import org.gradle.api.provider.Property;
 import org.gradle.api.tasks.Input;
 import org.gradle.api.tasks.InputFile;
@@ -201,6 +202,30 @@ public abstract class GenerateFeatureDocsTask extends DefaultTask {
     public abstract Property<Boolean> getForceRewrite();
 
     /**
+     * In a multi-project Gradle build, whether {@link #getIndexing()}'s numbering is one continuous
+     * sequence spanning every project in the build, or independently scoped to each project - see
+     * {@link GherkinToAsciidocExtension#getConsolidatedIndex()}. Has no effect when
+     * {@link #getProjectDirectories()} contains at most one directory, since there's then only one
+     * project to scope numbering to either way.
+     *
+     * @return mutable boolean property controlling whether indexing is consolidated build-wide or
+     *         scoped per project
+     */
+    @Input
+    public abstract Property<Boolean> getConsolidatedIndex();
+
+    /**
+     * Every project's directory in this build, used - only when {@link #getConsolidatedIndex()} is
+     * {@code false} - to scope {@link #getIndexing()}'s numbering to whichever of these directories
+     * each feature file lives under. Populated by the plugin from
+     * {@code project.getRootProject().getAllprojects()}; not meant to be configured directly.
+     *
+     * @return mutable list property of every project's directory in this build
+     */
+    @Input
+    public abstract ListProperty<File> getProjectDirectories();
+
+    /**
      * Whether to persist, across builds, a per-scenario history of when each scenario first
      * reached {@code listed}, {@code defined}, and {@code implemented} status. Requires
      * {@link #getTrackProgress()} to also be {@code true}.
@@ -331,14 +356,16 @@ public abstract class GenerateFeatureDocsTask extends DefaultTask {
         // get their own announced, progress-reported phase - OFF still runs (to strip stale
         // numbering) but silently, since numbering isn't actually happening.
         if (indexing != IndexingMode.CI) {
+            List<File> projectBoundaries = getConsolidatedIndex().get() ? List.of() : getProjectDirectories().get();
             if (indexingActive) {
                 getLogger().lifecycle("gherkinToAsciidoc: reindexing feature files...");
                 ScanProgressReporter indexingProgress = ScanProgressReporter.determinate(
                         getLogger(), "Reindexing feature files", featureFiles.size());
-                new FeatureIndexer().reindex(featureFiles, indexing, getForceRewrite().get(), indexingProgress::step);
+                new FeatureIndexer().reindex(
+                        featureFiles, indexing, getForceRewrite().get(), projectBoundaries, indexingProgress::step);
                 indexingProgress.complete();
             } else {
-                new FeatureIndexer().reindex(featureFiles, indexing, getForceRewrite().get());
+                new FeatureIndexer().reindex(featureFiles, indexing, getForceRewrite().get(), projectBoundaries, () -> { });
             }
         }
 

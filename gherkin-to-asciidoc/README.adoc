@@ -140,6 +140,12 @@ gherkinToAsciidoc {
     // Default: false
     forceRewrite = false
 
+    // In a multi-project Gradle build, whether indexing's numbering is one continuous sequence
+    // spanning every project, or independently scoped - starting at 1 again - to each project
+    // (see "Numbering Features and Scenarios" below). No effect in a single-project build.
+    // Default: false
+    consolidatedIndex = false
+
     // Persists a per-scenario history of when each scenario first reached listed/defined/
     // implemented status (see "Tracking Progress History" below). Requires trackProgress = true.
     // Default: false
@@ -175,6 +181,7 @@ gherkinToAsciidoc {
     // systemUnderTestVersion.set("v1.0.0")
     indexing.set(IndexingMode.OFF)
     forceRewrite.set(false)
+    consolidatedIndex.set(false)
     trackProgressHistory.set(false)
     // progressHistoryFile.set(file("gherkin-progress-history.ndjson"))
     // updateProgressHistory.set(true)
@@ -209,6 +216,8 @@ Only consulted when `trackProgress` is `true`.
 `FEATURE`/`SCENARIO`/`ALL` require `includeSubDirs = true`; `FEATURE` and `ALL` additionally require `groupByFeature = true`. `CI` skips indexing entirely and is always allowed; overridable for the whole build via the `-PgherkinToAsciidoc.indexing` project property.
 | `forceRewrite`  | Boolean         | `false`                              | When `true`, `indexing` renumbers every `Feature`/`Scenario` from scratch. When `false`, a line already correctly numbered for the currently configured `indexing` value is left untouched.
 Has no effect when `indexing` is `OFF` or `CI`. Overridable for the whole build via the `-PgherkinToAsciidoc.forceRewrite` project property.
+| `consolidatedIndex` | Boolean     | `false`                              | In a multi-project Gradle build, whether `indexing`'s numbering is one continuous sequence spanning every project, or independently scoped - starting at 1 again - to each project (see "Numbering Features and Scenarios" below).
+No effect in a single-project build, or when `indexing` is `OFF` or `CI`.
 | `trackProgressHistory` | Boolean  | `false`                              | When `true`, persists a per-scenario history of when each scenario first reached `listed`/`defined`/`implemented` status (see "Tracking Progress History" below).
 Requires `trackProgress = true`.
 | `progressHistoryFile` | File      | `gherkin-progress-history.ndjson` (project directory) | NDJSON file the progress history is read from and, when `updateProgressHistory` is `true`, written back to.
@@ -330,6 +339,10 @@ Command Line" above) takes precedence over both, for every project in the build 
 | Inherited from the root project by default; a sub-project can override it independently. The
 `-PgherkinToAsciidoc.forceRewrite` command-line override takes precedence over both, for every project in
 the build at once.
+| `consolidatedIndex`
+| Inherited from the root project by default; a sub-project can override it independently. Controls whether
+each project's own `indexing` numbering starts fresh at 1 (`false`, the default) or continues one number
+space shared with every other project in the build (`true`) - see "Numbering Features and Scenarios" below.
 | `outputFileName`
 | Inherited from the root project by default.
 | `template`
@@ -666,6 +679,49 @@ Feature: 2 - Invoice payment
 This happens automatically on the next `generateFeatureDocs` run after the merge, with `forceRewrite`
 left at its default `false` - there's no need to set `forceRewrite = true` just to resolve a collision, and
 doing so would additionally renumber every other already-correctly-numbered line in the process.
+
+=== Numbering Scope in a Multi-Project Build (`consolidatedIndex`)
+
+Every example so far has numbered a single project's own feature files. In a
+<<multi-project-builds,multi-project build>>, `consolidatedIndex` decides whether every project shares one
+number space or gets its own:
+
+[cols="1,3",options="header"]
+|===
+| Value              | Effect
+
+| `false` (default)  | Every project's own `Feature`s (and, in `IndexingMode.SCENARIO` mode, `Scenario`s) are numbered from 1, independently of every other project in the build.
+| `true`             | Every project's `Feature`s (and `SCENARIO`-mode `Scenario`s) instead share one continuous number space across the whole build - as if every project's feature files had all been passed to a single project's own `generateFeatureDocs`.
+|===
+
+For example, with two sub-projects `catalog` (one feature file) and `checkout` (one feature file), both
+numbered for the first time with `indexing = IndexingMode.FEATURE`:
+
+[cols="1,1,1",options="header"]
+|===
+| | `consolidatedIndex = false` (default) | `consolidatedIndex = true`
+
+| `catalog`'s feature
+| `Feature: 1 - ...`
+| `Feature: 1 - ...`
+
+| `checkout`'s feature
+| `Feature: 1 - ...`
+| `Feature: 2 - ...`
+|===
+
+`IndexingMode.ALL`'s `Scenario` numbering is unaffected by `consolidatedIndex` either way: it's already
+scoped per `Feature` - strictly finer-grained than per-project - resetting to 1 within every feature
+regardless.
+
+[IMPORTANT]
+====
+Every version of this plugin before `consolidatedIndex` existed behaved as `consolidatedIndex = true` does
+now. If existing numbers already reference that shared, build-wide sequence, set `consolidatedIndex = true`
+explicitly to keep them meaningful - leaving the new `false` default in place would renumber every
+project's features to start at 1, moving numbers that may already be referenced elsewhere (documentation,
+issue trackers, conversations).
+====
 
 === Overriding `indexing`/`forceRewrite` from the Command Line
 

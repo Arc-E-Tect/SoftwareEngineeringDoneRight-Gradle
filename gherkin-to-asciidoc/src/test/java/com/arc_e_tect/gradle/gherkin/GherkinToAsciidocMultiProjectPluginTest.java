@@ -272,6 +272,48 @@ class GherkinToAsciidocMultiProjectPluginTest {
     }
 
     @Test
+    @DisplayName("sub-project without its own configuration inherits consolidatedIndex from the root project")
+    void subProjectInheritsConsolidatedIndexFromRoot() {
+        Project root = rootProject();
+        extension(root).getConsolidatedIndex().set(true);
+        Project sub = subProject(root, "sub");
+
+        assertThat(extension(sub).getConsolidatedIndex().get()).isTrue();
+    }
+
+    @Test
+    @DisplayName("sub-project's own consolidatedIndex takes precedence over the root project's")
+    void subProjectConsolidatedIndexOverridesRoot() {
+        Project root = rootProject();
+        extension(root).getConsolidatedIndex().set(true);
+        Project sub = subProject(root, "sub");
+        extension(sub).getConsolidatedIndex().set(false);
+
+        assertThat(extension(sub).getConsolidatedIndex().get()).isFalse();
+    }
+
+    @Test
+    @DisplayName("consolidatedIndex defaults to false at the root project")
+    void consolidatedIndexDefaultsToFalse() {
+        Project root = rootProject();
+
+        assertThat(extension(root).getConsolidatedIndex().get()).isFalse();
+    }
+
+    @Test
+    @DisplayName("every project's own task is given every project's own directory, root and every "
+            + "sub-project alike, so it can scope indexing to whichever one each feature file lives under")
+    void taskProjectDirectoriesIncludesEveryProjectInTheBuild() {
+        Project root = rootProject();
+        Project sub = subProject(root, "sub");
+
+        assertThat(task(root).getProjectDirectories().get())
+                .containsExactlyInAnyOrder(root.getProjectDir(), sub.getProjectDir());
+        assertThat(task(sub).getProjectDirectories().get())
+                .containsExactlyInAnyOrder(root.getProjectDir(), sub.getProjectDir());
+    }
+
+    @Test
     @DisplayName("sub-project without its own configuration inherits trackProgressHistory from the root project")
     void subProjectInheritsTrackProgressHistoryFromRoot() {
         Project root = rootProject();
