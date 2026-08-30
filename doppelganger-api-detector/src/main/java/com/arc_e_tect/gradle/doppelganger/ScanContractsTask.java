@@ -158,6 +158,15 @@ public abstract class ScanContractsTask extends DefaultTask {
     public abstract Property<Boolean> getIncludeResponseCoverage();
 
     /**
+     * Whether to exclude 5xx response codes from the per-response-code breakdown - see
+     * {@link DoppelgangerApiDetectorExtension#getIgnore5xx()}.
+     *
+     * @return mutable boolean property controlling whether 5xx response codes are excluded
+     */
+    @Input
+    public abstract Property<Boolean> getIgnore5xx();
+
+    /**
      * Directory the AsciiDoc report is written to.
      *
      * @return mutable directory property for the report output directory
@@ -279,6 +288,7 @@ public abstract class ScanContractsTask extends DefaultTask {
                 + "declared-and-implemented endpoint - and, when includeResponseCoverage is enabled, how many "
                 + "tests cover each declared response code.");
         getTestDirsUserConfigured().convention(true);
+        getIgnore5xx().convention(false);
     }
 
     /**
@@ -365,7 +375,8 @@ public abstract class ScanContractsTask extends DefaultTask {
                 ExclusionFilter.excludeMatching(declaredAndImplemented, exclusionRules);
 
         List<EndpointResponseCoverage> coverage = inputComplete
-                ? new ResponseCoverageAnalyzer().analyze(candidates, verificationScan.tests(), includeResponseCoverage)
+                ? new ResponseCoverageAnalyzer().analyze(
+                        candidates, verificationScan.tests(), includeResponseCoverage, getIgnore5xx().get())
                 : List.of();
 
         Map<String, ResponseCoverageRecord> history = !getTrackResponseCoverageHistory().get() ? Map.of()

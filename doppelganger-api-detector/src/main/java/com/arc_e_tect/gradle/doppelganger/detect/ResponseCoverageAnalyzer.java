@@ -27,7 +27,9 @@ public class ResponseCoverageAnalyzer {
     public ResponseCoverageAnalyzer() {}
 
     /**
-     * Computes the coverage rows for {@code declaredAndImplemented}.
+     * Computes the coverage rows for {@code declaredAndImplemented}, considering every declared
+     * response code including 5xx ones. Equivalent to
+     * {@code analyze(declaredAndImplemented, verifiedTests, includeResponseCoverage, false)}.
      *
      * @param declaredAndImplemented  the candidate endpoints - declared in the OpenAPI
      *                                 documentation and implemented by a {@code @RestController}
@@ -45,32 +47,86 @@ public class ResponseCoverageAnalyzer {
     public List<EndpointResponseCoverage> analyze(
             List<DescribedEndpoint> declaredAndImplemented, List<VerifiedContractTest> verifiedTests,
             boolean includeResponseCoverage) {
+        return analyze(declaredAndImplemented, verifiedTests, includeResponseCoverage, false);
+    }
+
+    /**
+     * Computes the coverage rows for {@code declaredAndImplemented}.
+     *
+     * @param declaredAndImplemented  the candidate endpoints - declared in the OpenAPI
+     *                                 documentation and implemented by a {@code @RestController}
+     *                                 method - carrying their declared response codes
+     * @param verifiedTests            every piece of verification evidence gathered from the
+     *                                 enabled {@link ContractVerificationSource}s
+     * @param includeResponseCoverage  whether to compute the per-response-code breakdown at all;
+     *                                 when {@code false}, {@link EndpointResponseCoverage#testCountByResponseCode()}
+     *                                 is empty and {@link EndpointResponseCoverage#untrackedTestCount()}
+     *                                 is {@code 0} for every row - the breakdown is not merely
+     *                                 hidden, it is never computed
+     * @param ignore5xx                whether to exclude 5xx response codes - both an exact code
+     *                                 (e.g. {@code "500"}) and the {@code "5XX"} range wildcard -
+     *                                 from consideration entirely: neither the row's
+     *                                 {@link EndpointResponseCoverage#declaredResponseCodes()} nor
+     *                                 its {@link EndpointResponseCoverage#testCountByResponseCode()}
+     *                                 include one, and a test detected to assert a 5xx status
+     *                                 contributes to neither a specific code's count nor
+     *                                 {@link EndpointResponseCoverage#untrackedTestCount()} - though
+     *                                 it's still counted in
+     *                                 {@link EndpointResponseCoverage#contractTestCount()}
+     * @return one {@link EndpointResponseCoverage} per candidate, in {@code declaredAndImplemented}'s
+     *         order
+     */
+    public List<EndpointResponseCoverage> analyze(
+            List<DescribedEndpoint> declaredAndImplemented, List<VerifiedContractTest> verifiedTests,
+            boolean includeResponseCoverage, boolean ignore5xx) {
         List<EndpointResponseCoverage> results = new ArrayList<>();
         for (DescribedEndpoint candidate : declaredAndImplemented) {
             List<VerifiedContractTest> matching = verifiedTests.stream()
                     .filter(test -> ContractEvidenceMatcher.verifies(test.endpoint(), candidate))
                     .toList();
 
+            DescribedEndpoint effectiveCandidate = ignore5xx ? withoutFiveXxResponseCodes(candidate) : candidate;
+
             if (!includeResponseCoverage) {
-                results.add(new EndpointResponseCoverage(candidate, matching.size(), 0, Map.of()));
+                results.add(new EndpointResponseCoverage(effectiveCandidate, matching.size(), 0, Map.of()));
                 continue;
             }
 
             Map<String, Integer> testCountByResponseCode = new LinkedHashMap<>();
-            for (String responseCode : candidate.responseCodes()) {
+            for (String responseCode : effectiveCandidate.responseCodes()) {
                 testCountByResponseCode.put(responseCode, 0);
             }
             int untracked = 0;
             for (VerifiedContractTest test : matching) {
                 String statusCode = test.statusCode();
+                if (ignore5xx && isFiveXx(statusCode)) {
+                    continue;
+                }
                 if (statusCode != null && testCountByResponseCode.containsKey(statusCode)) {
                     testCountByResponseCode.merge(statusCode, 1, Integer::sum);
                 } else {
                     untracked++;
                 }
             }
-            results.add(new EndpointResponseCoverage(candidate, matching.size(), untracked, testCountByResponseCode));
+            results.add(new EndpointResponseCoverage(
+                    effectiveCandidate, matching.size(), untracked, testCountByResponseCode));
         }
         return results;
+    }
+
+    private DescribedEndpoint withoutFiveXxResponseCodes(DescribedEndpoint candidate) {
+        List<String> filtered = candidate.responseCodes().stream()
+                .filter(code -> !isFiveXx(code))
+                .toList();
+        return new DescribedEndpoint(
+                candidate.verb(), candidate.path(), candidate.operationId(), candidate.tags(), filtered);
+    }
+
+    private boolean isFiveXx(String responseCode) {
+        if (responseCode == null) {
+            return false;
+        }
+        String normalized = responseCode.trim();
+        return normalized.matches("5\\d\\d") || normalized.equalsIgnoreCase("5XX");
     }
 }

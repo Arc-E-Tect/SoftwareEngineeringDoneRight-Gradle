@@ -93,6 +93,7 @@ public class DoppelgangerApiDetectorPlugin implements Plugin<Project> {
         ext.getPathResolverHelperMethods().convention(List.of());
 
         ext.getIncludeResponseCoverage().convention(false);
+        ext.getIgnore5xx().convention(false);
         ext.getScanContractsReportFileName().convention(
                 DoppelgangerApiDetectorExtension.DEFAULT_SCAN_CONTRACTS_REPORT_FILE_NAME);
         ext.getTrackResponseCoverageHistory().convention(false);
@@ -154,6 +155,7 @@ public class DoppelgangerApiDetectorPlugin implements Plugin<Project> {
                     task.getUseOpenApiRequestValidator().set(ext.getUseOpenApiRequestValidator());
                     task.getUseSpringCloudContract().set(ext.getUseSpringCloudContract());
                     task.getIncludeResponseCoverage().set(ext.getIncludeResponseCoverage());
+                    task.getIgnore5xx().set(ext.getIgnore5xx());
                     task.getReportDir().set(ext.getReportDir());
                     task.getReportFileName().set(ext.getScanContractsReportFileName());
                     task.getSystemUnderTestVersion().set(ext.getSystemUnderTestVersion());
