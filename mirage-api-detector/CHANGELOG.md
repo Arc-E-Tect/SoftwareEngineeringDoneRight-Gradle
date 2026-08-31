@@ -1,3 +1,16 @@
+# [4.6.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/mirage-api-detector-v4.5.1...mirage-api-detector-v4.6.0) (2026-08-31)
+
+
+### ✨ New and updated features
+
+* **doppelganger-api-detector:** add ignore5xx to exclude 5xx codes from response coverage ([#251](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/251)) ([98dfa68](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/98dfa680d271a55d34a62c9913f732cb42f657b9)), closes [#251](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/251)
+* update base path in plugin and tests ([#253](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/253)) ([dcccc8e](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/dcccc8e7d06e07d95689ae4d66e40020f6e3720e)), closes [#253](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/253)
+
+
+### 🐛 Bug Fixes
+
+* **api-only-suite:** forward propertyFiles/pathResolverHelperMethods to doppelgangerApiGapsForSuite ([#252](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/252)) ([c47eb5f](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/c47eb5ffbb8bc1ce31b395b35fcf6e4dc0a66f5c)), closes [#252](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/252)
+
 ## [4.5.1](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/mirage-api-detector-v4.5.0...mirage-api-detector-v4.5.1) (2026-08-30)
 
 
