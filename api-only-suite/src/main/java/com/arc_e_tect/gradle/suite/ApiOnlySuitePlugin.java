@@ -190,6 +190,8 @@ public class ApiOnlySuitePlugin implements Plugin<Project> {
             task.getControllerDirs().from(source.getControllerDirs());
             task.getTestDirs().from(source.getTestDirs());
             task.getTestDirsUserConfigured().set(source.getTestDirsUserConfigured());
+            task.getPropertyFiles().from(source.getPropertyFiles());
+            task.getPathResolverHelperMethods().set(source.getPathResolverHelperMethods());
             task.getRootDocument().set(source.getRootDocument());
             task.getOpenApiDir().set(source.getOpenApiDir());
             task.getContractsDir().set(source.getContractsDir());
