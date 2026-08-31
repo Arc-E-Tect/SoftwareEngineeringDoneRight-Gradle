@@ -1,3 +1,10 @@
+# [3.9.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/api-only-suite-v3.8.1...api-only-suite-v3.9.0) (2026-08-31)
+
+
+### ✨ New and updated features
+
+* update base path in plugin and tests ([#253](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/253)) ([dcccc8e](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/dcccc8e7d06e07d95689ae4d66e40020f6e3720e)), closes [#253](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/253)
+
 ## [3.8.1](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/api-only-suite-v3.8.0...api-only-suite-v3.8.1) (2026-08-31)
 
 
