@@ -156,7 +156,7 @@ class ApiOnlySuitePluginTest {
         mirageExtension(project).getScanMocks().set(true);
         mirageExtension(project).getStubDirs().from(stubDir);
         mirageExtension(project).getStubSourceDirs().from(stubSourceDir);
-        mirageExtension(project).getBasePath().set("/crm-service");
+        mirageExtension(project).getBasePath().set("/user-account");
         mirageExtension(project).getExcludeWellKnown().add("spring-boot-actuator");
 
         ((ProjectInternal) project).evaluate();

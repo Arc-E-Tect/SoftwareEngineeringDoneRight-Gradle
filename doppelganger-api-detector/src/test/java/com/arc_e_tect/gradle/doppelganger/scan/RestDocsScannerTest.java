@@ -149,7 +149,7 @@ class RestDocsScannerTest {
     @Test
     @DisplayName("strips a configured base path from a captured REST Assured path")
     void stripsConfiguredBasePath() throws Exception {
-        RestDocsScanner prefixedScanner = new RestDocsScanner("/crm-service");
+        RestDocsScanner prefixedScanner = new RestDocsScanner("/user-account-service");
 
         List<Endpoint> endpoints = prefixedScanner.scan(fixtureDir());
 
@@ -169,13 +169,13 @@ class RestDocsScannerTest {
         assertThat(endpoints)
                 .filteredOn(e -> e.methodSignature().startsWith("getItemWithServerBasePathRestAssured"))
                 .extracting(Endpoint::path)
-                .containsExactly("/crm-service/items/{id}");
+                .containsExactly("/user-account-service/items/{id}");
     }
 
     @Test
     @DisplayName("leaves an unprefixed captured path unchanged when a base path is configured")
     void leavesUnprefixedPathUnchangedWhenBasePathConfigured() throws Exception {
-        RestDocsScanner prefixedScanner = new RestDocsScanner("/crm-service");
+        RestDocsScanner prefixedScanner = new RestDocsScanner("/user-account-service");
 
         List<Endpoint> endpoints = prefixedScanner.scan(fixtureDir());
 

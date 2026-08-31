@@ -19,8 +19,8 @@ import java.util.regex.Pattern;
 
 /**
  * Resolves the path portion of an OpenAPI root document's first {@code servers[].url} entry, e.g.
- * {@code servers: [{url: "http://localhost:9011/crm-service"}]} resolves to
- * {@code "/crm-service"}.
+ * {@code servers: [{url: "http://localhost:9011/user-account-service"}]} resolves to
+ * {@code "/user-account-service"}.
  *
  * <p>A verification source that captures the literal path used against a real, running server
  * (as opposed to one relative to a controller's own {@code @RequestMapping}, such as a REST
@@ -45,7 +45,7 @@ public final class OpenApiServerBasePath {
      * {@link PathTemplates#normalize(String)}.
      *
      * @param rootDocument the root OpenAPI document
-     * @return the normalised base path (e.g. {@code "/crm-service"}), or {@code ""} when the
+     * @return the normalised base path (e.g. {@code "/user-account-service"}), or {@code ""} when the
      *         document declares no servers, the first server's URL has a blank or root path, or
      *         the document cannot be parsed
      */

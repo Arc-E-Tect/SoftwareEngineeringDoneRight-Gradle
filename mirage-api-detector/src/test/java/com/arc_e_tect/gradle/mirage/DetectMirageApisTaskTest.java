@@ -557,7 +557,7 @@ class DetectMirageApisTaskTest {
         Files.createDirectories(stubDir.toPath());
         Files.writeString(stubDir.toPath().resolve("listUsers.json"), """
                 {
-                  "request": { "method": "GET", "urlPath": "/crm-service/users" },
+                  "request": { "method": "GET", "urlPath": "/user-account-service/users" },
                   "response": { "status": 200 }
                 }
                 """);
@@ -566,7 +566,7 @@ class DetectMirageApisTaskTest {
         DetectMirageApisTask task = newTask();
         task.getScanMocks().set(true);
         task.getStubDirs().from(stubDir);
-        task.getBasePath().set("/crm-service");
+        task.getBasePath().set("/user-account-service");
         task.getRootDocument().set(openApiFixture("single-endpoint.yaml"));
         task.getReportDir().set(reportDir);
         task.getReportFileName().set("mirage-apis.adoc");
@@ -593,7 +593,7 @@ class DetectMirageApisTaskTest {
         Files.createDirectories(stubDir.toPath());
         Files.writeString(stubDir.toPath().resolve("listUsers.json"), """
                 {
-                  "request": { "method": "GET", "urlPath": "/crm-service/users" },
+                  "request": { "method": "GET", "urlPath": "/user-account-service/users" },
                   "response": { "status": 200 }
                 }
                 """);
@@ -658,7 +658,7 @@ class DetectMirageApisTaskTest {
         Files.createDirectories(stubDir.toPath());
         Files.writeString(stubDir.toPath().resolve("listUsers.json"), """
                 {
-                  "request": { "method": "GET", "urlPath": "/crm-service/users" },
+                  "request": { "method": "GET", "urlPath": "/user-account-service/users" },
                   "response": { "status": 200 }
                 }
                 """);
@@ -667,7 +667,7 @@ class DetectMirageApisTaskTest {
         DetectMirageApisTask task = newTask();
         task.getScanMocks().set(true);
         task.getStubDirs().from(stubDir);
-        task.getBasePath().set("/crm-service");
+        task.getBasePath().set("/user-account-service");
         task.getRootDocument().set(openApiFixture("single-endpoint.yaml"));
         task.getReportDir().set(reportDir);
         task.getReportFileName().set("mirage-apis.adoc");
@@ -947,7 +947,7 @@ class DetectMirageApisTaskTest {
                       title: Test API
                       version: "1.0"
                     servers:
-                      - url: http://localhost:9011/crm-service
+                      - url: http://localhost:9011/user-account-service
                     paths:
                       /users:
                         get:
