@@ -22,11 +22,11 @@ class OpenApiServerBasePathTest {
                   title: Test API
                   version: 1.0.0
                 servers:
-                  - url: http://localhost:9011/crm-service
+                  - url: http://localhost:9011/user-account-service
                 paths: {}
                 """);
 
-        assertThat(OpenApiServerBasePath.resolve(document)).isEqualTo("/crm-service");
+        assertThat(OpenApiServerBasePath.resolve(document)).isEqualTo("/user-account-service");
     }
 
     @Test
@@ -84,11 +84,11 @@ class OpenApiServerBasePathTest {
                   title: Test API
                   version: 1.0.0
                 servers:
-                  - url: http://localhost:9011/crm-service
+                  - url: http://localhost:9011/user-account-service
                 paths: {}
                 """);
 
-        assertThat(OpenApiServerBasePath.resolve(document)).isEqualTo("/crm-service");
+        assertThat(OpenApiServerBasePath.resolve(document)).isEqualTo("/user-account-service");
     }
 
     @Test

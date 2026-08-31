@@ -67,7 +67,7 @@ public class RestDocsScanner implements ContractVerificationSource {
      * path it captures, even though neither the OpenAPI documentation nor the
      * {@code @RestController} mapping it verifies ever declares it.
      *
-     * @param basePathToStrip the base path to strip, e.g. {@code "/crm-service"}; blank or
+     * @param basePathToStrip the base path to strip, e.g. {@code "/user-account-service"}; blank or
      *                         {@code null} disables stripping
      */
     public RestDocsScanner(String basePathToStrip) {

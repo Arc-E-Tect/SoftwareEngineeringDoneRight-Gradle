@@ -99,7 +99,7 @@ public class RestDocsScannerFixture {
         given(documentationSpec)
                 .filter(document("get-item-base-path-rest-assured"))
                 .when()
-                .get("crm-service/items/{id}");
+                .get("user-account-service/items/{id}");
     }
 
     static final String USER_BY_USERNAME_PATH = "/v1/users/{username}";

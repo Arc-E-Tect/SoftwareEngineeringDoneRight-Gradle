@@ -149,13 +149,13 @@ class MirageApiDetectorPluginTest {
     @DisplayName("wires the task's basePath from the extension")
     void wiresTaskBasePathFromExtension() {
         Project project = projectWithPlugin();
-        extension(project).getBasePath().set("/crm-service");
+        extension(project).getBasePath().set("/user-account-service");
 
         ((ProjectInternal) project).evaluate();
 
         DetectMirageApisTask task = (DetectMirageApisTask)
                 project.getTasks().getByName(MirageApiDetectorPlugin.TASK_NAME);
-        assertThat(task.getBasePath().get()).isEqualTo("/crm-service");
+        assertThat(task.getBasePath().get()).isEqualTo("/user-account-service");
     }
 
     @Test

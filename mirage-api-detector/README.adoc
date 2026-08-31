@@ -164,7 +164,7 @@ A stub's evidence staying permanently unmerged is visible directly in `contractH
 | The `@RestController` method the stub is meant to exercise really exists, but was never added to the OpenAPI documentation. `scanMocks` only ever compares stub evidence against what *this* plugin (and any sibling detector sharing the same `contractHistoryFile`) has found declared or implemented - an undeclared endpoint has no `declaredAt` evidence to merge with, no matter how precisely the stub's path is written. Run the companion link:../shadow-api-detector/README.adoc[Shadow API Detector] against the same `controllerDirs` to check directly: if it reports the endpoint, the stub is correct and the gap is in your OpenAPI documentation, not your stub suite.
 
 | The stub itself has a bug
-| The stub file is simply describing a request that doesn't correspond to what you think it does - nothing heuristic about it. A doubled base path (`"/crm-service/crm-service/v1/..."`), a copy-pasted URL left over from a different endpoint, a typo in a `urlPathPattern` regex, or a `method` that doesn't match what the endpoint actually accepts, are all real examples found in the wild. The raw stub file is the place to look.
+| The stub file is simply describing a request that doesn't correspond to what you think it does - nothing heuristic about it. A doubled base path (`"/user-account-service/user-account-service/v1/..."`), a copy-pasted URL left over from a different endpoint, a typo in a `urlPathPattern` regex, or a `method` that doesn't match what the endpoint actually accepts, are all real examples found in the wild. The raw stub file is the place to look.
 
 | The stub and the documentation have drifted apart
 | A stub written against an earlier shape of the API - a path since renamed, restructured, or removed - describes a request nothing in the current codebase or documentation recognises any more. This isn't a bug in the stub or the scanner; it's a signal that the stub suite needs updating to track the current contract.
@@ -198,7 +198,7 @@ A `stubFor(...)` call whose argument isn't shaped this way - e.g. the mapping bu
 
 === Stripping a base path from stub-scanned paths
 
-A WireMock stub mapping records the full request path a client actually sends - including whatever deployment-time context path the server runs under, e.g. `/crm-service` - while an OpenAPI-declared path never includes one (a server's `paths` are always relative to its own `servers` entry). Left unaccounted for, this mismatch means a stub's path never matches its corresponding OpenAPI operation: the stub is still found, but ends up as an orphaned, unmatched entry instead of being recognised as evidence for the declared endpoint.
+A WireMock stub mapping records the full request path a client actually sends - including whatever deployment-time context path the server runs under, e.g. `/user-account-service` - while an OpenAPI-declared path never includes one (a server's `paths` are always relative to its own `servers` entry). Left unaccounted for, this mismatch means a stub's path never matches its corresponding OpenAPI operation: the stub is still found, but ends up as an orphaned, unmatched entry instead of being recognised as evidence for the declared endpoint.
 
 Set `basePath` to strip a fixed prefix from every scanned stub path before comparing it:
 
@@ -207,11 +207,11 @@ Set `basePath` to strip a fixed prefix from every scanned stub path before compa
 mirageApiDetector {
     scanMocks = true
     stubDirs.from('src/test/resources/mappings')
-    basePath = '/crm-service'
+    basePath = '/user-account-service'
 }
 ----
 
-Left unset (the default), the base path is instead read automatically from `rootDocument`'s own first `servers` entry's `url` - e.g. `servers: [{ url: http://localhost:9011/crm-service }]` yields `/crm-service` with no configuration needed at all. Set `basePath` explicitly only when the document either declares no `servers` entry or declares the wrong one for this purpose.
+Left unset (the default), the base path is instead read automatically from `rootDocument`'s own first `servers` entry's `url` - e.g. `servers: [{ url: http://localhost:9011/user-account-service }]` yields `/user-account-service` with no configuration needed at all. Set `basePath` explicitly only when the document either declares no `servers` entry or declares the wrong one for this purpose.
 
 == Excluding known-good gaps
 
@@ -317,7 +317,7 @@ mirageApiDetector {
     // automatically from rootDocument's own first servers entry's url - see "Stripping a base
     // path from stub-scanned paths" above.
     // Default: unset
-    // basePath = '/crm-service'
+    // basePath = '/user-account-service'
 
     // The root OpenAPI document. Required - every other document is expected to be
     // reachable from this one via $ref links relative to it.
@@ -377,7 +377,7 @@ mirageApiDetector {
     scanMocks.set(false)
     // stubDirs.from("src/test/resources/mappings")
     // stubSourceDirs.from("src/test/java")
-    // basePath.set("/crm-service")
+    // basePath.set("/user-account-service")
     rootDocument.set(file("src/main/resources/openapi/openapi.yaml"))
     failOnMirage.set(false)
     reportDir.set(layout.buildDirectory.dir("reports/mirage-api-detector"))
