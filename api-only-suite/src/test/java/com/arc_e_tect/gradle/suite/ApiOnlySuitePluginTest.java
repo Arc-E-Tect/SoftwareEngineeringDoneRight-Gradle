@@ -183,14 +183,18 @@ class ApiOnlySuitePluginTest {
     }
 
     @Test
-    @DisplayName("wires doppelgangerApiGapsForSuite identically to detectDoppelgangerApis otherwise, including testDirs/testDirsUserConfigured")
+    @DisplayName("wires doppelgangerApiGapsForSuite identically to detectDoppelgangerApis otherwise, including "
+            + "testDirs/testDirsUserConfigured/propertyFiles/pathResolverHelperMethods")
     void nonFailingDoppelgangerTaskMirrorsPrimaryConfiguration() {
         Project project = projectWithPlugin();
         File rootDocument = new File(tempDir.toFile(), "openapi.yaml");
         File testDir = new File(project.getProjectDir(), "src/testContract/java");
+        File propertyFile = new File(project.getProjectDir(), "src/testCommon/resources/api-endpoints.properties");
         suiteExtension(project).getRootDocument().set(rootDocument);
         doppelgangerExtension(project).getTestDirs().from(testDir);
         doppelgangerExtension(project).getExcludeWellKnown().add("spring-boot-actuator");
+        doppelgangerExtension(project).getPropertyFiles().from(propertyFile);
+        doppelgangerExtension(project).getPathResolverHelperMethods().add("ApiEndpoints.get");
 
         ((ProjectInternal) project).evaluate();
 
@@ -204,6 +208,12 @@ class ApiOnlySuitePluginTest {
         assertThat(doppelgangerForSuiteTask(project).getTestDirsUserConfigured().get())
                 .isEqualTo(doppelgangerTask(project).getTestDirsUserConfigured().get())
                 .isTrue();
+        assertThat(doppelgangerForSuiteTask(project).getPropertyFiles().getFiles())
+                .isEqualTo(doppelgangerTask(project).getPropertyFiles().getFiles())
+                .containsExactly(propertyFile);
+        assertThat(doppelgangerForSuiteTask(project).getPathResolverHelperMethods().get())
+                .isEqualTo(doppelgangerTask(project).getPathResolverHelperMethods().get())
+                .containsExactly("ApiEndpoints.get");
         assertThat(doppelgangerForSuiteTask(project).getReportDir().get().getAsFile())
                 .isEqualTo(doppelgangerTask(project).getReportDir().get().getAsFile());
         assertThat(doppelgangerForSuiteTask(project).getReportFileName().get())

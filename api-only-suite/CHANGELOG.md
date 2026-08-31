@@ -1,3 +1,10 @@
+## [3.8.1](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/api-only-suite-v3.8.0...api-only-suite-v3.8.1) (2026-08-31)
+
+
+### 🐛 Bug Fixes
+
+* **api-only-suite:** forward propertyFiles/pathResolverHelperMethods to doppelgangerApiGapsForSuite ([#252](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/252)) ([c47eb5f](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/c47eb5ffbb8bc1ce31b395b35fcf6e4dc0a66f5c)), closes [#252](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/252)
+
 # [3.8.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/api-only-suite-v3.7.1...api-only-suite-v3.8.0) (2026-08-30)
 
 
