@@ -347,6 +347,12 @@ doppelgangerApiDetector {
     // Default: false
     includeResponseCoverage = false
 
+    // Whether scanContracts excludes 5xx response codes - both an exact code (e.g. "500") and
+    // the "5XX" range wildcard - from the per-response-code breakdown entirely: neither reported
+    // as a declared response code needing coverage nor attributed a test count.
+    // Default: false
+    ignore5xx = false
+
     // Name of scanContracts' own generated AsciiDoc report file, written to the same reportDir.
     // Default: 'contract-coverage.adoc'
     // scanContractsReportFileName = 'contract-coverage.adoc'
@@ -390,6 +396,7 @@ doppelgangerApiDetector {
     // pathResolverHelperMethods.add("ApiEndpoints.get")
 
     includeResponseCoverage.set(false)
+    ignore5xx.set(false)
     // scanContractsReportFileName.set("contract-coverage.adoc")
     trackResponseCoverageHistory.set(false)
     // responseCoverageHistoryFile.set(file("doppelganger-api-detector-response-coverage-history.ndjson"))
