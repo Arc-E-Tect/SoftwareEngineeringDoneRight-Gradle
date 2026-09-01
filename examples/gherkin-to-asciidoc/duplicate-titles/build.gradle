@@ -1,0 +1,11 @@
+plugins {
+    alias(libs.plugins.gherkin.to.asciidoc)
+}
+
+gherkinToAsciidoc {
+    // Two unrelated feature areas that happen to share a scenario title by accident - see this
+    // example's README for why that's rejected outright rather than silently tolerated.
+    sourceDirs.from(
+            'src/test/resources/features-auth',
+            'src/test/resources/features-checkout')
+}

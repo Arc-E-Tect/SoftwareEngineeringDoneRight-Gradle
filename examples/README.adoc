@@ -34,6 +34,8 @@ include::gherkin-to-asciidoc/plain/README.adoc[leveloffset=+2]
 
 include::gherkin-to-asciidoc/progress-tracking/README.adoc[leveloffset=+2]
 
+include::gherkin-to-asciidoc/duplicate-titles/README.adoc[leveloffset=+2]
+
 include::gherkin-to-asciidoc/snippet-templates/README.adoc[leveloffset=+2]
 
 == Shadow API Detector Examples
