@@ -379,6 +379,7 @@ mirageApiDetector {
     // stubSourceDirs.from("src/test/java")
     // basePath.set("/user-account-service")
     rootDocument.set(file("src/main/resources/openapi/openapi.yaml"))
+    openApiDir.set(file("src/main/resources/openapi"))
     failOnMirage.set(false)
     reportDir.set(layout.buildDirectory.dir("reports/mirage-api-detector"))
     reportFileName.set("mirage-apis.adoc")
