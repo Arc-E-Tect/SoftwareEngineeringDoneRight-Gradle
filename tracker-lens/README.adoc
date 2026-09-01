@@ -200,6 +200,17 @@ dependencies {
 | `version` | `project.version` | Version shown alongside `dashboardName` - the same convention as the API-detector plugins' `systemUnderTestVersion`.
 |===
 
+=== Tracker Registration Properties
+
+Each `trackers { register("...") { ... } }` block configures one tracker registration.
+
+[cols="1,1,3",options="header"]
+|===
+| Property | Default | Purpose
+| `historyFiles` | none - required | The NDJSON history file(s) and/or directories to read for this tracker; a directory contributes every `*.ndjson` file directly within it (non-recursive). Records sharing the same id across files are merged into one item.
+| `source` | none - required | Which built-in `TrackerSourceKind` reads `historyFiles`: `GHERKIN_SCENARIO`, `API_CONTRACT`, or `RESPONSE_COVERAGE`.
+|===
+
 == Registering Trackers
 
 A *tracker* pairs one or more NDJSON history files with the built-in reader that knows their shape.
