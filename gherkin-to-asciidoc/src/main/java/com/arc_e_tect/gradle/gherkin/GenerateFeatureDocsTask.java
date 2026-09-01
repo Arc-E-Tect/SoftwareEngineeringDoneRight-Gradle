@@ -4,6 +4,7 @@ import com.arc_e_tect.gradle.gherkin.console.ScanProgressReporter;
 import com.arc_e_tect.gradle.gherkin.glue.GlueCodeScanner;
 import com.arc_e_tect.gradle.gherkin.indexing.FeatureIndexer;
 import com.arc_e_tect.gradle.gherkin.indexing.IndexingMode;
+import com.arc_e_tect.gradle.gherkin.parser.DuplicateScenarioTitles;
 import com.arc_e_tect.gradle.gherkin.parser.FeatureParser;
 import com.arc_e_tect.gradle.gherkin.parser.ScenarioGrouping;
 import com.arc_e_tect.gradle.gherkin.parser.ScenarioInfo;
@@ -41,6 +42,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Gradle task that scans {@code .feature} files and writes all scenario titles
@@ -370,15 +372,22 @@ public abstract class GenerateFeatureDocsTask extends DefaultTask {
         }
 
         getLogger().lifecycle("gherkinToAsciidoc: parsing feature files...");
-        List<ScenarioInfo> scenarios = new ArrayList<>();
+        List<DuplicateScenarioTitles.ScenarioOccurrence> occurrences = new ArrayList<>();
         FeatureParser featureParser = new FeatureParser();
         ScanProgressReporter parsingProgress = ScanProgressReporter.determinate(
                 getLogger(), "Parsing feature files", featureFiles.size());
         for (File featureFile : featureFiles) {
-            scenarios.addAll(featureParser.parse(featureFile));
+            for (ScenarioInfo scenario : featureParser.parse(featureFile)) {
+                occurrences.add(new DuplicateScenarioTitles.ScenarioOccurrence(scenario, featureFile));
+            }
             parsingProgress.step();
         }
         parsingProgress.complete();
+
+        failOnDuplicateScenarioTitles(occurrences);
+        List<ScenarioInfo> scenarios = occurrences.stream()
+                .map(DuplicateScenarioTitles.ScenarioOccurrence::scenario)
+                .collect(Collectors.toList());
 
         File outDir = getOutputDir().getAsFile().get();
         if (!outDir.exists() && !outDir.mkdirs()) {
@@ -421,6 +430,47 @@ public abstract class GenerateFeatureDocsTask extends DefaultTask {
             store.save(historyFile, updated.values());
         }
         return updated;
+    }
+
+    /**
+     * Fails the build when two or more scenarios share a title, since
+     * {@link com.arc_e_tect.gradle.gherkin.progress.ScenarioFingerprint} would then be unable to tell them apart - see {@link DuplicateScenarioTitles} for why that
+     * silently corrupts persisted progress history rather than merely looking odd in the report.
+     *
+     * <p>With {@code --info} logging enabled, every duplicate title is logged individually together
+     * with every feature file it was found in. Without it, only a one-line warning pointing at
+     * {@code --info} is logged - a single duplicate is already reason enough to fail the build, so
+     * the summary doesn't wait to find them all before failing either way.</p>
+     */
+    private void failOnDuplicateScenarioTitles(List<DuplicateScenarioTitles.ScenarioOccurrence> occurrences) {
+        List<DuplicateScenarioTitles.Duplicate> duplicates = new DuplicateScenarioTitles().find(occurrences);
+        if (duplicates.isEmpty()) {
+            return;
+        }
+
+        boolean infoEnabled = getLogger().isInfoEnabled();
+        if (infoEnabled) {
+            for (DuplicateScenarioTitles.Duplicate duplicate : duplicates) {
+                String files = duplicate.occurrences().stream()
+                        .map(occurrence -> occurrence.featureFile().getName())
+                        .collect(Collectors.joining(", "));
+                getLogger().info("gherkinToAsciidoc: duplicate scenario title '{}' found in: {}",
+                        duplicate.title(), files);
+            }
+        } else {
+            getLogger().warn(
+                    "gherkinToAsciidoc: found {} duplicate scenario title(s) across feature files. "
+                    + "Re-run with --info to see every duplicate and the files it was found in.",
+                    duplicates.size());
+        }
+
+        throw new GradleException(
+                "gherkinToAsciidoc: found " + duplicates.size() + " duplicate scenario title(s) across feature "
+                + "files - every scenario title must be unique, since it is used to identify the scenario in "
+                + "the persisted progress history. "
+                + (infoEnabled
+                        ? "See the log above for every duplicate and the files it was found in."
+                        : "Re-run with --info to see every duplicate and the files it was found in."));
     }
 
     private List<Expression> scanGlueCode() {
