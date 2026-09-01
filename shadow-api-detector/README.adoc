@@ -227,6 +227,7 @@ shadowApiDetector {
 shadowApiDetector {
     controllerDirs.from("src/main/java")
     rootDocument.set(file("src/main/resources/openapi/openapi.yaml"))
+    openApiDir.set(file("src/main/resources/openapi"))
     failOnShadow.set(false)
     reportDir.set(layout.buildDirectory.dir("reports/shadow-api-detector"))
     reportFileName.set("shadow-apis.adoc")
