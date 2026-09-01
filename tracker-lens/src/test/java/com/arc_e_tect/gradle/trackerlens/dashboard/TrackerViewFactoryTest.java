@@ -35,7 +35,8 @@ class TrackerViewFactoryTest {
                 .containsExactly(
                         org.assertj.core.groups.Tuple.tuple("listed", 2, 100),
                         org.assertj.core.groups.Tuple.tuple("defined", 1, 50),
-                        org.assertj.core.groups.Tuple.tuple("implemented", 0, 0));
+                        org.assertj.core.groups.Tuple.tuple("implemented", 0, 0),
+                        org.assertj.core.groups.Tuple.tuple("removed", 0, 0));
     }
 
     @Test
@@ -51,7 +52,8 @@ class TrackerViewFactoryTest {
                 .containsExactly(
                         org.assertj.core.groups.Tuple.tuple("listed", 1, 50),
                         org.assertj.core.groups.Tuple.tuple("defined", 1, 50),
-                        org.assertj.core.groups.Tuple.tuple("implemented", 0, 0));
+                        org.assertj.core.groups.Tuple.tuple("implemented", 0, 0),
+                        org.assertj.core.groups.Tuple.tuple("removed", 0, 0));
     }
 
     @Test
@@ -64,6 +66,35 @@ class TrackerViewFactoryTest {
         TrackerView view = factory.build("t", STAGES, records, Optional.empty(), NOW, false);
 
         assertThat(view.totalCount()).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("buildShouldAppendARemovedMetricCardCountingItemsNoLongerPresent")
+    void buildShouldAppendARemovedMetricCardCountingItemsNoLongerPresent() {
+        List<LifecycleRecord> records = List.of(
+                new LifecycleRecord("1", "a", null, Map.of("listed", NOW), NOW, null),
+                new LifecycleRecord("2", "b", null, Map.of("listed", NOW), NOW, NOW),
+                new LifecycleRecord("3", "c", null, Map.of("listed", NOW), NOW, NOW),
+                new LifecycleRecord("4", "d", null, Map.of("listed", NOW), NOW, NOW));
+
+        TrackerView view = factory.build("t", STAGES, records, Optional.empty(), NOW, false);
+
+        MetricCardView removed = view.metrics().get(view.metrics().size() - 1);
+        assertThat(removed.stage()).isEqualTo("removed");
+        assertThat(removed.count()).isEqualTo(3);
+        assertThat(removed.totalCount()).isEqualTo(4);
+        assertThat(removed.percent()).isEqualTo(75);
+    }
+
+    @Test
+    @DisplayName("buildShouldReportZeroPercentRemovedWhenNoRecordsExistAtAll")
+    void buildShouldReportZeroPercentRemovedWhenNoRecordsExistAtAll() {
+        TrackerView view = factory.build("t", STAGES, List.of(), Optional.empty(), NOW, false);
+
+        MetricCardView removed = view.metrics().get(view.metrics().size() - 1);
+        assertThat(removed.count()).isEqualTo(0);
+        assertThat(removed.totalCount()).isEqualTo(0);
+        assertThat(removed.percent()).isEqualTo(0);
     }
 
     @Test

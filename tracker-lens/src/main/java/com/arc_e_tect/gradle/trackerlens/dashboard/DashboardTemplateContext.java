@@ -61,18 +61,16 @@ final class DashboardTemplateContext {
     private static Map<String, Object> trackerContext(TrackerView tracker) {
         Map<String, Object> map = new LinkedHashMap<>();
         map.put("id", tracker.id());
-        map.put("metrics", tracker.metrics().stream()
-                .map(metric -> metricContext(metric, tracker.totalCount()))
-                .toList());
+        map.put("metrics", tracker.metrics().stream().map(DashboardTemplateContext::metricContext).toList());
         tracker.projection().ifPresent(projection -> map.put("projection", projectionContext(projection)));
         return map;
     }
 
-    private static Map<String, Object> metricContext(MetricCardView metric, int totalCount) {
+    private static Map<String, Object> metricContext(MetricCardView metric) {
         Map<String, Object> map = new LinkedHashMap<>();
         map.put("stage", metric.stage());
         map.put("count", metric.count());
-        map.put("totalCount", totalCount);
+        map.put("totalCount", metric.totalCount());
         map.put("percent", metric.percent());
         return map;
     }

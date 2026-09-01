@@ -59,8 +59,9 @@ public class TrackerViewFactory {
                     ? stageBreakdown.get(stage)
                     : active.stream().filter(record -> record.hasReached(stage)).count();
             int percent = totalCount == 0 ? 0 : Math.round(count * 100f / totalCount);
-            metrics.add(new MetricCardView(stage, (int) count, percent));
+            metrics.add(new MetricCardView(stage, (int) count, totalCount, percent));
         }
+        metrics.add(removedMetric(records, totalCount));
 
         List<LocalDate> chartDates = chartDates(records, now);
         Optional<LocalDate> lastDataDate = lastDataDate(records);
@@ -93,6 +94,23 @@ public class TrackerViewFactory {
         return new TrackerView(
                 trackerId, stages, metrics, totalCount, projection, chartDates, chartSeries, staleItems,
                 stageBreakdown, breakdownByDate, seriesByGroup, List.of());
+    }
+
+    /**
+     * The trailing "removed" metric card, appended after every per-stage card regardless of
+     * tracker kind - a descoped scenario, a retired endpoint, or a response code no longer
+     * declared are all instances of the same {@link LifecycleRecord#removedAt()} concept, and
+     * are just as worth surfacing as any stage a still-active item has reached. Divides by every
+     * item ever seen ({@code activeCount + removedCount}), not {@code activeCount} itself - a
+     * removed item was, by definition, never part of the active total the other cards share, so
+     * reusing that denominator here would either overstate the percentage or (once enough items
+     * are removed) push it past 100%.
+     */
+    private MetricCardView removedMetric(List<LifecycleRecord> records, int activeCount) {
+        int removedCount = records.size() - activeCount;
+        int everSeenCount = records.size();
+        int percent = everSeenCount == 0 ? 0 : Math.round(removedCount * 100f / everSeenCount);
+        return new MetricCardView("removed", removedCount, everSeenCount, percent);
     }
 
     /**
