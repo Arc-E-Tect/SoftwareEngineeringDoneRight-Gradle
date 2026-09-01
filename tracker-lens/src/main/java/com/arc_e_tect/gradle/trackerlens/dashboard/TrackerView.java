@@ -14,7 +14,8 @@ import java.util.Optional;
  *
  * @param id         the tracker's registered id
  * @param stages     the tracker's canonical stage names, in order
- * @param metrics    one {@link MetricCardView} per stage, in {@code stages} order
+ * @param metrics    one {@link MetricCardView} per stage, in {@code stages} order, plus a
+ *                   trailing {@code removed} card counting items no longer seen
  * @param totalCount number of currently-active (non-removed) items in this tracker
  * @param projection the completion projection, when at least 7 days of history is available
  * @param chartDates the dates plotted on this tracker's chart, ascending
@@ -58,7 +59,8 @@ public record TrackerView(
      *
      * @param id         the tracker's registered id
      * @param stages     the tracker's canonical stage names, in order
-     * @param metrics    one {@link MetricCardView} per stage, in {@code stages} order
+     * @param metrics    one {@link MetricCardView} per stage, in {@code stages} order, plus a
+     *                    trailing {@code removed} card counting items no longer seen
      * @param totalCount number of currently-active (non-removed) items in this tracker
      * @param projection the completion projection, when at least 7 days of history is available
      * @param chartDates the dates plotted on this tracker's chart, ascending

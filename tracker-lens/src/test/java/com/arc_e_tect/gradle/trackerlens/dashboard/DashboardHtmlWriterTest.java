@@ -84,6 +84,26 @@ class DashboardHtmlWriterTest {
     }
 
     @Test
+    @DisplayName("writeShouldRenderARemovedMetricCard")
+    void writeShouldRenderARemovedMetricCard() throws IOException {
+        List<LifecycleRecord> records = List.of(
+                new LifecycleRecord("g1", "Place an order", null, Map.of("listed", NOW), NOW, null),
+                new LifecycleRecord("g2", "Descoped scenario", null, Map.of("listed", NOW), NOW, NOW));
+        TrackerView trackerView = new TrackerViewFactory().build(
+                "bdd-scenarios", List.of("listed", "defined", "implemented"), records, Optional.empty(), NOW, true);
+        DashboardView view = new DashboardView(List.of(trackerView),
+                List.of(new ResolvedLens("light-lens", "built-in", "body{}".getBytes(StandardCharsets.UTF_8))),
+                "light-lens", "my-app Lens", "1.2.3");
+
+        File dashboardFile = writer.write(tempDir.toFile(), view, null);
+
+        Document document = Jsoup.parse(dashboardFile, "UTF-8");
+        var removedCard = document.select(".metric-card[data-stage=\"removed\"]");
+        assertThat(removedCard).hasSize(1);
+        assertThat(removedCard.select(".metric-card__count").text()).isEqualTo("1 / 2");
+    }
+
+    @Test
     @DisplayName("writeShouldRenderStaleItemsTableRowPerStaleItemAcrossTrackers")
     void writeShouldRenderStaleItemsTableRowPerStaleItemAcrossTrackers() throws IOException {
         LifecycleRecord staleWithLastSeen = new LifecycleRecord("s1", "Old scenario", "Legacy",
@@ -91,7 +111,7 @@ class DashboardHtmlWriterTest {
         LifecycleRecord staleWithoutLastSeen = new LifecycleRecord("s2", "Older scenario", null,
                 Map.of("listed", NOW.minus(Duration.ofDays(40))), null, null);
         TrackerView trackerWithStale = new TrackerView(
-                "bdd-scenarios", List.of("listed"), List.of(new MetricCardView("listed", 2, 100)), 2,
+                "bdd-scenarios", List.of("listed"), List.of(new MetricCardView("listed", 2, 2, 100)), 2,
                 Optional.empty(), List.of(), Map.of(), List.of(staleWithLastSeen, staleWithoutLastSeen),
                 Map.of("listed", 2), List.of());
 
@@ -234,7 +254,7 @@ class DashboardHtmlWriterTest {
 
     private TrackerView trackerWithProjection(String trackerId, Confidence confidence) {
         Projection projection = new Projection(NOW.plus(Duration.ofDays(10)), 5, 10, 0.5, confidence);
-        return new TrackerView(trackerId, List.of("listed"), List.of(new MetricCardView("listed", 5, 50)), 10,
+        return new TrackerView(trackerId, List.of("listed"), List.of(new MetricCardView("listed", 5, 10, 50)), 10,
                 Optional.of(projection), List.of(), Map.of(), List.of(), Map.of("listed", 5), List.of());
     }
 
