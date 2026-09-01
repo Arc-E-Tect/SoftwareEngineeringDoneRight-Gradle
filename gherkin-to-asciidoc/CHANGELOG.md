@@ -1,3 +1,28 @@
+# [6.5.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/gherkin-to-asciidoc-v6.4.0...gherkin-to-asciidoc-v6.5.0) (2026-09-01)
+
+
+### ✨ New and updated features
+
+* **doppelganger-api-detector:** add ignore5xx to exclude 5xx codes from response coverage ([#251](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/251)) ([98dfa68](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/98dfa680d271a55d34a62c9913f732cb42f657b9)), closes [#251](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/251)
+* **doppelganger-api-detector:** resolve indirect request paths via property files and @Value ([#244](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/244)) ([f921c16](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/f921c160cdc97096f8ec19bc7e8a95ea1abc6354)), closes [#244](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/244)
+* update base path in plugin and tests ([#253](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/253)) ([dcccc8e](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/dcccc8e7d06e07d95689ae4d66e40020f6e3720e)), closes [#253](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/253)
+
+
+### 🐛 Bug Fixes
+
+* **api-only-suite:** forward propertyFiles/pathResolverHelperMethods to doppelgangerApiGapsForSuite ([#252](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/252)) ([c47eb5f](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/c47eb5ffbb8bc1ce31b395b35fcf6e4dc0a66f5c)), closes [#252](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/252)
+* **gherkin-to-asciidoc:** reject scenarios that share a title across feature files ([#254](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/254)) ([d725937](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/d72593741a8203f32f6f519ed9dd312b76519d91)), closes [#254](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/254)
+
+
+### 🔧 Misc
+
+* align api-detector-core versions ([#248](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/248)) ([fc07032](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/fc0703236944ff53d93f4e7c9efeb53c982a013e)), closes [#248](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/248)
+* **examples:** align doppelganger examples to 2.6.0 ([#245](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/245)) ([4674164](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/46741641ae9a0a31880a004fed6f1354d654e557)), closes [#245](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/245)
+* **mirage-api-detector:** bump api-detector-core to 1.6.0 ([#246](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/246)) ([e00ed4a](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/e00ed4a739c5329e076aaeb2e809d470147c3129)), closes [#246](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/246)
+* **shadow-api-detector:** bump api-detector-core to 1.6.0 ([#247](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/247)) ([f59c164](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/f59c164d3e1a9d7a014182c818d92a869e613e5b)), closes [#247](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/247)
+* **doppelganger-api-detector:** bump api-detector-core to 1.6.1 ([#249](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/249)) ([2695235](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/26952358adc46d224a5afc792eddd17c15c28762)), closes [#249](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/249)
+* **shadow-api-detector,mirage-api-detector:** bump api-detector-core to 1.6.1 ([#250](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/250)) ([67cb790](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/67cb79048d802a33362fdd450a599b85153dfb71)), closes [#250](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/250)
+
 # [6.4.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/gherkin-to-asciidoc-v6.3.0...gherkin-to-asciidoc-v6.4.0) (2026-08-30)
 
 
