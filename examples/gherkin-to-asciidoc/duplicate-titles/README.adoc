@@ -1,0 +1,113 @@
+= Gherkin to AsciiDoc — Duplicate Titles Example
+:toc: left
+
+== Description
+
+This example applies the Gherkin to AsciiDoc plugin to two unrelated feature areas -
+`authentication.feature` and `checkout.feature` - that independently define a scenario with the exact
+same title, `Scenario: User logs in successfully`, describing two genuinely different behaviours. The
+build fails as soon as this is detected, before any output is written.
+
+== Intent
+
+This example shows what happens when two scenarios collide on title, and why that's rejected outright
+rather than tolerated. `ScenarioFingerprint` - the identity `gherkinToAsciidoc` uses to track a
+scenario's progress across runs (see link:../../../gherkin-to-asciidoc/README.adoc[the plugin
+README]'s "Tracking Progress History" section) - is computed from a scenario's title alone, so that a
+scenario keeps its history when moved between feature files. Two distinct scenarios that merely happen
+to share a title are indistinguishable to it: within a single run, whichever is processed last would
+silently overwrite the other's report/history entry, and across runs a progress timestamp genuinely
+earned by one could permanently leak onto the other, since history timestamps are never cleared once
+set. Failing the build here is simpler and safer than trying to disambiguate the two scenarios after
+the fact.
+
+== The Feature Files
+
+[source,gherkin]
+----
+Feature: User authentication
+
+  Scenario: User logs in successfully
+    Given the login page is open
+    When the user submits valid credentials
+    Then the dashboard is displayed
+----
+
+Full source: `src/test/resources/features-auth/authentication.feature`.
+
+[source,gherkin]
+----
+Feature: Checkout
+
+  Scenario: User logs in successfully
+    Given a returning customer at checkout
+    When they sign in with their saved account
+    Then their saved shipping address is pre-filled
+----
+
+Full source: `src/test/resources/features-checkout/checkout.feature`. Both scenarios describe a
+"log in" moment, but they're not the same scenario - one is the primary login flow, the other is a
+returning customer signing in mid-checkout. Sharing a title here is the kind of thing that's easy to
+miss in review across two unrelated feature files.
+
+== Build And Run
+
+[source,bash]
+----
+cd examples/gherkin-to-asciidoc/duplicate-titles
+./gradlew generateFeatureDocs
+----
+
+== What To Expect
+
+The build is expected to fail:
+
+[source]
+----
+> Task :generateFeatureDocs FAILED
+gherkinToAsciidoc: parsing feature files...
+Parsing feature files: done, 2 item(s)
+gherkinToAsciidoc: found 1 duplicate scenario title(s) across feature files. Re-run with --info to see every duplicate and the files it was found in.
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':generateFeatureDocs'.
+> gherkinToAsciidoc: found 1 duplicate scenario title(s) across feature files - every scenario title must be unique, since it is used to identify the scenario in the persisted progress history. Re-run with --info to see every duplicate and the files it was found in.
+----
+
+Without `--info`, that one-line warning is all that's logged - a single duplicate is already reason
+enough to fail, so the summary doesn't wait to enumerate every one before failing either way. Re-run
+with `--info` to see every duplicate title and every feature file it was found in:
+
+[source,bash]
+----
+./gradlew generateFeatureDocs --info
+----
+
+[source]
+----
+gherkinToAsciidoc: duplicate scenario title 'Scenario: User logs in successfully' found in: authentication.feature, checkout.feature
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':generateFeatureDocs'.
+> gherkinToAsciidoc: found 1 duplicate scenario title(s) across feature files - every scenario title must be unique, since it is used to identify the scenario in the persisted progress history. See the log above for every duplicate and the files it was found in.
+----
+
+No `features.adoc` is written either way, and if `trackProgressHistory` were enabled, the progress
+history file would not be touched - the collision is rejected before either output is produced.
+
+== Suggested Fix
+
+Give each scenario its own, specific title, e.g. rename the checkout one to
+`Scenario: Returning customer signs in during checkout`. Once titles no longer collide, the build
+generates `features.adoc` normally.
+
+== Requires
+
+This example demonstrates `gherkinToAsciidoc`'s duplicate-scenario-title validation. Check the
+link:../../../gherkin-to-asciidoc/CHANGELOG.md[plugin changelog] for the release that introduces it -
+running this example against an older release will generate `features.adoc` with both scenarios listed
+instead of failing.
