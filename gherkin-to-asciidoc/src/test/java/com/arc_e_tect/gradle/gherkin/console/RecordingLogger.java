@@ -3,14 +3,15 @@ package com.arc_e_tect.gradle.gherkin.console;
 import org.gradle.api.logging.LogLevel;
 import org.gradle.api.logging.Logger;
 import org.slf4j.Marker;
+import org.slf4j.helpers.MessageFormatter;
 
 import java.util.ArrayList;
 import java.util.List;
 
 /**
  * Hand-written {@link Logger} test double that records every message passed to
- * {@link #lifecycle(String)}/{@link #lifecycle(String, Object...)} and no-ops everything else -
- * this codebase's tests use hand-written fakes rather than a mocking framework.
+ * {@code lifecycle}/{@code warn}/{@code info} and no-ops everything else - this codebase's tests
+ * use hand-written fakes rather than a mocking framework.
  *
  * <p>Public rather than package-private, and reused as-is from other test packages within this
  * module (e.g. the {@code GenerateFeatureDocsTask} component test), instead of duplicating this
@@ -19,8 +20,11 @@ import java.util.List;
 public class RecordingLogger implements Logger {
 
     private final List<String> lifecycleMessages = new ArrayList<>();
+    private final List<String> warnMessages = new ArrayList<>();
+    private final List<String> infoMessages = new ArrayList<>();
+    private boolean infoEnabled = false;
 
-    /** Creates a new {@code RecordingLogger}. */
+    /** Creates a new {@code RecordingLogger}, with {@code --info} logging disabled by default. */
     public RecordingLogger() {}
 
     /**
@@ -30,6 +34,36 @@ public class RecordingLogger implements Logger {
      */
     public List<String> lifecycleMessages() {
         return lifecycleMessages;
+    }
+
+    /**
+     * Every message passed to {@code warn(...)}, in call order.
+     *
+     * @return the recorded warning messages
+     */
+    public List<String> warnMessages() {
+        return warnMessages;
+    }
+
+    /**
+     * Every message passed to {@code info(...)}, in call order - recorded regardless of
+     * {@link #setInfoEnabled(boolean)}, so tests can assert on what would have been logged even
+     * when simulating {@code --info} being off.
+     *
+     * @return the recorded info messages
+     */
+    public List<String> infoMessages() {
+        return infoMessages;
+    }
+
+    /**
+     * Controls what {@link #isInfoEnabled()} returns, so tests can simulate the build being run
+     * with (or without) {@code --info}.
+     *
+     * @param infoEnabled whether {@link #isInfoEnabled()} should report info logging as enabled
+     */
+    public void setInfoEnabled(boolean infoEnabled) {
+        this.infoEnabled = infoEnabled;
     }
 
     @Override
@@ -167,23 +201,33 @@ public class RecordingLogger implements Logger {
 
     @Override
     public boolean isInfoEnabled() {
-        return false;
+        return infoEnabled;
     }
 
     @Override
-    public void info(String msg) {}
+    public void info(String msg) {
+        infoMessages.add(msg);
+    }
 
     @Override
-    public void info(String format, Object arg) {}
+    public void info(String format, Object arg) {
+        infoMessages.add(MessageFormatter.format(format, arg).getMessage());
+    }
 
     @Override
-    public void info(String format, Object arg1, Object arg2) {}
+    public void info(String format, Object arg1, Object arg2) {
+        infoMessages.add(MessageFormatter.format(format, arg1, arg2).getMessage());
+    }
 
     @Override
-    public void info(String format, Object... arguments) {}
+    public void info(String format, Object... arguments) {
+        infoMessages.add(MessageFormatter.arrayFormat(format, arguments).getMessage());
+    }
 
     @Override
-    public void info(String msg, Throwable t) {}
+    public void info(String msg, Throwable t) {
+        infoMessages.add(msg);
+    }
 
     @Override
     public boolean isInfoEnabled(Marker marker) {
@@ -207,23 +251,33 @@ public class RecordingLogger implements Logger {
 
     @Override
     public boolean isWarnEnabled() {
-        return false;
+        return true;
     }
 
     @Override
-    public void warn(String msg) {}
+    public void warn(String msg) {
+        warnMessages.add(msg);
+    }
 
     @Override
-    public void warn(String format, Object arg) {}
+    public void warn(String format, Object arg) {
+        warnMessages.add(MessageFormatter.format(format, arg).getMessage());
+    }
 
     @Override
-    public void warn(String format, Object... arguments) {}
+    public void warn(String format, Object... arguments) {
+        warnMessages.add(MessageFormatter.arrayFormat(format, arguments).getMessage());
+    }
 
     @Override
-    public void warn(String format, Object arg1, Object arg2) {}
+    public void warn(String format, Object arg1, Object arg2) {
+        warnMessages.add(MessageFormatter.format(format, arg1, arg2).getMessage());
+    }
 
     @Override
-    public void warn(String msg, Throwable t) {}
+    public void warn(String msg, Throwable t) {
+        warnMessages.add(msg);
+    }
 
     @Override
     public boolean isWarnEnabled(Marker marker) {

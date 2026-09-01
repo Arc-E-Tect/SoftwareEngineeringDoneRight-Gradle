@@ -506,6 +506,131 @@ class GherkinToAsciidocPluginTest {
     }
 
     @Test
+    @DisplayName("throws GradleException when two scenarios in different feature files share a title")
+    void throwsWhenTwoScenariosShareATitleAcrossDifferentFeatureFiles() throws IOException {
+        Project project = projectWithPlugin();
+        File featuresDir = new File(tempDir.toFile(), "features");
+        featuresDir.mkdirs();
+        writeFeatureFile(featuresDir, "login.feature",
+                "Feature: Login\n\n  Scenario: User logs in\n    Given the login page\n");
+        writeFeatureFile(featuresDir, "auth.feature",
+                "Feature: Auth\n\n  Scenario: User logs in\n    Given the auth page\n");
+
+        GenerateFeatureDocsTask task = task(project);
+        task.getSourceDirs().from(featuresDir);
+        task.getOutputDir().set(new File(tempDir.toFile(), "output"));
+        task.getProjectDirectory().set(project.getLayout().getProjectDirectory());
+
+        assertThatThrownBy(task::generate)
+                .isInstanceOf(org.gradle.api.GradleException.class)
+                .hasMessageContaining("found 1 duplicate scenario title")
+                .hasMessageContaining("every scenario title must be unique");
+    }
+
+    @Test
+    @DisplayName("without --info, duplicate scenario titles are only reported as a one-line warning pointing at --info")
+    void warnsWithoutDetailWhenInfoLoggingDisabled() throws IOException {
+        Project project = projectWithPlugin();
+        File featuresDir = new File(tempDir.toFile(), "features");
+        featuresDir.mkdirs();
+        writeFeatureFile(featuresDir, "login.feature",
+                "Feature: Login\n\n  Scenario: User logs in\n    Given the login page\n");
+        writeFeatureFile(featuresDir, "auth.feature",
+                "Feature: Auth\n\n  Scenario: User logs in\n    Given the auth page\n");
+        RecordingLogger recordingLogger = new RecordingLogger();
+        recordingLogger.setInfoEnabled(false);
+        LoggerCapturingGenerateFeatureDocsTask task = project.getTasks().create(
+                "generateFeatureDocsWithRecordingLoggerDuplicatesWarn", LoggerCapturingGenerateFeatureDocsTask.class);
+        task.recordingLogger = recordingLogger;
+        task.getSourceDirs().from(featuresDir);
+        task.getIncludeSubDirs().set(true);
+        task.getOutputDir().set(new File(tempDir.toFile(), "output"));
+        task.getOutputFileName().set("features.adoc");
+        task.getTrackProgress().set(false);
+        task.getGroupByFeature().set(true);
+        task.getSystemUnderTestVersion().set("1.0.0");
+        task.getIndexing().set(IndexingMode.OFF);
+        task.getForceRewrite().set(false);
+        task.getConsolidatedIndex().set(false);
+        task.getTrackProgressHistory().set(false);
+        task.getUpdateProgressHistory().set(false);
+        task.getProjectDirectory().set(project.getLayout().getProjectDirectory());
+
+        assertThatThrownBy(task::generate).isInstanceOf(org.gradle.api.GradleException.class);
+
+        assertThat(recordingLogger.warnMessages())
+                .anyMatch(message -> message.contains("duplicate scenario title") && message.contains("--info"));
+        assertThat(recordingLogger.infoMessages()).noneMatch(message -> message.contains("User logs in"));
+    }
+
+    @Test
+    @DisplayName("with --info, every duplicate scenario title is logged with every feature file it was found in")
+    void logsEveryDuplicateWithItsFilesWhenInfoLoggingEnabled() throws IOException {
+        Project project = projectWithPlugin();
+        File featuresDir = new File(tempDir.toFile(), "features");
+        featuresDir.mkdirs();
+        writeFeatureFile(featuresDir, "login.feature",
+                "Feature: Login\n\n  Scenario: User logs in\n    Given the login page\n");
+        writeFeatureFile(featuresDir, "auth.feature",
+                "Feature: Auth\n\n  Scenario: User logs in\n    Given the auth page\n");
+        RecordingLogger recordingLogger = new RecordingLogger();
+        recordingLogger.setInfoEnabled(true);
+        LoggerCapturingGenerateFeatureDocsTask task = project.getTasks().create(
+                "generateFeatureDocsWithRecordingLoggerDuplicatesInfo", LoggerCapturingGenerateFeatureDocsTask.class);
+        task.recordingLogger = recordingLogger;
+        task.getSourceDirs().from(featuresDir);
+        task.getIncludeSubDirs().set(true);
+        task.getOutputDir().set(new File(tempDir.toFile(), "output"));
+        task.getOutputFileName().set("features.adoc");
+        task.getTrackProgress().set(false);
+        task.getGroupByFeature().set(true);
+        task.getSystemUnderTestVersion().set("1.0.0");
+        task.getIndexing().set(IndexingMode.OFF);
+        task.getForceRewrite().set(false);
+        task.getConsolidatedIndex().set(false);
+        task.getTrackProgressHistory().set(false);
+        task.getUpdateProgressHistory().set(false);
+        task.getProjectDirectory().set(project.getLayout().getProjectDirectory());
+
+        assertThatThrownBy(task::generate).isInstanceOf(org.gradle.api.GradleException.class);
+
+        assertThat(recordingLogger.infoMessages())
+                .anyMatch(message -> message.contains("User logs in")
+                        && message.contains("login.feature")
+                        && message.contains("auth.feature"));
+        assertThat(recordingLogger.warnMessages()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("does not write the progress history file when duplicate scenario titles are found")
+    void doesNotWriteProgressHistoryWhenDuplicateTitlesFound() throws IOException {
+        Project project = projectWithPlugin();
+        File featuresDir = new File(tempDir.toFile(), "features");
+        featuresDir.mkdirs();
+        writeFeatureFile(featuresDir, "login.feature",
+                "Feature: Login\n\n  Scenario: User logs in\n    Given the login page\n");
+        writeFeatureFile(featuresDir, "auth.feature",
+                "Feature: Auth\n\n  Scenario: User logs in\n    Given the auth page\n");
+        File glueCodeDir = new File(tempDir.toFile(), "steps");
+        glueCodeDir.mkdirs();
+        File historyFile = new File(tempDir.toFile(), "history.ndjson");
+
+        GenerateFeatureDocsTask task = task(project);
+        task.getSourceDirs().from(featuresDir);
+        task.getTrackProgress().set(true);
+        task.getGlueCodeDirs().from(glueCodeDir);
+        task.getTrackProgressHistory().set(true);
+        task.getUpdateProgressHistory().set(true);
+        task.getProgressHistoryFile().set(historyFile);
+        task.getOutputDir().set(new File(tempDir.toFile(), "output"));
+        task.getProjectDirectory().set(project.getLayout().getProjectDirectory());
+
+        assertThatThrownBy(task::generate).isInstanceOf(org.gradle.api.GradleException.class);
+
+        assertThat(historyFile).doesNotExist();
+    }
+
+    @Test
     @DisplayName("trackProgress implies recursive scanning even if includeSubDirs is explicitly false")
     void trackProgressImpliesRecursiveScanningEvenWhenIncludeSubDirsExplicitlyFalse() throws IOException {
         Project project = projectWithPlugin();
