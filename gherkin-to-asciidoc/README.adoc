@@ -257,9 +257,9 @@ regardless of what any project's own `gherkinToAsciidoc { }` block configures - 
 with a descriptive error too.
 ====
 
-== Running the Task
+== Running the Tasks
 
-The plugin registers a single task named `generateFeatureDocs` in the `documentation` group:
+The plugin registers `generateFeatureDocs` in the `documentation` group, and `updateGherkinToAsciidocDSL` in the `gherkin to asciidoc` group:
 
 [source,bash]
 ----
@@ -267,6 +267,45 @@ The plugin registers a single task named `generateFeatureDocs` in the `documenta
 ----
 
 The task scans the configured source location, collects every `Scenario` and `Scenario Outline` title, and writes the result to `<outputDir>/<outputFileName>`.
+
+== Updating the DSL to the latest properties
+
+`updateGherkinToAsciidocDSL` reads the project's own `build.gradle` and adds any `gherkinToAsciidoc { }` properties missing from it, set to the same default value each one's `convention(...)` already resolves to - so setting an added property explicitly afterwards is a no-op.
+This lets a project pick up new plugin properties introduced by a later version without going back to the docs and hand-copying them in.
+
+[source,shell]
+----
+./gradlew updateGherkinToAsciidocDSL
+----
+
+Only `outputDir`, `snippetDir`, `progressHistoryFile`, and `updateProgressHistory` are ever added.
+This is a much shorter list than the extension's full property set, and deliberately so: `trackProgress`, `outputFileName`, `template`, `systemUnderTestVersion`, `indexing`, `forceRewrite`, `consolidatedIndex`, `trackProgressHistory`, `includeSubDirs`, and `groupByFeature` all default to the *root* project's own configured value in a sub-project whose root also applies this plugin (see <<multi-project-builds>>).
+Writing any of those as a fixed literal into a sub-project's build file would permanently break that inheritance the moment it's explicitly set - the opposite of a no-op.
+This module has no way to know, from a single build file's text, whether it belongs to a root or a sub-project, so none of those ten are included.
+`sourceDirs`, `sourceFile`, `glueCodeDirs`, and `template` are excluded too: none has an extension-level default at all.
+An existing assignment is never touched, even when its value differs from the default - only a *missing* property is ever added.
+
+If the project has no `gherkinToAsciidoc { }` block at all, `updateGherkinToAsciidocDSL` leaves it alone by default.
+Pass `--generateGherkinToAsciidocDSL` to generate a full new block instead, appended to the end of the build file:
+
+[source,shell]
+----
+./gradlew updateGherkinToAsciidocDSL --generateGherkinToAsciidocDSL
+----
+
+Pass `--cleanupGherkinToAsciidocDSL` to strip every comment from inside the managed block - both pre-existing ones and any doc comment `updateGherkinToAsciidocDSL` itself would otherwise add - leaving only properties:
+
+[source,shell]
+----
+./gradlew updateGherkinToAsciidocDSL --cleanupGherkinToAsciidocDSL
+----
+
+Run with Gradle's own `--info` flag to see exactly which properties were added and what value each was set to.
+
+Before writing any change, `updateGherkinToAsciidocDSL` copies the file exactly as it was to `build.gradle.bak`, alongside it - a plain-file fallback even for a project not using version control (or one that just hasn't committed the file yet).
+Only written on a run that actually changes something; each subsequent changing run overwrites the previous backup.
+
+Groovy DSL (`build.gradle`) only - Kotlin DSL (`build.gradle.kts`) isn't supported.
 
 == Progress Reporting
 
