@@ -1,3 +1,15 @@
+## [2.5.1](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/tracker-lens-v2.5.0...tracker-lens-v2.5.1) (2026-09-02)
+
+
+### 🐛 Bug Fixes
+
+* **tracker-lens:** scope the updateDSL task and its options to this plugin ([#266](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/266)) ([5b6c7ad](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/5b6c7ad4a40a225e4f3fa14811372dc71340e645)), closes [#266](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/266)
+
+
+### 📝 Documentation
+
+* **tracker-lens:** document the updateDSL task ([#265](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/265)) ([6770853](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/677085313c5e8c2b3e36b0b809342bb42d0f8efb)), closes [#265](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/265)
+
 # [2.5.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/tracker-lens-v2.4.0...tracker-lens-v2.5.0) (2026-09-02)
 
 
