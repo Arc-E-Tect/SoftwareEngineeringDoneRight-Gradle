@@ -1644,6 +1644,25 @@ class GherkinToAsciidocPluginTest {
         }
     }
 
+    @Test
+    @DisplayName("registers the updateGherkinToAsciidocDSL task when applied")
+    void registersUpdateDslTask() {
+        Project project = projectWithPlugin();
+
+        assertThat(project.getTasks().findByName(GherkinToAsciidocPlugin.UPDATE_DSL_TASK_NAME)).isNotNull();
+    }
+
+    @Test
+    @DisplayName("defaults the updateGherkinToAsciidocDSL task's buildFile to the project's own build file")
+    void updateDslTaskDefaultsBuildFileToProjectsOwnBuildFile() {
+        Project project = projectWithPlugin();
+
+        UpdateGherkinToAsciidocDslTask task = (UpdateGherkinToAsciidocDslTask)
+                project.getTasks().getByName(GherkinToAsciidocPlugin.UPDATE_DSL_TASK_NAME);
+
+        assertThat(task.getBuildFile().get().getAsFile()).isEqualTo(project.getBuildFile());
+    }
+
     // --- helpers ---
 
     private Project projectWithPlugin() {

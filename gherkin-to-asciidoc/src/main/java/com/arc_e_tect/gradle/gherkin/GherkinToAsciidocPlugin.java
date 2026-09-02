@@ -15,8 +15,8 @@ import java.util.Locale;
 import java.util.stream.Collectors;
 
 /**
- * Gradle plugin that registers the {@code generateFeatureDocs} task and wires
- * the {@code gherkinToAsciidoc} DSL extension into the project.
+ * Gradle plugin that registers the {@code generateFeatureDocs} and {@code updateGherkinToAsciidocDSL}
+ * tasks and wires the {@code gherkinToAsciidoc} DSL extension into the project.
  *
  * <h2>Usage</h2>
  * <pre>
@@ -81,6 +81,9 @@ public class GherkinToAsciidocPlugin implements Plugin<Project> {
 
     /** Name of the Gradle task registered by this plugin. */
     public static final String TASK_NAME = "generateFeatureDocs";
+
+    /** Name of the DSL-updating task registered by this plugin. */
+    public static final String UPDATE_DSL_TASK_NAME = "updateGherkinToAsciidocDSL";
 
     /** Creates a new plugin instance. Instantiated by Gradle infrastructure. */
     public GherkinToAsciidocPlugin() {}
@@ -181,6 +184,9 @@ public class GherkinToAsciidocPlugin implements Plugin<Project> {
             task.getUpdateProgressHistory().set(updateProgressHistoryCliOverride.orElse(ext.getUpdateProgressHistory()));
             task.getProjectDirectory().set(project.getLayout().getProjectDirectory());
         });
+
+        project.getTasks().register(UPDATE_DSL_TASK_NAME, UpdateGherkinToAsciidocDslTask.class, task ->
+                task.getBuildFile().set(project.getLayout().file(project.provider(project::getBuildFile))));
     }
 
     /**

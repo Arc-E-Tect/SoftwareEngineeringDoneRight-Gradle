@@ -39,6 +39,7 @@ dependencies {
     implementation libs.gherkin
     implementation libs.cucumber.expressions
     implementation libs.mustache
+    implementation libs.dsl.updater.core
 
     testImplementation libs.junit.jupiter
     testImplementation libs.assertj.core
