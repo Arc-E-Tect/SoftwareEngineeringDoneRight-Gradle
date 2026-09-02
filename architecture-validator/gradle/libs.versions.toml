@@ -19,6 +19,7 @@ junit-platform-iff = "6.1.3"
 assertj-core-iff = "3.27.7"
 spring-context-iff = "6.2.8"
 sedr-library-iff = "1.0.0"
+dsl-updater-core-iff = "1.0.0"
 
 [libraries]
 
@@ -30,4 +31,5 @@ junit-platform-suite-engine-iff = { module = "org.junit.platform:junit-platform-
 assertj-core-iff = { module = "org.assertj:assertj-core", version.ref = "assertj-core-iff" }
 spring-context-iff = { module = "org.springframework:spring-context", version.ref = "spring-context-iff" }
 sedr-library-iff = { module = "com.arc-e-tect.sedr.utils:sedr-library", version.ref = "sedr-library-iff" }
+dsl-updater-core-iff = { module = "com.arc-e-tect:dsl-updater-core", version.ref = "dsl-updater-core-iff" }
 

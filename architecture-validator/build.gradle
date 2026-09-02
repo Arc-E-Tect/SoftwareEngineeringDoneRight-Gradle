@@ -42,6 +42,7 @@ dependencyCheck {
 dependencies {
     implementation libs.archunit.junit5.iff
     implementation libs.sedr.library.iff
+    implementation libs.dsl.updater.core.iff
 
     testImplementation gradleTestKit()
     testImplementation libs.junit.jupiter.iff
