@@ -15,6 +15,13 @@ The Tracker Lens plugin generates a themeable, standalone HTML dashboard from Gh
 It reads the NDJSON progress-history files written by `gherkin-to-asciidoc` and the API-detector plugins directly - there is no code dependency on either.
 The dashboard's look is fully swappable at runtime through a multi-lens style-pack system: pick from the three built-in lenses, publish your own, or point the plugin at a single custom stylesheet.
 
+[TIP]
+====
+Run `./gradlew updateTrackerLensDSL` any time to add any missing `trackerLens { }` properties, set to the same defaults their own `convention(...)` calls already resolve to - always a no-op.
+Add `--generateTrackerLensDSL` to generate a whole new `trackerLens { }` block when the project doesn't have one yet, or `--cleanupTrackerLensDSL` to strip comments from the managed block.
+See "Updating the DSL to the latest properties" below for the full details.
+====
+
 == Plugin ID
 
 [source]
