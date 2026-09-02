@@ -6,7 +6,7 @@ import com.arc_e_tect.gradle.dslupdater.DslPropertySpec;
 import java.util.List;
 
 /**
- * The {@code trackerLens {}} block's DSL property schema for {@code updateDSL} (see
+ * The {@code trackerLens {}} block's DSL property schema for {@code updateTrackerLensDSL} (see
  * {@code com.arc_e_tect.gradle.dslupdater.DslUpdater}).
  *
  * <p>Only lists properties that {@link TrackerLensPlugin#apply} actually gives a resolved

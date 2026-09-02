@@ -67,7 +67,7 @@ public abstract class UpdateTrackerLensDslTask extends DefaultTask {
      *
      * @param value the value to set {@link #getGenerateDsl()} to
      */
-    @Option(option = "generateDSL",
+    @Option(option = "generateTrackerLensDSL",
             description = "When the trackerLens block is entirely absent, generates a full new one from the schema.")
     public void applyGenerateDsl(boolean value) {
         getGenerateDsl().set(value);
@@ -87,7 +87,7 @@ public abstract class UpdateTrackerLensDslTask extends DefaultTask {
      *
      * @param value the value to set {@link #getCleanupDsl()} to
      */
-    @Option(option = "cleanupDSL", description = "Strips every comment from inside the trackerLens block.")
+    @Option(option = "cleanupTrackerLensDSL", description = "Strips every comment from inside the trackerLens block.")
     public void applyCleanupDsl(boolean value) {
         getCleanupDsl().set(value);
     }
@@ -119,10 +119,10 @@ public abstract class UpdateTrackerLensDslTask extends DefaultTask {
         if (!result.changed()) {
             if (!result.blockFoundBefore()) {
                 getLogger().lifecycle(
-                        "trackerLens: updateDSL found no trackerLens block in {} - rerun with --generateDSL to add one.",
+                        "trackerLens: updateTrackerLensDSL found no trackerLens block in {} - rerun with --generateTrackerLensDSL to add one.",
                         buildFile);
             } else {
-                getLogger().lifecycle("trackerLens: updateDSL found the trackerLens block already up to date in {}",
+                getLogger().lifecycle("trackerLens: updateTrackerLensDSL found the trackerLens block already up to date in {}",
                         buildFile);
             }
             return;
@@ -137,24 +137,24 @@ public abstract class UpdateTrackerLensDslTask extends DefaultTask {
         } catch (IOException e) {
             throw new GradleException("trackerLens: failed to write " + buildFile, e);
         }
-        getLogger().lifecycle("trackerLens: updateDSL backed up the original file to {}", backup);
+        getLogger().lifecycle("trackerLens: updateTrackerLensDSL backed up the original file to {}", backup);
 
         if (result.blockGenerated()) {
-            getLogger().lifecycle("trackerLens: updateDSL generated a new trackerLens block in {}", buildFile);
+            getLogger().lifecycle("trackerLens: updateTrackerLensDSL generated a new trackerLens block in {}", buildFile);
         } else if (!result.addedProperties().isEmpty()) {
             String propertyWord = result.addedProperties().size() == 1 ? "property" : "properties";
-            getLogger().lifecycle("trackerLens: updateDSL added {} missing {} to the trackerLens block in {}",
+            getLogger().lifecycle("trackerLens: updateTrackerLensDSL added {} missing {} to the trackerLens block in {}",
                     result.addedProperties().size(), propertyWord, buildFile);
         }
         if (result.cleaned()) {
-            getLogger().lifecycle("trackerLens: updateDSL removed comments from the trackerLens block in {}", buildFile);
+            getLogger().lifecycle("trackerLens: updateTrackerLensDSL removed comments from the trackerLens block in {}", buildFile);
         }
 
         Map<String, String> defaultsByName = TrackerLensDslSchema.SCHEMA.properties().stream()
                 .filter(property -> property.kind() == DslPropertyKind.SCALAR)
                 .collect(Collectors.toMap(DslPropertySpec::name, DslPropertySpec::defaultLiteral));
         for (String name : result.addedProperties()) {
-            getLogger().info("trackerLens: updateDSL added {} = {}", name, defaultsByName.get(name));
+            getLogger().info("trackerLens: updateTrackerLensDSL added {} = {}", name, defaultsByName.get(name));
         }
     }
 }
