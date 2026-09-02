@@ -40,6 +40,7 @@ class UpdateTrackerLensDslTaskTest {
         task.updateDsl();
 
         assertThat(Files.readString(buildFile)).isEqualTo(original);
+        assertThat(backupFileFor(buildFile)).doesNotExist();
     }
 
     @Test
@@ -91,6 +92,43 @@ class UpdateTrackerLensDslTaskTest {
         task.updateDsl();
 
         assertThat(Files.readString(buildFile)).isEqualTo(original);
+        assertThat(backupFileFor(buildFile)).doesNotExist();
+    }
+
+    @Test
+    @DisplayName("updateDslShouldBackUpTheOriginalFileBeforeWritingChanges")
+    void updateDslShouldBackUpTheOriginalFileBeforeWritingChanges() throws Exception {
+        String original = "trackerLens {\n    dashboardName = \"Checkout Service Lens\"\n}\n";
+        Path buildFile = writeBuildFile(original);
+        UpdateTrackerLensDslTask task = newTask();
+        task.getBuildFile().set(buildFile.toFile());
+
+        task.updateDsl();
+
+        Path backup = backupFileFor(buildFile);
+        assertThat(backup).exists();
+        assertThat(Files.readString(backup)).isEqualTo(original);
+        // The live file itself was actually changed - otherwise the backup would be redundant.
+        assertThat(Files.readString(buildFile)).isNotEqualTo(original);
+    }
+
+    @Test
+    @DisplayName("updateDslShouldOverwriteAStaleBackupOnEachChangingRun")
+    void updateDslShouldOverwriteAStaleBackupOnEachChangingRun() throws Exception {
+        Path buildFile = writeBuildFile("trackerLens {\n    dashboardName = \"Checkout Service Lens\"\n}\n");
+        UpdateTrackerLensDslTask firstRun = newTask();
+        firstRun.getBuildFile().set(buildFile.toFile());
+        firstRun.updateDsl();
+        String afterFirstRun = Files.readString(buildFile);
+
+        UpdateTrackerLensDslTask secondRun = newTask();
+        secondRun.getBuildFile().set(buildFile.toFile());
+        secondRun.applyCleanupDsl(true);
+        secondRun.updateDsl();
+
+        // The backup after the second run reflects the state right before *that* run, not the
+        // very first original - each run's backup is a fallback for undoing just that run.
+        assertThat(Files.readString(backupFileFor(buildFile))).isEqualTo(afterFirstRun);
     }
 
     @Test
@@ -115,6 +153,10 @@ class UpdateTrackerLensDslTaskTest {
         Path buildFile = tempDir.resolve("build.gradle");
         Files.writeString(buildFile, content);
         return buildFile;
+    }
+
+    private Path backupFileFor(Path buildFile) {
+        return buildFile.resolveSibling(buildFile.getFileName() + ".bak");
     }
 
     private UpdateTrackerLensDslTask newTask() {

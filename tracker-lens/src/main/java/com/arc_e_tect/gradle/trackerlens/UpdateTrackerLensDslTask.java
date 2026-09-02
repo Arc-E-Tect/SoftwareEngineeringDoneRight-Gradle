@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -91,7 +92,12 @@ public abstract class UpdateTrackerLensDslTask extends DefaultTask {
         getCleanupDsl().set(value);
     }
 
-    /** Reads the build file, adds any missing DSL properties, and writes it back if anything changed. */
+    /**
+     * Reads the build file, adds any missing DSL properties, and writes it back if anything
+     * changed - after first copying the original, untouched file alongside it as
+     * {@code build.gradle.bak}, so there's always a plain-file fallback even for a project not
+     * using version control (or one that just hasn't committed the file yet).
+     */
     @TaskAction
     public void updateDsl() {
         Path buildFile = getBuildFile().get().getAsFile().toPath();
@@ -122,11 +128,16 @@ public abstract class UpdateTrackerLensDslTask extends DefaultTask {
             return;
         }
 
+        Path backup = buildFile.resolveSibling(buildFile.getFileName() + ".bak");
         try {
+            // Copied from the file on disk, not written from the in-memory `original` string, so
+            // the backup is a byte-for-byte copy of what was there - not a UTF-8 re-encoding of it.
+            Files.copy(buildFile, backup, StandardCopyOption.REPLACE_EXISTING);
             Files.writeString(buildFile, outcome.source(), StandardCharsets.UTF_8);
         } catch (IOException e) {
             throw new GradleException("trackerLens: failed to write " + buildFile, e);
         }
+        getLogger().lifecycle("trackerLens: updateDSL backed up the original file to {}", backup);
 
         if (result.blockGenerated()) {
             getLogger().lifecycle("trackerLens: updateDSL generated a new trackerLens block in {}", buildFile);
