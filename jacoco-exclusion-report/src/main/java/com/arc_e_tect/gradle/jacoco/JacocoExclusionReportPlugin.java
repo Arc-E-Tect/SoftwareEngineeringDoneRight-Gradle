@@ -9,8 +9,9 @@ import org.gradle.testing.jacoco.tasks.JacocoCoverageVerification;
 import org.gradle.testing.jacoco.tasks.JacocoReport;
 
 /**
- * Gradle plugin that registers the {@code jacocoExclusionReport} task and
- * wires it into the standard verification lifecycle.
+ * Gradle plugin that registers the {@code jacocoExclusionReport} and
+ * {@code updateJacocoExclusionReportDSL} tasks, and wires the former into the standard
+ * verification lifecycle.
  *
  * <h2>Usage</h2>
  * <pre>
@@ -44,6 +45,9 @@ public class JacocoExclusionReportPlugin implements Plugin<Project> {
 
     /** Name of the Gradle task registered by this plugin. */
     public static final String TASK_NAME = "jacocoExclusionReport";
+
+    /** Name of the DSL-updating task registered by this plugin. */
+    public static final String UPDATE_DSL_TASK_NAME = "updateJacocoExclusionReportDSL";
 
     /** Creates a new plugin instance. Instantiated by Gradle infrastructure. */
     public JacocoExclusionReportPlugin() {}
@@ -117,5 +121,8 @@ public class JacocoExclusionReportPlugin implements Plugin<Project> {
                 task.dependsOn(taskProvider);
             }
         });
+
+        project.getTasks().register(UPDATE_DSL_TASK_NAME, UpdateJacocoExclusionReportDslTask.class, task ->
+                task.getBuildFile().set(project.getLayout().file(project.provider(project::getBuildFile))));
     }
 }
