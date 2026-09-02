@@ -110,6 +110,27 @@ class TrackerLensPluginTest {
     }
 
     @Test
+    @DisplayName("applyShouldRegisterTheUpdateDslTaskAndSurviveEvaluationWithoutAnyTracker")
+    void applyShouldRegisterTheUpdateDslTaskAndSurviveEvaluationWithoutAnyTracker() {
+        Project project = newProject();
+
+        ((ProjectInternal) project).evaluate();
+
+        assertThat(project.getTasks().findByName(TrackerLensPlugin.UPDATE_DSL_TASK_NAME)).isNotNull();
+    }
+
+    @Test
+    @DisplayName("applyShouldDefaultUpdateDslTaskBuildFileToTheProjectsOwnBuildFile")
+    void applyShouldDefaultUpdateDslTaskBuildFileToTheProjectsOwnBuildFile() {
+        Project project = newProject();
+
+        UpdateTrackerLensDslTask task =
+                (UpdateTrackerLensDslTask) project.getTasks().getByName(TrackerLensPlugin.UPDATE_DSL_TASK_NAME);
+
+        assertThat(task.getBuildFile().get().getAsFile()).isEqualTo(project.getBuildFile());
+    }
+
+    @Test
     @DisplayName("applyShouldRegisterTheLensStyleConfiguration")
     void applyShouldRegisterTheLensStyleConfiguration() {
         Project project = newProject();

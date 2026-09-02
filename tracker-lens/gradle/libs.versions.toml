@@ -11,6 +11,8 @@ owasp-dependency-check = "13.0.0"
 
 jsoup = "1.23.1"
 mustache        = "0.9.14"
+# TODO: bump off 1.0.0-PRERELEASE once dsl-updater-core has a real Maven Central release.
+dsl-updater-core = "1.0.0-PRERELEASE"
 junit-jupiter = "6.1.3"
 junit-platform = "6.1.3"
 assertj         = "3.27.7"
@@ -20,6 +22,7 @@ plugin-publish  = "2.1.1"
 
 jsoup                        = { module = "org.jsoup:jsoup",                                 version.ref = "jsoup" }
 mustache                     = { module = "com.github.spullara.mustache.java:compiler",       version.ref = "mustache" }
+dsl-updater-core             = { module = "com.arc-e-tect:dsl-updater-core",                  version.ref = "dsl-updater-core" }
 
 junit-jupiter                = { module = "org.junit.jupiter:junit-jupiter",                  version.ref = "junit-jupiter" }
 junit-platform-launcher       = { module = "org.junit.platform:junit-platform-launcher",       version.ref = "junit-platform" }
