@@ -7,8 +7,8 @@ import org.gradle.api.tasks.TaskProvider;
 import java.util.List;
 
 /**
- * Gradle plugin that registers the {@code detectShadowApis} task and wires the
- * {@code shadowApiDetector} DSL extension into the project.
+ * Gradle plugin that registers the {@code detectShadowApis} and {@code updateShadowApiDetectorDSL}
+ * tasks and wires the {@code shadowApiDetector} DSL extension into the project.
  *
  * <h2>Usage</h2>
  * <pre>
@@ -47,6 +47,9 @@ public class ShadowApiDetectorPlugin implements Plugin<Project> {
 
     /** Name of the Gradle task registered by this plugin. */
     public static final String TASK_NAME = "detectShadowApis";
+
+    /** Name of the DSL-updating task registered by this plugin. */
+    public static final String UPDATE_DSL_TASK_NAME = "updateShadowApiDetectorDSL";
 
     /** Creates a new plugin instance. Instantiated by Gradle infrastructure. */
     public ShadowApiDetectorPlugin() {}
@@ -102,5 +105,8 @@ public class ShadowApiDetectorPlugin implements Plugin<Project> {
                         task.getControllerDirs().from(p.file(ShadowApiDetectorExtension.DEFAULT_CONTROLLER_DIR)));
             }
         });
+
+        project.getTasks().register(UPDATE_DSL_TASK_NAME, UpdateShadowApiDetectorDslTask.class, task ->
+                task.getBuildFile().set(project.getLayout().file(project.provider(project::getBuildFile))));
     }
 }

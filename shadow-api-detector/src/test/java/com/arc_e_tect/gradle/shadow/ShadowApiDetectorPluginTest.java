@@ -196,6 +196,25 @@ class ShadowApiDetectorPluginTest {
                 .anyMatch(t -> t.getName().equals(ShadowApiDetectorPlugin.TASK_NAME));
     }
 
+    @Test
+    @DisplayName("registers the updateShadowApiDetectorDSL task when applied")
+    void registersUpdateDslTask() {
+        Project project = projectWithPlugin();
+
+        assertThat(project.getTasks().findByName(ShadowApiDetectorPlugin.UPDATE_DSL_TASK_NAME)).isNotNull();
+    }
+
+    @Test
+    @DisplayName("defaults the updateShadowApiDetectorDSL task's buildFile to the project's own build file")
+    void updateDslTaskDefaultsBuildFileToProjectsOwnBuildFile() {
+        Project project = projectWithPlugin();
+
+        UpdateShadowApiDetectorDslTask task = (UpdateShadowApiDetectorDslTask)
+                project.getTasks().getByName(ShadowApiDetectorPlugin.UPDATE_DSL_TASK_NAME);
+
+        assertThat(task.getBuildFile().get().getAsFile()).isEqualTo(project.getBuildFile());
+    }
+
     private Project projectWithPlugin() {
         Project project = ProjectBuilder.builder().withProjectDir(tempDir.toFile()).build();
         project.getPluginManager().apply("java");
