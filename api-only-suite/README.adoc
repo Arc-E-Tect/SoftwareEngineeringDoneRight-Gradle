@@ -15,6 +15,14 @@ This project calls its approach to API contracts "API-Only" rather than "API-Fir
 
 This is a pure composition module. It contains no detection logic of its own, only wiring: applying it is indistinguishable, from each individual plugin's own point of view, from applying all three directly.
 
+[TIP]
+====
+Run `./gradlew updateApiOnlySuiteDSL` any time to add any missing `apiOnlySuite { }` properties, set to the same defaults their own `convention(...)` calls already resolve to - always a no-op.
+Add `--generateApiOnlySuiteDSL` to generate a whole new `apiOnlySuite { }` block when the project doesn't have one yet, or `--cleanupApiOnlySuiteDSL` to strip comments from the managed block.
+This manages only `apiOnlySuite`'s own block - each sibling detector plugin has its own `updateDSL` task too, already available whenever this suite is applied.
+See "Updating the DSL to the latest properties" below for the full details.
+====
+
 == Plugin ID
 
 [source]
