@@ -202,17 +202,18 @@ so picks up any tool that follows the same `@Generated` convention (Lombok, MapS
 alike) — not just Lombok specifically.
 ====
 
-== Task
+== Tasks
 
 [cols="2,1,3",options="header"]
 |===
-| Task name               | Group        | Description
-| `jacocoExclusionReport` | verification | Scans sources for the exclusion annotation and writes HTML + XML reports.
+| Task name                       | Group                 | Description
+| `jacocoExclusionReport`         | verification          | Scans sources for the exclusion annotation and writes HTML + XML reports.
+| `updateJacocoExclusionReportDSL` | jacoco exclusion report | Adds any `jacocoExclusionReport { }` properties missing from the project's build file, set to their defaults.
 |===
 
-The task is automatically wired into the `check` lifecycle task. When `jacocoTestCoverageVerification`
-is present (i.e. the JaCoCo plugin is applied), the exclusion report runs _before_ coverage
-verification so both are always produced together.
+`jacocoExclusionReport` is automatically wired into the `check` lifecycle task.
+When `jacocoTestCoverageVerification` is present (i.e. the JaCoCo plugin is applied), the exclusion report runs _before_ coverage verification so both are always produced together.
+`updateJacocoExclusionReportDSL` is not wired into `check` or `build` - it's a deliberate, occasional maintenance action.
 
 Running the report explicitly:
 
@@ -227,6 +228,43 @@ Running as part of the standard verification suite:
 ----
 ./gradlew check
 ----
+
+== Updating the DSL to the latest properties
+
+`updateJacocoExclusionReportDSL` reads the project's own `build.gradle` and adds any `jacocoExclusionReport { }` properties missing from it, set to the same default value each one's `convention(...)` already resolves to - so setting an added property explicitly afterwards is a no-op.
+This lets a project pick up new plugin properties introduced by a later version without going back to the docs and hand-copying them in.
+
+[source,shell]
+----
+./gradlew updateJacocoExclusionReportDSL
+----
+
+Only properties with a real default are ever added: `annotationName`, `reportDir`, `includeConfiguredExclusions`, and `includeGeneratedAnnotationExclusions`.
+`sourceDirs` is left out on purpose - it's a `ConfigurableFileCollection`, which has no `convention(...)` method at all.
+Its default (`sourceSets.main.java.srcDirs`) is set conditionally inside `afterEvaluate`, once the `java` plugin's source sets are known - not a single static literal a schema entry could safely represent.
+An existing assignment is never touched, even when its value differs from the default - only a *missing* property is ever added.
+
+If the project has no `jacocoExclusionReport { }` block at all, `updateJacocoExclusionReportDSL` leaves it alone by default.
+Pass `--generateJacocoExclusionReportDSL` to generate a full new block instead, appended to the end of the build file:
+
+[source,shell]
+----
+./gradlew updateJacocoExclusionReportDSL --generateJacocoExclusionReportDSL
+----
+
+Pass `--cleanupJacocoExclusionReportDSL` to strip every comment from inside the managed block - both pre-existing ones and any doc comment `updateJacocoExclusionReportDSL` itself would otherwise add - leaving only properties:
+
+[source,shell]
+----
+./gradlew updateJacocoExclusionReportDSL --cleanupJacocoExclusionReportDSL
+----
+
+Run with Gradle's own `--info` flag to see exactly which properties were added and what value each was set to.
+
+Before writing any change, `updateJacocoExclusionReportDSL` copies the file exactly as it was to `build.gradle.bak`, alongside it - a plain-file fallback even for a project not using version control (or one that just hasn't committed the file yet).
+Only written on a run that actually changes something; each subsequent changing run overwrites the previous backup.
+
+Groovy DSL (`build.gradle`) only - Kotlin DSL (`build.gradle.kts`) isn't supported.
 
 == Report output
 

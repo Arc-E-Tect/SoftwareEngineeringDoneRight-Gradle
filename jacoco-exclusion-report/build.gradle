@@ -38,6 +38,7 @@ dependencyCheck {
 dependencies {
     implementation libs.javaparser.core
     implementation libs.asm.core
+    implementation libs.dsl.updater.core
 
     testImplementation libs.junit.jupiter
     testImplementation libs.assertj.core
