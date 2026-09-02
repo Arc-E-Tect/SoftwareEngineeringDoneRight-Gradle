@@ -18,10 +18,11 @@ import java.util.stream.Collectors;
  * <p>Registers the {@code trackerLens} DSL extension, a {@code lensStyle} resolvable configuration
  * that external style packs are declared against, the {@code generateTrackerLensDashboard} task, the
  * {@code listTrackerLensStyles} / {@code listTrackerLensTemplates} tasks, the
- * {@code initTrackerLens} / {@code bootstrapTrackerLensProject} scaffolding tasks, and the
- * {@code generateTrackerLensFixture} task. None of these tasks is wired into {@code check} or
- * {@code build} automatically - the dashboard is a report, not a verification gate, the scaffolding
- * tasks are one-time developer conveniences, and the fixture task is a prototyping aid.</p>
+ * {@code initTrackerLens} / {@code bootstrapTrackerLensProject} scaffolding tasks, the
+ * {@code generateTrackerLensFixture} task, and the {@code updateDSL} task. None of these tasks is
+ * wired into {@code check} or {@code build} automatically - the dashboard is a report, not a
+ * verification gate, the scaffolding tasks are one-time developer conveniences, the fixture task
+ * is a prototyping aid, and {@code updateDSL} is a deliberate, occasional maintenance action.</p>
  *
  * <h2>Usage</h2>
  * <pre>
@@ -55,6 +56,9 @@ public class TrackerLensPlugin implements Plugin<Project> {
 
     /** Name of the fixture-generating task registered by this plugin. */
     public static final String GENERATE_FIXTURE_TASK_NAME = "generateTrackerLensFixture";
+
+    /** Name of the DSL-updating task registered by this plugin. */
+    public static final String UPDATE_DSL_TASK_NAME = "updateDSL";
 
     /** Creates a new plugin instance. Instantiated by Gradle infrastructure. */
     public TrackerLensPlugin() {}
@@ -111,6 +115,9 @@ public class TrackerLensPlugin implements Plugin<Project> {
             task.getApiContractHistoryFile().convention(
                     project.getLayout().getProjectDirectory().file("api-contract-progress.ndjson"));
         });
+
+        project.getTasks().register(UPDATE_DSL_TASK_NAME, UpdateTrackerLensDslTask.class, task ->
+                task.getBuildFile().set(project.getLayout().file(project.provider(project::getBuildFile))));
 
         // Collected eagerly as each tracker is registered (all() realizes and invokes its action
         // immediately, unlike register()'s own deferred realization) rather than read back from
