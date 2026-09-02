@@ -1,3 +1,38 @@
+# [3.6.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/shadow-api-detector-v3.5.1...shadow-api-detector-v3.6.0) (2026-09-02)
+
+
+### ✨ New and updated features
+
+* **tracker-lens:** add a Removed metric card counting items no longer present ([#261](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/261)) ([556b01b](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/556b01b1f0d424b0235985bd1186423fae7de1e5)), closes [#261](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/261)
+* **doppelganger-api-detector:** add ignore5xx to exclude 5xx codes from response coverage ([#251](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/251)) ([98dfa68](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/98dfa680d271a55d34a62c9913f732cb42f657b9)), closes [#251](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/251)
+* **tracker-lens:** add updateDSL task to add missing DSL properties at their defaults ([#264](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/264)) ([fa20271](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/fa202714a99ab0e1d50a4b6aaac1a0afa9cf39ed)), closes [#264](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/264)
+* **shadow-api-detector:** add updateShadowApiDetectorDSL task ([#267](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/267)) ([e5b8728](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/e5b8728c9107288f2df4d07548728fd1a5e538eb)), closes [#267](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/267)
+* update base path in plugin and tests ([#253](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/253)) ([dcccc8e](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/dcccc8e7d06e07d95689ae4d66e40020f6e3720e)), closes [#253](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/253)
+
+
+### 🐛 Bug Fixes
+
+* **api-only-suite:** forward propertyFiles/pathResolverHelperMethods to doppelgangerApiGapsForSuite ([#252](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/252)) ([c47eb5f](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/c47eb5ffbb8bc1ce31b395b35fcf6e4dc0a66f5c)), closes [#252](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/252)
+* **gherkin-to-asciidoc:** reject scenarios that share a title across feature files ([#254](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/254)) ([d725937](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/d72593741a8203f32f6f519ed9dd312b76519d91)), closes [#254](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/254)
+* **tracker-lens:** scope the updateDSL task and its options to this plugin ([#266](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/266)) ([5b6c7ad](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/5b6c7ad4a40a225e4f3fa14811372dc71340e645)), closes [#266](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/266)
+
+
+### 📝 Documentation
+
+* **tracker-lens:** add a Tracker Registration Properties table ([#260](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/260)) ([167f341](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/167f341606610fe3e65166c1d250fd64f7fac724)), closes [#260](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/260)
+* **gherkin-to-asciidoc:** add duplicate scenario titles example ([#255](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/255)) ([e712fd8](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/e712fd8a1450f1607369b6bafe086f2831dc5c5b)), closes [#255](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/255)
+* **mirage-api-detector:** add missing openApiDir to the Kotlin DSL example ([#258](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/258)) ([6272cb9](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/6272cb9148862ad6f289c6b07ca32d515608b797)), closes [#258](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/258)
+* **shadow-api-detector:** add missing openApiDir to the Kotlin DSL example ([#259](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/259)) ([3d21b80](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/3d21b80528174de0fb2f2d1a9a7ca9db82712f87)), closes [#259](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/259)
+* **architecture-validator:** document junitVersion and the hexagonalArchitecture block's properties ([#256](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/256)) ([aaf60fb](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/aaf60fb8430b4aef4ce2d67a79d6bba642062b7d)), closes [#256](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/256)
+* **doppelganger-api-detector:** document the ignore5xx property ([#257](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/257)) ([042b6e3](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/042b6e3b195ae3238d97819ac8a732f998d6fad0)), closes [#257](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/257)
+* **tracker-lens:** document the updateDSL task ([#265](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/265)) ([6770853](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/677085313c5e8c2b3e36b0b809342bb42d0f8efb)), closes [#265](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/265)
+
+
+### 🔧 Misc
+
+* **dashboard-extra-charts:** bump tracker-lens to 2.4.0 ([#262](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/262)) ([9de4b4b](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/9de4b4b1d4c68900f5b4de38501507e17bc1440f)), closes [#262](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/262) [#261](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/261)
+* **plain:** bump tracker-lens to 2.4.0 ([#263](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/263)) ([a561fe0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/a561fe06e283feadbe742eadeb6d863ba5c411c0)), closes [#263](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/263) [#261](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/261)
+
 ## [3.5.1](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/shadow-api-detector-v3.5.0...shadow-api-detector-v3.5.1) (2026-08-30)
 
 
