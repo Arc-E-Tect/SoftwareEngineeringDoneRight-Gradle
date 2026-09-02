@@ -164,6 +164,6 @@ class UpdateTrackerLensDslTaskTest {
                 .withProjectDir(tempDir.toFile())
                 .build()
                 .getTasks()
-                .create("updateDSL", UpdateTrackerLensDslTask.class);
+                .create("updateTrackerLensDSL", UpdateTrackerLensDslTask.class);
     }
 }

@@ -265,10 +265,10 @@ Run the generator with:
 | `initTrackerLens`              | tracker lens | Generates a complete, heavily-commented boilerplate lens CSS file to start a new lens from.
 | `bootstrapTrackerLensProject`  | tracker lens | Generates a boilerplate lens-pack project and a sample consumer project, for developing and testing a new lens end-to-end.
 | `generateTrackerLensFixture`   | tracker lens | Generates a calibrated pair of `gherkin-progress-history.ndjson` / `api-contract-progress.ndjson` fixture files whose forecast lands a predictable distance in the future.
-| `updateDSL`                    | tracker lens | Adds any `trackerLens { }` properties missing from the project's build file, set to their defaults.
+| `updateTrackerLensDSL`         | tracker lens | Adds any `trackerLens { }` properties missing from the project's build file, set to their defaults.
 |===
 
-None of these tasks is wired into `check` or `build` automatically - the dashboard is a report, not a verification gate, the middle two are one-time developer conveniences, `generateTrackerLensFixture` is a prototyping aid, and `updateDSL` is a deliberate, occasional maintenance action - not part of the ordinary build.
+None of these tasks is wired into `check` or `build` automatically - the dashboard is a report, not a verification gate, the middle two are one-time developer conveniences, `generateTrackerLensFixture` is a prototyping aid, and `updateTrackerLensDSL` is a deliberate, occasional maintenance action - not part of the ordinary build.
 
 `listTrackerLensStyles` and `listTrackerLensTemplates` need no tracker to be registered; they only resolve lens packs.
 
@@ -406,42 +406,42 @@ See link:LENS_TUTORIAL.adoc[LENS_TUTORIAL.adoc]'s "Step 3: consume it from a sam
 
 === Updating the DSL to the latest properties
 
-`updateDSL` reads the project's own `build.gradle` and adds any `trackerLens { }` properties missing from it, set to the same default value each one's `convention(...)` already resolves to - so setting an added property explicitly afterwards is a no-op.
+`updateTrackerLensDSL` reads the project's own `build.gradle` and adds any `trackerLens { }` properties missing from it, set to the same default value each one's `convention(...)` already resolves to - so setting an added property explicitly afterwards is a no-op.
 This lets a project pick up new plugin properties introduced by a later version without going back to the docs and hand-copying them in.
 
 [source]
 ----
-./gradlew updateDSL
+./gradlew updateTrackerLensDSL
 ----
 
 Only properties with a real default are ever added: `outputDir`, `dashboardName`, and `version`.
 `lensStylesheet`, `preferredLensPack`, `defaultLens`, `template`, and `templateId` are left out on purpose - each is genuinely optional with no default value at all (unset just means "don't use this feature"), so there's nothing a default literal could correctly represent for them.
 An existing assignment is never touched, even when its value differs from the default - only a *missing* property is ever added.
-`trackers { }` is never populated on an existing block either; there's no tracker registration `updateDSL` could correctly guess.
+`trackers { }` is never populated on an existing block either; there's no tracker registration `updateTrackerLensDSL` could correctly guess.
 
-If the project has no `trackerLens { }` block at all, `updateDSL` leaves it alone by default.
-Pass `--generateDSL` to generate a full new block instead, appended to the end of the build file - including a commented `trackers { }` example, since a fresh block still needs at least one tracker registered before `generateTrackerLensDashboard` will run:
-
-[source]
-----
-./gradlew updateDSL --generateDSL
-----
-
-Pass `--cleanupDSL` to strip every comment from inside the managed block - both pre-existing ones and any doc comment `updateDSL` itself would otherwise add - leaving only properties:
+If the project has no `trackerLens { }` block at all, `updateTrackerLensDSL` leaves it alone by default.
+Pass `--generateTrackerLensDSL` to generate a full new block instead, appended to the end of the build file - including a commented `trackers { }` example, since a fresh block still needs at least one tracker registered before `generateTrackerLensDashboard` will run:
 
 [source]
 ----
-./gradlew updateDSL --cleanupDSL
+./gradlew updateTrackerLensDSL --generateTrackerLensDSL
+----
+
+Pass `--cleanupTrackerLensDSL` to strip every comment from inside the managed block - both pre-existing ones and any doc comment `updateTrackerLensDSL` itself would otherwise add - leaving only properties:
+
+[source]
+----
+./gradlew updateTrackerLensDSL --cleanupTrackerLensDSL
 ----
 
 Run with Gradle's own `--info` flag to see exactly which properties were added and what value each was set to:
 
 [source]
 ----
-./gradlew updateDSL --info
+./gradlew updateTrackerLensDSL --info
 ----
 
-Before writing any change, `updateDSL` copies the file exactly as it was to `build.gradle.bak`, alongside it - a plain-file fallback even for a project not using version control (or one that just hasn't committed the file yet).
+Before writing any change, `updateTrackerLensDSL` copies the file exactly as it was to `build.gradle.bak`, alongside it - a plain-file fallback even for a project not using version control (or one that just hasn't committed the file yet).
 Only written on a run that actually changes something; each subsequent changing run overwrites the previous backup.
 
 Groovy DSL (`build.gradle`) only - Kotlin DSL (`build.gradle.kts`) isn't supported.

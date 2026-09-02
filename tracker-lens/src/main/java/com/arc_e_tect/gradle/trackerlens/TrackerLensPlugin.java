@@ -19,10 +19,11 @@ import java.util.stream.Collectors;
  * that external style packs are declared against, the {@code generateTrackerLensDashboard} task, the
  * {@code listTrackerLensStyles} / {@code listTrackerLensTemplates} tasks, the
  * {@code initTrackerLens} / {@code bootstrapTrackerLensProject} scaffolding tasks, the
- * {@code generateTrackerLensFixture} task, and the {@code updateDSL} task. None of these tasks is
- * wired into {@code check} or {@code build} automatically - the dashboard is a report, not a
- * verification gate, the scaffolding tasks are one-time developer conveniences, the fixture task
- * is a prototyping aid, and {@code updateDSL} is a deliberate, occasional maintenance action.</p>
+ * {@code generateTrackerLensFixture} task, and the {@code updateTrackerLensDSL} task. None of
+ * these tasks is wired into {@code check} or {@code build} automatically - the dashboard is a
+ * report, not a verification gate, the scaffolding tasks are one-time developer conveniences, the
+ * fixture task is a prototyping aid, and {@code updateTrackerLensDSL} is a deliberate, occasional
+ * maintenance action.</p>
  *
  * <h2>Usage</h2>
  * <pre>
@@ -58,7 +59,7 @@ public class TrackerLensPlugin implements Plugin<Project> {
     public static final String GENERATE_FIXTURE_TASK_NAME = "generateTrackerLensFixture";
 
     /** Name of the DSL-updating task registered by this plugin. */
-    public static final String UPDATE_DSL_TASK_NAME = "updateDSL";
+    public static final String UPDATE_DSL_TASK_NAME = "updateTrackerLensDSL";
 
     /** Creates a new plugin instance. Instantiated by Gradle infrastructure. */
     public TrackerLensPlugin() {}
