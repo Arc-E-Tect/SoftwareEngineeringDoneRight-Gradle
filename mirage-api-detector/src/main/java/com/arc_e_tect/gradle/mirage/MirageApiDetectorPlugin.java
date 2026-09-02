@@ -12,8 +12,8 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * Gradle plugin that registers the {@code detectMirageApis} task and wires the
- * {@code mirageApiDetector} DSL extension into the project.
+ * Gradle plugin that registers the {@code detectMirageApis} and {@code updateMirageApiDetectorDSL}
+ * tasks and wires the {@code mirageApiDetector} DSL extension into the project.
  *
  * <h2>Usage</h2>
  * <pre>
@@ -61,6 +61,9 @@ public class MirageApiDetectorPlugin implements Plugin<Project> {
 
     /** Name of the contract history migration task registered by this plugin. */
     public static final String MIGRATE_CONTRACT_HISTORY_TASK_NAME = "migrateContractHistory";
+
+    /** Name of the DSL-updating task registered by this plugin. */
+    public static final String UPDATE_DSL_TASK_NAME = "updateMirageApiDetectorDSL";
 
     /** Creates a new plugin instance. Instantiated by Gradle infrastructure. */
     public MirageApiDetectorPlugin() {}
@@ -183,6 +186,9 @@ public class MirageApiDetectorPlugin implements Plugin<Project> {
                         task.getStubDirs().from(p.file(MirageApiDetectorExtension.DEFAULT_STUB_DIR)));
             }
         });
+
+        project.getTasks().register(UPDATE_DSL_TASK_NAME, UpdateMirageApiDetectorDslTask.class, task ->
+                task.getBuildFile().set(project.getLayout().file(project.provider(project::getBuildFile))));
     }
 
     /**

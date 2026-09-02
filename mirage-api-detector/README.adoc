@@ -395,16 +395,17 @@ mirageApiDetector {
 
 `rootDocument` is the only property that must be set - in all but very rare cases (an OpenAPI description split across many top-level documents with no single entry point) the root document is all the plugin needs, since it is expected to link to every other document itself.
 
-== Task
+== Tasks
 
 [cols="2,1,3",options="header"]
 |===
-| Task name               | Group        | Description
-| `detectMirageApis`      | verification | Scans the OpenAPI documentation and reports operations with no matching `@RestController` implementation. Additionally scans WireMock stubs for stub evidence when `scanMocks` is true.
-| `migrateContractHistory` | verification | One-off, manually-invoked migration of `contractHistoryFile` from the old 9-field format to the current 10-field format. Not run automatically. See "Tracking Contract History" below.
+| Task name                    | Group               | Description
+| `detectMirageApis`           | verification        | Scans the OpenAPI documentation and reports operations with no matching `@RestController` implementation. Additionally scans WireMock stubs for stub evidence when `scanMocks` is true.
+| `migrateContractHistory`     | verification         | One-off, manually-invoked migration of `contractHistoryFile` from the old 9-field format to the current 10-field format. Not run automatically. See "Tracking Contract History" below.
+| `updateMirageApiDetectorDSL` | mirage api detector | Adds any `mirageApiDetector { }` properties missing from the project's build file, set to their defaults.
 |===
 
-The task is **not** wired into `check` or `build` automatically. Teams that write their OpenAPI documentation ahead of the implementation - a common "spec-first" workflow - would otherwise see every build fail on endpoints that simply have not been built yet.
+None of these tasks is wired into `check` or `build` automatically. `detectMirageApis` isn't because teams that write their OpenAPI documentation ahead of the implementation - a common "spec-first" workflow - would otherwise see every build fail on endpoints that simply have not been built yet; `migrateContractHistory` is a one-off migration; `updateMirageApiDetectorDSL` is a deliberate, occasional maintenance action.
 
 Running the report explicitly:
 
@@ -430,6 +431,48 @@ tasks.named("check") {
     dependsOn("detectMirageApis")
 }
 ----
+
+== Updating the DSL to the latest properties
+
+`updateMirageApiDetectorDSL` reads the project's own `build.gradle` and adds any `mirageApiDetector { }` properties missing from it, set to the same default value each one's `convention(...)` already resolves to - so setting an added property explicitly afterwards is a no-op.
+This lets a project pick up new plugin properties introduced by a later version without going back to the docs and hand-copying them in.
+
+[source,shell]
+----
+./gradlew updateMirageApiDetectorDSL
+----
+
+Only properties with a real default are ever added: `failOnMirage`, `scanMocks`, `reportDir`, `reportFileName`, `systemUnderTestVersion`, `openApiDir`, `trackContractHistory`, `contractHistoryFile`, `updateContractHistory`, `excludePaths`, and `excludeWellKnown`.
+`rootDocument` is left out on purpose - it is required, with deliberately no default at all.
+`controllerDirs`, `stubDirs`, and `stubSourceDirs` are left out too: their defaults are applied to the task, not the extension, conditionally when still empty (and for the latter two, only when `scanMocks` is true).
+`basePath` has no convention at all - it falls back at task time to the root document's own `servers[].url` path.
+`excludeFiles` has no default beyond "empty".
+There's nothing a literal could usefully add for any of these.
+An existing assignment is never touched, even when its value differs from the default - only a *missing* property is ever added.
+
+If the project has no `mirageApiDetector { }` block at all, `updateMirageApiDetectorDSL` leaves it alone by default.
+Pass `--generateMirageApiDetectorDSL` to generate a full new block instead, appended to the end of the build file:
+
+[source,shell]
+----
+./gradlew updateMirageApiDetectorDSL --generateMirageApiDetectorDSL
+----
+
+A freshly generated block still needs `rootDocument` configured separately - there's no default it could guess.
+
+Pass `--cleanupMirageApiDetectorDSL` to strip every comment from inside the managed block - both pre-existing ones and any doc comment `updateMirageApiDetectorDSL` itself would otherwise add - leaving only properties:
+
+[source,shell]
+----
+./gradlew updateMirageApiDetectorDSL --cleanupMirageApiDetectorDSL
+----
+
+Run with Gradle's own `--info` flag to see exactly which properties were added and what value each was set to.
+
+Before writing any change, `updateMirageApiDetectorDSL` copies the file exactly as it was to `build.gradle.bak`, alongside it - a plain-file fallback even for a project not using version control (or one that just hasn't committed the file yet).
+Only written on a run that actually changes something; each subsequent changing run overwrites the previous backup.
+
+Groovy DSL (`build.gradle`) only - Kotlin DSL (`build.gradle.kts`) isn't supported.
 
 == Progress reporting
 

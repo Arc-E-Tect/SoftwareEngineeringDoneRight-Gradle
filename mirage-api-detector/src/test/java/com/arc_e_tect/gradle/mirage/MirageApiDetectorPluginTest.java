@@ -473,6 +473,25 @@ class MirageApiDetectorPluginTest {
                         + "-PmirageApiDetector.updateContractHistory; expected 'true' or 'false'");
     }
 
+    @Test
+    @DisplayName("registers the updateMirageApiDetectorDSL task when applied")
+    void registersUpdateDslTask() {
+        Project project = projectWithPlugin();
+
+        assertThat(project.getTasks().findByName(MirageApiDetectorPlugin.UPDATE_DSL_TASK_NAME)).isNotNull();
+    }
+
+    @Test
+    @DisplayName("defaults the updateMirageApiDetectorDSL task's buildFile to the project's own build file")
+    void updateDslTaskDefaultsBuildFileToProjectsOwnBuildFile() {
+        Project project = projectWithPlugin();
+
+        UpdateMirageApiDetectorDslTask task = (UpdateMirageApiDetectorDslTask)
+                project.getTasks().getByName(MirageApiDetectorPlugin.UPDATE_DSL_TASK_NAME);
+
+        assertThat(task.getBuildFile().get().getAsFile()).isEqualTo(project.getBuildFile());
+    }
+
     private Project projectWithPlugin() {
         Project project = ProjectBuilder.builder().withProjectDir(tempDir.toFile()).build();
         project.getPluginManager().apply("java");
