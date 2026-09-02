@@ -15,6 +15,13 @@ A Gradle plugin that scans your OpenAPI documentation for operations, compares t
 
 Mirage APIs are endpoints that exist on paper but not in code: documented, reviewed, and visible to API consumers, yet unreachable at runtime. This is the mirror image of the companion link:../shadow-api-detector/README.adoc[Shadow API Detector] plugin, which catches the opposite drift - implemented but undocumented endpoints.
 
+[TIP]
+====
+Run `./gradlew updateMirageApiDetectorDSL` any time to add any missing `mirageApiDetector { }` properties, set to the same defaults their own `convention(...)` calls already resolve to - always a no-op.
+Add `--generateMirageApiDetectorDSL` to generate a whole new `mirageApiDetector { }` block when the project doesn't have one yet, or `--cleanupMirageApiDetectorDSL` to strip comments from the managed block.
+See "Updating the DSL to the latest properties" below for the full details.
+====
+
 == Plugin ID
 
 [source]
