@@ -11,8 +11,7 @@ owasp-dependency-check = "13.0.0"
 
 jsoup = "1.23.1"
 mustache        = "0.9.14"
-# TODO: bump off 1.0.0-PRERELEASE once dsl-updater-core has a real Maven Central release.
-dsl-updater-core = "1.0.0-PRERELEASE"
+dsl-updater-core = "1.0.0"
 junit-jupiter = "6.1.3"
 junit-platform = "6.1.3"
 assertj         = "3.27.7"

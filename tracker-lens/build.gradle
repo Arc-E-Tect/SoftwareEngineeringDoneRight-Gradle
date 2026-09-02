@@ -15,9 +15,6 @@ java {
 }
 
 repositories {
-    // TODO: remove once dsl-updater-core has a real Maven Central release and libs.versions.toml
-    // is bumped off 1.0.0-PRERELEASE - until then this is the only place that version resolves.
-    mavenLocal()
     maven {
         name = 'GitHubPackages'
         url = uri('https://maven.pkg.github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Code')
