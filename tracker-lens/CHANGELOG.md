@@ -1,3 +1,16 @@
+# [2.5.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/tracker-lens-v2.4.0...tracker-lens-v2.5.0) (2026-09-02)
+
+
+### ✨ New and updated features
+
+* **tracker-lens:** add updateDSL task to add missing DSL properties at their defaults ([#264](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/264)) ([fa20271](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/fa202714a99ab0e1d50a4b6aaac1a0afa9cf39ed)), closes [#264](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/264)
+
+
+### 🔧 Misc
+
+* **dashboard-extra-charts:** bump tracker-lens to 2.4.0 ([#262](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/262)) ([9de4b4b](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/9de4b4b1d4c68900f5b4de38501507e17bc1440f)), closes [#262](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/262) [#261](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/261)
+* **plain:** bump tracker-lens to 2.4.0 ([#263](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/263)) ([a561fe0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/a561fe06e283feadbe742eadeb6d863ba5c411c0)), closes [#263](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/263) [#261](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/261)
+
 # [2.4.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/tracker-lens-v2.3.0...tracker-lens-v2.4.0) (2026-09-01)
 
 
