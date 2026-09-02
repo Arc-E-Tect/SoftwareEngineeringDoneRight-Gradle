@@ -14,6 +14,13 @@ It focuses on Hexagonal Architecture by default and can also attach external rul
 This plugin is now maintained as a standalone Gradle project under `architecture-validator`.
 The Spring companion rules are published from the separate `spring-rules` project in SoftwareEngineeringDoneRight-Library.
 
+[TIP]
+====
+Run `./gradlew updateArchitectureValidatorDSL` any time to add any missing `architectureValidator { }` properties, set to the same defaults their own `convention(...)` calls already resolve to - always a no-op.
+Add `--generateArchitectureValidatorDSL` to generate a whole new `architectureValidator { }` block when the project doesn't have one yet, or `--cleanupArchitectureValidatorDSL` to strip comments from the managed block.
+See "Updating the DSL to the latest properties" below for the full details.
+====
+
 == Plugin ID
 
 [source]
