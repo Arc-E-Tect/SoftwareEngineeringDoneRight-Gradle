@@ -201,13 +201,17 @@ shadowApiDetector {
 }
 ----
 
-== Task
+== Tasks
 
 [cols="2,1,3",options="header"]
 |===
-| Task name           | Group        | Description
-| `detectAllApiGaps`  | verification | Runs all three Arc-E-Tect API-Only detectors: Shadow, Mirage, and Doppelganger.
+| Task name               | Group           | Description
+| `detectAllApiGaps`      | verification    | Runs all three Arc-E-Tect API-Only detectors: Shadow, Mirage, and Doppelganger.
+| `updateApiOnlySuiteDSL` | api only suite  | Adds any `apiOnlySuite { }` properties missing from the project's build file, set to their defaults.
 |===
+
+Applying this plugin also applies the three individual detector plugins, so their own `updateShadowApiDetectorDSL`/`updateMirageApiDetectorDSL`/`updateDoppelgangerApiDetectorDSL` tasks are available too - see each plugin's own README for those.
+`updateApiOnlySuiteDSL` only manages `apiOnlySuite`'s own DSL block; it does not drive the three siblings' own `updateDSL` tasks for you.
 
 `detectAllApiGaps` is a plain aggregate task with no detection logic of its own - it lets a consumer who wants everything run one task instead of three. Running any of the three individual tasks directly (`./gradlew detectShadowApis`, etc.) continues to work exactly as it does without this plugin.
 
@@ -249,6 +253,47 @@ tasks.named("check") {
 ----
 
 Since `detectAllApiGaps` never fails on a detected gap (see above), wiring it into `check` this way makes `check` regenerate all three reports as part of every build, but does *not* make `check` fail when a gap is found - wire the individual tasks into `check` instead if that's what you want.
+
+== Updating the DSL to the latest properties
+
+`updateApiOnlySuiteDSL` reads the project's own `build.gradle` and adds any `apiOnlySuite { }` properties missing from it, set to the same default value each one's `convention(...)` already resolves to - so setting an added property explicitly afterwards is a no-op.
+This lets a project pick up new plugin properties introduced by a later version without going back to the docs and hand-copying them in.
+
+[source,shell]
+----
+./gradlew updateApiOnlySuiteDSL
+----
+
+Only properties with a real default on `apiOnlySuite`'s own block are ever added: `failOnDetection`, `excludePaths`, and `excludeWellKnown`.
+`rootDocument`, `controllerDirs`, and `excludeFiles` are left out on purpose.
+Each is only ever a fallback, forwarded into the three sibling plugins' own extensions when a consumer hasn't configured that plugin's own property directly.
+`apiOnlySuite`'s own copy has no default of its own to add - only "unset, so nothing is forwarded".
+An existing assignment is never touched, even when its value differs from the default - only a *missing* property is ever added.
+
+If the project has no `apiOnlySuite { }` block at all, `updateApiOnlySuiteDSL` leaves it alone by default.
+Pass `--generateApiOnlySuiteDSL` to generate a full new block instead, appended to the end of the build file:
+
+[source,shell]
+----
+./gradlew updateApiOnlySuiteDSL --generateApiOnlySuiteDSL
+----
+
+Pass `--cleanupApiOnlySuiteDSL` to strip every comment from inside the managed block - both pre-existing ones and any doc comment `updateApiOnlySuiteDSL` itself would otherwise add - leaving only properties:
+
+[source,shell]
+----
+./gradlew updateApiOnlySuiteDSL --cleanupApiOnlySuiteDSL
+----
+
+Run with Gradle's own `--info` flag to see exactly which properties were added and what value each was set to.
+
+Before writing any change, `updateApiOnlySuiteDSL` copies the file exactly as it was to `build.gradle.bak`, alongside it - a plain-file fallback even for a project not using version control (or one that just hasn't committed the file yet).
+Only written on a run that actually changes something; each subsequent changing run overwrites the previous backup.
+
+Groovy DSL (`build.gradle`) only - Kotlin DSL (`build.gradle.kts`) isn't supported.
+
+This task manages only `apiOnlySuite`'s own DSL block.
+Each sibling detector plugin's own `shadowApiDetector { }`/`mirageApiDetector { }`/`doppelgangerApiDetector { }` block has its own dedicated `updateDSL` task instead - see that plugin's own README.
 
 == Report output
 

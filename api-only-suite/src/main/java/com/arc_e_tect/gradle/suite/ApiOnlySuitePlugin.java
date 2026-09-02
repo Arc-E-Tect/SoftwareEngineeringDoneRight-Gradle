@@ -17,8 +17,8 @@ import java.util.List;
 
 /**
  * Gradle plugin that applies the Shadow, Mirage, and Doppelganger API Detector plugins together,
- * and registers the {@code detectAllApiGaps} aggregate task and the {@code apiOnlySuite} DSL
- * extension.
+ * and registers the {@code detectAllApiGaps} aggregate task, the {@code updateApiOnlySuiteDSL}
+ * task, and the {@code apiOnlySuite} DSL extension.
  *
  * <p>This is a pure composition module: it contains no detection logic of its own, only wiring.
  * Each of the three underlying plugins registers its own task and extension exactly as it does
@@ -74,6 +74,9 @@ public class ApiOnlySuitePlugin implements Plugin<Project> {
     /** Name of the aggregate Gradle task registered by this plugin. */
     public static final String TASK_NAME = "detectAllApiGaps";
 
+    /** Name of the DSL-updating task registered by this plugin. */
+    public static final String UPDATE_DSL_TASK_NAME = "updateApiOnlySuiteDSL";
+
     /** Creates a new plugin instance. Instantiated by Gradle infrastructure. */
     public ApiOnlySuitePlugin() {}
 
@@ -107,6 +110,14 @@ public class ApiOnlySuitePlugin implements Plugin<Project> {
                     + "failOnDoppelganger - run the individual tasks directly to enforce failure.");
             task.dependsOn(shadowForSuite, mirageForSuite, doppelgangerForSuite);
         });
+
+        // Only apiOnlySuite's own DSL block - the three sibling plugins applied above already
+        // register their own updateShadowApiDetectorDSL/updateMirageApiDetectorDSL/
+        // updateDoppelgangerApiDetectorDSL tasks, so nothing extra is needed to make those
+        // available in a project applying this suite. Whether this task should also, itself,
+        // drive the three siblings' own updateDSL tasks is a separate decision for later.
+        project.getTasks().register(UPDATE_DSL_TASK_NAME, UpdateApiOnlySuiteDslTask.class, task ->
+                task.getBuildFile().set(project.getLayout().file(project.provider(project::getBuildFile))));
     }
 
     /**
