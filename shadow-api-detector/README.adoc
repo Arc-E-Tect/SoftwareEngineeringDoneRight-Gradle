@@ -243,15 +243,16 @@ shadowApiDetector {
 
 `rootDocument` is the only property that must be set - in all but very rare cases (an OpenAPI description split across many top-level documents with no single entry point) the root document is all the plugin needs, since it is expected to link to every other document itself.
 
-== Task
+== Tasks
 
 [cols="2,1,3",options="header"]
 |===
-| Task name           | Group        | Description
-| `detectShadowApis`  | verification | Scans `@RestController` classes and reports endpoints not described in the OpenAPI documentation.
+| Task name                       | Group               | Description
+| `detectShadowApis`              | verification        | Scans `@RestController` classes and reports endpoints not described in the OpenAPI documentation.
+| `updateShadowApiDetectorDSL`    | shadow api detector | Adds any `shadowApiDetector { }` properties missing from the project's build file, set to their defaults.
 |===
 
-The task is **not** wired into `check` or `build` automatically. Teams that generate their OpenAPI documentation from code would otherwise see every build fail on documentation that hasn't been regenerated yet.
+Neither task is wired into `check` or `build` automatically. `detectShadowApis` isn't because teams that generate their OpenAPI documentation from code would otherwise see every build fail on documentation that hasn't been regenerated yet; `updateShadowApiDetectorDSL` is a deliberate, occasional maintenance action, not part of the ordinary build.
 
 Running the report explicitly:
 
@@ -313,6 +314,45 @@ Shadow API Detector: scanned 1 controller(s), found 2 endpoint(s), 1 of them sha
 ----
 
 Combine with `--no-failOnShadow` to inspect a controller's shadow APIs without failing the build even when `failOnShadow = true` in the DSL, or with `--failOnShadow` to fail on a controller-scoped finding a normally-disabled `failOnShadow` wouldn't otherwise catch.
+
+== Updating the DSL to the latest properties
+
+`updateShadowApiDetectorDSL` reads the project's own `build.gradle` and adds any `shadowApiDetector { }` properties missing from it, set to the same default value each one's `convention(...)` already resolves to - so setting an added property explicitly afterwards is a no-op.
+This lets a project pick up new plugin properties introduced by a later version without going back to the docs and hand-copying them in.
+
+[source,shell]
+----
+./gradlew updateShadowApiDetectorDSL
+----
+
+Only properties with a real default are ever added: `failOnShadow`, `reportDir`, `reportFileName`, `systemUnderTestVersion`, `openApiDir`, `trackContractHistory`, `contractHistoryFile`, `updateContractHistory`, `excludePaths`, and `excludeWellKnown`.
+`rootDocument` is left out on purpose - it is required, with deliberately no default at all.
+`controllerDirs` and `excludeFiles` are left out too: `controllerDirs`'s default is applied to the task, not the extension, conditionally when still empty, and `excludeFiles` has no default beyond "empty" - there's nothing a literal could usefully add for either.
+An existing assignment is never touched, even when its value differs from the default - only a *missing* property is ever added.
+
+If the project has no `shadowApiDetector { }` block at all, `updateShadowApiDetectorDSL` leaves it alone by default.
+Pass `--generateShadowApiDetectorDSL` to generate a full new block instead, appended to the end of the build file:
+
+[source,shell]
+----
+./gradlew updateShadowApiDetectorDSL --generateShadowApiDetectorDSL
+----
+
+A freshly generated block still needs `rootDocument` configured separately - there's no default it could guess.
+
+Pass `--cleanupShadowApiDetectorDSL` to strip every comment from inside the managed block - both pre-existing ones and any doc comment `updateShadowApiDetectorDSL` itself would otherwise add - leaving only properties:
+
+[source,shell]
+----
+./gradlew updateShadowApiDetectorDSL --cleanupShadowApiDetectorDSL
+----
+
+Run with Gradle's own `--info` flag to see exactly which properties were added and what value each was set to.
+
+Before writing any change, `updateShadowApiDetectorDSL` copies the file exactly as it was to `build.gradle.bak`, alongside it - a plain-file fallback even for a project not using version control (or one that just hasn't committed the file yet).
+Only written on a run that actually changes something; each subsequent changing run overwrites the previous backup.
+
+Groovy DSL (`build.gradle`) only - Kotlin DSL (`build.gradle.kts`) isn't supported.
 
 == Progress reporting
 

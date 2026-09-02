@@ -37,6 +37,7 @@ dependencyCheck {
 
 dependencies {
     implementation libs.api.detector.core
+    implementation libs.dsl.updater.core
 
     testImplementation libs.junit.jupiter
     testImplementation libs.assertj.core
