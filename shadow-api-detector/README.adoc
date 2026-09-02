@@ -15,6 +15,13 @@ A Gradle plugin that scans Spring Boot `@RestController` classes for the endpoin
 
 Shadow APIs are endpoints that exist in code but not on paper: undocumented, unreviewed, and invisible to API consumers and security review alike. This plugin gives teams a repeatable way to catch them before they ship.
 
+[TIP]
+====
+Run `./gradlew updateShadowApiDetectorDSL` any time to add any missing `shadowApiDetector { }` properties, set to the same defaults their own `convention(...)` calls already resolve to - always a no-op.
+Add `--generateShadowApiDetectorDSL` to generate a whole new `shadowApiDetector { }` block when the project doesn't have one yet, or `--cleanupShadowApiDetectorDSL` to strip comments from the managed block.
+See "Updating the DSL to the latest properties" below for the full details.
+====
+
 == Plugin ID
 
 [source]

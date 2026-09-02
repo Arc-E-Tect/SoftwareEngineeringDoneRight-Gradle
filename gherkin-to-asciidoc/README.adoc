@@ -21,6 +21,13 @@ plugins, ...) shows a navigable table of contents alongside it - one entry per c
 `trackProgress` is also enabled, one nested entry per `=== <Feature>` sub-heading within each category. A flat,
 ungrouped report has no headings below the title, so its table of contents is correspondingly empty.
 
+[TIP]
+====
+Run `./gradlew updateGherkinToAsciidocDSL` any time to add any missing `gherkinToAsciidoc { }` properties, set to the same defaults their own `convention(...)` calls already resolve to - always a no-op.
+Add `--generateGherkinToAsciidocDSL` to generate a whole new `gherkinToAsciidoc { }` block when the project doesn't have one yet, or `--cleanupGherkinToAsciidocDSL` to strip comments from the managed block.
+See "Updating the DSL to the latest properties" below for the full details.
+====
+
 == Plugin ID
 
 [source]

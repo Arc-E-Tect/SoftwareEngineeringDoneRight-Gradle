@@ -15,6 +15,13 @@ A Gradle plugin that finds endpoints which are both declared in your OpenAPI doc
 
 Doppelganger APIs look completely legitimate: they exist on paper and they exist in code. What nobody has confirmed is that the two still agree. This is the companion plugin to link:../shadow-api-detector/README.adoc[Shadow API Detector] (implemented but undocumented) and link:../mirage-api-detector/README.adoc[Mirage API Detector] (documented but unimplemented) - together the three cover the ways an endpoint's documentation, implementation, and verification can drift apart.
 
+[TIP]
+====
+Run `./gradlew updateDoppelgangerApiDetectorDSL` any time to add any missing `doppelgangerApiDetector { }` properties, set to the same defaults their own `convention(...)` calls already resolve to - always a no-op.
+Add `--generateDoppelgangerApiDetectorDSL` to generate a whole new `doppelgangerApiDetector { }` block when the project doesn't have one yet, or `--cleanupDoppelgangerApiDetectorDSL` to strip comments from the managed block.
+See "Updating the DSL to the latest properties" below for the full details.
+====
+
 == Plugin ID
 
 [source]
