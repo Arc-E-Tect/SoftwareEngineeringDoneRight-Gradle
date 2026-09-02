@@ -37,6 +37,7 @@ dependencyCheck {
 
 dependencies {
     implementation libs.api.detector.core
+    implementation libs.dsl.updater.core
     implementation libs.javaparser.core
     implementation libs.swagger.parser
     implementation libs.snakeyaml
