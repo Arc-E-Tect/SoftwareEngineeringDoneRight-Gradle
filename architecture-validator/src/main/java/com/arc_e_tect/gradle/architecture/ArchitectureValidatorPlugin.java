@@ -23,6 +23,7 @@ public class ArchitectureValidatorPlugin implements Plugin<Project> {
 
     public static final String TEST_ARCHITECTURE_TASK_NAME = "testArchitecture";
     public static final String GENERATE_ARCHITECTURE_TESTS_TASK_NAME = "generateArchitectureTests";
+    public static final String UPDATE_DSL_TASK_NAME = "updateArchitectureValidatorDSL";
 
     @Override
     public void apply(Project project) {
@@ -100,6 +101,9 @@ public class ArchitectureValidatorPlugin implements Plugin<Project> {
         })));
 
         project.getTasks().named("check").configure(task -> task.dependsOn(TEST_ARCHITECTURE_TASK_NAME));
+
+        project.getTasks().register(UPDATE_DSL_TASK_NAME, UpdateArchitectureValidatorDslTask.class, task ->
+                task.getBuildFile().set(project.getLayout().file(project.provider(project::getBuildFile))));
     }
 
     private static String resolvePlatformVersion(String junitVersion) {

@@ -76,6 +76,25 @@ class ArchitectureValidatorPluginTest {
         assertThat(failedTests.get()).isEqualTo(2L);
     }
 
+    @Test
+    @DisplayName("registers the updateArchitectureValidatorDSL task when applied")
+    void registersUpdateDslTask() {
+        Project project = projectWithPlugin();
+
+        assertThat(project.getTasks().findByName(ArchitectureValidatorPlugin.UPDATE_DSL_TASK_NAME)).isNotNull();
+    }
+
+    @Test
+    @DisplayName("defaults the updateArchitectureValidatorDSL task's buildFile to the project's own build file")
+    void updateDslTaskDefaultsBuildFileToProjectsOwnBuildFile() {
+        Project project = projectWithPlugin();
+
+        UpdateArchitectureValidatorDslTask task = (UpdateArchitectureValidatorDslTask)
+                project.getTasks().getByName(ArchitectureValidatorPlugin.UPDATE_DSL_TASK_NAME);
+
+        assertThat(task.getBuildFile().get().getAsFile()).isEqualTo(project.getBuildFile());
+    }
+
     private Project projectWithPlugin() {
         Project project = ProjectBuilder.builder().withProjectDir(tempDir.toFile()).build();
         project.getPluginManager().apply(ArchitectureValidatorPlugin.class);
