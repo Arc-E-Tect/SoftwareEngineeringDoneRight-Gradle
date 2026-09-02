@@ -500,6 +500,35 @@ class ApiOnlySuitePluginTest {
         assertThatCode(() -> shadowForSuiteTask(project).generate()).doesNotThrowAnyException();
     }
 
+    @Test
+    @DisplayName("registers the updateApiOnlySuiteDSL task when applied")
+    void registersUpdateDslTask() {
+        Project project = projectWithPlugin();
+
+        assertThat(project.getTasks().findByName(ApiOnlySuitePlugin.UPDATE_DSL_TASK_NAME)).isNotNull();
+    }
+
+    @Test
+    @DisplayName("defaults the updateApiOnlySuiteDSL task's buildFile to the project's own build file")
+    void updateDslTaskDefaultsBuildFileToProjectsOwnBuildFile() {
+        Project project = projectWithPlugin();
+
+        UpdateApiOnlySuiteDslTask task =
+                (UpdateApiOnlySuiteDslTask) project.getTasks().getByName(ApiOnlySuitePlugin.UPDATE_DSL_TASK_NAME);
+
+        assertThat(task.getBuildFile().get().getAsFile()).isEqualTo(project.getBuildFile());
+    }
+
+    @Test
+    @DisplayName("also registers each sibling plugin's own updateDSL task")
+    void registersEachSiblingsOwnUpdateDslTask() {
+        Project project = projectWithPlugin();
+
+        assertThat(project.getTasks().findByName(ShadowApiDetectorPlugin.UPDATE_DSL_TASK_NAME)).isNotNull();
+        assertThat(project.getTasks().findByName(MirageApiDetectorPlugin.UPDATE_DSL_TASK_NAME)).isNotNull();
+        assertThat(project.getTasks().findByName(DoppelgangerApiDetectorPlugin.UPDATE_DSL_TASK_NAME)).isNotNull();
+    }
+
     private Project projectWithPlugin() {
         Project project = ProjectBuilder.builder().withProjectDir(tempDir.toFile()).build();
         project.getPluginManager().apply("java");

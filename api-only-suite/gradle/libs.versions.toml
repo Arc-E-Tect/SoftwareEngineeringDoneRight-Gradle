@@ -10,6 +10,7 @@ owasp-dependency-check      = { id = "org.owasp.dependencycheck",     version.re
 owasp-dependency-check = "13.0.0"
 
 api-detector-core = "1.6.0"
+dsl-updater-core = "1.0.0"
 javaparser      = "3.28.2"
 swagger-parser = "2.1.47"
 snakeyaml = "2.6"
@@ -21,6 +22,7 @@ plugin-publish  = "2.1.1"
 [libraries]
 
 api-detector-core            = { module = "com.arc-e-tect:api-detector-core",                 version.ref = "api-detector-core" }
+dsl-updater-core             = { module = "com.arc-e-tect:dsl-updater-core",                  version.ref = "dsl-updater-core" }
 javaparser-core             = { module = "com.github.javaparser:javaparser-core",             version.ref = "javaparser" }
 swagger-parser               = { module = "io.swagger.parser.v3:swagger-parser-v3",           version.ref = "swagger-parser" }
 snakeyaml                    = { module = "org.yaml:snakeyaml",                                version.ref = "snakeyaml" }

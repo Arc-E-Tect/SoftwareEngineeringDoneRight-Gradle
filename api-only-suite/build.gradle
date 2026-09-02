@@ -41,6 +41,10 @@ dependencies {
     implementation project(':shadow-api-detector')
     implementation project(':mirage-api-detector')
     implementation project(':doppelganger-api-detector')
+    // Declared directly, not just inherited transitively from the three sibling plugins above
+    // (each depends on it as implementation, not api) - this module's own updateApiOnlySuiteDSL
+    // task references com.arc_e_tect.gradle.dslupdater classes directly.
+    implementation libs.dsl.updater.core
 
     testImplementation libs.junit.jupiter
     testImplementation libs.assertj.core
