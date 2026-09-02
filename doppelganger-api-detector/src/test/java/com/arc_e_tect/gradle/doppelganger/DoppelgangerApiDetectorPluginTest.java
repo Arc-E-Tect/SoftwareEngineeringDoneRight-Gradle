@@ -441,6 +441,25 @@ class DoppelgangerApiDetectorPluginTest {
                         + "-PdoppelgangerApiDetector.updateResponseCoverageHistory; expected 'true' or 'false'");
     }
 
+    @Test
+    @DisplayName("registers the updateDoppelgangerApiDetectorDSL task when applied")
+    void registersUpdateDslTask() {
+        Project project = projectWithPlugin();
+
+        assertThat(project.getTasks().findByName(DoppelgangerApiDetectorPlugin.UPDATE_DSL_TASK_NAME)).isNotNull();
+    }
+
+    @Test
+    @DisplayName("defaults the updateDoppelgangerApiDetectorDSL task's buildFile to the project's own build file")
+    void updateDslTaskDefaultsBuildFileToProjectsOwnBuildFile() {
+        Project project = projectWithPlugin();
+
+        UpdateDoppelgangerApiDetectorDslTask task = (UpdateDoppelgangerApiDetectorDslTask)
+                project.getTasks().getByName(DoppelgangerApiDetectorPlugin.UPDATE_DSL_TASK_NAME);
+
+        assertThat(task.getBuildFile().get().getAsFile()).isEqualTo(project.getBuildFile());
+    }
+
     private Project projectWithPlugin() {
         Project project = ProjectBuilder.builder().withProjectDir(tempDir.toFile()).build();
         project.getPluginManager().apply("java");

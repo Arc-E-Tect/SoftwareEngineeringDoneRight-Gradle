@@ -10,8 +10,9 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * Gradle plugin that registers the {@code detectDoppelgangerApis} task and wires the
- * {@code doppelgangerApiDetector} DSL extension into the project.
+ * Gradle plugin that registers the {@code detectDoppelgangerApis} and
+ * {@code updateDoppelgangerApiDetectorDSL} tasks and wires the {@code doppelgangerApiDetector} DSL
+ * extension into the project.
  *
  * <h2>Usage</h2>
  * <pre>
@@ -57,6 +58,9 @@ public class DoppelgangerApiDetectorPlugin implements Plugin<Project> {
 
     /** Name of the contract-coverage-scanning Gradle task registered by this plugin. */
     public static final String SCAN_CONTRACTS_TASK_NAME = "scanContracts";
+
+    /** Name of the DSL-updating task registered by this plugin. */
+    public static final String UPDATE_DSL_TASK_NAME = "updateDoppelgangerApiDetectorDSL";
 
     /** Creates a new plugin instance. Instantiated by Gradle infrastructure. */
     public DoppelgangerApiDetectorPlugin() {}
@@ -196,6 +200,9 @@ public class DoppelgangerApiDetectorPlugin implements Plugin<Project> {
             taskProvider.configure(task -> task.getTestDirsUserConfigured().set(testDirsUserConfigured));
             scanContractsTaskProvider.configure(task -> task.getTestDirsUserConfigured().set(testDirsUserConfigured));
         });
+
+        project.getTasks().register(UPDATE_DSL_TASK_NAME, UpdateDoppelgangerApiDetectorDslTask.class, task ->
+                task.getBuildFile().set(project.getLayout().file(project.provider(project::getBuildFile))));
     }
 
     /**

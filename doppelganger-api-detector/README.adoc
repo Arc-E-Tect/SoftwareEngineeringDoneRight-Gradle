@@ -406,16 +406,17 @@ doppelgangerApiDetector {
 
 `rootDocument` is the only property that must always be set - in all but very rare cases (an OpenAPI description split across many top-level documents with no single entry point) the root document is all the plugin needs, since it is expected to link to every other document itself. `contractsDir` must additionally be set whenever `useSpringCloudContract` is enabled - see "Configuration errors vs. bootstrapping gaps" above.
 
-== Task
+== Tasks
 
 [cols="2,1,3",options="header"]
 |===
-| Task name                | Group        | Description
-| `detectDoppelgangerApis` | verification | Scans OpenAPI documentation, `@RestController` implementations, and test-level verification evidence, and reports endpoints that are declared and implemented but never verified against their contract.
-| `scanContracts`          | verification | Scans the same candidate endpoints, but reports response-code and contract-test *coverage* rather than a pass/fail verdict - see "Contract Response Coverage" below. Never fails the build on its own initiative.
+| Task name                          | Group                     | Description
+| `detectDoppelgangerApis`           | verification              | Scans OpenAPI documentation, `@RestController` implementations, and test-level verification evidence, and reports endpoints that are declared and implemented but never verified against their contract.
+| `scanContracts`                    | verification              | Scans the same candidate endpoints, but reports response-code and contract-test *coverage* rather than a pass/fail verdict - see "Contract Response Coverage" below. Never fails the build on its own initiative.
+| `updateDoppelgangerApiDetectorDSL` | doppelganger api detector | Adds any `doppelgangerApiDetector { }` properties missing from the project's build file, set to their defaults.
 |===
 
-Neither task is wired into `check` or `build` automatically. Teams generating their OpenAPI documentation from code, or migrating their tests onto one of the supported verification mechanisms gradually, would otherwise see every build fail immediately.
+None of these tasks is wired into `check` or `build` automatically. `detectDoppelgangerApis` and `scanContracts` aren't because teams generating their OpenAPI documentation from code, or migrating their tests onto one of the supported verification mechanisms gradually, would otherwise see every build fail immediately; `updateDoppelgangerApiDetectorDSL` is a deliberate, occasional maintenance action.
 
 Running the reports explicitly:
 
@@ -442,6 +443,48 @@ tasks.named("check") {
     dependsOn("detectDoppelgangerApis")
 }
 ----
+
+== Updating the DSL to the latest properties
+
+`updateDoppelgangerApiDetectorDSL` reads the project's own `build.gradle` and adds any `doppelgangerApiDetector { }` properties missing from it, set to the same default value each one's `convention(...)` already resolves to - so setting an added property explicitly afterwards is a no-op.
+This lets a project pick up new plugin properties introduced by a later version without going back to the docs and hand-copying them in.
+
+[source,shell]
+----
+./gradlew updateDoppelgangerApiDetectorDSL
+----
+
+Only properties with a real default are ever added: `failOnDoppelganger`, `useRestDocs`, `useOpenApiRequestValidator`, `useSpringCloudContract`, `reportDir`, `reportFileName`, `systemUnderTestVersion`, `openApiDir`, `trackContractHistory`, `contractHistoryFile`, `updateContractHistory`, `excludePaths`, `excludeWellKnown`, `pathResolverHelperMethods`, `includeResponseCoverage`, `ignore5xx`, `scanContractsReportFileName`, `trackResponseCoverageHistory`, `responseCoverageHistoryFile`, and `updateResponseCoverageHistory`.
+`rootDocument` is left out on purpose - it is required, with deliberately no default at all.
+`controllerDirs` and `testDirs` are left out too: their defaults are applied to the task, not the extension, conditionally when still empty.
+`contractsDir` deliberately has no convention either - it's required only when `useSpringCloudContract` is enabled, validated eagerly at task time, not defaulted.
+`propertyFiles` and `excludeFiles` have no default beyond "empty".
+There's nothing a literal could usefully add for any of these.
+An existing assignment is never touched, even when its value differs from the default - only a *missing* property is ever added.
+
+If the project has no `doppelgangerApiDetector { }` block at all, `updateDoppelgangerApiDetectorDSL` leaves it alone by default.
+Pass `--generateDoppelgangerApiDetectorDSL` to generate a full new block instead, appended to the end of the build file:
+
+[source,shell]
+----
+./gradlew updateDoppelgangerApiDetectorDSL --generateDoppelgangerApiDetectorDSL
+----
+
+A freshly generated block still needs `rootDocument` configured separately - there's no default it could guess.
+
+Pass `--cleanupDoppelgangerApiDetectorDSL` to strip every comment from inside the managed block - both pre-existing ones and any doc comment `updateDoppelgangerApiDetectorDSL` itself would otherwise add - leaving only properties:
+
+[source,shell]
+----
+./gradlew updateDoppelgangerApiDetectorDSL --cleanupDoppelgangerApiDetectorDSL
+----
+
+Run with Gradle's own `--info` flag to see exactly which properties were added and what value each was set to.
+
+Before writing any change, `updateDoppelgangerApiDetectorDSL` copies the file exactly as it was to `build.gradle.bak`, alongside it - a plain-file fallback even for a project not using version control (or one that just hasn't committed the file yet).
+Only written on a run that actually changes something; each subsequent changing run overwrites the previous backup.
+
+Groovy DSL (`build.gradle`) only - Kotlin DSL (`build.gradle.kts`) isn't supported.
 
 == Progress reporting
 
