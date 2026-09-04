@@ -36,6 +36,10 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+/**
+ * Generates the built-in hexagonal architecture test, and a bridge suite for any external rule
+ * pack tests discovered on {@link #getRulePackClasspath()}, under {@link #getOutputDirectory()}.
+ */
 @DisableCachingByDefault(because = "Generates test sources from extension configuration")
 public abstract class GenerateArchitectureTestsTask extends DefaultTask {
 
@@ -44,6 +48,7 @@ public abstract class GenerateArchitectureTestsTask extends DefaultTask {
     private static final String EXTERNAL_SUITE_CLASS_NAME = "ExternalRulePackSuite";
     private static final Pattern PACKAGE_SEGMENT = Pattern.compile("[A-Za-z_$][A-Za-z0-9_$]*");
 
+    /** Creates a new task instance. Instantiated by Gradle infrastructure. */
     @Inject
     public GenerateArchitectureTestsTask() {
         setGroup("verification");
@@ -55,54 +60,143 @@ public abstract class GenerateArchitectureTestsTask extends DefaultTask {
         getOutboundAdapters().convention(List.of("..adapter.outbound..", "..adapters.outbound.."));
     }
 
+    /**
+     * The explicitly configured base package, i.e. {@code architectureValidator.basePackage}.
+     * Takes priority over both an inferred package (from {@link #getMainSourceDirectory()}'s own
+     * layout) and {@link #getFallbackBasePackage()} when non-blank.
+     *
+     * @return mutable property for the configured base package
+     */
     @Input
     public abstract Property<String> getBasePackage();
 
+    /**
+     * Base package used only when {@link #getBasePackage()} is blank and no package could be
+     * inferred from {@link #getMainSourceDirectory()}'s own layout - the project's own
+     * {@code group}, resolved by the plugin at apply time.
+     *
+     * @return mutable property for the fallback base package
+     */
     @Input
     public abstract Property<String> getFallbackBasePackage();
 
+    /**
+     * Inbound port package patterns.
+     *
+     * @return mutable list property of inbound port package patterns
+     */
     @Input
     public abstract ListProperty<String> getInPorts();
 
+    /**
+     * Outbound port package patterns.
+     *
+     * @return mutable list property of outbound port package patterns
+     */
     @Input
     public abstract ListProperty<String> getOutPorts();
 
+    /**
+     * Domain model package patterns.
+     *
+     * @return mutable list property of domain model package patterns
+     */
     @Input
     public abstract ListProperty<String> getDomainModel();
 
+    /**
+     * Adapter package patterns, matching both inbound and outbound adapters not already covered by
+     * {@link #getInboundAdapters()}/{@link #getOutboundAdapters()}.
+     *
+     * @return mutable list property of adapter package patterns
+     */
     @Input
     public abstract ListProperty<String> getAdapters();
 
+    /**
+     * Inbound adapter package patterns.
+     *
+     * @return mutable list property of inbound adapter package patterns
+     */
     @Input
     public abstract ListProperty<String> getInboundAdapters();
 
+    /**
+     * Outbound adapter package patterns.
+     *
+     * @return mutable list property of outbound adapter package patterns
+     */
     @Input
     public abstract ListProperty<String> getOutboundAdapters();
 
+    /**
+     * Application service package patterns.
+     *
+     * @return mutable list property of application service package patterns
+     */
     @Input
     public abstract ListProperty<String> getApplicationServices();
 
+    /**
+     * Shared/common package patterns, excluded from layer-boundary rules.
+     *
+     * @return mutable list property of common package patterns
+     */
     @Input
     public abstract ListProperty<String> getCommonPackages();
 
+    /**
+     * Whether generation fails when duplicate rules are discovered.
+     *
+     * @return mutable property for the fail-on-duplicate-rules flag
+     */
     @Input
     public abstract Property<Boolean> getFailOnDuplicateRules();
 
+    /**
+     * Whether the built-in hexagonal architecture test is generated at all.
+     *
+     * @return mutable property for the use-built-in-hexagonal-rule-pack flag
+     */
     @Input
     public abstract Property<Boolean> getUseBuiltInHexagonalRulePack();
 
+    /**
+     * Directory holding hand-written architecture tests, scanned only to detect duplicate rules
+     * against the generated ones - not itself compiled by this task.
+     *
+     * @return read-only directory property for the hand-written test directory
+     */
     @Internal
     public abstract DirectoryProperty getUserTestsDirectory();
 
+    /**
+     * The project's main Java source directory, used to infer a base package from its own
+     * directory layout when {@link #getBasePackage()} is blank.
+     *
+     * @return read-only directory property for the main source directory
+     */
     @Internal
     public abstract DirectoryProperty getMainSourceDirectory();
 
+    /**
+     * Classpath scanned for external rule pack tests to bridge into a generated JUnit Platform
+     * suite.
+     *
+     * @return read-only file collection for the rule pack classpath
+     */
     @Classpath
     public abstract ConfigurableFileCollection getRulePackClasspath();
 
+    /**
+     * Directory generated test sources are written to.
+     *
+     * @return mutable directory property for the output directory
+     */
     @OutputDirectory
     public abstract DirectoryProperty getOutputDirectory();
 
+    /** Generates the built-in hexagonal architecture test and the external rule pack bridge suite. */
     @TaskAction
     public void generate() {
         Path outputRoot = getOutputDirectory().get().getAsFile().toPath();
