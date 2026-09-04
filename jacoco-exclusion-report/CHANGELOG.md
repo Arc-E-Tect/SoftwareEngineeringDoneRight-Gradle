@@ -1,3 +1,18 @@
+# [5.3.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/jacoco-exclusion-report-v5.2.0...jacoco-exclusion-report-v5.3.0) (2026-09-04)
+
+
+### ✨ New and updated features
+
+* **api-only-suite:** add updateApiOnlySuiteDSL task ([#271](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/271)) ([44f5c9d](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/44f5c9dbfc41150ffdae142713fc2747188c06a3)), closes [#271](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/271)
+* **architecture-validator:** add updateArchitectureValidatorDSL task ([#273](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/273)) ([f63ddc0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/f63ddc06533f6c5937a7626aaac10e8e408ede56)), closes [#273](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/273)
+* **gherkin-to-asciidoc:** add updateGherkinToAsciidocDSL task ([#272](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/272)) ([d05bec5](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/d05bec5647ae5d7502b6197b8526f56fada7872d)), closes [#272](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/272)
+
+
+### 📝 Documentation
+
+* fix missing-javadoc warnings (architecture-validator, jacoco-exclusion-report) ([#275](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/275)) ([f48d7fe](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/f48d7fee73a7d0cb82dbb65ef1e2da8ecf65e84e)), closes [#275](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/275)
+* promote each plugin's updateDSL task with a top-of-README TIP ([#274](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/274)) ([872632c](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/872632c87dacbf87f7657223269e86d01db5d053)), closes [#274](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/274)
+
 # [5.2.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/jacoco-exclusion-report-v5.1.0...jacoco-exclusion-report-v5.2.0) (2026-09-02)
 
 
