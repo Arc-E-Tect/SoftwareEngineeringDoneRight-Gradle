@@ -1,3 +1,16 @@
+## [2.2.1](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/architecture-validator-v2.2.0...architecture-validator-v2.2.1) (2026-09-04)
+
+
+### 🐛 Bug Fixes
+
+* release docs commits as patches, stop failing release workflows on legitimate no-op pushes ([#276](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/276)) ([9a440f2](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/9a440f27f1e944090aa662ef7026bab93626f015)), closes [#276](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/276)
+
+
+### 📝 Documentation
+
+* fix missing-javadoc warnings (architecture-validator, jacoco-exclusion-report) ([#275](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/275)) ([f48d7fe](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/f48d7fee73a7d0cb82dbb65ef1e2da8ecf65e84e)), closes [#275](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/275)
+* promote each plugin's updateDSL task with a top-of-README TIP ([#274](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/274)) ([872632c](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/872632c87dacbf87f7657223269e86d01db5d053)), closes [#274](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/274)
+
 # [2.2.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/architecture-validator-v2.1.1...architecture-validator-v2.2.0) (2026-09-02)
 
 
