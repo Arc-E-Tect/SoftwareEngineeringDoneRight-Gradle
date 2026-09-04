@@ -36,6 +36,10 @@ public class GeneratedAnnotationScanner {
 
     private static final String MARKER_SIMPLE_NAME = "Generated";
 
+    /** Creates a new scanner instance. */
+    public GeneratedAnnotationScanner() {
+    }
+
     /**
      * Scans one {@code .class} file and returns every member carrying a
      * {@code Generated}-named annotation.
