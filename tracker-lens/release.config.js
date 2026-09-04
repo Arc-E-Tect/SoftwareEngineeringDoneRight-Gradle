@@ -18,6 +18,9 @@ module.exports = {
             releaseRules: [
                 { type: 'feat', release: 'minor' },
                 { type: 'fix', release: 'patch' },
+                // Documentation is part of the product - inaccurate or unclear docs are a bug, not
+                // mere housekeeping, so a docs commit releases exactly like a fix.
+                { type: 'docs', release: 'patch' },
                 { type: 'refactor', release: 'patch' },
                 { type: 'improvement', release: 'minor' },
                 { type: 'scenario', release: 'patch' },

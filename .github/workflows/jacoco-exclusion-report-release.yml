@@ -13,7 +13,13 @@ jobs:
   Calculate-Version:
     uses: ./.github/workflows/semantic-version-calculate.yml
     with:
-      fail_on_empty_version: true
+      # A push under these paths can legitimately be a commit type semantic-release
+      # doesn't release for (housekeeping like test/build/ci/chore/style) - that's a
+      # normal no-op, not a failure. The jobs below gate on next_version_empty rather
+      # than next_version itself, which is never actually empty (see that output's own
+      # description in semantic-version-calculate.yml).
+      fail_on_empty_version: false
+      fail_on_existing_tag: false
       project_dir: jacoco-exclusion-report
       tag_format: 'jacoco-exclusion-report-v${version}'
       DEBUG: true
@@ -79,7 +85,10 @@ jobs:
   Release-Plugin:
     name: Release JaCoCo Exclusion Report Plugin
     needs: [Calculate-Version, Build]
-    if: ${{ needs.Calculate-Version.outputs.next_version != '' }}
+    # next_version itself is never empty - it falls back to the current version so a build-only
+    # caller always has something to compile with - so next_version_empty is what actually signals
+    # "there is nothing new to release", not a string-emptiness check on next_version.
+    if: ${{ needs.Calculate-Version.outputs.next_version_empty == 'false' }}
     uses: ./.github/workflows/semantic-version-apply.yml
     with:
       project_dir: jacoco-exclusion-report
@@ -89,7 +98,10 @@ jobs:
   Publish:
     name: Publish JaCoCo Exclusion Report Plugin to Gradle Portal
     needs: [Calculate-Version, Release-Plugin]
-    if: ${{ needs.Calculate-Version.outputs.next_version != '' }}
+    # next_version itself is never empty - it falls back to the current version so a build-only
+    # caller always has something to compile with - so next_version_empty is what actually signals
+    # "there is nothing new to release", not a string-emptiness check on next_version.
+    if: ${{ needs.Calculate-Version.outputs.next_version_empty == 'false' }}
     runs-on: ubuntu-latest
 
     env:
@@ -130,7 +142,10 @@ jobs:
 
   Determine-Release-Type:
     needs: [Calculate-Version]
-    if: ${{ needs.Calculate-Version.outputs.next_version != '' }}
+    # next_version itself is never empty - it falls back to the current version so a build-only
+    # caller always has something to compile with - so next_version_empty is what actually signals
+    # "there is nothing new to release", not a string-emptiness check on next_version.
+    if: ${{ needs.Calculate-Version.outputs.next_version_empty == 'false' }}
     uses: ./.github/workflows/determine-release-type.yml
 
   Workflow-Summary:
