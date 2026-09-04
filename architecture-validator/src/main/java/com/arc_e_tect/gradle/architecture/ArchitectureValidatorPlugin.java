@@ -18,12 +18,26 @@ import com.arc_e_tect.sedr.utils.jacoco.marker.ExcludeFromJacocoGeneratedCodeCov
 
 import java.util.concurrent.atomic.AtomicLong;
 
+/**
+ * Gradle plugin that registers the {@code testArchitecture} JVM test suite, the
+ * {@code generateArchitectureTests} and {@code updateArchitectureValidatorDSL} tasks, and wires
+ * the {@code architectureValidator} DSL extension into the project.
+ */
 @ExcludeFromJacocoGeneratedCodeCoverage(justification = "Gradle plugin wiring — requires GradleTestKit to exercise")
 public class ArchitectureValidatorPlugin implements Plugin<Project> {
 
+    /** Name of the JVM test suite registered by this plugin. */
     public static final String TEST_ARCHITECTURE_TASK_NAME = "testArchitecture";
+
+    /** Name of the test-generating Gradle task registered by this plugin. */
     public static final String GENERATE_ARCHITECTURE_TESTS_TASK_NAME = "generateArchitectureTests";
+
+    /** Name of the DSL-updating task registered by this plugin. */
     public static final String UPDATE_DSL_TASK_NAME = "updateArchitectureValidatorDSL";
+
+    /** Creates a new plugin instance. Instantiated by Gradle infrastructure. */
+    public ArchitectureValidatorPlugin() {
+    }
 
     @Override
     public void apply(Project project) {
