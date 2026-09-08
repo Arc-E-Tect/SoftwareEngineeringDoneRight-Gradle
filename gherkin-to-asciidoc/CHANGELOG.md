@@ -1,3 +1,22 @@
+# [6.7.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/gherkin-to-asciidoc-v6.6.0...gherkin-to-asciidoc-v6.7.0) (2026-09-08)
+
+
+### ✨ New and updated features
+
+* **gherkin-to-asciidoc:** add failOnDuplicateScenarios DSL property ([#277](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/277)) ([22e11b8](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/22e11b8c05fef3645a295b369d6e14112c0b69f1)), closes [#277](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/277)
+* **architecture-validator:** add updateArchitectureValidatorDSL task ([#273](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/273)) ([f63ddc0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/f63ddc06533f6c5937a7626aaac10e8e408ede56)), closes [#273](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/273)
+
+
+### 🐛 Bug Fixes
+
+* release docs commits as patches, stop failing release workflows on legitimate no-op pushes ([#276](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/276)) ([9a440f2](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/9a440f27f1e944090aa662ef7026bab93626f015)), closes [#276](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/276)
+
+
+### 📝 Documentation
+
+* fix missing-javadoc warnings (architecture-validator, jacoco-exclusion-report) ([#275](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/275)) ([f48d7fe](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/f48d7fee73a7d0cb82dbb65ef1e2da8ecf65e84e)), closes [#275](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/275)
+* promote each plugin's updateDSL task with a top-of-README TIP ([#274](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/274)) ([872632c](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/872632c87dacbf87f7657223269e86d01db5d053)), closes [#274](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/274)
+
 # [6.6.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/gherkin-to-asciidoc-v6.5.0...gherkin-to-asciidoc-v6.6.0) (2026-09-02)
 
 
