@@ -27,6 +27,7 @@ import org.gradle.api.provider.Property;
  *     trackProgressHistory  = false                                                 // default; requires trackProgress = true
  *     // progressHistoryFile = layout.projectDirectory.file('gherkin-progress-history.ndjson') // default
  *     updateProgressHistory = trackProgressHistory                                  // default; see getUpdateProgressHistory()
+ *     failOnDuplicateScenarios = true                                               // default; see getFailOnDuplicateScenarios()
  * }
  * </pre>
  *
@@ -352,4 +353,29 @@ public abstract class GherkinToAsciidocExtension {
      * @return mutable boolean property controlling whether the progress history file is written back
      */
     public abstract Property<Boolean> getUpdateProgressHistory();
+
+    /**
+     * Whether {@code generateFeatureDocs} fails the build when two or more scenarios share a title.
+     * Defaults to {@code true}.
+     *
+     * <p>A shared title is unsafe because
+     * {@link com.arc_e_tect.gradle.gherkin.progress.ScenarioFingerprint} identifies a scenario by its
+     * title alone; two scenarios that merely happen to share a title are indistinguishable to it, so
+     * persisting progress history for them would silently corrupt it - see
+     * {@link com.arc_e_tect.gradle.gherkin.parser.DuplicateScenarioTitles} for the full explanation.
+     * With the default {@code true}, {@code generateFeatureDocs} rejects the build outright the moment
+     * such a collision is found, before either the report or the history file is written.</p>
+     *
+     * <p>Set to {@code false} to let the build continue despite duplicate titles instead - every
+     * duplicate is still reported, as a warning, unconditionally (not only under {@code --info}, unlike
+     * the default's own pre-failure logging). Doing so also unconditionally disables progress history
+     * tracking for {@code generateFeatureDocs}, regardless of {@link #getTrackProgressHistory()}'s own
+     * value: once duplicate titles are no longer guaranteed to fail the build, the fingerprint-keyed
+     * history can no longer be trusted, so it is never read, advanced, or written while this property is
+     * {@code false}. The generated report prominently warns about this whenever
+     * {@link #getTrackProgressHistory()} is {@code true}.</p>
+     *
+     * @return mutable boolean property controlling whether duplicate scenario titles fail the build
+     */
+    public abstract Property<Boolean> getFailOnDuplicateScenarios();
 }

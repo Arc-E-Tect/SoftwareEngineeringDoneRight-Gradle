@@ -279,6 +279,19 @@ public abstract class GenerateFeatureDocsTask extends DefaultTask {
     public abstract Property<Boolean> getUpdateProgressHistory();
 
     /**
+     * Whether to fail the build when two or more scenarios share a title. Defaults to {@code true}.
+     * See {@link GherkinToAsciidocExtension#getFailOnDuplicateScenarios()} for the full rationale.
+     *
+     * <p>When {@code false}, duplicates are still reported (unconditionally, as warnings), but the
+     * build is allowed to continue; progress history tracking is then unconditionally skipped for
+     * this run, regardless of {@link #getTrackProgressHistory()}'s own value.</p>
+     *
+     * @return mutable boolean property controlling whether duplicate scenario titles fail the build
+     */
+    @Input
+    public abstract Property<Boolean> getFailOnDuplicateScenarios();
+
+    /**
      * Root directory of the project, used to resolve the default source directory
      * when neither {@link #getSourceDirs()} nor {@link #getSourceFile()} is set.
      *
@@ -384,7 +397,8 @@ public abstract class GenerateFeatureDocsTask extends DefaultTask {
         }
         parsingProgress.complete();
 
-        failOnDuplicateScenarioTitles(occurrences);
+        boolean failOnDuplicateScenarios = getFailOnDuplicateScenarios().get();
+        reportDuplicateScenarioTitles(occurrences, failOnDuplicateScenarios);
         List<ScenarioInfo> scenarios = occurrences.stream()
                 .map(DuplicateScenarioTitles.ScenarioOccurrence::scenario)
                 .collect(Collectors.toList());
@@ -398,9 +412,13 @@ public abstract class GenerateFeatureDocsTask extends DefaultTask {
         String systemUnderTestVersion = getSystemUnderTestVersion().get();
 
         if (trackProgress) {
+            if (trackProgressHistory && !failOnDuplicateScenarios) {
+                logHistoryTrackingDisabledByFailOnDuplicateScenarios();
+            }
+            boolean trackHistoryThisRun = trackProgressHistory && failOnDuplicateScenarios;
             List<Expression> glueCode = scanGlueCode();
             File template = getTemplate().isPresent() ? getTemplate().getAsFile().get() : null;
-            Map<String, ScenarioProgressRecord> history = trackProgressHistory
+            Map<String, ScenarioProgressRecord> history = trackHistoryThisRun
                     ? updateProgressHistory(scenarios, glueCode) : Map.of();
             ProgressReportOptions options = new ProgressReportOptions(
                     groupByFeature, getSnippetDir().getAsFile().get(), template, systemUnderTestVersion, history);
@@ -433,18 +451,36 @@ public abstract class GenerateFeatureDocsTask extends DefaultTask {
     }
 
     /**
-     * Fails the build when two or more scenarios share a title, since
-     * {@link com.arc_e_tect.gradle.gherkin.progress.ScenarioFingerprint} would then be unable to tell them apart - see {@link DuplicateScenarioTitles} for why that
-     * silently corrupts persisted progress history rather than merely looking odd in the report.
+     * Reports every pair (or larger group) of scenarios that share a title, since
+     * {@link com.arc_e_tect.gradle.gherkin.progress.ScenarioFingerprint} would then be unable to tell
+     * them apart - see {@link DuplicateScenarioTitles} for why that silently corrupts persisted
+     * progress history rather than merely looking odd in the report.
      *
-     * <p>With {@code --info} logging enabled, every duplicate title is logged individually together
-     * with every feature file it was found in. Without it, only a one-line warning pointing at
-     * {@code --info} is logged - a single duplicate is already reason enough to fail the build, so
-     * the summary doesn't wait to find them all before failing either way.</p>
+     * <p>When {@code failOnDuplicates} is {@code true} (the default), a build with any duplicate is
+     * rejected outright: with {@code --info} logging enabled, every duplicate title is logged
+     * individually together with every feature file it was found in; without it, only a one-line
+     * warning pointing at {@code --info} is logged - a single duplicate is already reason enough to
+     * fail the build, so the summary doesn't wait to find them all before failing either way.</p>
+     *
+     * <p>When {@code failOnDuplicates} is {@code false}, the build is allowed to continue, but every
+     * duplicate is still reported - unconditionally, as a {@code WARN}, regardless of {@code --info} -
+     * since there is no build failure message left to surface them through otherwise.</p>
      */
-    private void failOnDuplicateScenarioTitles(List<DuplicateScenarioTitles.ScenarioOccurrence> occurrences) {
+    private void reportDuplicateScenarioTitles(
+            List<DuplicateScenarioTitles.ScenarioOccurrence> occurrences, boolean failOnDuplicates) {
         List<DuplicateScenarioTitles.Duplicate> duplicates = new DuplicateScenarioTitles().find(occurrences);
         if (duplicates.isEmpty()) {
+            return;
+        }
+
+        if (!failOnDuplicates) {
+            for (DuplicateScenarioTitles.Duplicate duplicate : duplicates) {
+                String files = duplicate.occurrences().stream()
+                        .map(occurrence -> occurrence.featureFile().getName())
+                        .collect(Collectors.joining(", "));
+                getLogger().warn("gherkinToAsciidoc: duplicate scenario title '{}' found in: {}",
+                        duplicate.title(), files);
+            }
             return;
         }
 
@@ -471,6 +507,24 @@ public abstract class GenerateFeatureDocsTask extends DefaultTask {
                 + (infoEnabled
                         ? "See the log above for every duplicate and the files it was found in."
                         : "Re-run with --info to see every duplicate and the files it was found in."));
+    }
+
+    /**
+     * Logs a highly visible, always-shown (not gated behind {@code --info}) warning that progress
+     * history is not being tracked this run, because {@link #getFailOnDuplicateScenarios()} is
+     * {@code false} - printed regardless of whether any duplicate scenario titles were actually found
+     * in this particular run, since the corruption risk this guards against is a property of running
+     * with the safety check disabled, not of any one run's current content.
+     */
+    private void logHistoryTrackingDisabledByFailOnDuplicateScenarios() {
+        String border = "=".repeat(80);
+        getLogger().warn(border);
+        getLogger().warn("gherkinToAsciidoc: SCENARIO PROGRESS HISTORY IS NOT BEING TRACKED THIS RUN.");
+        getLogger().warn("Reason: failOnDuplicateScenarios is set to false, which allows duplicate");
+        getLogger().warn("scenario titles to build without failing - and since a duplicate title would");
+        getLogger().warn("silently corrupt the fingerprint-keyed progress history, history tracking is");
+        getLogger().warn("always skipped while this property is false, regardless of trackProgressHistory.");
+        getLogger().warn(border);
     }
 
     private List<Expression> scanGlueCode() {

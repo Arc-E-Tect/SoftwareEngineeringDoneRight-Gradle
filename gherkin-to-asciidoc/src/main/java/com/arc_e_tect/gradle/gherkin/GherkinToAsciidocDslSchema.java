@@ -13,15 +13,16 @@ import java.util.List;
  * {@link GherkinToAsciidocPlugin#apply} has a root-project-inheritance fork: in a sub-project whose
  * root project also applies this plugin, {@code trackProgress}, {@code outputFileName},
  * {@code template}, {@code systemUnderTestVersion}, {@code indexing}, {@code forceRewrite},
- * {@code consolidatedIndex}, and {@code trackProgressHistory} all default to the <em>root</em>
- * project's own configured value instead of a fixed literal - a {@code Property#convention(Provider)}
- * link that only holds as long as the property is never explicitly {@code set(...)}. Writing any of
- * those eight as a literal into a sub-project's build file would permanently break that inheritance
- * - exactly the opposite of a no-op - the moment the root project's own value differs (now or
- * later) from whatever literal was written. {@code includeSubDirs} and {@code groupByFeature} are
- * excluded for the same reason, compounded further by also depending on {@code trackProgress}
- * itself. This module has no way to know, from a single build file's text, whether it belongs to a
- * root or a sub-project, so none of these ten can be included safely.
+ * {@code consolidatedIndex}, {@code trackProgressHistory}, and {@code failOnDuplicateScenarios} all
+ * default to the <em>root</em> project's own configured value instead of a fixed literal - a
+ * {@code Property#convention(Provider)} link that only holds as long as the property is never
+ * explicitly {@code set(...)}. Writing any of those nine as a literal into a sub-project's build
+ * file would permanently break that inheritance - exactly the opposite of a no-op - the moment the
+ * root project's own value differs (now or later) from whatever literal was written.
+ * {@code includeSubDirs} and {@code groupByFeature} are excluded for the same reason, compounded
+ * further by also depending on {@code trackProgress} itself. This module has no way to know, from a
+ * single build file's text, whether it belongs to a root or a sub-project, so none of these eleven
+ * can be included safely.
  *
  * <p>{@code sourceDirs}, {@code sourceFile}, {@code glueCodeDirs}, and {@code template} are also
  * excluded: the first three are never given an extension-level default at all ({@code sourceDirs}

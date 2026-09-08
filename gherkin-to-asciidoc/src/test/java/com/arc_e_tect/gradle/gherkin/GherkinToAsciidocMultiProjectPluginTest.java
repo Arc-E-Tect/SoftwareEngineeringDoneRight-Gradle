@@ -335,6 +335,27 @@ class GherkinToAsciidocMultiProjectPluginTest {
     }
 
     @Test
+    @DisplayName("sub-project without its own configuration inherits failOnDuplicateScenarios from the root project")
+    void subProjectInheritsFailOnDuplicateScenariosFromRoot() {
+        Project root = rootProject();
+        extension(root).getFailOnDuplicateScenarios().set(false);
+        Project sub = subProject(root, "sub");
+
+        assertThat(extension(sub).getFailOnDuplicateScenarios().get()).isFalse();
+    }
+
+    @Test
+    @DisplayName("sub-project's own failOnDuplicateScenarios takes precedence over the root project's")
+    void subProjectFailOnDuplicateScenariosOverridesRoot() {
+        Project root = rootProject();
+        extension(root).getFailOnDuplicateScenarios().set(false);
+        Project sub = subProject(root, "sub");
+        extension(sub).getFailOnDuplicateScenarios().set(true);
+
+        assertThat(extension(sub).getFailOnDuplicateScenarios().get()).isTrue();
+    }
+
+    @Test
     @DisplayName("sub-project's own progressHistoryFile always defaults to its own project directory, "
             + "even when the root project configures a custom progressHistoryFile")
     void subProjectProgressHistoryFileNeverInheritsFromRoot() {

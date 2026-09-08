@@ -41,6 +41,7 @@ import java.util.stream.Collectors;
  *   <li>Track progress history: {@code false}</li>
  *   <li>Progress history file: {@code gherkin-progress-history.ndjson} (project directory)</li>
  *   <li>Update progress history: same as track progress history</li>
+ *   <li>Fail on duplicate scenario titles: {@code true}</li>
  * </ul>
  *
  * <h2>Multi-project builds</h2>
@@ -104,6 +105,7 @@ public class GherkinToAsciidocPlugin implements Plugin<Project> {
             ext.getForceRewrite().convention(rootExt.getForceRewrite());
             ext.getConsolidatedIndex().convention(rootExt.getConsolidatedIndex());
             ext.getTrackProgressHistory().convention(rootExt.getTrackProgressHistory());
+            ext.getFailOnDuplicateScenarios().convention(rootExt.getFailOnDuplicateScenarios());
         } else {
             ext.getTrackProgress().convention(false);
             ext.getOutputFileName().convention(GherkinToAsciidocExtension.DEFAULT_OUTPUT_FILE_NAME);
@@ -113,6 +115,7 @@ public class GherkinToAsciidocPlugin implements Plugin<Project> {
             ext.getForceRewrite().convention(false);
             ext.getConsolidatedIndex().convention(false);
             ext.getTrackProgressHistory().convention(false);
+            ext.getFailOnDuplicateScenarios().convention(true);
         }
 
         // outputDir/snippetDir/progressHistoryFile intentionally always default to this project's
@@ -182,6 +185,7 @@ public class GherkinToAsciidocPlugin implements Plugin<Project> {
             task.getTrackProgressHistory().set(ext.getTrackProgressHistory());
             task.getProgressHistoryFile().set(ext.getProgressHistoryFile());
             task.getUpdateProgressHistory().set(updateProgressHistoryCliOverride.orElse(ext.getUpdateProgressHistory()));
+            task.getFailOnDuplicateScenarios().set(ext.getFailOnDuplicateScenarios());
             task.getProjectDirectory().set(project.getLayout().getProjectDirectory());
         });
 
