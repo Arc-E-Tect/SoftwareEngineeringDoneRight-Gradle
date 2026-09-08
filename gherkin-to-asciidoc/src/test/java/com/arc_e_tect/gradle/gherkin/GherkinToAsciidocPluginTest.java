@@ -215,6 +215,15 @@ class GherkinToAsciidocPluginTest {
     }
 
     @Test
+    @DisplayName("extension default: failOnDuplicateScenarios is true")
+    void extensionDefaultFailOnDuplicateScenariosIsTrue() {
+        Project project = projectWithPlugin();
+        GherkinToAsciidocExtension ext = extension(project);
+
+        assertThat(ext.getFailOnDuplicateScenarios().get()).isTrue();
+    }
+
+    @Test
     @DisplayName("generates features.adoc from a flat source directory")
     void generatesAsciidocFromFlatDirectory() throws IOException {
         Project project = projectWithPlugin();
@@ -554,6 +563,7 @@ class GherkinToAsciidocPluginTest {
         task.getConsolidatedIndex().set(false);
         task.getTrackProgressHistory().set(false);
         task.getUpdateProgressHistory().set(false);
+        task.getFailOnDuplicateScenarios().set(true);
         task.getProjectDirectory().set(project.getLayout().getProjectDirectory());
 
         assertThatThrownBy(task::generate).isInstanceOf(org.gradle.api.GradleException.class);
@@ -590,6 +600,7 @@ class GherkinToAsciidocPluginTest {
         task.getConsolidatedIndex().set(false);
         task.getTrackProgressHistory().set(false);
         task.getUpdateProgressHistory().set(false);
+        task.getFailOnDuplicateScenarios().set(true);
         task.getProjectDirectory().set(project.getLayout().getProjectDirectory());
 
         assertThatThrownBy(task::generate).isInstanceOf(org.gradle.api.GradleException.class);
@@ -628,6 +639,112 @@ class GherkinToAsciidocPluginTest {
         assertThatThrownBy(task::generate).isInstanceOf(org.gradle.api.GradleException.class);
 
         assertThat(historyFile).doesNotExist();
+    }
+
+    @Test
+    @DisplayName("does not fail the build when failOnDuplicateScenarios is false, even with duplicate titles")
+    void doesNotFailWhenFailOnDuplicateScenariosIsFalse() throws IOException {
+        Project project = projectWithPlugin();
+        File featuresDir = new File(tempDir.toFile(), "features");
+        featuresDir.mkdirs();
+        writeFeatureFile(featuresDir, "login.feature",
+                "Feature: Login\n\n  Scenario: User logs in\n    Given the login page\n");
+        writeFeatureFile(featuresDir, "auth.feature",
+                "Feature: Auth\n\n  Scenario: User logs in\n    Given the auth page\n");
+
+        GenerateFeatureDocsTask task = task(project);
+        task.getSourceDirs().from(featuresDir);
+        task.getFailOnDuplicateScenarios().set(false);
+        File outputDir = new File(tempDir.toFile(), "output");
+        task.getOutputDir().set(outputDir);
+        task.getProjectDirectory().set(project.getLayout().getProjectDirectory());
+
+        assertThatCode(task::generate).doesNotThrowAnyException();
+
+        String content = Files.readString(new File(outputDir, "features.adoc").toPath());
+        assertThat(content).contains("User logs in");
+    }
+
+    @Test
+    @DisplayName("still reports duplicate scenario titles as warnings, unconditionally, "
+            + "when failOnDuplicateScenarios is false")
+    void reportsDuplicatesAsWarningsWhenFailOnDuplicateScenariosIsFalse() throws IOException {
+        Project project = projectWithPlugin();
+        File featuresDir = new File(tempDir.toFile(), "features");
+        featuresDir.mkdirs();
+        writeFeatureFile(featuresDir, "login.feature",
+                "Feature: Login\n\n  Scenario: User logs in\n    Given the login page\n");
+        writeFeatureFile(featuresDir, "auth.feature",
+                "Feature: Auth\n\n  Scenario: User logs in\n    Given the auth page\n");
+        RecordingLogger recordingLogger = new RecordingLogger();
+        // --info is deliberately left disabled: unlike the failing (default) path, reporting must not
+        // depend on it once the build is allowed to continue.
+        recordingLogger.setInfoEnabled(false);
+        LoggerCapturingGenerateFeatureDocsTask task = project.getTasks().create(
+                "generateFeatureDocsWithRecordingLoggerDuplicatesAllowed", LoggerCapturingGenerateFeatureDocsTask.class);
+        task.recordingLogger = recordingLogger;
+        task.getSourceDirs().from(featuresDir);
+        task.getIncludeSubDirs().set(true);
+        task.getOutputDir().set(new File(tempDir.toFile(), "output"));
+        task.getOutputFileName().set("features.adoc");
+        task.getTrackProgress().set(false);
+        task.getGroupByFeature().set(true);
+        task.getSystemUnderTestVersion().set("1.0.0");
+        task.getIndexing().set(IndexingMode.OFF);
+        task.getForceRewrite().set(false);
+        task.getConsolidatedIndex().set(false);
+        task.getTrackProgressHistory().set(false);
+        task.getUpdateProgressHistory().set(false);
+        task.getFailOnDuplicateScenarios().set(false);
+        task.getProjectDirectory().set(project.getLayout().getProjectDirectory());
+
+        assertThatCode(task::generate).doesNotThrowAnyException();
+
+        assertThat(recordingLogger.warnMessages())
+                .anyMatch(message -> message.contains("User logs in")
+                        && message.contains("login.feature")
+                        && message.contains("auth.feature"));
+    }
+
+    @Test
+    @DisplayName("disables progress history tracking when failOnDuplicateScenarios is false, "
+            + "even when no duplicate titles are actually found")
+    void disablesHistoryTrackingWhenFailOnDuplicateScenariosIsFalseRegardlessOfDuplicates() throws IOException {
+        Project project = projectWithPlugin();
+        File featuresDir = new File(tempDir.toFile(), "features");
+        featuresDir.mkdirs();
+        writeFeatureFile(featuresDir, "login.feature",
+                "Feature: Login\n\n  Scenario: User logs in\n    Given the login page\n");
+        File glueCodeDir = new File(tempDir.toFile(), "steps");
+        glueCodeDir.mkdirs();
+        File historyFile = new File(tempDir.toFile(), "history.ndjson");
+        RecordingLogger recordingLogger = new RecordingLogger();
+        LoggerCapturingGenerateFeatureDocsTask task = project.getTasks().create(
+                "generateFeatureDocsWithRecordingLoggerHistoryDisabled", LoggerCapturingGenerateFeatureDocsTask.class);
+        task.recordingLogger = recordingLogger;
+        task.getSourceDirs().from(featuresDir);
+        task.getIncludeSubDirs().set(true);
+        task.getOutputDir().set(new File(tempDir.toFile(), "output"));
+        task.getOutputFileName().set("features.adoc");
+        task.getTrackProgress().set(true);
+        task.getGlueCodeDirs().from(glueCodeDir);
+        task.getGroupByFeature().set(true);
+        task.getSnippetDir().set(new File(tempDir.toFile(), "snippets"));
+        task.getSystemUnderTestVersion().set("1.0.0");
+        task.getIndexing().set(IndexingMode.OFF);
+        task.getForceRewrite().set(false);
+        task.getConsolidatedIndex().set(false);
+        task.getTrackProgressHistory().set(true);
+        task.getUpdateProgressHistory().set(true);
+        task.getProgressHistoryFile().set(historyFile);
+        task.getFailOnDuplicateScenarios().set(false);
+        task.getProjectDirectory().set(project.getLayout().getProjectDirectory());
+
+        task.generate();
+
+        assertThat(historyFile).doesNotExist();
+        assertThat(recordingLogger.warnMessages())
+                .anyMatch(message -> message.contains("PROGRESS HISTORY IS NOT BEING TRACKED"));
     }
 
     @Test
@@ -1618,6 +1735,7 @@ class GherkinToAsciidocPluginTest {
         task.getConsolidatedIndex().set(false);
         task.getTrackProgressHistory().set(false);
         task.getUpdateProgressHistory().set(false);
+        task.getFailOnDuplicateScenarios().set(true);
         task.getProjectDirectory().set(project.getLayout().getProjectDirectory());
 
         task.generate();
