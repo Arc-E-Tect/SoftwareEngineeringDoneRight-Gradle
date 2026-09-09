@@ -822,6 +822,21 @@ Numbering there already restarts at 1 in every project whatever this property sa
 If numbering isn't coming out the way you expect in a fan-out build, `consolidatedIndex` is not the property to reach for - check `forceRewrite` first (see <<not-renumbering>>), since already-numbered lines keep the numbers they have.
 ====
 
+The task says so itself rather than leaving you to infer it.
+When `consolidatedIndex` is `true`, `indexing` is actually numbering something, and every feature file the task collected turns out to belong to one and the same project, it logs:
+
+[source]
+----
+gherkinToAsciidoc: consolidatedIndex is true, but every feature file this task collected belongs to
+one project (user-account), so numbering starts at 1 regardless.
+gherkinToAsciidoc: consolidatedIndex only spans projects when a single task's sourceDirs reach into
+more than one of them. See the README's "Multi-Project Builds" section for the two layouts and which
+one it applies to.
+----
+
+Only `true` is reported, since it's the value that was set deliberately - `false` is the default and does what it says in either layout.
+The warning also stays quiet when the plugin can't be sure: when no project directories are known at all, or when some collected file lives outside every project in the build.
+
 For example, in the aggregator layout over two sub-projects `catalog` (one feature file) and `checkout` (one feature file), both numbered for the first time with `indexing = IndexingMode.FEATURE`:
 
 [cols="1,1,1",options="header"]
