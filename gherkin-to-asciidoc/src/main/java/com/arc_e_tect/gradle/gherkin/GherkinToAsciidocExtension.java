@@ -365,8 +365,12 @@ public abstract class GherkinToAsciidocExtension {
     public abstract Property<Boolean> getUpdateProgressHistory();
 
     /**
-     * Whether {@code generateFeatureDocs} fails the build when two or more scenarios share a title.
-     * Defaults to {@code true}.
+     * Whether {@code generateFeatureDocs} fails the build when two or more scenarios within the same
+     * project share a title. Defaults to {@code true}.
+     *
+     * <p>Titles are compared within each project, never across them: two microservices implementing
+     * the same cross-cutting concern legitimately carry the same scenario titles, and each keeps its
+     * own progress history for its own copy. Only a collision inside one project is a defect.</p>
      *
      * <p>A shared title is unsafe because
      * {@link com.arc_e_tect.gradle.gherkin.progress.ScenarioFingerprint} identifies a scenario by its

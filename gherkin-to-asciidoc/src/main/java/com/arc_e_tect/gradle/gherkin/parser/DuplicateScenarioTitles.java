@@ -21,6 +21,11 @@ import java.util.Map;
  * the other, since history timestamps are never cleared once set. Rejecting the collision outright,
  * before either the report or the history file is written, is simpler and safer than trying to
  * disambiguate the two scenarios after the fact.</p>
+ *
+ * <p>Scope: the caller passes one project's occurrences at a time, so titles collide only within a
+ * project. Two projects implementing the same cross-cutting concern share scenario titles by design,
+ * and their histories are stored in separate files - so a title-only fingerprint stays unambiguous
+ * there without needing to be qualified, and nothing about those two scenarios needs rejecting.</p>
  */
 public final class DuplicateScenarioTitles {
 

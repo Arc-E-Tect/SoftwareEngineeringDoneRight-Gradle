@@ -1749,6 +1749,150 @@ class GherkinToAsciidocPluginTest {
      * task logger, since {@link GenerateFeatureDocsTask#getLogger()} cannot otherwise be observed
      * from a {@link ProjectBuilder}-based test.
      */
+    // --- cross-project scenario title scoping ---
+
+    @Test
+    @DisplayName("does not fail when two projects share a scenario title, since a cross-cutting concern is required of both")
+    void allowsTheSameScenarioTitleInDifferentProjects() throws IOException {
+        Project project = projectWithPlugin();
+        CrossProjectFixture fixture = crossProjectFixture();
+
+        GenerateFeatureDocsTask task = crossProjectTask(project, fixture);
+
+        task.generate();
+
+        assertThat(new File(fixture.outputDir(), "features.adoc")).exists();
+    }
+
+    @Test
+    @DisplayName("still fails when two feature files within one project share a scenario title")
+    void stillFailsOnTheSameScenarioTitleWithinOneProject() throws IOException {
+        Project project = projectWithPlugin();
+        CrossProjectFixture fixture = crossProjectFixture();
+        writeFeatureFile(fixture.catalogFeatures(), "catalog-extra.feature",
+                "Feature: Catalog extra\n\n  Scenario: Access to a protected resource is logged\n"
+                + "    Given the catalog\n");
+
+        GenerateFeatureDocsTask task = crossProjectTask(project, fixture);
+
+        assertThatThrownBy(task::generate)
+                .isInstanceOf(org.gradle.api.GradleException.class)
+                .hasMessageContaining("unique within its own project");
+    }
+
+    @Test
+    @DisplayName("writes one progress history file per owning project when a run spans projects")
+    void writesOneProgressHistoryFilePerOwningProject() throws IOException {
+        Project project = projectWithPlugin();
+        CrossProjectFixture fixture = crossProjectFixture();
+        File glueCodeDir = new File(tempDir.toFile(), "steps");
+        glueCodeDir.mkdirs();
+
+        GenerateFeatureDocsTask task = crossProjectTask(project, fixture);
+        task.getTrackProgress().set(true);
+        task.getGlueCodeDirs().from(glueCodeDir);
+        task.getTrackProgressHistory().set(true);
+        task.getUpdateProgressHistory().set(true);
+        task.getProgressHistoryFile().set(new File(tempDir.toFile(), "history.ndjson"));
+
+        task.generate();
+
+        assertThat(new File(fixture.catalog(), "history.ndjson")).exists();
+        assertThat(new File(fixture.checkout(), "history.ndjson")).exists();
+        assertThat(new File(tempDir.toFile(), "history.ndjson")).doesNotExist();
+    }
+
+    @Test
+    @DisplayName("each project's history file records only that project's own copy of a shared scenario title")
+    void keepsEachProjectsHistoryOfASharedTitleSeparate() throws IOException {
+        Project project = projectWithPlugin();
+        CrossProjectFixture fixture = crossProjectFixture();
+        File glueCodeDir = new File(tempDir.toFile(), "steps");
+        glueCodeDir.mkdirs();
+
+        GenerateFeatureDocsTask task = crossProjectTask(project, fixture);
+        task.getTrackProgress().set(true);
+        task.getGlueCodeDirs().from(glueCodeDir);
+        task.getTrackProgressHistory().set(true);
+        task.getUpdateProgressHistory().set(true);
+        task.getProgressHistoryFile().set(new File(tempDir.toFile(), "history.ndjson"));
+
+        task.generate();
+
+        // Both projects' scenarios share a title, so they share a fingerprint too. Each project's
+        // file must hold exactly its own copy - identified here by the enclosing feature, which is
+        // the one thing that differs between them - and not the other project's.
+        assertThat(Files.readString(new File(fixture.catalog(), "history.ndjson").toPath()))
+                .contains("\"featureTitle\":\"Catalog\"")
+                .doesNotContain("\"featureTitle\":\"Checkout\"");
+        assertThat(Files.readString(new File(fixture.checkout(), "history.ndjson").toPath()))
+                .contains("\"featureTitle\":\"Checkout\"")
+                .doesNotContain("\"featureTitle\":\"Catalog\"");
+    }
+
+    @Test
+    @DisplayName("keeps using the single configured history file when every feature file belongs to one project")
+    void keepsTheConfiguredHistoryFileForASingleProjectRun() throws IOException {
+        Project project = projectWithPlugin();
+        File featuresDir = new File(tempDir.toFile(), "features");
+        featuresDir.mkdirs();
+        writeFeatureFile(featuresDir, "login.feature",
+                "Feature: Login\n\n  Scenario: User logs in\n    Given the login page\n");
+        File glueCodeDir = new File(tempDir.toFile(), "steps");
+        glueCodeDir.mkdirs();
+        File historyFile = new File(tempDir.toFile(), "history.ndjson");
+
+        GenerateFeatureDocsTask task = task(project);
+        task.getSourceDirs().from(featuresDir);
+        task.getProjectDirectories().add(tempDir.toFile());
+        task.getTrackProgress().set(true);
+        task.getGlueCodeDirs().from(glueCodeDir);
+        task.getTrackProgressHistory().set(true);
+        task.getUpdateProgressHistory().set(true);
+        task.getProgressHistoryFile().set(historyFile);
+        task.getOutputDir().set(new File(tempDir.toFile(), "output"));
+        task.getProjectDirectory().set(project.getLayout().getProjectDirectory());
+
+        task.generate();
+
+        assertThat(historyFile).exists();
+    }
+
+    /**
+     * Two sibling projects, each with one feature file carrying the same cross-cutting scenario
+     * title - the shape an "aggregator" run has, where a single task collects both projects' files.
+     */
+    private CrossProjectFixture crossProjectFixture() throws IOException {
+        File catalog = new File(tempDir.toFile(), "catalog");
+        File checkout = new File(tempDir.toFile(), "checkout");
+        File catalogFeatures = new File(catalog, "features");
+        File checkoutFeatures = new File(checkout, "features");
+        catalogFeatures.mkdirs();
+        checkoutFeatures.mkdirs();
+        writeFeatureFile(catalogFeatures, "catalog.feature",
+                "Feature: Catalog\n\n  Scenario: Access to a protected resource is logged\n"
+                + "    Given the catalog\n");
+        writeFeatureFile(checkoutFeatures, "checkout.feature",
+                "Feature: Checkout\n\n  Scenario: Access to a protected resource is logged\n"
+                + "    Given a cart\n");
+        return new CrossProjectFixture(
+                catalog, checkout, catalogFeatures, checkoutFeatures, new File(tempDir.toFile(), "output"));
+    }
+
+    private GenerateFeatureDocsTask crossProjectTask(Project project, CrossProjectFixture fixture) {
+        GenerateFeatureDocsTask task = task(project);
+        task.getSourceDirs().from(fixture.catalogFeatures(), fixture.checkoutFeatures());
+        task.getProjectDirectories().add(fixture.catalog());
+        task.getProjectDirectories().add(fixture.checkout());
+        task.getOutputDir().set(fixture.outputDir());
+        task.getOutputFileName().set("features.adoc");
+        task.getProjectDirectory().set(project.getLayout().getProjectDirectory());
+        return task;
+    }
+
+    private record CrossProjectFixture(
+            File catalog, File checkout, File catalogFeatures, File checkoutFeatures, File outputDir) {}
+
     // --- consolidatedIndex no-op warning ---
 
     @Test
