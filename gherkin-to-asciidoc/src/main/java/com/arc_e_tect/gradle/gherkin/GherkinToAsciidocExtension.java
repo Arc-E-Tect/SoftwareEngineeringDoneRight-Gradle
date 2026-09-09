@@ -291,6 +291,16 @@ public abstract class GherkinToAsciidocExtension {
      *       renumbering every project's features to start at 1 would be disruptive.</li>
      * </ul>
      *
+     * <p><strong>Only affects a task that actually scans more than one project's feature files.</strong>
+     * The scoping happens within a single {@code generateFeatureDocs} invocation, over exactly the
+     * files that invocation collected - so it matters only in an "aggregator" layout, where one
+     * project's {@code sourceDirs} reach into several projects. In the more common "fan-out" layout,
+     * where the plugin is applied to every project and each task's {@code sourceDirs} resolve against
+     * its own project directory, no task ever sees another project's files: numbering already
+     * restarts at 1 in every project, and setting this to {@code true} is silently ignored rather
+     * than producing the build-wide sequence described above. See the README's "Multi-Project Builds"
+     * section for both layouts.</p>
+     *
      * <p>Like {@link #getIndexing()} and {@link #getForceRewrite()}, this property is inherited from
      * the root project's own {@code gherkinToAsciidoc} extension by default; a sub-project that
      * configures it itself overrides that inherited default for itself only.</p>
