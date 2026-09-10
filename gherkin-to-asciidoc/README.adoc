@@ -230,7 +230,8 @@ Only consulted when `trackProgress` is `true`.
 `FEATURE`/`SCENARIO`/`ALL` require `includeSubDirs = true`; `FEATURE` and `ALL` additionally require `groupByFeature = true`. `CI` skips indexing entirely and is always allowed; overridable for the whole build via the `-PgherkinToAsciidoc.indexing` project property.
 | `forceRewrite`  | Boolean         | `false`                              | When `true`, `indexing` renumbers every `Feature`/`Scenario` from scratch. When `false`, a line already correctly numbered for the currently configured `indexing` value is left untouched.
 Has no effect when `indexing` is `OFF` or `CI`. Overridable for the whole build via the `-PgherkinToAsciidoc.forceRewrite` project property.
-| `consolidatedIndex` | Boolean     | `false`                              | In a multi-project Gradle build, whether `indexing`'s numbering is one continuous sequence spanning every project, or independently scoped - starting at 1 again - to each project (see "Numbering Features and Scenarios" below).
+| `consolidatedIndex` | Boolean     | `false`                              | In a multi-project Gradle build, whether `indexing`'s numbering is one continuous sequence spanning every project, or independently scoped - starting at 1 again - to each project.
+Only has an effect on a task that scans more than one project's feature files (see <<numbering-scope>>).
 No effect in a single-project build, or when `indexing` is `OFF` or `CI`.
 | `trackProgressHistory` | Boolean  | `false`                              | When `true`, persists a per-scenario history of when each scenario first reached `listed`/`defined`/`implemented` status (see "Tracking Progress History" below).
 Requires `trackProgress = true`.
@@ -356,10 +357,14 @@ Reindexing gets its own banner and progress lines too, but only when `indexing` 
 [[multi-project-builds]]
 == Multi-Project Builds
 
-The plugin can be applied to every project in a Gradle multi-project build, not just a single one. Apply it
-in the root project's `build.gradle` using `allprojects` (or `subprojects` plus the root project itself) so
-that every project - root and sub-projects alike - gets its own `generateFeatureDocs` task and its own
-generated report:
+The plugin supports Gradle multi-project builds in two different layouts.
+Which one you pick decides how many reports the build produces, which feature files each task scans, and - as a direct consequence - whether `consolidatedIndex` has any effect at all.
+Pick the layout first; everything else in this section follows from it.
+
+[[fan-out-layout]]
+=== Layout 1: A Report Per Project ("fan-out")
+
+Apply the plugin to every project, so that every project - root and sub-projects alike - gets its own `generateFeatureDocs` task and its own generated report:
 
 .Groovy DSL (`build.gradle`, root project)
 [source,groovy]
@@ -374,6 +379,55 @@ gherkinToAsciidoc {
     outputFileName = 'features.adoc'
 }
 ----
+
+This is the layout to use when every sub-project is an independently documented unit - a microservice per sub-project, say - and each one should own the documentation for its own features.
+It is what the link:../examples/gherkin-to-asciidoc/multi-project/README.adoc[multi-project example] demonstrates.
+
+Every task in this layout scans only its own project's directories, because `sourceDirs` is resolved against each project's own directory (see <<inheriting-source-dirs>>).
+No task ever sees another project's feature files, so numbering is scoped per project by construction: every project's `Feature`s start at 1 no matter what `consolidatedIndex` is set to.
+Setting `consolidatedIndex = true` here does *not* produce one build-wide sequence - see <<numbering-scope>>.
+
+[[aggregator-layout]]
+=== Layout 2: One Report For the Whole Build ("aggregator")
+
+Apply the plugin to the root project *only*, and point the root's `sourceDirs` at each sub-project's feature directory:
+
+.Groovy DSL (`build.gradle`, root project)
+[source,groovy]
+----
+import com.arc_e_tect.gradle.gherkin.indexing.IndexingMode
+
+plugins {
+    id 'com.arc-e-tect.gherkin-to-asciidoc'
+}
+
+gherkinToAsciidoc {
+    // A single task, collecting every sub-project's feature files into one report.
+    sourceDirs.from(
+        file('catalog/src/test/resources/gherkin'),
+        file('checkout/src/test/resources/gherkin'))
+    indexing = IndexingMode.FEATURE
+    consolidatedIndex = false
+}
+----
+
+This is the layout to use when the whole build documents a single system and readers want one overview rather than one report per module.
+It is also the only layout in which `consolidatedIndex` does anything, because it is the only one in which a single task collects feature files from more than one project.
+
+[WARNING]
+====
+Don't combine the two layouts.
+A root task whose `sourceDirs` reach into the sub-projects, running alongside sub-project tasks that scan those same directories, means two tasks rewrite the same files' numbering within one build, and whichever Gradle happens to run last wins.
+With `consolidatedIndex = true` on the root task the two disagree by construction, so the numbering churns back and forth on every build.
+In the fan-out layout the root project's own task is harmless precisely because it only ever scans the root project's own directories.
+====
+
+[[inheriting-configuration]]
+=== Inheriting Configuration From the Root Project
+
+Apply the plugin to the root project even in a build where only sub-projects hold feature files.
+The root project's `gherkinToAsciidoc { }` block is the only thing a sub-project inherits its defaults from, so a root project that never applies the plugin leaves every sub-project falling back to the built-in defaults instead - each sub-project then has to configure every property it cares about for itself.
+Configuring the block inside a `subprojects { }` block is the equivalent alternative when you deliberately don't want the root project to have a `generateFeatureDocs` task of its own.
 
 Configuring `gherkinToAsciidoc { }` on the root project sets *defaults* that every other project inherits;
 configuring the same block in a sub-project's own `build.gradle` overrides those defaults for that
@@ -401,9 +455,10 @@ Command Line" above) takes precedence over both, for every project in the build 
 `-PgherkinToAsciidoc.forceRewrite` command-line override takes precedence over both, for every project in
 the build at once.
 | `consolidatedIndex`
-| Inherited from the root project by default; a sub-project can override it independently. Controls whether
-each project's own `indexing` numbering starts fresh at 1 (`false`, the default) or continues one number
-space shared with every other project in the build (`true`) - see "Numbering Features and Scenarios" below.
+| Inherited from the root project by default; a sub-project can override it independently.
+Only has an effect on a task that collects feature files from more than one project - i.e. the <<aggregator-layout,aggregator layout>> - where it controls whether each project's `indexing` numbering starts fresh at 1 (`false`, the default) or continues one number space shared with every other project in the build (`true`).
+In the <<fan-out-layout,fan-out layout>> it changes nothing, because each task only ever sees its own project's files.
+See <<numbering-scope>>.
 | `outputFileName`
 | Inherited from the root project by default.
 | `template`
@@ -421,6 +476,7 @@ project's report is written to its own build output instead of colliding with an
 either explicitly on a specific project to relocate that project's report.
 |===
 
+[[inheriting-source-dirs]]
 === Inheriting `sourceDirs`/`sourceFile`/`glueCodeDirs` - Convention Over Configuration
 
 Unlike the other properties, `sourceDirs`, `sourceFile`, and `glueCodeDirs` are directories/files, so
@@ -657,6 +713,7 @@ and the generated report reflects the same numbering, since it's parsed from the
 any other source change.
 ====
 
+[[not-renumbering]]
 === Not Renumbering Already-Numbered Lines (`forceRewrite`)
 
 By default (`forceRewrite = false`), a `Feature`/`Scenario` line whose existing number already matches the
@@ -741,6 +798,7 @@ This happens automatically on the next `generateFeatureDocs` run after the merge
 left at its default `false` - there's no need to set `forceRewrite = true` just to resolve a collision, and
 doing so would additionally renumber every other already-correctly-numbered line in the process.
 
+[[numbering-scope]]
 === Numbering Scope in a Multi-Project Build (`consolidatedIndex`)
 
 Every example so far has numbered a single project's own feature files. In a
@@ -755,8 +813,16 @@ number space or gets its own:
 | `true`             | Every project's `Feature`s (and `SCENARIO`-mode `Scenario`s) instead share one continuous number space across the whole build - as if every project's feature files had all been passed to a single project's own `generateFeatureDocs`.
 |===
 
-For example, with two sub-projects `catalog` (one feature file) and `checkout` (one feature file), both
-numbered for the first time with `indexing = IndexingMode.FEATURE`:
+[IMPORTANT]
+====
+`consolidatedIndex` only affects a `generateFeatureDocs` task that collects feature files from more than one project - that is, the <<aggregator-layout,aggregator layout>>, where the root project's `sourceDirs` reach into each sub-project.
+
+In the <<fan-out-layout,fan-out layout>>, every task's `sourceDirs` resolve against its own project's directory, so no task ever sees another project's feature files.
+Numbering there already restarts at 1 in every project whatever this property says, and setting `consolidatedIndex = true` is silently ignored rather than producing the build-wide sequence described above.
+If numbering isn't coming out the way you expect in a fan-out build, `consolidatedIndex` is not the property to reach for - check `forceRewrite` first (see <<not-renumbering>>), since already-numbered lines keep the numbers they have.
+====
+
+For example, in the aggregator layout over two sub-projects `catalog` (one feature file) and `checkout` (one feature file), both numbered for the first time with `indexing = IndexingMode.FEATURE`:
 
 [cols="1,1,1",options="header"]
 |===
@@ -777,11 +843,10 @@ regardless.
 
 [IMPORTANT]
 ====
-Every version of this plugin before `consolidatedIndex` existed behaved as `consolidatedIndex = true` does
-now. If existing numbers already reference that shared, build-wide sequence, set `consolidatedIndex = true`
-explicitly to keep them meaningful - leaving the new `false` default in place would renumber every
-project's features to start at 1, moving numbers that may already be referenced elsewhere (documentation,
-issue trackers, conversations).
+In the <<aggregator-layout,aggregator layout>>, every version of this plugin before `consolidatedIndex` existed behaved as `consolidatedIndex = true` does now.
+If existing numbers already reference that shared, build-wide sequence, set `consolidatedIndex = true` explicitly to keep them meaningful - leaving the new `false` default in place would renumber every project's features to start at 1, moving numbers that may already be referenced elsewhere (documentation, issue trackers, conversations).
+
+A <<fan-out-layout,fan-out>> build is unaffected either way: its numbering was already per-project before `consolidatedIndex` existed, and the new default doesn't change it.
 ====
 
 === Overriding `indexing`/`forceRewrite` from the Command Line

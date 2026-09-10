@@ -208,7 +208,10 @@ public abstract class GenerateFeatureDocsTask extends DefaultTask {
      * sequence spanning every project in the build, or independently scoped to each project - see
      * {@link GherkinToAsciidocExtension#getConsolidatedIndex()}. Has no effect when
      * {@link #getProjectDirectories()} contains at most one directory, since there's then only one
-     * project to scope numbering to either way.
+     * project to scope numbering to either way - nor when this task's own {@code sourceDirs} all
+     * resolve inside a single project, which is the usual case when the plugin is applied to every
+     * project in the build: scoping only partitions the files <em>this</em> task collected, so a task
+     * that never sees another project's feature files numbers from 1 regardless of this property.
      *
      * @return mutable boolean property controlling whether indexing is consolidated build-wide or
      *         scoped per project
