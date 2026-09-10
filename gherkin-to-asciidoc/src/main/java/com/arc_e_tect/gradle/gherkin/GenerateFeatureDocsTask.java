@@ -41,6 +41,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -407,7 +408,9 @@ public abstract class GenerateFeatureDocsTask extends DefaultTask {
         parsingProgress.complete();
 
         boolean failOnDuplicateScenarios = getFailOnDuplicateScenarios().get();
-        reportDuplicateScenarioTitles(occurrences, failOnDuplicateScenarios);
+        Map<File, List<DuplicateScenarioTitles.ScenarioOccurrence>> occurrencesByProject =
+                groupByOwningProject(occurrences);
+        reportDuplicateScenarioTitles(occurrencesByProject, failOnDuplicateScenarios);
         List<ScenarioInfo> scenarios = occurrences.stream()
                 .map(DuplicateScenarioTitles.ScenarioOccurrence::scenario)
                 .collect(Collectors.toList());
@@ -428,7 +431,7 @@ public abstract class GenerateFeatureDocsTask extends DefaultTask {
             List<Expression> glueCode = scanGlueCode();
             File template = getTemplate().isPresent() ? getTemplate().getAsFile().get() : null;
             Map<String, ScenarioProgressRecord> history = trackHistoryThisRun
-                    ? updateProgressHistory(scenarios, glueCode) : Map.of();
+                    ? updateProgressHistory(occurrencesByProject, glueCode) : Map.of();
             ProgressReportOptions options = new ProgressReportOptions(
                     groupByFeature, getSnippetDir().getAsFile().get(), template, systemUnderTestVersion, history);
             new ProgressReportWriter().write(outputFile, scenarios, glueCode, options);
@@ -440,23 +443,100 @@ public abstract class GenerateFeatureDocsTask extends DefaultTask {
     }
 
     /**
-     * Loads the persisted progress history, advances it with the current run's scenarios, and -
-     * only when {@link #getUpdateProgressHistory()} resolves to {@code true} - saves it back.
-     * The history file is always read regardless of {@link #getUpdateProgressHistory()}, so the
-     * generated report reflects the up-to-date-in-memory history even on a run that doesn't
-     * persist it.
+     * Loads each owning project's persisted progress history, advances it with that project's own
+     * scenarios from this run, and - only when {@link #getUpdateProgressHistory()} resolves to
+     * {@code true} - saves it back. Every history file is always read regardless of
+     * {@link #getUpdateProgressHistory()}, so the generated report reflects the up-to-date-in-memory
+     * history even on a run that doesn't persist it.
+     *
+     * <p>History is stored per owning project rather than per run, so that
+     * {@link com.arc_e_tect.gradle.gherkin.progress.ScenarioFingerprint} - which hashes a scenario's
+     * title alone - stays unambiguous: two projects implementing the same cross-cutting scenario
+     * write to two different files, and neither one's timestamps can leak onto the other. A run that
+     * covers a single project (the usual case) reads and writes exactly the one configured file, as
+     * it always has.</p>
+     *
+     * <p>The returned map combines every project's records for the report, which consumes them only
+     * in aggregate. Its keys are qualified by owning project so that two projects' identically-titled
+     * scenarios both survive the combination instead of one silently replacing the other.</p>
      */
     private Map<String, ScenarioProgressRecord> updateProgressHistory(
-            List<ScenarioInfo> scenarios, List<Expression> glueCode) {
-        File historyFile = getProgressHistoryFile().getAsFile().get();
+            Map<File, List<DuplicateScenarioTitles.ScenarioOccurrence>> occurrencesByProject,
+            List<Expression> glueCode) {
         ProgressHistoryStore store = new ProgressHistoryStore();
-        Map<String, ScenarioProgressRecord> previous = store.load(historyFile);
-        Map<String, ScenarioProgressRecord> updated =
-                new ProgressHistoryUpdater().update(previous, scenarios, glueCode, Instant.now());
-        if (getUpdateProgressHistory().get()) {
-            store.save(historyFile, updated.values());
+        Instant now = Instant.now();
+        boolean persist = getUpdateProgressHistory().get();
+
+        Map<String, ScenarioProgressRecord> combined = new LinkedHashMap<>();
+        for (Map.Entry<File, List<DuplicateScenarioTitles.ScenarioOccurrence>> entry
+                : occurrencesByProject.entrySet()) {
+            File owningProject = entry.getKey();
+            List<ScenarioInfo> scenarios = entry.getValue().stream()
+                    .map(DuplicateScenarioTitles.ScenarioOccurrence::scenario)
+                    .collect(Collectors.toList());
+
+            File historyFile = progressHistoryFileFor(owningProject);
+            Map<String, ScenarioProgressRecord> previous = store.load(historyFile);
+            Map<String, ScenarioProgressRecord> updated =
+                    new ProgressHistoryUpdater().update(previous, scenarios, glueCode, now);
+            if (persist) {
+                store.save(historyFile, updated.values());
+            }
+
+            for (Map.Entry<String, ScenarioProgressRecord> record : updated.entrySet()) {
+                combined.put(owningProject.getAbsolutePath() + "|" + record.getKey(), record.getValue());
+            }
         }
-        return updated;
+        return combined;
+    }
+
+    /**
+     * The history file to read and write for {@code owningProject}: the configured
+     * {@link #getProgressHistoryFile()} for this task's own project - so an explicitly configured
+     * path keeps working exactly as before - and a file of the same name inside every other project's
+     * own directory. A run that never leaves its own project therefore touches only the configured
+     * file, and one that spans projects gives each project the history file it would have had if the
+     * plugin had been applied to it directly.
+     */
+    private File progressHistoryFileFor(File owningProject) {
+        File configured = getProgressHistoryFile().getAsFile().get();
+        File ownProject = getProjectDirectory().getAsFile().get();
+        if (owningProject.getAbsoluteFile().equals(ownProject.getAbsoluteFile())) {
+            return configured;
+        }
+        return new File(owningProject, configured.getName());
+    }
+
+    /**
+     * Groups {@code occurrences} by the project that owns the feature file each was parsed from, so
+     * that scenario identity - which is title-only, and therefore only unique within one project - is
+     * compared and persisted within a project rather than across the whole run.
+     *
+     * <p>Falls back to a single group, keyed by this task's own project, whenever project scoping
+     * can't be applied with confidence: when no project directories are known, when every file
+     * belongs to one project anyway, or when any file falls outside every project in the build (such
+     * a file is attributed to itself, which would otherwise give it a "project" of its own and a
+     * history file next to it). The fallback is exactly the behaviour every earlier version had.</p>
+     */
+    private Map<File, List<DuplicateScenarioTitles.ScenarioOccurrence>> groupByOwningProject(
+            List<DuplicateScenarioTitles.ScenarioOccurrence> occurrences) {
+        List<File> projectDirectories = getProjectDirectories().get();
+        Map<File, List<DuplicateScenarioTitles.ScenarioOccurrence>> grouped = new LinkedHashMap<>();
+        if (!projectDirectories.isEmpty() && !occurrences.isEmpty()) {
+            ProjectAttribution attribution = new ProjectAttribution(projectDirectories);
+            for (DuplicateScenarioTitles.ScenarioOccurrence occurrence : occurrences) {
+                File owner = attribution.owningProjectDirectory(occurrence.featureFile());
+                if (!projectDirectories.contains(owner)) {
+                    grouped.clear();
+                    break;
+                }
+                grouped.computeIfAbsent(owner, key -> new ArrayList<>()).add(occurrence);
+            }
+        }
+        if (grouped.size() < 2) {
+            return Map.of(getProjectDirectory().getAsFile().get(), occurrences);
+        }
+        return grouped;
     }
 
     /**
@@ -513,10 +593,23 @@ public abstract class GenerateFeatureDocsTask extends DefaultTask {
      * <p>When {@code failOnDuplicates} is {@code false}, the build is allowed to continue, but every
      * duplicate is still reported - unconditionally, as a {@code WARN}, regardless of {@code --info} -
      * since there is no build failure message left to surface them through otherwise.</p>
+     *
+     * <p>Titles are compared within each owning project, never across them. Two microservices that
+     * each implement the same cross-cutting concern - access logging, say - legitimately carry the
+     * same scenario titles, and that is a statement that the same behaviour is required of both, not
+     * a mistake to reject. Their histories live in separate files (see
+     * {@link #updateProgressHistory(Map, List)}), so nothing about them is ambiguous. Two scenarios
+     * sharing a title <em>within</em> one project remain a genuine defect and still fail the
+     * build.</p>
      */
     private void reportDuplicateScenarioTitles(
-            List<DuplicateScenarioTitles.ScenarioOccurrence> occurrences, boolean failOnDuplicates) {
-        List<DuplicateScenarioTitles.Duplicate> duplicates = new DuplicateScenarioTitles().find(occurrences);
+            Map<File, List<DuplicateScenarioTitles.ScenarioOccurrence>> occurrencesByProject,
+            boolean failOnDuplicates) {
+        DuplicateScenarioTitles finder = new DuplicateScenarioTitles();
+        List<DuplicateScenarioTitles.Duplicate> duplicates = new ArrayList<>();
+        for (List<DuplicateScenarioTitles.ScenarioOccurrence> projectOccurrences : occurrencesByProject.values()) {
+            duplicates.addAll(finder.find(projectOccurrences));
+        }
         if (duplicates.isEmpty()) {
             return;
         }
@@ -550,8 +643,8 @@ public abstract class GenerateFeatureDocsTask extends DefaultTask {
 
         throw new GradleException(
                 "gherkinToAsciidoc: found " + duplicates.size() + " duplicate scenario title(s) across feature "
-                + "files - every scenario title must be unique, since it is used to identify the scenario in "
-                + "the persisted progress history. "
+                + "files - every scenario title must be unique within its own project, since it is used to "
+                + "identify the scenario in that project's persisted progress history. "
                 + (infoEnabled
                         ? "See the log above for every duplicate and the files it was found in."
                         : "Re-run with --info to see every duplicate and the files it was found in."));

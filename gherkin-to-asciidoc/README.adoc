@@ -239,7 +239,7 @@ Requires `trackProgress = true`.
 Only consulted when `trackProgressHistory` is `true`.
 | `updateProgressHistory` | Boolean | same as `trackProgressHistory`       | When `true`, writes `progressHistoryFile` back to disk after updating it with the current run's scenarios.
 The file is always read when `trackProgressHistory` is `true`, regardless of this property. Overridable for the whole build via the `-PgherkinToAsciidoc.updateProgressHistory` project property.
-| `failOnDuplicateScenarios` | Boolean | `true`                            | When `true`, fails `generateFeatureDocs` if two or more scenarios share a title (see "Duplicate Scenario Titles" below).
+| `failOnDuplicateScenarios` | Boolean | `true`                            | When `true`, fails `generateFeatureDocs` if two or more scenarios *within the same project* share a title (see <<duplicate-scenario-titles>>). Titles shared across different projects are allowed, since a cross-cutting concern is legitimately required of each of them.
 When `false`, duplicates are still reported but no longer fail the build - and progress history tracking is unconditionally disabled as a consequence, regardless of `trackProgressHistory`.
 |===
 
@@ -262,7 +262,7 @@ configured values.
 Enabling `trackProgressHistory` while `trackProgress` is `false` fails `generateFeatureDocs` with a descriptive
 error. See "Tracking Progress History" below.
 
-Two or more scenarios sharing a title fails `generateFeatureDocs` by default (`failOnDuplicateScenarios = true`).
+Two or more scenarios within the same project sharing a title fails `generateFeatureDocs` by default (`failOnDuplicateScenarios = true`).
 Setting `failOnDuplicateScenarios = false` lets the build continue instead, but also unconditionally disables
 progress history tracking - even on a run with no duplicates at all - since `failOnDuplicateScenarios = false`
 means a future duplicate is no longer guaranteed to be caught before it corrupts the history. See "Duplicate
@@ -413,6 +413,10 @@ gherkinToAsciidoc {
 
 This is the layout to use when the whole build documents a single system and readers want one overview rather than one report per module.
 It is also the only layout in which `consolidatedIndex` does anything, because it is the only one in which a single task collects feature files from more than one project.
+
+Collecting several projects at once doesn't force their scenario titles to be globally unique.
+Titles are compared within each project, so two services implementing the same cross-cutting concern keep the same scenario titles - and their own separate progress histories - without failing the build.
+See <<duplicate-scenario-titles>>.
 
 [WARNING]
 ====
@@ -1293,10 +1297,35 @@ If a scenario with the same fingerprint reappears in a later run (e.g. a revert)
 A scenario becoming removed is expected, ongoing churn - not necessarily a mistake, and not something this plugin can tell apart on its own. Feature files are often written ahead of time to scope an upcoming release, and it's common for scenarios to be taken out of scope - postponed to a later release - and for others to be taken back into scope at a later stage; both show up exactly the same way in `progressHistoryFile`. A scenario can equally become removed because it was considered obsolete, turned out to duplicate another scenario after all, or was rewritten to fix an error in its own definition - which then reappears as a *new* scenario rather than a continuation of the old one, since a changed name means a changed fingerprint (see "How Scenarios Are Matched Across Runs" above). Before treating a `Removed (no longer seen)` count as a problem, check which of these it actually is.
 ====
 
+[[history-per-project]]
+=== Where History Is Stored
+
+`progressHistoryFile` names the history file for the project the task belongs to, and a run that only ever sees its own project's feature files - the <<fan-out-layout,fan-out layout>>, and every single-project build - reads and writes exactly that one file, as it always has.
+
+An <<aggregator-layout,aggregator>> run is different, because one task collects several projects' feature files.
+There, history is stored per owning project: each project gets a file of the same name inside its own directory, holding only its own scenarios.
+That is what keeps title-only fingerprints unambiguous without qualifying them - two projects' copies of the same cross-cutting scenario live in two different files, so neither one's timestamps can reach the other, and each service's progress on its own copy is tracked independently.
+
+[source]
+----
+catalog/gherkin-progress-history.ndjson    <1>
+checkout/gherkin-progress-history.ndjson   <2>
+----
+<1> `Access to a protected resource is logged`, as implemented in `catalog`.
+<2> The same title, as implemented in `checkout` - the same fingerprint, its own history.
+
+Because each file is exactly the one that project would have had if the plugin had been applied to it directly, moving a build between the two layouts doesn't invalidate any history that was already recorded.
+
+[[duplicate-scenario-titles]]
 === Duplicate Scenario Titles
 
 Because the fingerprint that keys `progressHistoryFile` is computed from a scenario's title alone (see above), two distinct scenarios that merely happen to share a title - even across two entirely different feature files - are indistinguishable to it.
 Whichever one is processed last would silently overwrite the other's entry in the persisted history, and a stage timestamp genuinely earned by one could permanently leak onto the other, since history timestamps are never cleared once set.
+
+Titles are compared *within each project*, never across projects.
+Two microservices that each implement the same cross-cutting concern - access logging, an audit trail, rate limiting - legitimately carry the same scenario titles, and that repetition is the point: it says the same behaviour is required of both.
+So an <<aggregator-layout,aggregator>> run collecting several projects' feature files doesn't reject them, and each project keeps its own history for its own copy (see <<history-per-project>>).
+Two scenarios sharing a title *within* one project remain a genuine defect, and still fail the build.
 
 By default (`failOnDuplicateScenarios = true`), `generateFeatureDocs` rejects such a build outright, before either the report or the history file is written:
 
@@ -1309,8 +1338,8 @@ FAILURE: Build failed with an exception.
 * What went wrong:
 Execution failed for task ':generateFeatureDocs'.
 > gherkinToAsciidoc: found 1 duplicate scenario title(s) across feature files - every scenario title must be
-  unique, since it is used to identify the scenario in the persisted progress history. Re-run with --info to
-  see every duplicate and the files it was found in.
+  unique within its own project, since it is used to identify the scenario in that project's persisted
+  progress history. Re-run with --info to see every duplicate and the files it was found in.
 ----
 
 Without `--info`, only the one-line summary above is logged before the build fails; with `--info`, every duplicate title is logged individually together with every feature file it was found in.
@@ -1333,8 +1362,9 @@ always skipped while this property is false, regardless of trackProgressHistory.
 
 [IMPORTANT]
 ====
-`failOnDuplicateScenarios = false` is an escape hatch, not a fix - the underlying scenarios still share a title and should be renamed to be unique.
+`failOnDuplicateScenarios = false` is an escape hatch, not a fix - the underlying scenarios still share a title within one project and should be renamed to be unique.
 Use it only as a deliberate, temporary trade-off (e.g. to keep a large suite building while titles are gradually cleaned up), and expect to lose progress history tracking for as long as it stays `false`.
+It is *not* the way to allow the same scenario title in two different projects: that already builds, with history intact, and reaching for this property instead would give up history tracking to solve a problem you don't have.
 ====
 
 === File Format
