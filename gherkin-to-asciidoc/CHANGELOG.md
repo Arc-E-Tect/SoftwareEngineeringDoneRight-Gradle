@@ -1,3 +1,10 @@
+## [6.7.1](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/gherkin-to-asciidoc-v6.7.0...gherkin-to-asciidoc-v6.7.1) (2026-09-10)
+
+
+### 🐛 Bug Fixes
+
+* **gherkin-to-asciidoc:** correct multi-project docs on when consolidatedIndex applies ([#278](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/278)) ([58b69d5](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/58b69d5641d77d598340a2fc4d3f54e8988fc74c)), closes [#278](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/278)
+
 # [6.7.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/gherkin-to-asciidoc-v6.6.0...gherkin-to-asciidoc-v6.7.0) (2026-09-08)
 
 
