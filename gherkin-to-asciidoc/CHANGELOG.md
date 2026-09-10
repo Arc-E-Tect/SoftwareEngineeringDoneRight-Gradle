@@ -1,3 +1,10 @@
+## [6.7.3](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/gherkin-to-asciidoc-v6.7.2...gherkin-to-asciidoc-v6.7.3) (2026-09-10)
+
+
+### 🐛 Bug Fixes
+
+* **gherkin-to-asciidoc:** scope scenario title identity to the owning project ([#280](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/280)) ([ae87e8e](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/ae87e8eb8fd49e1e529c355e26e8b66102faa883)), closes [#280](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/280) [#279](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/279)
+
 ## [6.7.2](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/gherkin-to-asciidoc-v6.7.1...gherkin-to-asciidoc-v6.7.2) (2026-09-10)
 
 
