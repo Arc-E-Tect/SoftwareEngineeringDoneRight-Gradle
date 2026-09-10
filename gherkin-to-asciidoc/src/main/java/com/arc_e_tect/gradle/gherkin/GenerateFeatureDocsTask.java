@@ -579,6 +579,45 @@ public abstract class GenerateFeatureDocsTask extends DefaultTask {
     }
 
     /**
+     * Warns when {@link #getConsolidatedIndex()} is {@code true} but the feature files this run
+     * collected all belong to a single project, so consolidating numbering across projects has
+     * nothing to consolidate.
+     *
+     * <p>The scoping {@code consolidatedIndex} controls partitions exactly the files one invocation
+     * gathered. A task whose {@code sourceDirs} resolve inside a single project - the usual case when
+     * the plugin is applied to every project in the build, since each project's {@code sourceDirs}
+     * resolve against its own directory - therefore numbers from 1 whatever the property says.
+     * Asking for a build-wide sequence there is silently impossible rather than wrong, which is
+     * exactly the kind of thing worth saying out loud: the property was set deliberately (it defaults
+     * to {@code false}), so its owner is expecting an effect that isn't coming.</p>
+     *
+     * <p>Stays silent unless the no-op is certain: when no project directories are known at all, or
+     * when any collected file falls outside every one of them. {@link ProjectAttribution} attributes
+     * such a file to itself, so a lone unattributable file would otherwise look like a single owning
+     * "project" and draw a confidently wrong warning.</p>
+     */
+    private void warnIfConsolidatedIndexHasNoEffect(List<File> featureFiles) {
+        List<File> projectDirectories = getProjectDirectories().get();
+        if (featureFiles.isEmpty() || projectDirectories.isEmpty()) {
+            return;
+        }
+        Set<File> owningProjects =
+                new ProjectAttribution(projectDirectories).owningProjectDirectories(featureFiles);
+        if (owningProjects.size() != 1 || !projectDirectories.contains(owningProjects.iterator().next())) {
+            return;
+        }
+
+        getLogger().warn(
+                "gherkinToAsciidoc: consolidatedIndex is true, but every feature file this task "
+                + "collected belongs to one project ({}), so numbering starts at 1 regardless.",
+                owningProjects.iterator().next().getName());
+        getLogger().warn(
+                "gherkinToAsciidoc: consolidatedIndex only spans projects when a single task's "
+                + "sourceDirs reach into more than one of them. See the README's \"Multi-Project "
+                + "Builds\" section for the two layouts and which one it applies to.");
+    }
+
+    /**
      * Reports every pair (or larger group) of scenarios that share a title, since
      * {@link com.arc_e_tect.gradle.gherkin.progress.ScenarioFingerprint} would then be unable to tell
      * them apart - see {@link DuplicateScenarioTitles} for why that silently corrupts persisted
