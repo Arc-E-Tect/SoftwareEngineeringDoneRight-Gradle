@@ -1749,6 +1749,143 @@ class GherkinToAsciidocPluginTest {
      * task logger, since {@link GenerateFeatureDocsTask#getLogger()} cannot otherwise be observed
      * from a {@link ProjectBuilder}-based test.
      */
+    // --- consolidatedIndex no-op warning ---
+
+    @Test
+    @DisplayName("warns that consolidatedIndex has no effect when every collected feature file belongs to one project")
+    void warnsWhenConsolidatedIndexCannotSpanProjects() throws IOException {
+        Project project = projectWithPlugin();
+        File featuresDir = new File(tempDir.toFile(), "features");
+        featuresDir.mkdirs();
+        writeFeatureFile(featuresDir, "login.feature",
+                "Feature: Login\n\n  Scenario: User logs in\n    Given the login page\n");
+        RecordingLogger recordingLogger = new RecordingLogger();
+
+        LoggerCapturingGenerateFeatureDocsTask task = consolidatedIndexTask(
+                project, recordingLogger, "generateFeatureDocsConsolidatedNoOp", featuresDir, true);
+        task.getProjectDirectories().add(tempDir.toFile());
+
+        task.generate();
+
+        assertThat(recordingLogger.warnMessages())
+                .anyMatch(message -> message.contains("consolidatedIndex is true")
+                        && message.contains("belongs to one project"));
+    }
+
+    @Test
+    @DisplayName("does not warn about consolidatedIndex when the collected feature files span more than one project")
+    void doesNotWarnWhenConsolidatedIndexActuallySpansProjects() throws IOException {
+        Project project = projectWithPlugin();
+        File catalogFeatures = new File(tempDir.toFile(), "catalog/features");
+        File checkoutFeatures = new File(tempDir.toFile(), "checkout/features");
+        catalogFeatures.mkdirs();
+        checkoutFeatures.mkdirs();
+        writeFeatureFile(catalogFeatures, "catalog.feature",
+                "Feature: Catalog\n\n  Scenario: Shopper browses\n    Given the catalog\n");
+        writeFeatureFile(checkoutFeatures, "checkout.feature",
+                "Feature: Checkout\n\n  Scenario: Shopper pays\n    Given a cart\n");
+        RecordingLogger recordingLogger = new RecordingLogger();
+
+        LoggerCapturingGenerateFeatureDocsTask task = consolidatedIndexTask(
+                project, recordingLogger, "generateFeatureDocsConsolidatedSpans", catalogFeatures, true);
+        task.getSourceDirs().from(checkoutFeatures);
+        task.getProjectDirectories().add(new File(tempDir.toFile(), "catalog"));
+        task.getProjectDirectories().add(new File(tempDir.toFile(), "checkout"));
+
+        task.generate();
+
+        assertThat(recordingLogger.warnMessages())
+                .noneMatch(message -> message.contains("consolidatedIndex is true"));
+    }
+
+    @Test
+    @DisplayName("does not warn about consolidatedIndex when it is false, since the default needs no explaining")
+    void doesNotWarnWhenConsolidatedIndexIsFalse() throws IOException {
+        Project project = projectWithPlugin();
+        File featuresDir = new File(tempDir.toFile(), "features");
+        featuresDir.mkdirs();
+        writeFeatureFile(featuresDir, "login.feature",
+                "Feature: Login\n\n  Scenario: User logs in\n    Given the login page\n");
+        RecordingLogger recordingLogger = new RecordingLogger();
+
+        LoggerCapturingGenerateFeatureDocsTask task = consolidatedIndexTask(
+                project, recordingLogger, "generateFeatureDocsConsolidatedFalse", featuresDir, false);
+        task.getProjectDirectories().add(tempDir.toFile());
+
+        task.generate();
+
+        assertThat(recordingLogger.warnMessages())
+                .noneMatch(message -> message.contains("consolidatedIndex"));
+    }
+
+    @Test
+    @DisplayName("does not warn about consolidatedIndex when indexing isn't numbering anything")
+    void doesNotWarnWhenIndexingIsNotNumbering() throws IOException {
+        Project project = projectWithPlugin();
+        File featuresDir = new File(tempDir.toFile(), "features");
+        featuresDir.mkdirs();
+        writeFeatureFile(featuresDir, "login.feature",
+                "Feature: Login\n\n  Scenario: User logs in\n    Given the login page\n");
+        RecordingLogger recordingLogger = new RecordingLogger();
+
+        LoggerCapturingGenerateFeatureDocsTask task = consolidatedIndexTask(
+                project, recordingLogger, "generateFeatureDocsConsolidatedIndexingOff", featuresDir, true);
+        task.getIndexing().set(IndexingMode.OFF);
+        task.getProjectDirectories().add(tempDir.toFile());
+
+        task.generate();
+
+        assertThat(recordingLogger.warnMessages())
+                .noneMatch(message -> message.contains("consolidatedIndex"));
+    }
+
+    @Test
+    @DisplayName("does not warn about consolidatedIndex when no project directories are known at all")
+    void doesNotWarnWhenProjectDirectoriesAreUnknown() throws IOException {
+        Project project = projectWithPlugin();
+        File featuresDir = new File(tempDir.toFile(), "features");
+        featuresDir.mkdirs();
+        writeFeatureFile(featuresDir, "login.feature",
+                "Feature: Login\n\n  Scenario: User logs in\n    Given the login page\n");
+        RecordingLogger recordingLogger = new RecordingLogger();
+
+        LoggerCapturingGenerateFeatureDocsTask task = consolidatedIndexTask(
+                project, recordingLogger, "generateFeatureDocsConsolidatedNoBoundaries", featuresDir, true);
+
+        task.generate();
+
+        assertThat(recordingLogger.warnMessages())
+                .noneMatch(message -> message.contains("consolidatedIndex"));
+    }
+
+    /**
+     * A task wired to reindex {@code featuresDir} with {@code indexing = FEATURE}, logging through
+     * {@code recordingLogger}, so a test only has to supply {@code consolidatedIndex} and whichever
+     * project directories the case is about.
+     */
+    private LoggerCapturingGenerateFeatureDocsTask consolidatedIndexTask(
+            Project project, RecordingLogger recordingLogger, String taskName, File featuresDir,
+            boolean consolidatedIndex) {
+        LoggerCapturingGenerateFeatureDocsTask task =
+                project.getTasks().create(taskName, LoggerCapturingGenerateFeatureDocsTask.class);
+        task.recordingLogger = recordingLogger;
+        task.getSourceDirs().from(featuresDir);
+        task.getIncludeSubDirs().set(true);
+        task.getOutputDir().set(new File(tempDir.toFile(), "output-" + taskName));
+        task.getOutputFileName().set("features.adoc");
+        task.getTrackProgress().set(false);
+        task.getGroupByFeature().set(true);
+        task.getSystemUnderTestVersion().set("1.0.0");
+        task.getIndexing().set(IndexingMode.FEATURE);
+        task.getForceRewrite().set(false);
+        task.getConsolidatedIndex().set(consolidatedIndex);
+        task.getTrackProgressHistory().set(false);
+        task.getUpdateProgressHistory().set(false);
+        task.getFailOnDuplicateScenarios().set(true);
+        task.getProjectDirectory().set(project.getLayout().getProjectDirectory());
+        return task;
+    }
+
     abstract static class LoggerCapturingGenerateFeatureDocsTask extends GenerateFeatureDocsTask {
 
         RecordingLogger recordingLogger;

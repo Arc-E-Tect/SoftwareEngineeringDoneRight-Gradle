@@ -6,10 +6,8 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -165,7 +163,9 @@ public class FeatureIndexer {
     }
 
     /**
-     * Groups {@code parsedFiles} by nearest enclosing directory in {@code projectDirectories},
+     * Groups {@code parsedFiles} by nearest enclosing directory in {@code projectDirectories} - see
+     * {@link ProjectAttribution}, which is also what the task consults to decide whether the files
+     * one run collected span more than one project at all -
      * preserving each group's relative order of first appearance in {@code parsedFiles} - so
      * numbering a group in that order matches the overall {@code featureFiles} order, exactly as
      * it always has for a single, ungrouped list. A file that isn't under any of
@@ -178,46 +178,14 @@ public class FeatureIndexer {
         if (projectDirectories.isEmpty()) {
             return List.of(parsedFiles);
         }
-        List<File> byPathLengthDescending = new ArrayList<>(projectDirectories);
-        byPathLengthDescending.sort(
-                Comparator.comparingInt((File dir) -> dir.getAbsolutePath().length()).reversed());
+        ProjectAttribution attribution = new ProjectAttribution(projectDirectories);
 
         Map<File, List<ParsedFile>> groups = new LinkedHashMap<>();
         for (ParsedFile parsedFile : parsedFiles) {
-            File owner = owningProjectDirectory(parsedFile.file, byPathLengthDescending);
+            File owner = attribution.owningProjectDirectory(parsedFile.file);
             groups.computeIfAbsent(owner, key -> new ArrayList<>()).add(parsedFile);
         }
         return new ArrayList<>(groups.values());
-    }
-
-    /**
-     * The most specific (longest path) entry in {@code byPathLengthDescending} that is an ancestor
-     * of {@code featureFile}, or {@code featureFile} itself if none is - see
-     * {@link #partitionByProject(List, List)}.
-     */
-    private File owningProjectDirectory(File featureFile, List<File> byPathLengthDescending) {
-        Path filePath = canonicalPath(featureFile);
-        for (File candidate : byPathLengthDescending) {
-            if (filePath.startsWith(canonicalPath(candidate))) {
-                return candidate;
-            }
-        }
-        return featureFile;
-    }
-
-    /**
-     * {@code file}'s canonical path - symlinks resolved, so e.g. macOS's {@code /tmp} ->
-     * {@code /private/tmp} doesn't make a feature file look like it lives outside every candidate
-     * project directory just because one side of the comparison went through the symlink and the
-     * other didn't. Falls back to the plain absolute, normalized path on the rare I/O failure
-     * (e.g. the file was deleted mid-run) rather than letting {@link #owningProjectDirectory} throw.
-     */
-    private Path canonicalPath(File file) {
-        try {
-            return file.getCanonicalFile().toPath();
-        } catch (IOException e) {
-            return file.getAbsoluteFile().toPath().normalize();
-        }
     }
 
     /**
