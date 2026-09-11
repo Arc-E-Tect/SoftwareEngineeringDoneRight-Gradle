@@ -1,3 +1,33 @@
+# [2.6.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/tracker-lens-v2.5.1...tracker-lens-v2.6.0) (2026-09-11)
+
+
+### ✨ New and updated features
+
+* **gherkin-to-asciidoc:** add failOnDuplicateScenarios DSL property ([#277](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/277)) ([22e11b8](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/22e11b8c05fef3645a295b369d6e14112c0b69f1)), closes [#277](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/277)
+* **api-only-suite:** add updateApiOnlySuiteDSL task ([#271](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/271)) ([44f5c9d](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/44f5c9dbfc41150ffdae142713fc2747188c06a3)), closes [#271](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/271)
+* **architecture-validator:** add updateArchitectureValidatorDSL task ([#273](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/273)) ([f63ddc0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/f63ddc06533f6c5937a7626aaac10e8e408ede56)), closes [#273](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/273)
+* **doppelganger-api-detector:** add updateDoppelgangerApiDetectorDSL task ([#269](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/269)) ([1cac3e9](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/1cac3e901de236ffc977cb7a6099b57b10599a6a)), closes [#269](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/269)
+* **gherkin-to-asciidoc:** add updateGherkinToAsciidocDSL task ([#272](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/272)) ([d05bec5](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/d05bec5647ae5d7502b6197b8526f56fada7872d)), closes [#272](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/272)
+* **jacoco-exclusion-report:** add updateJacocoExclusionReportDSL task ([#270](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/270)) ([03942a1](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/03942a1c8f039c72cac8b97821318a64a4137fab)), closes [#270](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/270)
+* **mirage-api-detector:** add updateMirageApiDetectorDSL task ([#268](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/268)) ([b3cd587](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/b3cd58721448de9c830f55d8d16c34c56ae3d394)), closes [#268](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/268)
+* **shadow-api-detector:** add updateShadowApiDetectorDSL task ([#267](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/267)) ([e5b8728](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/e5b8728c9107288f2df4d07548728fd1a5e538eb)), closes [#267](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/267)
+* **gherkin-to-asciidoc:** report a Scenario Outline per Examples row ([#281](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/281)) ([b4724c1](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/b4724c149b2d7da81e4b324d56c59917253b08c4)), closes [#281](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/281)
+
+
+### 🐛 Bug Fixes
+
+* **gherkin-to-asciidoc:** correct multi-project docs on when consolidatedIndex applies ([#278](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/278)) ([58b69d5](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/58b69d5641d77d598340a2fc4d3f54e8988fc74c)), closes [#278](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/278)
+* release docs commits as patches, stop failing release workflows on legitimate no-op pushes ([#276](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/276)) ([9a440f2](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/9a440f27f1e944090aa662ef7026bab93626f015)), closes [#276](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/276)
+* **gherkin-to-asciidoc:** scope scenario title identity to the owning project ([#280](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/280)) ([ae87e8e](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/ae87e8eb8fd49e1e529c355e26e8b66102faa883)), closes [#280](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/280) [#279](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/279)
+* ship the licence with every published plugin ([#282](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/282)) ([858bb43](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/858bb43bd8ead6a668278acbb6d8164d3705bd62)), closes [#282](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/282)
+* **gherkin-to-asciidoc:** warn when consolidatedIndex cannot span projects ([#279](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/279)) ([3ab555c](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/3ab555cd66be040b2386287419109c42d66430c1)), closes [#279](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/279)
+
+
+### 📝 Documentation
+
+* fix missing-javadoc warnings (architecture-validator, jacoco-exclusion-report) ([#275](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/275)) ([f48d7fe](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/f48d7fee73a7d0cb82dbb65ef1e2da8ecf65e84e)), closes [#275](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/275)
+* promote each plugin's updateDSL task with a top-of-README TIP ([#274](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/274)) ([872632c](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/872632c87dacbf87f7657223269e86d01db5d053)), closes [#274](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/274)
+
 ## [2.5.1](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/tracker-lens-v2.5.0...tracker-lens-v2.5.1) (2026-09-02)
 
 
