@@ -1,6 +1,7 @@
 package com.arc_e_tect.gradle.gherkin.progress;
 
 import java.io.File;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -19,10 +20,14 @@ import java.util.Map;
  *                       {@code == Progress Over Time} section from; {@code null} or empty when
  *                       {@code trackProgressHistory} is disabled, in which case no such section is
  *                       rendered
+ * @param reinterpretedOutlines the {@code Scenario Outline}s this run has started reporting one
+ *                       scenario per {@code Examples} row, to render a notice about; {@code null}
+ *                       or empty on every run that re-interprets none, in which case no notice is
+ *                       rendered. See {@link ReinterpretedOutlines}
  */
 public record ProgressReportOptions(
         boolean groupByFeature, File snippetDir, File template, String systemUnderTestVersion,
-        Map<String, ScenarioProgressRecord> history) {
+        Map<String, ScenarioProgressRecord> history, List<ReinterpretedOutlines.Outline> reinterpretedOutlines) {
 
     /**
      * Creates options with progress history tracking disabled ({@link #history()} empty).
@@ -34,11 +39,31 @@ public record ProgressReportOptions(
      */
     public ProgressReportOptions(
             boolean groupByFeature, File snippetDir, File template, String systemUnderTestVersion) {
-        this(groupByFeature, snippetDir, template, systemUnderTestVersion, Map.of());
+        this(groupByFeature, snippetDir, template, systemUnderTestVersion, Map.of(), List.of());
     }
 
-    /** Defensively copies {@code history} into an immutable map, defaulting a {@code null} to empty. */
+    /**
+     * Creates options with no re-interpreted outlines to report ({@link #reinterpretedOutlines()}
+     * empty) - every run but the first after outline expansion was introduced.
+     *
+     * @param groupByFeature whether to group scenarios by their enclosing {@code Feature}
+     * @param snippetDir     directory to write the report snippet files to
+     * @param template       optional Mustache template file, or {@code null}
+     * @param systemUnderTestVersion version of the system under test that the reported scenarios exercise
+     * @param history        the persisted scenario progress history, keyed by fingerprint
+     */
+    public ProgressReportOptions(
+            boolean groupByFeature, File snippetDir, File template, String systemUnderTestVersion,
+            Map<String, ScenarioProgressRecord> history) {
+        this(groupByFeature, snippetDir, template, systemUnderTestVersion, history, List.of());
+    }
+
+    /**
+     * Defensively copies {@code history} and {@code reinterpretedOutlines} into immutable
+     * collections, defaulting a {@code null} of either to empty.
+     */
     public ProgressReportOptions {
         history = history == null ? Map.of() : Map.copyOf(history);
+        reinterpretedOutlines = reinterpretedOutlines == null ? List.of() : List.copyOf(reinterpretedOutlines);
     }
 }

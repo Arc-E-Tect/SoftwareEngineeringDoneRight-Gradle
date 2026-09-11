@@ -34,6 +34,11 @@ import java.util.stream.Stream;
  * {@link ProgressReportOptions#template()} is set, the report itself is rendered from that Mustache
  * template via {@link ReportTemplateRenderer} - referencing the snippets via {@code include::}
  * directives - instead of embedding scenario titles verbatim.</p>
+ *
+ * <p>Both report layouts carry the {@link ReportText#reinterpretedOutlinesNotice(List) notice} about
+ * {@code Scenario Outline}s this run has started reporting one scenario per {@code Examples} row -
+ * the default layout prints it itself, right under the introduction; a template gets it as a context
+ * variable to place wherever it likes.</p>
  */
 public class ProgressReportWriter {
 
@@ -74,11 +79,12 @@ public class ProgressReportWriter {
 
         if (options.template() != null) {
             templateRenderer.render(
-                    outputFile, options.template(), options.systemUnderTestVersion(), summaries, snippets);
+                    outputFile, options.template(), options.systemUnderTestVersion(), summaries, snippets,
+                    options.reinterpretedOutlines());
         } else {
             writeDefaultReport(
                     outputFile, summaries, options.groupByFeature(), options.systemUnderTestVersion(),
-                    options.history());
+                    options.history(), options.reinterpretedOutlines());
         }
     }
 
@@ -140,7 +146,7 @@ public class ProgressReportWriter {
 
     private void writeDefaultReport(
             File outputFile, List<StatusSummary> summaries, boolean groupByFeature, String systemUnderTestVersion,
-            Map<String, ScenarioProgressRecord> history) {
+            Map<String, ScenarioProgressRecord> history, List<ReinterpretedOutlines.Outline> reinterpretedOutlines) {
         try (PrintWriter writer = new PrintWriter(outputFile, StandardCharsets.UTF_8)) {
             writer.println("= Feature Scenarios");
             writer.println(":toc:");
@@ -150,6 +156,12 @@ public class ProgressReportWriter {
             writer.println();
             writer.println(ReportText.INTRO);
             writer.println();
+
+            String reinterpretedNotice = ReportText.reinterpretedOutlinesNotice(reinterpretedOutlines);
+            if (!reinterpretedNotice.isEmpty()) {
+                writer.print(reinterpretedNotice);
+                writer.println();
+            }
 
             writeStatusLegend(writer, summaries);
 

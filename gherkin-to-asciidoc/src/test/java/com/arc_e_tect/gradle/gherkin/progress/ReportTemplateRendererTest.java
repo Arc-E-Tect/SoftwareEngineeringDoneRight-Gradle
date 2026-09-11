@@ -180,6 +180,35 @@ class ReportTemplateRendererTest {
         return snippets;
     }
 
+    @Test
+    @DisplayName("exposes the outline re-interpretation notice as the outlineExpansion variable")
+    void exposesOutlineReinterpretationNoticeAsOutlineExpansionVariable(@TempDir Path tempDir) throws IOException {
+        File outputFile = tempDir.resolve("out/features.adoc").toFile();
+        outputFile.getParentFile().mkdirs();
+        File template = writeTemplate(tempDir, "{{{outlineExpansion}}}");
+
+        renderer.render(outputFile, template, "1.0.0", List.of(), emptySnippets(tempDir),
+                List.of(new ReinterpretedOutlines.Outline(
+                        "Scenario Outline: User logs in as <username>", "User authentication", 2)));
+
+        String content = Files.readString(outputFile.toPath(), StandardCharsets.UTF_8);
+        assertThat(content)
+                .contains("[IMPORTANT]")
+                .contains("* `Scenario Outline: User logs in as <username>` (in `User authentication`) - now 2 scenarios");
+    }
+
+    @Test
+    @DisplayName("renders the outlineExpansion variable as empty when no outline changed interpretation")
+    void rendersOutlineExpansionVariableAsEmptyWhenNoneChanged(@TempDir Path tempDir) throws IOException {
+        File outputFile = tempDir.resolve("out/features.adoc").toFile();
+        outputFile.getParentFile().mkdirs();
+        File template = writeTemplate(tempDir, "before{{{outlineExpansion}}}after");
+
+        renderer.render(outputFile, template, "1.0.0", List.of(), emptySnippets(tempDir));
+
+        assertThat(Files.readString(outputFile.toPath(), StandardCharsets.UTF_8)).isEqualTo("beforeafter");
+    }
+
     private File writeTemplate(Path tempDir, String content) throws IOException {
         File file = Files.createTempFile(tempDir, "template", ".mustache").toFile();
         Files.writeString(file.toPath(), content, StandardCharsets.UTF_8);
