@@ -1,3 +1,10 @@
+# [6.8.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/gherkin-to-asciidoc-v6.7.3...gherkin-to-asciidoc-v6.8.0) (2026-09-11)
+
+
+### ✨ New and updated features
+
+* **gherkin-to-asciidoc:** report a Scenario Outline per Examples row ([#281](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/281)) ([b4724c1](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/b4724c149b2d7da81e4b324d56c59917253b08c4)), closes [#281](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/281)
+
 ## [6.7.3](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/gherkin-to-asciidoc-v6.7.2...gherkin-to-asciidoc-v6.7.3) (2026-09-10)
 
 
