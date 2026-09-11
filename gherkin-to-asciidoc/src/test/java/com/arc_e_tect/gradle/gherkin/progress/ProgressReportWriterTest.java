@@ -40,7 +40,8 @@ class ProgressReportWriterTest {
         String content = Files.readString(outputFile.toPath(), StandardCharsets.UTF_8);
         assertThat(content)
                 .contains("System Under Test version: 1.0.0")
-                .contains("This document lists every `Scenario` and `Scenario Outline`")
+                .contains("This document lists every `Scenario` found under the configured feature file")
+                .contains("plus one entry per `Examples` row of every `Scenario Outline`")
                 .contains("Every scenario is classified as exactly one of:")
                 .contains("| Status | Meaning")
                 .contains("No `Given`/`When`/`Then` steps have been written for them yet.")
@@ -400,6 +401,69 @@ class ProgressReportWriterTest {
 
     private Expression expression(String pattern) {
         return expressionFactory.createExpression(pattern);
+    }
+
+    @Test
+    @DisplayName("explains, right under the intro, that outlines are now reported per Examples row")
+    void explainsThatOutlinesAreNowReportedPerExamplesRow(@TempDir Path tempDir) throws IOException {
+        ScenarioInfo row = new ScenarioInfo(
+                "User authentication", "Scenario Outline: User logs in as alice", List.of(),
+                "Scenario Outline: User logs in as <username>");
+        ProgressReportOptions options = new ProgressReportOptions(
+                true, tempDir.resolve("snippets").toFile(), null, "1.0.0", Map.of(),
+                List.of(new ReinterpretedOutlines.Outline(
+                        "Scenario Outline: User logs in as <username>", "User authentication", 2)));
+
+        File outputFile = tempDir.resolve("features.adoc").toFile();
+        writer.write(outputFile, List.of(row), List.of(), options);
+
+        String content = Files.readString(outputFile.toPath(), StandardCharsets.UTF_8);
+        assertThat(content)
+                .contains("[IMPORTANT]")
+                .contains(".`Scenario Outline`s are now reported one scenario per `Examples` row")
+                .contains("One outline changed interpretation on this run:")
+                .contains("* `Scenario Outline: User logs in as <username>` (in `User authentication`) - now 2 scenarios")
+                .contains("This notice appears only on the run that detects the change.");
+        assertThat(content.indexOf("[IMPORTANT]"))
+                .isGreaterThan(content.indexOf("This document lists every `Scenario`"))
+                .isLessThan(content.indexOf("Every scenario is classified as exactly one of:"));
+    }
+
+    @Test
+    @DisplayName("counts the outlines when more than one changed interpretation on the same run")
+    void countsOutlinesWhenMoreThanOneChangedInterpretation(@TempDir Path tempDir) throws IOException {
+        ScenarioInfo row = new ScenarioInfo(
+                "User authentication", "Scenario Outline: User logs in as alice", List.of(),
+                "Scenario Outline: User logs in as <username>");
+        ProgressReportOptions options = new ProgressReportOptions(
+                true, tempDir.resolve("snippets").toFile(), null, "1.0.0", Map.of(),
+                List.of(
+                        new ReinterpretedOutlines.Outline(
+                                "Scenario Outline: User logs in as <username>", "User authentication", 2),
+                        new ReinterpretedOutlines.Outline(
+                                "Scenario Outline: User pays with <method>", "Invoice payment", 1)));
+
+        File outputFile = tempDir.resolve("features.adoc").toFile();
+        writer.write(outputFile, List.of(row), List.of(), options);
+
+        String content = Files.readString(outputFile.toPath(), StandardCharsets.UTF_8);
+        assertThat(content)
+                .contains("2 outlines changed interpretation on this run:")
+                .contains("* `Scenario Outline: User pays with <method>` (in `Invoice payment`) - now 1 scenario");
+    }
+
+    @Test
+    @DisplayName("writes no outline re-interpretation notice when no outline changed interpretation")
+    void writesNoOutlineReinterpretationNoticeWhenNoneChanged(@TempDir Path tempDir) throws IOException {
+        ScenarioInfo listed = new ScenarioInfo("Authentication", "Scenario: Only a title", List.of());
+
+        File outputFile = tempDir.resolve("features.adoc").toFile();
+        writer.write(outputFile, List.of(listed), List.of(), grouped(tempDir));
+
+        String content = Files.readString(outputFile.toPath(), StandardCharsets.UTF_8);
+        assertThat(content)
+                .doesNotContain("[IMPORTANT]")
+                .doesNotContain("changed interpretation on this run");
     }
 
     private ProgressReportOptions grouped(Path tempDir) {

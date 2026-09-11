@@ -29,9 +29,9 @@ public class ReportTemplateRenderer {
     public ReportTemplateRenderer() {}
 
     /**
-     * Renders {@code template} to {@code outputFile}, using {@code summaries} and {@code snippets}
-     * to build the Mustache context. Snippet paths in the context are relative to
-     * {@code outputFile}'s directory, so plain {@code include::<path>[]} directives resolve correctly.
+     * Renders {@code template} to {@code outputFile} with no re-interpreted outlines to report - see
+     * {@link #render(File, File, String, List, Map, List)}, which this delegates to with an empty
+     * list, rendering the {@code outlineExpansion} context variable as the empty string.
      *
      * @param outputFile the AsciiDoc file to write
      * @param template   the Mustache template file to render
@@ -45,7 +45,33 @@ public class ReportTemplateRenderer {
             String systemUnderTestVersion,
             List<StatusSummary> summaries,
             Map<ScenarioStatus, StatusSnippets> snippets) {
-        Map<String, Object> context = buildContext(systemUnderTestVersion, summaries, snippets, outputFile.getParentFile());
+        render(outputFile, template, systemUnderTestVersion, summaries, snippets, List.of());
+    }
+
+    /**
+     * Renders {@code template} to {@code outputFile}, using {@code summaries} and {@code snippets}
+     * to build the Mustache context. Snippet paths in the context are relative to
+     * {@code outputFile}'s directory, so plain {@code include::<path>[]} directives resolve correctly.
+     *
+     * @param outputFile the AsciiDoc file to write
+     * @param template   the Mustache template file to render
+     * @param systemUnderTestVersion version of the system under test that the reported scenarios exercise
+     * @param summaries  the classified scenarios and summary figures for each status, in display order
+     * @param snippets   the snippet file(s) written for each status
+     * @param reinterpretedOutlines the outlines this run has started reporting one scenario per
+     *                   {@code Examples} row, rendered into the {@code outlineExpansion} context
+     *                   variable; empty on every run that re-interprets none, which renders that
+     *                   variable as the empty string
+     */
+    public void render(
+            File outputFile,
+            File template,
+            String systemUnderTestVersion,
+            List<StatusSummary> summaries,
+            Map<ScenarioStatus, StatusSnippets> snippets,
+            List<ReinterpretedOutlines.Outline> reinterpretedOutlines) {
+        Map<String, Object> context = buildContext(
+                systemUnderTestVersion, summaries, snippets, outputFile.getParentFile(), reinterpretedOutlines);
 
         try (Reader templateReader = new FileReader(template, StandardCharsets.UTF_8);
              PrintWriter writer = new PrintWriter(outputFile, StandardCharsets.UTF_8)) {
@@ -62,10 +88,12 @@ public class ReportTemplateRenderer {
 
     private Map<String, Object> buildContext(
             String systemUnderTestVersion, List<StatusSummary> summaries,
-            Map<ScenarioStatus, StatusSnippets> snippets, File outputDir) {
+            Map<ScenarioStatus, StatusSnippets> snippets, File outputDir,
+            List<ReinterpretedOutlines.Outline> reinterpretedOutlines) {
         Map<String, Object> context = new LinkedHashMap<>();
         context.put("systemUnderTestVersion", systemUnderTestVersion);
         context.put("intro", ReportText.INTRO);
+        context.put("outlineExpansion", ReportText.reinterpretedOutlinesNotice(reinterpretedOutlines));
         context.put("legend", summaries.stream()
                 .map(s -> Map.of("status", s.label(), "meaning", s.blurb()))
                 .collect(Collectors.toList()));

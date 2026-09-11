@@ -13,6 +13,7 @@ import com.arc_e_tect.gradle.gherkin.progress.ProgressHistoryStore;
 import com.arc_e_tect.gradle.gherkin.progress.ProgressHistoryUpdater;
 import com.arc_e_tect.gradle.gherkin.progress.ProgressReportOptions;
 import com.arc_e_tect.gradle.gherkin.progress.ProgressReportWriter;
+import com.arc_e_tect.gradle.gherkin.progress.ReinterpretedOutlines;
 import com.arc_e_tect.gradle.gherkin.progress.ScenarioProgressRecord;
 import io.cucumber.cucumberexpressions.Expression;
 import org.gradle.api.DefaultTask;
@@ -49,7 +50,9 @@ import java.util.stream.Collectors;
 
 /**
  * Gradle task that scans {@code .feature} files and writes all scenario titles
- * to a single AsciiDoc file.
+ * to a single AsciiDoc file - one per {@code Scenario}, and one per {@code Examples} row of every
+ * {@code Scenario Outline}, since that is what an outline is (see
+ * {@link com.arc_e_tect.gradle.gherkin.parser.FeatureParser}).
  *
  * <p>Caching is intentionally disabled: the output depends entirely on the
  * contents of the feature files and regeneration is cheap.</p>
@@ -430,10 +433,12 @@ public abstract class GenerateFeatureDocsTask extends DefaultTask {
             boolean trackHistoryThisRun = trackProgressHistory && failOnDuplicateScenarios;
             List<Expression> glueCode = scanGlueCode();
             File template = getTemplate().isPresent() ? getTemplate().getAsFile().get() : null;
-            Map<String, ScenarioProgressRecord> history = trackHistoryThisRun
-                    ? updateProgressHistory(occurrencesByProject, glueCode) : Map.of();
+            HistoryUpdate historyUpdate = trackHistoryThisRun
+                    ? updateProgressHistory(occurrencesByProject, glueCode) : HistoryUpdate.none();
+            reportReinterpretedOutlines(historyUpdate.reinterpretedOutlines());
             ProgressReportOptions options = new ProgressReportOptions(
-                    groupByFeature, getSnippetDir().getAsFile().get(), template, systemUnderTestVersion, history);
+                    groupByFeature, getSnippetDir().getAsFile().get(), template, systemUnderTestVersion,
+                    historyUpdate.history(), historyUpdate.reinterpretedOutlines());
             new ProgressReportWriter().write(outputFile, scenarios, glueCode, options);
         } else {
             writeAsciidoc(outputFile, scenarios, groupByFeature, systemUnderTestVersion);
@@ -456,11 +461,14 @@ public abstract class GenerateFeatureDocsTask extends DefaultTask {
      * covers a single project (the usual case) reads and writes exactly the one configured file, as
      * it always has.</p>
      *
-     * <p>The returned map combines every project's records for the report, which consumes them only
-     * in aggregate. Its keys are qualified by owning project so that two projects' identically-titled
-     * scenarios both survive the combination instead of one silently replacing the other.</p>
+     * <p>The returned {@link HistoryUpdate}'s map combines every project's records for the report,
+     * which consumes them only in aggregate. Its keys are qualified by owning project so that two
+     * projects' identically-titled scenarios both survive the combination instead of one silently
+     * replacing the other. Its list of {@link ReinterpretedOutlines.Outline}s is every project's
+     * findings concatenated, gathered here because detecting them needs each project's
+     * previously persisted records, which only exist inside this method.</p>
      */
-    private Map<String, ScenarioProgressRecord> updateProgressHistory(
+    private HistoryUpdate updateProgressHistory(
             Map<File, List<DuplicateScenarioTitles.ScenarioOccurrence>> occurrencesByProject,
             List<Expression> glueCode) {
         ProgressHistoryStore store = new ProgressHistoryStore();
@@ -468,6 +476,7 @@ public abstract class GenerateFeatureDocsTask extends DefaultTask {
         boolean persist = getUpdateProgressHistory().get();
 
         Map<String, ScenarioProgressRecord> combined = new LinkedHashMap<>();
+        List<ReinterpretedOutlines.Outline> reinterpretedOutlines = new ArrayList<>();
         for (Map.Entry<File, List<DuplicateScenarioTitles.ScenarioOccurrence>> entry
                 : occurrencesByProject.entrySet()) {
             File owningProject = entry.getKey();
@@ -477,6 +486,7 @@ public abstract class GenerateFeatureDocsTask extends DefaultTask {
 
             File historyFile = progressHistoryFileFor(owningProject);
             Map<String, ScenarioProgressRecord> previous = store.load(historyFile);
+            reinterpretedOutlines.addAll(new ReinterpretedOutlines().find(previous, scenarios));
             Map<String, ScenarioProgressRecord> updated =
                     new ProgressHistoryUpdater().update(previous, scenarios, glueCode, now);
             if (persist) {
@@ -487,7 +497,49 @@ public abstract class GenerateFeatureDocsTask extends DefaultTask {
                 combined.put(owningProject.getAbsolutePath() + "|" + record.getKey(), record.getValue());
             }
         }
-        return combined;
+        return new HistoryUpdate(combined, reinterpretedOutlines);
+    }
+
+    /**
+     * Logs, at {@code LIFECYCLE}, that this run has started reporting one scenario per
+     * {@code Examples} row for {@code outlines} - the same change the generated report explains in
+     * full - so that a consumer watching the build sees why its scenario count jumped without
+     * having to open the report to find out.
+     *
+     * @param outlines the outlines re-interpreted on this run; nothing is logged when empty
+     */
+    private void reportReinterpretedOutlines(List<ReinterpretedOutlines.Outline> outlines) {
+        if (outlines.isEmpty()) {
+            return;
+        }
+        getLogger().lifecycle(
+                "gherkinToAsciidoc: {} Scenario Outline(s) are now reported as one scenario per Examples row "
+                + "rather than as a single scenario - their progress history entries have been superseded, "
+                + "one per row. See the generated report for the details.", outlines.size());
+        for (ReinterpretedOutlines.Outline outline : outlines) {
+            getLogger().info("gherkinToAsciidoc: '{}' in feature '{}' is now {} scenario(s)",
+                    outline.title(), outline.featureTitle(), outline.scenarioCount());
+        }
+    }
+
+    /**
+     * What {@link #updateProgressHistory(Map, List)} produced: every project's combined history for
+     * the report, plus the outlines this run re-interpreted. The two travel together because both
+     * are read off the same per-project history files, and the second is only knowable while the
+     * previously persisted records are still in hand.
+     *
+     * @param history               every project's records, keys qualified by owning project
+     * @param reinterpretedOutlines the outlines this run has started reporting one scenario per
+     *                              {@code Examples} row, across every project
+     */
+    private record HistoryUpdate(
+            Map<String, ScenarioProgressRecord> history,
+            List<ReinterpretedOutlines.Outline> reinterpretedOutlines) {
+
+        /** The result of a run that doesn't track history at all: nothing loaded, nothing noticed. */
+        static HistoryUpdate none() {
+            return new HistoryUpdate(Map.of(), List.of());
+        }
     }
 
     /**
@@ -744,8 +796,8 @@ public abstract class GenerateFeatureDocsTask extends DefaultTask {
             writer.println();
             writer.println("System Under Test version: " + systemUnderTestVersion);
             writer.println();
-            writer.println("This document lists every `Scenario` and `Scenario Outline` found under the "
-                    + "configured feature file directories.");
+            writer.println("This document lists every `Scenario` found under the configured feature file "
+                    + "directories, plus one entry per `Examples` row of every `Scenario Outline`.");
             writer.println();
             if (scenarios.isEmpty()) {
                 writer.println("No scenarios found.");

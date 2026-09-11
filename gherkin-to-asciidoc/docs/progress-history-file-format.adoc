@@ -94,6 +94,10 @@ A consumer that wants to know a scenario's *current* status from this file alone
 
 `fingerprint` is the first 16 hex characters of the SHA-256 hash of the scenario's *normalized* title - normalized by stripping both the `Scenario:`/`Scenario Outline:` keyword prefix and any existing index-numbering prefix (the `\d+(?:\.\d+)? - ` format the `indexing` feature writes), then trimming and lower-casing what remains. Nothing else about the scenario (which feature file it lives in, its steps, its line number) affects it - this is deliberate, so a scenario keeps its history across being cut from one feature file and pasted into another, and across being renumbered, as long as its own title text doesn't otherwise change.
 
+Every `Examples` row of a `Scenario Outline` is a separate scenario here, with a fingerprint and a record of its own - the plugin lists one scenario per row, exactly as Cucumber runs one test case per row (see link:../README.adoc#_scenario_outlines[the README]).
+A row's title, and so its fingerprint, is derived from that row's own `Examples` values, which means editing an `Examples` table is a rename: the edited rows get new fingerprints and fresh records, and the rows they replaced are marked `removedAt` like any other renamed scenario.
+A file written before outlines were expanded holds one record per outline, keyed on the outline's own unsubstituted title; the first run to expand that outline marks that record `removedAt` and starts one record per row, and says so in the generated report so the change doesn't read as ordinary churn.
+
 Pseudocode, matching `ScenarioFingerprint.fingerprint(String)` exactly:
 
 [source,text]

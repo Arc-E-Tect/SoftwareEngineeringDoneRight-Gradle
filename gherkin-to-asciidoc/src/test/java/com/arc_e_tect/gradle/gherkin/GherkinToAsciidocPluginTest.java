@@ -18,6 +18,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 
@@ -773,6 +774,102 @@ class GherkinToAsciidocPluginTest {
         assertThat(content)
                 .contains("Root scenario")
                 .contains("Sub scenario");
+    }
+
+    @Test
+    @DisplayName("lists one entry per Examples row of a Scenario Outline")
+    void listsOneEntryPerExamplesRowOfAScenarioOutline() throws IOException {
+        Project project = projectWithPlugin();
+        File featuresDir = new File(tempDir.toFile(), "features");
+        featuresDir.mkdirs();
+        writeFeatureFile(featuresDir, "login.feature", """
+                Feature: User authentication
+
+                  Scenario Outline: User logs in as <username>
+                    Given the login page is open
+                    When the user submits "<username>" and "<password>"
+
+                    Examples:
+                      | username | password |
+                      | alice    | secret   |
+                      | bob      | wrong    |
+                """);
+
+        File outputDir = new File(tempDir.toFile(), "output");
+
+        GenerateFeatureDocsTask task = task(project);
+        task.getSourceDirs().from(featuresDir);
+        task.getOutputDir().set(outputDir);
+        task.getProjectDirectory().set(project.getLayout().getProjectDirectory());
+        task.generate();
+
+        List<String> lines = Files.readAllLines(
+                new File(outputDir, "features.adoc").toPath(), StandardCharsets.UTF_8);
+        assertThat(lines).contains(
+                "* Scenario Outline: User logs in as alice",
+                "* Scenario Outline: User logs in as bob");
+    }
+
+    @Test
+    @DisplayName("classifies each Examples row of a Scenario Outline on its own substituted steps")
+    void classifiesEachExamplesRowOnItsOwnSubstitutedSteps() throws IOException {
+        Project project = projectWithPlugin();
+        File featuresDir = new File(tempDir.toFile(), "features");
+        featuresDir.mkdirs();
+        writeFeatureFile(featuresDir, "login.feature", """
+                Feature: User authentication
+
+                  Scenario Outline: User logs in as <username>
+                    Given the login page is open
+                    When the user submits the password of <username>
+
+                    Examples:
+                      | username |
+                      | alice    |
+                      | bob      |
+                """);
+
+        File glueCodeDir = new File(tempDir.toFile(), "steps");
+        glueCodeDir.mkdirs();
+        Files.writeString(new File(glueCodeDir, "Steps.java").toPath(), """
+                public class Steps {
+                    @Given("the login page is open")
+                    public void loginPageIsOpen() {}
+
+                    @When("the user submits the password of alice")
+                    public void aliceSubmits() {}
+                }
+                """);
+
+        File outputDir = new File(tempDir.toFile(), "output");
+
+        GenerateFeatureDocsTask task = task(project);
+        task.getSourceDirs().from(featuresDir);
+        task.getTrackProgress().set(true);
+        task.getGlueCodeDirs().from(glueCodeDir);
+        task.getOutputDir().set(outputDir);
+        task.getProjectDirectory().set(project.getLayout().getProjectDirectory());
+        task.generate();
+
+        String content = Files.readString(new File(outputDir, "features.adoc").toPath());
+        assertThat(content).contains("""
+                == Defined
+
+                Scenarios with steps written, but at least one step has no matching glue code yet.
+
+                === User authentication
+
+                * Scenario Outline: User logs in as bob
+                """);
+        assertThat(content).contains("""
+                == Implemented
+
+                Scenarios whose every step has matching glue code.
+
+                === User authentication
+
+                * Scenario Outline: User logs in as alice
+                """);
     }
 
     @Test
@@ -1691,6 +1788,62 @@ class GherkinToAsciidocPluginTest {
         assertThat(loginAfterRun3.featureTitle()).isEqualTo("Sign-in");
         assertThat(loginAfterRun3.listedAt()).isEqualTo(loginAfterRun1.listedAt());
         assertThat(loginAfterRun3.implementedAt()).isEqualTo(loginAfterRun2.implementedAt());
+    }
+
+    @Test
+    @DisplayName("announces in the report, once, that an outline's history has been superseded by its rows")
+    void announcesOnceThatOutlineHistoryHasBeenSupersededByItsRows() throws IOException {
+        Project project = projectWithPlugin();
+        File featuresDir = new File(tempDir.toFile(), "features");
+        featuresDir.mkdirs();
+        File glueCodeDir = new File(tempDir.toFile(), "steps");
+        glueCodeDir.mkdirs();
+        File historyFile = new File(tempDir.toFile(), "gherkin-progress-history.ndjson");
+        File outputDir = new File(tempDir.toFile(), "output");
+        File reportFile = new File(outputDir, "features.adoc");
+        writeFeatureFile(featuresDir, "login.feature", """
+                Feature: User authentication
+
+                  Scenario Outline: User logs in as <username>
+                    Given the login page is open
+
+                    Examples:
+                      | username |
+                      | alice    |
+                      | bob      |
+                """);
+
+        // History as an earlier version of the plugin left it: one record for the whole outline,
+        // keyed on the outline's own unsubstituted title.
+        Instant earlier = Instant.parse("2026-08-01T09:00:00Z");
+        String outlineFingerprint =
+                new ScenarioFingerprint().fingerprint("Scenario Outline: User logs in as <username>");
+        new ProgressHistoryStore().save(historyFile, List.of(new ScenarioProgressRecord(
+                outlineFingerprint, "User logs in as <username>", "User authentication",
+                earlier, null, null, earlier, null)));
+
+        runTrackProgressHistory(project, featuresDir, glueCodeDir, historyFile, outputDir);
+
+        String firstRun = Files.readString(reportFile.toPath());
+        assertThat(firstRun)
+                .contains(".`Scenario Outline`s are now reported one scenario per `Examples` row")
+                .contains("One outline changed interpretation on this run:")
+                .contains("* `Scenario Outline: User logs in as <username>` (in `User authentication`) "
+                        + "- now 2 scenarios");
+
+        // The outline's record is now marked removed, and each row carries a record of its own -
+        // so the very next run has nothing left to announce.
+        Map<String, ScenarioProgressRecord> history = new ProgressHistoryStore().load(historyFile);
+        assertThat(history.get(outlineFingerprint).removedAt()).isNotNull();
+        assertThat(history.get(outlineFingerprint).listedAt()).isEqualTo(earlier);
+        assertThat(history).containsKeys(
+                new ScenarioFingerprint().fingerprint("Scenario Outline: User logs in as alice"),
+                new ScenarioFingerprint().fingerprint("Scenario Outline: User logs in as bob"));
+
+        runTrackProgressHistory(project, featuresDir, glueCodeDir, historyFile, outputDir);
+
+        assertThat(Files.readString(reportFile.toPath()))
+                .doesNotContain("changed interpretation on this run");
     }
 
     private void runTrackProgressHistory(

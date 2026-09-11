@@ -11,7 +11,7 @@ image:https://img.shields.io/github/v/release/Arc-E-Tect/SoftwareEngineeringDone
 image:https://img.shields.io/badge/Java-21%2B-blue[Java 21+,link=https://adoptium.net]
 image:https://img.shields.io/badge/Gradle-8.x%2B-02303A?logo=gradle[Gradle 8+,link=https://gradle.org]
 
-A Gradle plugin that scans `.feature` files for `Scenario` and `Scenario Outline` titles and generates an AsciiDoc file (`features.adoc`) listing all scenarios found.
+A Gradle plugin that scans `.feature` files for `Scenario` and `Scenario Outline` titles and generates an AsciiDoc file (`features.adoc`) listing all scenarios found - one entry per `Scenario`, and one per `Examples` row of every `Scenario Outline`, the same way Cucumber itself runs one test case per row.
 
 The generated document gives teams a living, human-readable index of every behaviour specification defined in Gherkin, ready to be included directly into AsciiDoc-based project documentation.
 
@@ -289,7 +289,7 @@ The plugin registers `generateFeatureDocs` in the `documentation` group, and `up
 ./gradlew generateFeatureDocs
 ----
 
-The task scans the configured source location, collects every `Scenario` and `Scenario Outline` title, and writes the result to `<outputDir>/<outputFileName>`.
+The task scans the configured source location, collects every `Scenario` title and every `Examples` row of every `Scenario Outline` (see "Scenario Outlines" below), and writes the result to `<outputDir>/<outputFileName>`.
 
 == Updating the DSL to the latest properties
 
@@ -549,7 +549,7 @@ Feature: User authentication
     When the user submits valid credentials
     Then the dashboard is displayed
 
-  Scenario Outline: User logs in with different credential sets
+  Scenario Outline: User logs in as <username>
     Given the login page is open
     When the user submits "<username>" and "<password>"
     Then the result is "<outcome>"
@@ -570,13 +570,94 @@ By default (`groupByFeature = true`), the plugin generates:
 
 System Under Test version: 1.0.0
 
-This document lists every `Scenario` and `Scenario Outline` found under the configured feature file directories.
+This document lists every `Scenario` found under the configured feature file directories, plus one entry per `Examples` row of every `Scenario Outline`.
 
 == User authentication
 
 * Scenario: User logs in successfully
-* Scenario Outline: User logs in with different credential sets
+* Scenario Outline: User logs in as alice
+* Scenario Outline: User logs in as bob
 ----
+
+== Scenario Outlines
+
+A `Scenario Outline` isn't one scenario but a template for as many scenarios as its `Examples` table has rows - which is exactly how Cucumber runs it, as one test case per row.
+So the plugin lists one entry per row, not one per outline: a report that counted every outline once would disagree with the Cucumber report for the very same suite.
+
+Each row's title is the outline's own name with every `<placeholder>` replaced by that row's value for the matching `Examples` column - the same name Cucumber reports that row's test case under, so the two reports line up name-for-name:
+
+[source,gherkin]
+----
+Scenario Outline: User logs in as <username>
+  Given the login page is open
+  When the user submits "<username>" and "<password>"
+
+  Examples:
+    | username | password |
+    | alice    | secret   |
+    | bob      | wrong    |
+----
+
+[source,asciidoc]
+----
+* Scenario Outline: User logs in as alice
+* Scenario Outline: User logs in as bob
+----
+
+Every row's steps are substituted the same way, so each row is classified on the steps it actually runs (see "Tracking Implementation Progress" below) instead of on steps still full of `<placeholder>` text that no glue code can ever match.
+
+Two rows of one outline can still end up with the same name that way - the outline's name may use no placeholder at all, or not the ones that vary between rows - and a scenario's title is its whole identity to `progressHistoryFile` (see "How Scenarios Are Matched Across Runs" below).
+So the first of the following forms that gives every row of an outline a distinct name is used for all of that outline's rows:
+
+[cols="1,2",options="header"]
+|===
+| Form | Example
+
+| The substituted name.
+| `User logs in as alice`
+
+| The substituted name, plus the row's own column/value pairs.
+| `User logs in [username: alice, outcome: success]`
+
+| The substituted name, plus the row's 1-based position among the outline's rows.
+| `User logs in [example 2]`
+|===
+
+The third form is reached only when two rows hold literally the same values, where the pairs the second form appends would be identical too.
+
+An outline with no `Examples` rows at all - no `Examples` block written yet, or one with nothing but a header - is listed once, under its own unsubstituted name and steps, exactly like a plain `Scenario`.
+Such an outline is simply still being authored, and dropping it from the report would take whatever progress history it has already accrued with it.
+
+With `indexing` enabled (see "Numbering Features and Scenarios" below), every row of one outline shares that outline's number: the number is written onto the single `Scenario Outline:` line in the source file, and every row inherits it from there.
+
+On the first run after upgrading to a version that expands outlines, every `Scenario Outline` already recorded in `progressHistoryFile` is re-fingerprinted: the old one-per-outline record stops being seen and has its `removedAt` stamped - keeping its history, as records always do - while each `Examples` row starts a record of its own.
+Rather than leave that looking like scenarios were deleted and new ones written, the plugin says so in the report itself, as an admonition right under the introduction:
+
+[source,asciidoc]
+----
+[IMPORTANT]
+.`Scenario Outline`s are now reported one scenario per `Examples` row
+====
+This report has started reading a `Scenario Outline` the way Cucumber runs it: as one scenario per `Examples` row, rather than as a single scenario. The counts below went up accordingly, without a single new scenario having been written.
+
+One outline changed interpretation on this run:
+
+* `Scenario Outline: User logs in as <username>` (in `User authentication`) - now 2 scenarios
+
+Each of those outlines had one entry in the progress history, keyed on the outline's own title. That entry has been closed - counted under `Removed (no longer seen)` in *Progress Over Time* below, with everything it had already recorded kept intact - and every one of the outline's `Examples` rows now has an entry of its own, tracked from this run onward. Nothing in the feature files changed; only how they are read did.
+
+This notice appears only on the run that detects the change.
+====
+----
+
+The build log carries a one-line `LIFECYCLE` summary of the same thing, with `--info` adding a line per outline.
+
+[NOTE]
+====
+The notice is written only when there is a superseded history entry to explain, which takes `trackProgress` and `trackProgressHistory` both enabled and a `progressHistoryFile` that already records the outline - the plugin has no other way to know an outline used to be counted once.
+A project that doesn't track history simply sees its scenario count go up, and a `Scenario Outline` first written after upgrading is never mentioned at all.
+An outline that keeps its own title anyway - a single `Examples` row, with no `<placeholder>` in the outline's name - isn't re-interpreted in the first place, so its history entry carries straight on.
+====
 
 == Grouping by Feature
 
@@ -604,7 +685,7 @@ Feature: Invoice payment
 
 System Under Test version: 1.0.0
 
-This document lists every `Scenario` and `Scenario Outline` found under the configured feature file directories.
+This document lists every `Scenario` found under the configured feature file directories, plus one entry per `Examples` row of every `Scenario Outline`.
 
 == User authentication
 
@@ -626,7 +707,7 @@ Setting `groupByFeature = false` instead lists every scenario as one flat list, 
 
 System Under Test version: 1.0.0
 
-This document lists every `Scenario` and `Scenario Outline` found under the configured feature file directories.
+This document lists every `Scenario` found under the configured feature file directories, plus one entry per `Examples` row of every `Scenario Outline`.
 
 * Scenario: User logs in successfully
 * Scenario: User pays an invoice
@@ -955,7 +1036,7 @@ Feature: User authentication
     When the user submits valid credentials
     Then the dashboard is displayed
 
-  Scenario Outline: User logs in with different credential sets
+  Scenario Outline: User logs in as <username>
     Given the login page is open
     When the user submits "<username>" and "<password>"
     Then the result is "<outcome>"
@@ -993,8 +1074,8 @@ the plugin generates:
 
 System Under Test version: 1.0.0
 
-This document lists every `Scenario` and `Scenario Outline` found under the configured feature file
-directories, classified by how far each one is toward being automated.
+This document lists every `Scenario` found under the configured feature file directories, plus one entry per
+`Examples` row of every `Scenario Outline`, classified by how far each one is toward being automated.
 
 Every scenario is classified as exactly one of:
 
@@ -1020,15 +1101,15 @@ Every scenario is classified as exactly one of:
 
 | Listed
 | 1
-| 33.3%
+| 25.0%
 
 | Defined
-| 1
-| 33.3%
+| 2
+| 50.0%
 
 | Implemented
 | 1
-| 33.4%
+| 25.0%
 |===
 
 == Listed
@@ -1045,7 +1126,8 @@ Scenarios with steps written, but at least one step has no matching glue code ye
 
 === User authentication
 
-* Scenario Outline: User logs in with different credential sets
+* Scenario Outline: User logs in as alice
+* Scenario Outline: User logs in as bob
 
 == Implemented
 
@@ -1060,10 +1142,14 @@ Scenarios whose every step has matching glue code.
 ====
 The percentages are always rounded so that the three figures add up to exactly 100%.
 
-The `Scenario Outline` shares its first step (`the login page is open`) with the fully implemented scenario
-above, so that one step does have matching glue code. Its other two steps don't match anything in
-`LoginSteps`, though, so the scenario as a whole is classified as `defined`, not `implemented` — every step
-needs matching glue code for a scenario to count as `implemented`.
+The `Scenario Outline` counts as two scenarios, one per `Examples` row (see "Scenario Outlines" above), which
+is why the four listed here add up from a feature file that spells out only three.
+
+Both rows share their first step (`the login page is open`) with the fully implemented scenario above, so that
+one step does have matching glue code. Each row's other two steps - `the user submits "alice" and "secret"`
+and `the result is "success"` for the first row, the same with that row's own values for the second - match
+nothing in `LoginSteps`, though, so both rows are classified as `defined`, not `implemented`: every step needs
+matching glue code for a scenario to count as `implemented`.
 ====
 
 == Report Snippets and Custom Templates
@@ -1097,6 +1183,12 @@ The plugin renders `template` with the following context:
 
 | `intro`
 | The one-sentence description of what the document contains.
+
+| `outlineExpansion`
+| The ready-to-place AsciiDoc admonition explaining that `Scenario Outline`s have started being reported one
+  scenario per `Examples` row (see "Scenario Outlines" above), or the empty string - which is what it is on
+  every run but the one that detects the change, so a template can emit it unconditionally. The default report
+  layout places it directly under `intro`.
 
 | `legend`
 | List of `\{status, meaning}` - the three rows of the status legend table.
@@ -1284,6 +1376,10 @@ If a run is skipped for some other reason and you need to force it regardless (e
 Every scenario is identified by a fingerprint computed from its own name alone: the `Scenario:`/`Scenario Outline:` keyword and any existing index prefix (see "Numbering Features and Scenarios" above) are stripped, the remainder is trimmed and lower-cased, and the result is hashed with SHA-256, truncated to its first 16 hex characters.
 Because the fingerprint never takes the enclosing `Feature` into account, a scenario keeps its history even after being cut from one feature file and pasted into another, as long as its own name doesn't change.
 
+Every `Examples` row of a `Scenario Outline` is a scenario in its own right here too (see "Scenario Outlines" above), fingerprinted from the name that row is listed under and carrying its own history - so a suite can show that one row of an outline has been implemented while the rest are still only defined.
+That name is derived from the row's values, so editing an `Examples` table changes the identity of every row it touches: the edited rows start fresh records, and the ones they replace are marked removed like any other renamed scenario.
+The one exception is the upgrade itself: on the first run that reports an outline per row, the outline's own one-per-outline record is superseded by its rows' records, and the report says so explicitly rather than leaving it to look like churn (see "Scenario Outlines" above).
+
 On every run, each of the current scenarios is looked up by fingerprint in the previously persisted history (or given a fresh record, if none exists), and classified exactly as `trackProgress` itself would (see "Tracking Implementation Progress" above).
 Whichever of `listedAt`/`definedAt`/`implementedAt` matches that classification is stamped with the current time the first time it's observed, and is never overwritten afterwards - so a scenario that jumps straight from `listed` to `implemented` between two runs never gains a `definedAt` at all, and a scenario that later regresses (e.g. its glue code is deleted) doesn't lose the timestamp it already earned.
 A scenario's `scenarioName` and `featureTitle` are refreshed to their current values on every run even though neither is part of the key, so a renamed-in-place scenario or one moved to a different feature shows up-to-date in the persisted file.
@@ -1326,6 +1422,7 @@ Titles are compared *within each project*, never across projects.
 Two microservices that each implement the same cross-cutting concern - access logging, an audit trail, rate limiting - legitimately carry the same scenario titles, and that repetition is the point: it says the same behaviour is required of both.
 So an <<aggregator-layout,aggregator>> run collecting several projects' feature files doesn't reject them, and each project keeps its own history for its own copy (see <<history-per-project>>).
 Two scenarios sharing a title *within* one project remain a genuine defect, and still fail the build.
+The `Examples` rows of a single `Scenario Outline` never trip this: they're named apart from each other on purpose (see "Scenario Outlines" above), so expanding an outline can't fail a build that would otherwise have passed.
 
 By default (`failOnDuplicateScenarios = true`), `generateFeatureDocs` rejects such a build outright, before either the report or the history file is written:
 

@@ -7,8 +7,6 @@ import io.cucumber.messages.types.FeatureChild;
 import io.cucumber.messages.types.GherkinDocument;
 import io.cucumber.messages.types.Rule;
 import io.cucumber.messages.types.RuleChild;
-import io.cucumber.messages.types.Scenario;
-import io.cucumber.messages.types.Step;
 import org.gradle.api.logging.Logger;
 import org.gradle.api.logging.Logging;
 
@@ -17,7 +15,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -25,6 +22,12 @@ import java.util.stream.Stream;
  *
  * <p>Scenarios are returned in document order.  Scenarios nested inside {@code Rule}
  * blocks are also included.</p>
+ *
+ * <p>A {@code Scenario Outline} is not one scenario but a template for as many as its
+ * {@code Examples} table has rows - the same way Cucumber itself runs one test case per row - so
+ * {@link ScenarioOutlineExpander} expands every outline into one {@link ScenarioInfo} per row,
+ * each with that row's values substituted into its title and steps.  See that class for exactly
+ * how each row is named.</p>
  *
  * <p>If the file cannot be read or parsed, the error is logged as a warning and
  * an empty list is returned — the task never fails due to a single bad file.</p>
@@ -50,8 +53,9 @@ public class FeatureParser {
      * Parses the given {@code .feature} file and returns all scenarios.
      *
      * @param featureFile the Gherkin feature file to parse; must not be {@code null}
-     * @return unmodifiable list of scenarios in document order; empty if the file
-     *         cannot be read, is empty, or contains no scenarios
+     * @return unmodifiable list of scenarios in document order, one per {@code Examples} row of
+     *         every {@code Scenario Outline}; empty if the file cannot be read, is empty, or
+     *         contains no scenarios
      */
     public List<ScenarioInfo> parse(File featureFile) {
         List<ScenarioInfo> scenarios = new ArrayList<>();
@@ -72,25 +76,14 @@ public class FeatureParser {
 
     private void extractScenarios(Feature feature, String featureTitle, List<ScenarioInfo> scenarios) {
         for (FeatureChild child : feature.getChildren()) {
-            child.getScenario().ifPresent(s -> scenarios.add(toScenarioInfo(featureTitle, s)));
+            child.getScenario().ifPresent(s -> scenarios.addAll(ScenarioOutlineExpander.expand(featureTitle, s)));
             child.getRule().ifPresent(rule -> extractFromRule(rule, featureTitle, scenarios));
         }
     }
 
     private void extractFromRule(Rule rule, String featureTitle, List<ScenarioInfo> scenarios) {
         for (RuleChild ruleChild : rule.getChildren()) {
-            ruleChild.getScenario().ifPresent(s -> scenarios.add(toScenarioInfo(featureTitle, s)));
+            ruleChild.getScenario().ifPresent(s -> scenarios.addAll(ScenarioOutlineExpander.expand(featureTitle, s)));
         }
-    }
-
-    private ScenarioInfo toScenarioInfo(String featureTitle, Scenario scenario) {
-        List<String> steps = scenario.getSteps().stream()
-                .map(Step::getText)
-                .collect(Collectors.toList());
-        return new ScenarioInfo(featureTitle, formatTitle(scenario), steps);
-    }
-
-    private String formatTitle(Scenario scenario) {
-        return scenario.getKeyword().trim() + ": " + scenario.getName();
     }
 }
