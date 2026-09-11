@@ -119,3 +119,45 @@ check.dependsOn jacocoTestCoverageVerification
 tasks.named("publishPlugins") {
     notCompatibleWithConfigurationCache("com.gradle.plugin-publish PublishTask does not support configuration cache")
 }
+
+// The published POM is what the Gradle Plugin Portal reads to describe this
+// plugin. Without this it carries coordinates and nothing else -- no name, no
+// description, and no licence -- so the artifact says nothing about its own terms
+// while the repository is plainly MIT.
+publishing {
+    publications.withType(MavenPublication).configureEach {
+        pom {
+            name = 'Tracker Lens'
+            description = 'Generates a themeable, standalone HTML dashboard from Gherkin scenario and API contract lifecycle history, with a pluggable multi-lens style-pack system.'
+            url = 'https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/tree/main/tracker-lens'
+
+            licenses {
+                license {
+                    name = 'MIT License'
+                    url = 'https://opensource.org/licenses/MIT'
+                    distribution = 'repo'
+                }
+            }
+
+            developers {
+                developer {
+                    id = 'arc-e-tect'
+                    name = 'Arc-E-Tect'
+                }
+            }
+
+            scm {
+                url = 'https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle'
+                connection = 'scm:git:https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle.git'
+                developerConnection = 'scm:git:git@github.com:Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle.git'
+            }
+        }
+    }
+}
+
+// Ship the licence inside the artifact, not only as a claim in its metadata.
+tasks.named('jar') {
+    from(layout.projectDirectory.file('LICENSE')) {
+        into 'META-INF'
+    }
+}
