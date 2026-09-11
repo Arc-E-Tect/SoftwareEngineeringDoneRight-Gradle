@@ -1,3 +1,20 @@
+# [5.4.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/jacoco-exclusion-report-v5.3.0...jacoco-exclusion-report-v5.4.0) (2026-09-11)
+
+
+### ✨ New and updated features
+
+* **gherkin-to-asciidoc:** add failOnDuplicateScenarios DSL property ([#277](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/277)) ([22e11b8](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/22e11b8c05fef3645a295b369d6e14112c0b69f1)), closes [#277](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/277)
+* **gherkin-to-asciidoc:** report a Scenario Outline per Examples row ([#281](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/281)) ([b4724c1](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/b4724c149b2d7da81e4b324d56c59917253b08c4)), closes [#281](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/281)
+
+
+### 🐛 Bug Fixes
+
+* **gherkin-to-asciidoc:** correct multi-project docs on when consolidatedIndex applies ([#278](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/278)) ([58b69d5](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/58b69d5641d77d598340a2fc4d3f54e8988fc74c)), closes [#278](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/278)
+* release docs commits as patches, stop failing release workflows on legitimate no-op pushes ([#276](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/276)) ([9a440f2](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/9a440f27f1e944090aa662ef7026bab93626f015)), closes [#276](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/276)
+* **gherkin-to-asciidoc:** scope scenario title identity to the owning project ([#280](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/280)) ([ae87e8e](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/ae87e8eb8fd49e1e529c355e26e8b66102faa883)), closes [#280](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/280) [#279](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/279)
+* ship the licence with every published plugin ([#282](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/282)) ([858bb43](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/858bb43bd8ead6a668278acbb6d8164d3705bd62)), closes [#282](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/282)
+* **gherkin-to-asciidoc:** warn when consolidatedIndex cannot span projects ([#279](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/279)) ([3ab555c](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/3ab555cd66be040b2386287419109c42d66430c1)), closes [#279](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/279)
+
 # [5.3.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/jacoco-exclusion-report-v5.2.0...jacoco-exclusion-report-v5.3.0) (2026-09-04)
 
 
