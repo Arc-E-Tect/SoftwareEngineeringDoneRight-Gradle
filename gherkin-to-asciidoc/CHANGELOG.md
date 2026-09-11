@@ -1,3 +1,10 @@
+## [6.8.1](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/gherkin-to-asciidoc-v6.8.0...gherkin-to-asciidoc-v6.8.1) (2026-09-11)
+
+
+### 🐛 Bug Fixes
+
+* ship the licence with every published plugin ([#282](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/282)) ([858bb43](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/858bb43bd8ead6a668278acbb6d8164d3705bd62)), closes [#282](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/282)
+
 # [6.8.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/gherkin-to-asciidoc-v6.7.3...gherkin-to-asciidoc-v6.8.0) (2026-09-11)
 
 
