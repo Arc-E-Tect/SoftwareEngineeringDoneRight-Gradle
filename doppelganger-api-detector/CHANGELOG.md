@@ -1,3 +1,10 @@
+## [2.10.1](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/doppelganger-api-detector-v2.10.0...doppelganger-api-detector-v2.10.1) (2026-09-17)
+
+
+### 🔧 Misc
+
+* bump api-detector-core to 1.8.0 ([#283](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/283)) ([8c30b6b](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/8c30b6b209ca956db44518cea0225ce75878cf92)), closes [#283](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/283)
+
 # [2.10.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/doppelganger-api-detector-v2.9.0...doppelganger-api-detector-v2.10.0) (2026-09-11)
 
 
