@@ -254,6 +254,21 @@ private String usersByUsernamePath;
 mockMvc.perform(get(usersByUsernamePath, "alice"));
 ----
 
+A constant declared in another class, such as `GetUserOperation.PATH`, resolves the same way: it is
+looked up in the merged `propertyFiles` map under the key `SimpleClassName.FIELD`, whether the
+reference is written simply or fully qualified. The API-Only TranscriberJ writes such a file for the
+operation classes it generates, so a project using it only points `propertyFiles` at that file:
+
+[source,java]
+----
+// Constant pattern - only propertyFiles needs to be configured, with an entry such as
+//   GetUserOperation.PATH=/v1/users/{username}
+mockMvc.perform(get(GetUserOperation.PATH, "alice"));
+----
+
+Without a matching key, another class's constant resolves to nothing, as it always did. The plugin
+itself does not depend on the TranscriberJ.
+
 Matching is by simple class/method name only, exactly like every other scanner in this plugin -
 no classpath is consulted, so `ApiEndpoints` never needs to be on the plugin's own classpath.
 Both `propertyFiles` and `pathResolverHelperMethods` default to empty, so a project that doesn't
