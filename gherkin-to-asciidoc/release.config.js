@@ -11,7 +11,7 @@ module.exports = {
     // there instead of jumping back to semantic-release's hardcoded 1.0.0 first-release default.
     tagFormat: "gherkin-to-asciidoc-v${version}",
     plugins: [
-        ["@semantic-release/commit-analyzer", {
+        ["../release/component-commit-analyzer", {
             preset: 'angular',
             releaseRules: [
                 { type: 'feat', release: 'minor' },
@@ -33,7 +33,7 @@ module.exports = {
         ["@semantic-release/npm", {
             "npmPublish": false,
         }],
-        ["@semantic-release/release-notes-generator", {
+        ["../release/component-release-notes", {
             preset: 'angular',
             parserOpts: {
                 noteKeywords: ['BREAKING CHANGE', 'BREAKING CHANGES', 'BREAKING'],
