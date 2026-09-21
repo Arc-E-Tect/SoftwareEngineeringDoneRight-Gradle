@@ -25,7 +25,7 @@ dependencies {
 architectureValidator {
     basePackage = 'com.arc_e_tect.example.springrules'
     ignoreFailures = true
-    rulesDisabled = ['DomainIsolationTest.applicationServicesShouldNotCarrySpringStereotypes']
+    rulesDisabled = ['DomainIsolationTest.domainServicesShouldNotCarrySpringStereotypes']
 
     hexagonalArchitecture {
         inPorts = ['..application.port.inbound..']
@@ -34,7 +34,7 @@ architectureValidator {
         adapters = ['..adapter..']
         inboundAdapters = ['..adapter.inbound..']
         outboundAdapters = ['..adapter.outbound..']
-        applicationServices = ['..application.service..']
+        domainServices = ['..application.service..']
         namingConventionsEnabled = true
     }
 }
