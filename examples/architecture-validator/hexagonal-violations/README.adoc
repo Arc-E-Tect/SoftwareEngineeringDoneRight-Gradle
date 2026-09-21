@@ -25,15 +25,27 @@ cd examples/architecture-validator/hexagonal-violations
 
 == What To Expect
 
-The build is expected to fail with exactly four failing rules from the generated `HexagonalArchitectureTest`:
+The build is expected to fail with exactly six failing rules from the generated `HexagonalArchitectureTest`:
 
 [source]
 ----
-HexagonalArchitectureTest > domain_must_not_depend_on_adapters FAILED
+HexagonalArchitectureTest > domain_must_only_depend_on_domain_or_jdk_core FAILED
+HexagonalArchitectureTest > domain_services_must_only_depend_on_domain_core_and_ports FAILED
 HexagonalArchitectureTest > inbound_ports_reside_in_correct_package FAILED
-HexagonalArchitectureTest > inbound_adapters_must_not_depend_on_service_implementations_directly FAILED
-HexagonalArchitectureTest > application_services_must_not_depend_on_adapters FAILED
+HexagonalArchitectureTest > core_layer_must_not_depend_on_adapters FAILED
+HexagonalArchitectureTest > adapters_must_not_depend_on_domain_services_directly FAILED
+HexagonalArchitectureTest > only_configuration_may_depend_on_domain_service_implementations FAILED
 ----
+
+The last four all flag the same two `OrderService`/`OrderController` violations, just through
+different, complementary mechanisms - `domain_services_must_only_depend_on_domain_core_and_ports`
+and `core_layer_must_not_depend_on_adapters` catch `OrderService` depending on `JpaOrderAdapter` (an
+allow-list check and a blanket "nothing outside adapters may reach into adapters" check,
+respectively), while `adapters_must_not_depend_on_domain_services_directly` and
+`only_configuration_may_depend_on_domain_service_implementations` catch `OrderController` depending
+on `OrderService` directly (an "adapters must go through ports" check and a "only configuration may
+wire a service implementation" check). Seeing the same violation surfaced by more than one rule is
+intentional defense-in-depth, not duplication of the same rule.
 
 The project does not enable `ignoreFailures`, so these detected violations cause `testArchitecture`
 — and therefore `./gradlew build` — to fail. Adapters are still allowed to implement outbound ports

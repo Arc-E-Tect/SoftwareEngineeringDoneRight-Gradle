@@ -144,22 +144,24 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6.2.0
 
-      - name: Run canonical violations example (expects 4 rule failures)
+      - name: Run canonical violations example (expects 6 rule failures)
         run: |
           cd examples/architecture-validator/hexagonal-violations
           chmod +x ./gradlew
           ./gradlew clean testArchitecture --no-daemon 2>&1 | tee "$RUNNER_TEMP/hexagonal-violations-output.txt" || true
 
-      - name: Assert exactly four expected rule names are present
+      - name: Assert exactly six expected rule names are present
         run: |
           VIOLATIONS=0
-          grep -q "domain_must_not_depend_on_adapters" "$RUNNER_TEMP/hexagonal-violations-output.txt" && VIOLATIONS=$((VIOLATIONS+1))
+          grep -q "domain_must_only_depend_on_domain_or_jdk_core" "$RUNNER_TEMP/hexagonal-violations-output.txt" && VIOLATIONS=$((VIOLATIONS+1))
+          grep -q "domain_services_must_only_depend_on_domain_core_and_ports" "$RUNNER_TEMP/hexagonal-violations-output.txt" && VIOLATIONS=$((VIOLATIONS+1))
           grep -q "inbound_ports_reside_in_correct_package" "$RUNNER_TEMP/hexagonal-violations-output.txt" && VIOLATIONS=$((VIOLATIONS+1))
-          grep -q "inbound_adapters_must_not_depend_on_service_implementations_directly" "$RUNNER_TEMP/hexagonal-violations-output.txt" && VIOLATIONS=$((VIOLATIONS+1))
-          grep -q "application_services_must_not_depend_on_adapters" "$RUNNER_TEMP/hexagonal-violations-output.txt" && VIOLATIONS=$((VIOLATIONS+1))
+          grep -q "core_layer_must_not_depend_on_adapters" "$RUNNER_TEMP/hexagonal-violations-output.txt" && VIOLATIONS=$((VIOLATIONS+1))
+          grep -q "adapters_must_not_depend_on_domain_services_directly" "$RUNNER_TEMP/hexagonal-violations-output.txt" && VIOLATIONS=$((VIOLATIONS+1))
+          grep -q "only_configuration_may_depend_on_domain_service_implementations" "$RUNNER_TEMP/hexagonal-violations-output.txt" && VIOLATIONS=$((VIOLATIONS+1))
           echo "Detected violation count: $VIOLATIONS"
-          if [ "$VIOLATIONS" -ne 4 ]; then
-            echo "::error::Expected 4 architecture violations but found $VIOLATIONS"
+          if [ "$VIOLATIONS" -ne 6 ]; then
+            echo "::error::Expected 6 architecture violations but found $VIOLATIONS"
             exit 1
           fi
 
