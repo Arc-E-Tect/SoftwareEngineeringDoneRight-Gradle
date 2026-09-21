@@ -25,7 +25,7 @@ subprojects {
         hexagonalArchitecture {
             domainModel = ['..domain..', '..model..']
             adapters = ['..adapters..', '..adapter..', '..persistence..']
-            applicationServices = ['..service..']
+            domainServices = ['..service..']
             inPorts = ['..port.in..']
             outPorts = ['..port.out..']
         }

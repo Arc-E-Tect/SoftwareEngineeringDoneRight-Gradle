@@ -18,7 +18,7 @@ extension properties actually reach an external rule pack and change its behavio
   opt-in by default.
 
 `CreateOrderService` is deliberately annotated `@Service`, which the companion rule pack's
-`DomainIsolationTest.applicationServicesShouldNotCarrySpringStereotypes` rule would normally
+`DomainIsolationTest.domainServicesShouldNotCarrySpringStereotypes` rule would normally
 reject. `rulesDisabled` names that exact rule so the build treats it as intentionally skipped
 instead of failing.
 
@@ -33,7 +33,7 @@ set, `NamingConventionTest.adaptersShouldHaveConsistentSuffix` catches the missi
 architectureValidator {
     basePackage = 'com.arc_e_tect.example.springrules'
     ignoreFailures = true
-    rulesDisabled = ['DomainIsolationTest.applicationServicesShouldNotCarrySpringStereotypes']
+    rulesDisabled = ['DomainIsolationTest.domainServicesShouldNotCarrySpringStereotypes']
 
     hexagonalArchitecture {
         // ...inPorts/outPorts/domainModel/adapters as usual...
@@ -56,21 +56,34 @@ cd examples/architecture-validator/single-module-spring
 
 == What To Expect
 
-The build completes successfully because `ignoreFailures = true`, but the report shows exactly
-one skipped rule and one real failure:
+The build completes successfully because `ignoreFailures = true`. With the republished companion
+rule pack (`architecture-validator-hexagonal-spring-rules:1.0.2`), the report shows three failures
+and one skipped rule:
 
-- `DomainIsolationTest.applicationServicesShouldNotCarrySpringStereotypes` is reported as
+- `DomainIsolationTest.domainServicesShouldNotCarrySpringStereotypes` is reported as
   *skipped*, with the reason `Assumption failed: Rule disabled via architectureValidator.rules.disabled`.
   Without `rulesDisabled`, this rule would fail because `CreateOrderService` carries `@Service`.
 - `NamingConventionTest.adaptersShouldHaveConsistentSuffix` *fails* because `OrderApi` is a
   `@RestController` that does not end with `Controller`. This rule only runs at all because
   `namingConventionsEnabled = true`; with the default (`false`), the whole `NamingConventionTest`
   class is skipped instead.
+- The built-in `HexagonalArchitectureTest.domain_services_must_only_depend_on_domain_core_and_ports`
+  *fails* for the same underlying reason as the skipped Spring-pack rule above: `CreateOrderService`'s
+  `@Service` annotation is itself a dependency on `org.springframework..`, which the built-in
+  domain-service allow-list rule doesn't permit. `rulesDisabled` only names the Spring-pack rule
+  identifier, not the built-in one, so this is intentional layered defense-in-depth surfacing the same
+  root cause twice — not a duplicate rule, and not something `rulesDisabled` is meant to also silence
+  here (see `hexagonal-violations`' README for more on that pattern). The companion rule pack's own
+  `DomainIsolationTest.coreApplicationLayerShouldHaveNoFrameworkDependencies` rule catches the very same
+  `@Service` annotation a third time (it is not covered by `rulesDisabled` either, since that entry only
+  names the stereotype-specific rule) — three independent rules, three independent detections of one
+  root cause, by design.
 
-Every other generated and companion rule (built-in `HexagonalArchitectureTest`,
-`SpringHexagonalArchitectureTest`, `PortContractTest`, `DependencyDirectionTest`,
-`DependencyInjectionStyleTest`, `TypeLeakageTest`, `CycleFreedomTest`) passes, so the two
-outcomes above are isolated to the properties this example is demonstrating.
+Every other generated and companion rule passes. `PortContractTest` and `DependencyDirectionTest` no
+longer exist in the companion rule pack — their framework-agnostic logic now lives in the built-in
+`HexagonalArchitectureTest` rules (`ports_must_only_depend_on_domain_or_jdk_core`,
+`core_layer_must_not_depend_on_adapters`, `adapters_must_not_depend_on_domain_services_directly`,
+`only_configuration_may_depend_on_domain_service_implementations`).
 
 Open `build/reports/architecture-validator/html/index.html` to inspect the full report.
 
