@@ -61,16 +61,16 @@ dependencies {
 ----
 
 The artifact is published to Maven Central and GitHub Packages.
-The plugin passes package configuration to the Spring companion through system properties such as `architectureValidator.basePackage`, `architectureValidator.inPorts`, `architectureValidator.outPorts`, `architectureValidator.domainModel`, `architectureValidator.adapters`, and `architectureValidator.applicationServices`.
+The plugin passes package configuration to the Spring companion through system properties such as `architectureValidator.basePackage`, `architectureValidator.inPorts`, `architectureValidator.outPorts`, `architectureValidator.domainModel`, `architectureValidator.adapters`, `architectureValidator.domainServices`, and `architectureValidator.configurationPackages`.
 The companion does not replace the built-in generated `HexagonalArchitectureTest`.
 The `testArchitecture` suite runs the built-in generated hexagonal rules and then adds the Spring-specific companion tests from the external rule-pack JAR.
 
-Compared with the built-in `HexagonalArchitectureTest`, the Spring companion adds focused test classes.
+Compared with the built-in `HexagonalArchitectureTest`, the Spring companion adds only genuinely Spring-API-dependent test classes — framework-agnostic checks (dependency direction, port contracts, port-freedom, domain/domain-service isolation, bidirectional in-port and domain-service naming) now live in the built-in rule set itself, so the two no longer overlap.
 
-- `SpringHexagonalArchitectureTest` checks stereotype placement, repository access, dependency direction, and framework leakage.
-- `PortContractTest` reinforces interface-only port contracts and domain-safe signatures.
-- `DependencyDirectionTest` adds Spring wiring direction rules around application and adapter boundaries.
-- `DomainIsolationTest` strengthens framework isolation in domain and application-service packages.
+- `SpringHexagonalArchitectureTest` checks Spring stereotype placement, controller-to-use-case and service-to-repository wiring.
+- `DomainIsolationTest` checks that the domain model and domain services carry no Spring/persistence/validation framework dependencies, and that domain services carry no Spring stereotype annotations.
+- `NamingConventionTest` checks a consistent suffix for Spring adapters (`@Repository`/`@RestController`/`@Controller`).
+- `CycleFreedomTest`, `TypeLeakageTest`, and `DependencyInjectionStyleTest` add cycle-detection, JPA/DTO leakage, and field-injection checks specific to a Spring-based codebase.
 
 == Enterprise Guidance
 

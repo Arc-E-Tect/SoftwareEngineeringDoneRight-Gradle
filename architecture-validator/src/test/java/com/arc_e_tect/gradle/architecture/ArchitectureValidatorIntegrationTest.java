@@ -76,7 +76,6 @@ class ArchitectureValidatorIntegrationTest {
                 .buildAndFail();
 
         assertThat(result.getOutput()).contains("inbound_ports_reside_in_correct_package FAILED");
-        assertThat(result.getOutput()).contains("outbound_ports_reside_in_correct_package FAILED");
     }
 
     @Test
@@ -120,7 +119,7 @@ class ArchitectureValidatorIntegrationTest {
                 .withArguments("testArchitecture", "--stacktrace")
                 .buildAndFail();
 
-        assertThat(result.getOutput()).contains("inbound_adapters_must_not_depend_on_service_implementations_directly FAILED");
+        assertThat(result.getOutput()).contains("adapters_must_not_depend_on_domain_services_directly FAILED");
     }
 
     private Path createProjectWithFailingArchitectureTest(String projectName, boolean ignoreFailures) throws IOException {
@@ -389,8 +388,8 @@ class ArchitectureValidatorIntegrationTest {
                 }
                 """);
 
-        write(projectDir.resolve("src/main/java/com/example/archtest/application/domain/Order.java"), """
-                package com.example.archtest.application.domain;
+        write(projectDir.resolve("src/main/java/com/example/archtest/application/domain/model/Order.java"), """
+                package com.example.archtest.application.domain.model;
 
                 public record Order(String id) {
                 }
@@ -399,7 +398,7 @@ class ArchitectureValidatorIntegrationTest {
         write(projectDir.resolve("src/main/java/com/example/archtest/application/port/outbound/OrderRepository.java"), """
             package com.example.archtest.application.port.outbound;
 
-                import com.example.archtest.application.domain.Order;
+                import com.example.archtest.application.domain.model.Order;
 
                 public interface OrderRepository {
                     void save(Order order);
@@ -409,7 +408,7 @@ class ArchitectureValidatorIntegrationTest {
         write(projectDir.resolve("src/main/java/com/example/archtest/application/service/OrderApplicationService.java"), """
                 package com.example.archtest.application.service;
 
-                import com.example.archtest.application.domain.Order;
+                import com.example.archtest.application.domain.model.Order;
                 import com.example.archtest.application.port.outbound.OrderRepository;
 
                 public class OrderApplicationService {
@@ -428,7 +427,7 @@ class ArchitectureValidatorIntegrationTest {
         write(projectDir.resolve("src/main/java/com/example/archtest/adapter/outbound/persistence/DatabaseAdapter.java"), """
                 package com.example.archtest.adapter.outbound.persistence;
 
-                import com.example.archtest.application.domain.Order;
+                import com.example.archtest.application.domain.model.Order;
                 import com.example.archtest.application.port.outbound.OrderRepository;
 
                 public class DatabaseAdapter implements OrderRepository {

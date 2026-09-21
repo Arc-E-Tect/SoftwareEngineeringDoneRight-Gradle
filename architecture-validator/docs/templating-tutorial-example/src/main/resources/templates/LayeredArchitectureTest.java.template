@@ -28,13 +28,25 @@ class LayeredArchitectureTest {
     }
 
     @Test
-    void applicationLayerShouldNotDependOnPresentation() {
+    void applicationServicesShouldNotDependOnPresentation() {
         noClasses()
                 .that().resideInAnyPackage(
-                        ${application})
+                        ${applicationServices})
                 .should().dependOnClassesThat().resideInAnyPackage(
                         ${presentation})
-                .because("Application should not depend on presentation")
+                .because("Application Services orchestrate use cases and must not depend on presentation")
+                .allowEmptyShould(true)
+                .check(classes);
+    }
+
+    @Test
+    void applicationServicesShouldNotDependOnInfrastructureDirectly() {
+        noClasses()
+                .that().resideInAnyPackage(
+                        ${applicationServices})
+                .should().dependOnClassesThat().resideInAnyPackage(
+                        ${infrastructure})
+                .because("Application Services must depend on domain abstractions, not concrete infrastructure")
                 .allowEmptyShould(true)
                 .check(classes);
     }
@@ -46,7 +58,7 @@ class LayeredArchitectureTest {
                         ${domain})
                 .should().dependOnClassesThat().resideInAnyPackage(
                         ${presentation},
-                        ${application},
+                        ${applicationServices},
                         ${infrastructure})
                 .because("Domain should remain the innermost layer")
                 .allowEmptyShould(true)

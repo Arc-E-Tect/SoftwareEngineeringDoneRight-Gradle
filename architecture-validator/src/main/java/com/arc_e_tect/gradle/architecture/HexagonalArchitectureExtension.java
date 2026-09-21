@@ -20,11 +20,15 @@ public class HexagonalArchitectureExtension {
     private final ListProperty<String> inPorts;
     private final ListProperty<String> outPorts;
     private final ListProperty<String> domainModel;
+    private final ListProperty<String> domainServices;
     private final ListProperty<String> adapters;
     private final ListProperty<String> inboundAdapters;
     private final ListProperty<String> outboundAdapters;
-    private final ListProperty<String> applicationServices;
+    private final ListProperty<String> configurationPackages;
+    private final ListProperty<String> portDataTypePackages;
     private final ListProperty<String> commonPackages;
+    private final ListProperty<String> domainAllowedPackages;
+    private final ListProperty<String> frameworkDenylistPackages;
     private final Property<Boolean> namingConventionsEnabled;
 
     /**
@@ -37,13 +41,17 @@ public class HexagonalArchitectureExtension {
     public HexagonalArchitectureExtension(ObjectFactory objects) {
         inPorts = objects.listProperty(String.class).convention(List.of("..application.port.inbound.."));
         outPorts = objects.listProperty(String.class).convention(List.of("..application.port.outbound.."));
-        domainModel = objects.listProperty(String.class).convention(List.of("..application.domain.."));
+        domainModel = objects.listProperty(String.class).convention(List.of("..application.domain.model.."));
+        domainServices = objects.listProperty(String.class).convention(List.of("..application.domain.service.."));
         adapters = objects.listProperty(String.class).convention(List.of("..adapter..", "..adapters.."));
         inboundAdapters = objects.listProperty(String.class).convention(List.of("..adapter.inbound..", "..adapters.inbound.."));
         outboundAdapters = objects.listProperty(String.class).convention(List.of("..adapter.outbound..", "..adapters.outbound.."));
-        applicationServices = objects.listProperty(String.class)
-                .convention(List.of("..application.domain.service..", "..application.service.."));
+        configurationPackages = objects.listProperty(String.class).convention(List.of("..configuration.."));
+        portDataTypePackages = objects.listProperty(String.class).convention(List.of("..command..", "..result.."));
         commonPackages = objects.listProperty(String.class).convention(List.of("..application.common.."));
+        domainAllowedPackages = objects.listProperty(String.class)
+                .convention(List.of("java.lang..", "java.time..", "java.util..", "java.math.."));
+        frameworkDenylistPackages = objects.listProperty(String.class).convention(List.of());
         namingConventionsEnabled = objects.property(Boolean.class).convention(false);
     }
 
@@ -66,12 +74,27 @@ public class HexagonalArchitectureExtension {
     }
 
     /**
-     * Domain model package patterns.
+     * Domain model package patterns - the innermost ring, holding pure value objects/entities.
+     * Kept disjoint from {@link #getDomainServices()} by default (siblings under
+     * {@code application.domain}, not one nested inside the other) so the domain-model-isolation
+     * and domain-service-isolation rules never both match the same class.
      *
      * @return mutable list property of domain model package patterns
      */
     public ListProperty<String> getDomainModel() {
         return domainModel;
+    }
+
+    /**
+     * Domain service package patterns - the layer that implements use-case orchestration and
+     * cross-aggregate business rules on top of the domain model. Distinct from
+     * {@link #getDomainModel()} (siblings, not nested) so the two isolation rules stay mutually
+     * exclusive.
+     *
+     * @return mutable list property of domain service package patterns
+     */
+    public ListProperty<String> getDomainServices() {
+        return domainServices;
     }
 
     /**
@@ -103,15 +126,6 @@ public class HexagonalArchitectureExtension {
     }
 
     /**
-     * Application service package patterns.
-     *
-     * @return mutable list property of application service package patterns
-     */
-    public ListProperty<String> getApplicationServices() {
-        return applicationServices;
-    }
-
-    /**
      * Shared/common package patterns, excluded from layer-boundary rules that would otherwise
      * flag code every layer is allowed to depend on.
      *
@@ -122,8 +136,59 @@ public class HexagonalArchitectureExtension {
     }
 
     /**
-     * Whether naming-convention rules (e.g. adapter classes ending in a conventional suffix) are
-     * enabled, in addition to the layer-boundary rules.
+     * Package patterns nested inside a port package that hold pure data-transfer types
+     * (commands, queries, results) rather than the port interfaces themselves - excluded from the
+     * "ports must be interfaces" and port-naming-convention rules, which apply only to the port
+     * contracts.
+     *
+     * @return mutable list property of port data-type package patterns
+     */
+    public ListProperty<String> getPortDataTypePackages() {
+        return portDataTypePackages;
+    }
+
+    /**
+     * Package patterns holding Spring (or other DI-framework) wiring/configuration classes. Only
+     * classes in these packages - plus domain service classes themselves - may reference domain
+     * service implementations directly; every other class must go through a port instead.
+     *
+     * @return mutable list property of configuration package patterns
+     */
+    public ListProperty<String> getConfigurationPackages() {
+        return configurationPackages;
+    }
+
+    /**
+     * JDK package patterns the domain model is allowed to depend on, in addition to its own
+     * {@link #getDomainModel()} packages. Enforced by the {@code domain_must_only_depend_on_domain_or_jdk_core}
+     * rule, which requires every non-JDK dependency of a domain class to resolve back into
+     * {@link #getDomainModel()} - keeping the domain layer free of adapters, application
+     * services, ports, and any third-party or framework dependency by construction, rather than by
+     * naming a growing list of things it must avoid.
+     *
+     * @return mutable list property of JDK package patterns allowed from the domain model
+     */
+    public ListProperty<String> getDomainAllowedPackages() {
+        return domainAllowedPackages;
+    }
+
+    /**
+     * Framework/library package patterns the domain model, domain services, and ports must never
+     * depend on (directly or transitively), enforced by
+     * {@code core_application_layer_must_have_no_denylisted_dependencies}. Empty by default so
+     * the rule is a no-op until a project opts in with its own framework list (e.g.
+     * {@code 'org.springframework..', 'jakarta..', 'org.hibernate..'}).
+     *
+     * @return mutable list property of denylisted framework package patterns
+     */
+    public ListProperty<String> getFrameworkDenylistPackages() {
+        return frameworkDenylistPackages;
+    }
+
+    /**
+     * Whether naming-convention rules (bidirectional suffix/package checks, e.g. inbound port
+     * interfaces must end in {@code UseCase}/{@code InputPort} and vice versa) are enabled, in
+     * addition to the layer-boundary rules.
      *
      * @return mutable property for the naming-conventions-enabled flag
      */

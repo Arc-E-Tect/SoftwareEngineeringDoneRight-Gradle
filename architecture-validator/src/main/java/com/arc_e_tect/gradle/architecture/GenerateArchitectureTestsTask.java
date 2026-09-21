@@ -58,6 +58,11 @@ public abstract class GenerateArchitectureTestsTask extends DefaultTask {
         getAdapters().convention(List.of("..adapter..", "..adapters.."));
         getInboundAdapters().convention(List.of("..adapter.inbound..", "..adapters.inbound.."));
         getOutboundAdapters().convention(List.of("..adapter.outbound..", "..adapters.outbound.."));
+        getConfigurationPackages().convention(List.of("..configuration.."));
+        getPortDataTypePackages().convention(List.of("..command..", "..result.."));
+        getDomainAllowedPackages().convention(List.of("java.lang..", "java.time..", "java.util..", "java.math.."));
+        getFrameworkDenylistPackages().convention(List.of());
+        getNamingConventionsEnabled().convention(false);
     }
 
     /**
@@ -105,6 +110,14 @@ public abstract class GenerateArchitectureTestsTask extends DefaultTask {
     public abstract ListProperty<String> getDomainModel();
 
     /**
+     * Domain service package patterns.
+     *
+     * @return mutable list property of domain service package patterns
+     */
+    @Input
+    public abstract ListProperty<String> getDomainServices();
+
+    /**
      * Adapter package patterns, matching both inbound and outbound adapters not already covered by
      * {@link #getInboundAdapters()}/{@link #getOutboundAdapters()}.
      *
@@ -130,20 +143,55 @@ public abstract class GenerateArchitectureTestsTask extends DefaultTask {
     public abstract ListProperty<String> getOutboundAdapters();
 
     /**
-     * Application service package patterns.
-     *
-     * @return mutable list property of application service package patterns
-     */
-    @Input
-    public abstract ListProperty<String> getApplicationServices();
-
-    /**
      * Shared/common package patterns, excluded from layer-boundary rules.
      *
      * @return mutable list property of common package patterns
      */
     @Input
     public abstract ListProperty<String> getCommonPackages();
+
+    /**
+     * Package patterns nested inside a port package that hold pure data-transfer types.
+     *
+     * @return mutable list property of port data-type package patterns
+     */
+    @Input
+    public abstract ListProperty<String> getPortDataTypePackages();
+
+    /**
+     * Package patterns holding DI-framework wiring/configuration classes.
+     *
+     * @return mutable list property of configuration package patterns
+     */
+    @Input
+    public abstract ListProperty<String> getConfigurationPackages();
+
+    /**
+     * JDK package patterns the domain model is allowed to depend on, in addition to its own
+     * {@link #getDomainModel()} packages.
+     *
+     * @return mutable list property of JDK package patterns allowed from the domain model
+     */
+    @Input
+    public abstract ListProperty<String> getDomainAllowedPackages();
+
+    /**
+     * Framework/library package patterns the domain model, domain services, and ports must never
+     * depend on.
+     *
+     * @return mutable list property of denylisted framework package patterns
+     */
+    @Input
+    public abstract ListProperty<String> getFrameworkDenylistPackages();
+
+    /**
+     * Whether bidirectional naming-convention rules are generated in addition to the
+     * layer-boundary rules.
+     *
+     * @return mutable property for the naming-conventions-enabled flag
+     */
+    @Input
+    public abstract Property<Boolean> getNamingConventionsEnabled();
 
     /**
      * Whether generation fails when duplicate rules are discovered.
@@ -206,17 +254,25 @@ public abstract class GenerateArchitectureTestsTask extends DefaultTask {
             if (getUseBuiltInHexagonalRulePack().getOrElse(true)) {
                 String template = loadTemplate();
                 String effectiveBasePackage = resolveBasePackage();
-                Map<String, String> replacements = Map.of(
-                        "${generatedPackage}", GENERATED_PACKAGE,
-                        "${basePackage}", escapeJava(effectiveBasePackage),
-                        "${inPorts}", javaArrayLiteral(getInPorts().get()),
-                        "${outPorts}", javaArrayLiteral(getOutPorts().get()),
-                        "${domainModel}", javaArrayLiteral(getDomainModel().get()),
-                    "${allAdapters}", javaArrayLiteral(resolveAllAdapterPatterns()),
-                    "${inboundAdapters}", javaArrayLiteral(getInboundAdapters().get()),
-                    "${outboundAdapters}", javaArrayLiteral(getOutboundAdapters().get()),
-                        "${applicationServices}", javaArrayLiteral(getApplicationServices().get()),
-                        "${commonPackages}", javaArrayLiteral(getCommonPackages().get())
+                // Map.of() tops out at 10 key-value pairs; Map.ofEntries() has no such limit.
+                Map<String, String> replacements = Map.ofEntries(
+                        Map.entry("${generatedPackage}", GENERATED_PACKAGE),
+                        Map.entry("${basePackage}", escapeJava(effectiveBasePackage)),
+                        Map.entry("${inPorts}", javaArrayLiteral(getInPorts().get())),
+                        Map.entry("${outPorts}", javaArrayLiteral(getOutPorts().get())),
+                        Map.entry("${allPorts}", javaArrayLiteral(resolveAllPortPatterns())),
+                        Map.entry("${domainModel}", javaArrayLiteral(getDomainModel().get())),
+                        Map.entry("${domainServices}", javaArrayLiteral(getDomainServices().get())),
+                        Map.entry("${allAdapters}", javaArrayLiteral(resolveAllAdapterPatterns())),
+                        Map.entry("${inboundAdapters}", javaArrayLiteral(getInboundAdapters().get())),
+                        Map.entry("${outboundAdapters}", javaArrayLiteral(getOutboundAdapters().get())),
+                        Map.entry("${configurationPackages}", javaArrayLiteral(getConfigurationPackages().get())),
+                        Map.entry("${portDataTypePackages}", javaArrayLiteral(getPortDataTypePackages().get())),
+                        Map.entry("${commonPackages}", javaArrayLiteral(getCommonPackages().get())),
+                        Map.entry("${domainAllowedPackages}", javaArrayLiteral(getDomainAllowedPackages().get())),
+                        Map.entry("${frameworkDenylistPackages}", javaArrayLiteral(getFrameworkDenylistPackages().get())),
+                        Map.entry("${coreLayerPackages}", javaArrayLiteral(resolveCoreLayerPatterns())),
+                        Map.entry("${namingConventionsSection}", renderNamingConventionsSection())
                 );
 
                 String rendered = template;
@@ -234,11 +290,75 @@ public abstract class GenerateArchitectureTestsTask extends DefaultTask {
         }
     }
 
+    private List<String> resolveCoreLayerPatterns() {
+        LinkedHashSet<String> patterns = new LinkedHashSet<>();
+        patterns.addAll(getDomainModel().get());
+        patterns.addAll(getDomainServices().get());
+        patterns.addAll(getInPorts().get());
+        patterns.addAll(getOutPorts().get());
+        return new ArrayList<>(patterns);
+    }
+
+    private String renderNamingConventionsSection() {
+        if (!getNamingConventionsEnabled().getOrElse(false)) {
+            return "";
+        }
+        return "\n"
+                + "    @ArchTest\n"
+                + "    static final ArchRule inbound_ports_should_have_conventional_suffix =\n"
+                + "            classes()\n"
+                + "                    .that().resideInAnyPackage(\n"
+                + "                            " + javaArrayLiteral(getInPorts().get()) + ")\n"
+                + "                    .and().resideOutsideOfPackages(\n"
+                + "                            " + javaArrayLiteral(getPortDataTypePackages().get()) + ")\n"
+                + "                    .should(INBOUND_PORT_NAMING_CONVENTION)\n"
+                + "                    .allowEmptyShould(true)\n"
+                + "                    .as(\"Inbound port interfaces must end with 'UseCase' or 'InputPort'\");\n"
+                + "\n"
+                + "    @ArchTest\n"
+                + "    static final ArchRule conventionally_named_inbound_ports_reside_in_inbound_port_package =\n"
+                + "            classes()\n"
+                + "                    .that().haveSimpleNameEndingWith(\"UseCase\")\n"
+                + "                    .or().haveSimpleNameEndingWith(\"InputPort\")\n"
+                + "                    .should().resideInAnyPackage(\n"
+                + "                            " + javaArrayLiteral(getInPorts().get()) + ")\n"
+                + "                    .allowEmptyShould(true)\n"
+                + "                    .as(\"Classes named with the 'UseCase' or 'InputPort' suffix must reside in the \"\n"
+                + "                            + \"inbound ports package — the naming convention is bidirectional\");\n"
+                + "\n"
+                + "    @ArchTest\n"
+                + "    static final ArchRule domain_services_should_have_conventional_suffix =\n"
+                + "            classes()\n"
+                + "                    .that().resideInAnyPackage(\n"
+                + "                            " + javaArrayLiteral(getDomainServices().get()) + ")\n"
+                + "                    .should(DOMAIN_SERVICE_NAMING_CONVENTION)\n"
+                + "                    .allowEmptyShould(true)\n"
+                + "                    .as(\"Domain service classes must end with 'Service' or 'Policy'\");\n"
+                + "\n"
+                + "    @ArchTest\n"
+                + "    static final ArchRule conventionally_named_domain_services_reside_in_domain_service_package =\n"
+                + "            classes()\n"
+                + "                    .that().haveSimpleNameEndingWith(\"Service\")\n"
+                + "                    .or().haveSimpleNameEndingWith(\"Policy\")\n"
+                + "                    .should().resideInAnyPackage(\n"
+                + "                            " + javaArrayLiteral(getDomainServices().get()) + ")\n"
+                + "                    .allowEmptyShould(true)\n"
+                + "                    .as(\"Classes named with the 'Service' or 'Policy' suffix must reside in the \"\n"
+                + "                            + \"domain services package — the naming convention is bidirectional\");\n";
+    }
+
     private List<String> resolveAllAdapterPatterns() {
         LinkedHashSet<String> patterns = new LinkedHashSet<>();
         patterns.addAll(getAdapters().get());
         patterns.addAll(getInboundAdapters().get());
         patterns.addAll(getOutboundAdapters().get());
+        return new ArrayList<>(patterns);
+    }
+
+    private List<String> resolveAllPortPatterns() {
+        LinkedHashSet<String> patterns = new LinkedHashSet<>();
+        patterns.addAll(getInPorts().get());
+        patterns.addAll(getOutPorts().get());
         return new ArrayList<>(patterns);
     }
 

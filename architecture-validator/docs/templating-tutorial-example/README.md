@@ -15,6 +15,11 @@ The intended end state is:
 - `layered` becomes a second built-in template for traditional layered modules.
 - A multi-module build can choose either template per subproject.
 
+The `layered` template is also a deliberate illustration of architectural flexibility, not just a second style of package pattern.
+The built-in `hexagonal` template merges application-flow orchestration and cross-aggregate business rules into a single `domainServices` concept (see the main `README.adoc`), because in the reference codebase the two turned out to share one package and be indistinguishable by structure alone.
+The `layered` template keeps Application Services as their own named layer instead, with rules of its own (`applicationServicesShouldNotDependOnPresentation`, `applicationServicesShouldNotDependOnInfrastructureDirectly`).
+That contrast is the point: the plugin's built-in hexagonal opinion is not mandatory, and a different (built-in or custom) template can reintroduce Application Services as a first-class, rule-governed layer when that better fits the target architecture.
+
 The files in this directory cover that outcome:
 
 - `src/main/java/.../ArchitectureValidatorExtension.java`

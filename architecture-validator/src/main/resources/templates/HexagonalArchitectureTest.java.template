@@ -4,7 +4,10 @@ import com.tngtech.archunit.base.DescribedPredicate;
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.junit.AnalyzeClasses;
 import com.tngtech.archunit.junit.ArchTest;
+import com.tngtech.archunit.lang.ArchCondition;
 import com.tngtech.archunit.lang.ArchRule;
+import com.tngtech.archunit.lang.ConditionEvents;
+import com.tngtech.archunit.lang.SimpleConditionEvent;
 
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
@@ -22,35 +25,109 @@ class HexagonalArchitectureTest {
                                 }
                         };
 
-        private static final DescribedPredicate<JavaClass> OUTBOUND_PORT_INTERFACES =
-                        new DescribedPredicate<>("outbound port interfaces") {
+        private static final DescribedPredicate<JavaClass> DOMAIN_OR_ALLOWED_JDK_CLASSES =
+                        JavaClass.Predicates.resideInAnyPackage(
+                                        ${domainModel})
+                        .or(JavaClass.Predicates.resideInAnyPackage(
+                                        ${domainAllowedPackages}));
+
+        private static final DescribedPredicate<JavaClass> DOMAIN_SERVICE_ALLOWED_CLASSES =
+                        JavaClass.Predicates.resideInAnyPackage(
+                                        ${domainModel})
+                        .or(JavaClass.Predicates.resideInAnyPackage(
+                                        ${domainServices}))
+                        .or(JavaClass.Predicates.resideInAnyPackage(
+                                        ${inPorts}))
+                        .or(JavaClass.Predicates.resideInAnyPackage(
+                                        ${outPorts}))
+                        .or(JavaClass.Predicates.resideInAnyPackage(
+                                        ${domainAllowedPackages}));
+
+        private static final DescribedPredicate<JavaClass> PORT_ALLOWED_CLASSES =
+                        JavaClass.Predicates.resideInAnyPackage(
+                                        ${domainModel})
+                        .or(JavaClass.Predicates.resideInAnyPackage(
+                                        ${inPorts}))
+                        .or(JavaClass.Predicates.resideInAnyPackage(
+                                        ${outPorts}))
+                        .or(JavaClass.Predicates.resideInAnyPackage(
+                                        ${domainAllowedPackages}));
+
+        private static final ArchCondition<JavaClass> INBOUND_PORT_NAMING_CONVENTION =
+                        new ArchCondition<>("have simple name ending with 'UseCase' or 'InputPort'") {
                                 @Override
-                                public boolean test(JavaClass input) {
-                                        return input.isInterface()
-                                                        && (input.getSimpleName().endsWith("Repository")
-                                                        || input.getSimpleName().endsWith("OutputPort"));
+                                public void check(JavaClass javaClass, ConditionEvents events) {
+                                        boolean matches = javaClass.getSimpleName().endsWith("UseCase")
+                                                        || javaClass.getSimpleName().endsWith("InputPort");
+                                        events.add(new SimpleConditionEvent(javaClass, matches,
+                                                        javaClass.getName() + " has simple name ending with 'UseCase' or 'InputPort'"));
+                                }
+                        };
+
+        private static final ArchCondition<JavaClass> DOMAIN_SERVICE_NAMING_CONVENTION =
+                        new ArchCondition<>("have simple name ending with 'Service' or 'Policy'") {
+                                @Override
+                                public void check(JavaClass javaClass, ConditionEvents events) {
+                                        boolean matches = javaClass.getSimpleName().endsWith("Service")
+                                                        || javaClass.getSimpleName().endsWith("Policy");
+                                        events.add(new SimpleConditionEvent(javaClass, matches,
+                                                        javaClass.getName() + " has simple name ending with 'Service' or 'Policy'"));
                                 }
                         };
 
     @ArchTest
-    static final ArchRule domain_must_not_depend_on_adapters =
-            noClasses()
+    static final ArchRule domain_must_only_depend_on_domain_or_jdk_core =
+            classes()
                     .that().resideInAnyPackage(
                             ${domainModel})
-                    .should().dependOnClassesThat().resideInAnyPackage(
-                            ${allAdapters})
+                    .should().onlyDependOnClassesThat(DOMAIN_OR_ALLOWED_JDK_CLASSES)
                     .allowEmptyShould(true)
-                    .as("Domain classes must not depend on adapters");
+                    .as("Domain model classes must only depend on the domain model itself or the configured "
+                            + "allow-list of JDK packages — never adapters, domain services, ports, "
+                            + "or any third-party/framework class");
 
     @ArchTest
-    static final ArchRule domain_must_not_depend_on_application_services =
-            noClasses()
+    static final ArchRule domain_services_must_only_depend_on_domain_core_and_ports =
+            classes()
                     .that().resideInAnyPackage(
-                            ${domainModel})
-                    .should().dependOnClassesThat().resideInAnyPackage(
-                            ${applicationServices})
+                            ${domainServices})
+                    .should().onlyDependOnClassesThat(DOMAIN_SERVICE_ALLOWED_CLASSES)
                     .allowEmptyShould(true)
-                    .as("Domain classes must not depend on application services");
+                    .as("Domain service classes must only depend on the domain model, other domain services, "
+                            + "inbound/outbound ports, or the configured allow-list of JDK packages — never "
+                            + "adapters or any third-party/framework class");
+
+    @ArchTest
+    static final ArchRule ports_must_only_depend_on_domain_or_jdk_core =
+            classes()
+                    .that().resideInAnyPackage(
+                            ${allPorts})
+                    .should().onlyDependOnClassesThat(PORT_ALLOWED_CLASSES)
+                    .allowEmptyShould(true)
+                    .as("Port interfaces must stay free of framework dependencies — they may only depend on the "
+                            + "domain model, other ports, or the configured allow-list of JDK packages");
+
+    @ArchTest
+    static final ArchRule inbound_ports_must_be_interfaces =
+            classes()
+                    .that().resideInAnyPackage(
+                            ${inPorts})
+                    .and().resideOutsideOfPackages(
+                            ${portDataTypePackages})
+                    .should().beInterfaces()
+                    .allowEmptyShould(true)
+                    .as("Inbound port contracts must be interfaces, not concrete classes");
+
+    @ArchTest
+    static final ArchRule outbound_ports_must_be_interfaces =
+            classes()
+                    .that().resideInAnyPackage(
+                            ${outPorts})
+                    .and().resideOutsideOfPackages(
+                            ${portDataTypePackages})
+                    .should().beInterfaces()
+                    .allowEmptyShould(true)
+                    .as("Outbound port contracts must be interfaces, not concrete classes");
 
     @ArchTest
     static final ArchRule inbound_ports_reside_in_correct_package =
@@ -62,31 +139,48 @@ class HexagonalArchitectureTest {
                     .as("Inbound port interfaces must reside in the inbound ports package");
 
     @ArchTest
-    static final ArchRule outbound_ports_reside_in_correct_package =
-            classes()
-                    .that(OUTBOUND_PORT_INTERFACES)
-                    .should().resideInAnyPackage(
-                            ${outPorts})
-                    .allowEmptyShould(true)
-                    .as("Outbound port interfaces must reside in the outbound ports package");
-
-    @ArchTest
-    static final ArchRule inbound_adapters_must_not_depend_on_service_implementations_directly =
+    static final ArchRule core_layer_must_not_depend_on_adapters =
             noClasses()
-                    .that().resideInAnyPackage(
-                            ${inboundAdapters})
-                    .should().dependOnClassesThat().resideInAnyPackage(
-                            ${applicationServices})
-                    .allowEmptyShould(true)
-                    .as("Inbound adapters must not depend on application or domain service implementations directly — use inbound ports instead");
-
-    @ArchTest
-    static final ArchRule application_services_must_not_depend_on_adapters =
-            noClasses()
-                    .that().resideInAnyPackage(
-                            ${applicationServices})
+                    .that().resideOutsideOfPackages(
+                            ${allAdapters})
                     .should().dependOnClassesThat().resideInAnyPackage(
                             ${allAdapters})
                     .allowEmptyShould(true)
-                    .as("Application services must not depend on adapters");
-}
+                    .as("Adapters are outer-layer details; the domain model, domain services, ports, and "
+                            + "configuration must all be completely unaware of them");
+
+    @ArchTest
+    static final ArchRule adapters_must_not_depend_on_domain_services_directly =
+            noClasses()
+                    .that().resideInAnyPackage(
+                            ${allAdapters})
+                    .should().dependOnClassesThat().resideInAnyPackage(
+                            ${domainServices})
+                    .allowEmptyShould(true)
+                    .as("Adapters must communicate with the application core only through ports — never by "
+                            + "depending directly on a domain service implementation");
+
+    @ArchTest
+    static final ArchRule only_configuration_may_depend_on_domain_service_implementations =
+            noClasses()
+                    .that().resideOutsideOfPackages(
+                            ${configurationPackages})
+                    .and().resideOutsideOfPackages(
+                            ${domainServices})
+                    .should().dependOnClassesThat().resideInAnyPackage(
+                            ${domainServices})
+                    .allowEmptyShould(true)
+                    .as("Concrete domain service implementations must only be referenced from configuration "
+                            + "classes wiring up the corresponding bean — every other caller must go through a port");
+
+    @ArchTest
+    static final ArchRule core_application_layer_must_have_no_denylisted_dependencies =
+            noClasses()
+                    .that().resideInAnyPackage(
+                            ${coreLayerPackages})
+                    .should().dependOnClassesThat().resideInAnyPackage(
+                            ${frameworkDenylistPackages})
+                    .allowEmptyShould(true)
+                    .as("Domain model, domain services, and ports must be completely free of the configured "
+                            + "denylisted framework/library dependencies");
+${namingConventionsSection}}

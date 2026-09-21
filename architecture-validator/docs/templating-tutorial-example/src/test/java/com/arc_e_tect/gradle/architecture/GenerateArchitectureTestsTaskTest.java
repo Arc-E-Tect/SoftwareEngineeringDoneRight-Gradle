@@ -19,7 +19,7 @@ class GenerateArchitectureTestsTaskTest {
         task.getBasePackage().set("com.example.layered");
         task.getBuiltInTemplate().set("layered");
         task.getPresentation().set(java.util.List.of("..web.."));
-        task.getLayeredApplication().set(java.util.List.of("..application.."));
+        task.getLayeredApplicationServices().set(java.util.List.of("..application.."));
         task.getLayeredDomain().set(java.util.List.of("..domain.."));
         task.getInfrastructure().set(java.util.List.of("..persistence.."));
 

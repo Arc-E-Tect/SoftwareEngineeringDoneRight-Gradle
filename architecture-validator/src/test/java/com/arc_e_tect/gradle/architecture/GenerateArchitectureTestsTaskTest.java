@@ -38,9 +38,9 @@ class GenerateArchitectureTestsTaskTest {
         task.getBasePackage().set("com.example.architecture");
         task.getInPorts().set(List.of("..application.port.inbound.."));
         task.getOutPorts().set(List.of("..application.port.outbound.."));
-        task.getDomainModel().set(List.of("..application.domain.."));
+        task.getDomainModel().set(List.of("..application.domain.model.."));
         task.getAdapters().set(List.of("..adapter..", "..adapters.."));
-        task.getApplicationServices().set(List.of("..application.service.."));
+        task.getDomainServices().set(List.of("..application.domain.service.."));
         task.getCommonPackages().set(List.of("..application.common.."));
         task.getFailOnDuplicateRules().set(false);
         task.getUserTestsDirectory().set(tempDir.resolve("user-tests").toFile());
@@ -53,9 +53,9 @@ class GenerateArchitectureTestsTaskTest {
         String contents = Files.readString(generatedFile);
         assertThat(contents)
                 .contains("@AnalyzeClasses(packages = \"com.example.architecture\")")
-                .contains("domain_must_not_depend_on_adapters")
+                .contains("domain_must_only_depend_on_domain_or_jdk_core")
                 .contains("inbound_ports_reside_in_correct_package")
-                .contains("application_services_must_not_depend_on_adapters")
+                .contains("core_layer_must_not_depend_on_adapters")
                 .contains("@ArchTest");
     }
 
@@ -74,9 +74,9 @@ class GenerateArchitectureTestsTaskTest {
                 task.getBasePackage().set("");
                 task.getInPorts().set(List.of("..application.port.inbound.."));
                 task.getOutPorts().set(List.of("..application.port.outbound.."));
-                task.getDomainModel().set(List.of("..application.domain.."));
+                task.getDomainModel().set(List.of("..application.domain.model.."));
                 task.getAdapters().set(List.of("..adapter..", "..adapters.."));
-                task.getApplicationServices().set(List.of("..application.service.."));
+                task.getDomainServices().set(List.of("..application.domain.service.."));
                 task.getCommonPackages().set(List.of("..application.common.."));
                 task.getFailOnDuplicateRules().set(false);
                 task.getUserTestsDirectory().set(tempDir.resolve("user-tests").toFile());
@@ -99,9 +99,9 @@ class GenerateArchitectureTestsTaskTest {
                 task.getBasePackage().set("");
                 task.getInPorts().set(List.of("..application.port.inbound.."));
                 task.getOutPorts().set(List.of("..application.port.outbound.."));
-                task.getDomainModel().set(List.of("..application.domain.."));
+                task.getDomainModel().set(List.of("..application.domain.model.."));
                 task.getAdapters().set(List.of("..adapter..", "..adapters.."));
-                task.getApplicationServices().set(List.of("..application.service.."));
+                task.getDomainServices().set(List.of("..application.domain.service.."));
                 task.getCommonPackages().set(List.of("..application.common.."));
                 task.getFailOnDuplicateRules().set(false);
                 task.getUserTestsDirectory().set(tempDir.resolve("user-tests").toFile());
@@ -129,9 +129,9 @@ class GenerateArchitectureTestsTaskTest {
         task.getBasePackage().set("com.example.architecture");
         task.getInPorts().set(List.of("..application.port.inbound.."));
         task.getOutPorts().set(List.of("..application.port.outbound.."));
-        task.getDomainModel().set(List.of("..application.domain.."));
+        task.getDomainModel().set(List.of("..application.domain.model.."));
         task.getAdapters().set(List.of("..adapter.."));
-        task.getApplicationServices().set(List.of("..application.service.."));
+        task.getDomainServices().set(List.of("..application.domain.service.."));
         task.getCommonPackages().set(List.of("..application.common.."));
         task.getFailOnDuplicateRules().set(false);
         task.getUserTestsDirectory().set(tempDir.resolve("user-tests").toFile());
@@ -160,9 +160,9 @@ class GenerateArchitectureTestsTaskTest {
                 task.getBasePackage().set("com.example.architecture");
                 task.getInPorts().set(List.of("..application.port.inbound.."));
                 task.getOutPorts().set(List.of("..application.port.outbound.."));
-                task.getDomainModel().set(List.of("..application.domain.."));
+                task.getDomainModel().set(List.of("..application.domain.model.."));
                 task.getAdapters().set(List.of("..adapter.."));
-                task.getApplicationServices().set(List.of("..application.service.."));
+                task.getDomainServices().set(List.of("..application.domain.service.."));
                 task.getCommonPackages().set(List.of("..application.common.."));
                 task.getFailOnDuplicateRules().set(false);
                 task.getUseBuiltInHexagonalRulePack().set(false);
@@ -191,9 +191,9 @@ class GenerateArchitectureTestsTaskTest {
                 task.getBasePackage().set("com.example.architecture");
                 task.getInPorts().set(List.of("..application.port.inbound.."));
                 task.getOutPorts().set(List.of("..application.port.outbound.."));
-                task.getDomainModel().set(List.of("..application.domain.."));
+                task.getDomainModel().set(List.of("..application.domain.model.."));
                 task.getAdapters().set(List.of("..adapter.."));
-                task.getApplicationServices().set(List.of("..application.service.."));
+                task.getDomainServices().set(List.of("..application.domain.service.."));
                 task.getCommonPackages().set(List.of("..application.common.."));
                 task.getFailOnDuplicateRules().set(false);
                 task.getUseBuiltInHexagonalRulePack().set(false);
@@ -451,9 +451,9 @@ class GenerateArchitectureTestsTaskTest {
                 task.getBasePackage().set("com.example.architecture");
                 task.getInPorts().set(List.of("..application.port.inbound.."));
                 task.getOutPorts().set(List.of("..application.port.outbound.."));
-                task.getDomainModel().set(List.of("..application.domain.."));
+                task.getDomainModel().set(List.of("..application.domain.model.."));
                 task.getAdapters().set(List.of("..adapter.."));
-                task.getApplicationServices().set(List.of("..application.service.."));
+                task.getDomainServices().set(List.of("..application.domain.service.."));
                 task.getCommonPackages().set(List.of("..application.common.."));
                 task.getFailOnDuplicateRules().set(false);
                 task.getUseBuiltInHexagonalRulePack().set(true);

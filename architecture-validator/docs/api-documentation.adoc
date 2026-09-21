@@ -28,9 +28,16 @@ It also wires report locations, classpath inputs, and the post-execution thresho
 - `inPorts`
 - `outPorts`
 - `domainModel`
+- `domainServices`
 - `adapters`
-- `applicationServices`
+- `inboundAdapters`
+- `outboundAdapters`
+- `configurationPackages`
+- `portDataTypePackages`
 - `commonPackages`
+- `domainAllowedPackages`
+- `frameworkDenylistPackages`
+- `namingConventionsEnabled`
 
 == Generator Task
 
