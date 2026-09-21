@@ -33,12 +33,17 @@ architectureValidator {
     hexagonalArchitecture {
         inPorts = ['..application.port.inbound..']
         outPorts = ['..application.port.outbound..']
-        domainModel = ['..application.domain..']
+        domainModel = ['..application.domain.model..']
+        domainServices = ['..application.domain.service..']
         inboundAdapters = ['..adapter.inbound..', '..adapters.inbound..']
         outboundAdapters = ['..adapter.outbound..', '..adapters.outbound..']
         adapters = ['..adapter..', '..adapters..']
-        applicationServices = ['..application.service..']
+        configurationPackages = ['..configuration..']
+        portDataTypePackages = ['..command..', '..result..']
         commonPackages = ['..application.common..']
+        domainAllowedPackages = ['java.lang..', 'java.time..', 'java.util..', 'java.math..']
+        frameworkDenylistPackages = []
+        namingConventionsEnabled = true
     }
 }
 ----
@@ -93,33 +98,53 @@ With this setting, the built-in validator is skipped while user tests from `src/
 
 == Built-In Hexagonal Architecture Rules
 
-The plugin provides six built-in architecture rules that enforce key Hexagonal Architecture (also known as Ports & Adapters) principles:
+The plugin provides ten built-in architecture rules that enforce key Hexagonal Architecture (also known as Ports & Adapters) principles, plus four optional bidirectional naming-convention rules.
 
-=== Rule: `domain_must_not_depend_on_adapters`
-Domain classes (identified by the `domainModel` package pattern) must not depend on inbound or outbound adapter classes.
-This rule ensures that the domain logic remains independent of external technology concerns like databases, web frameworks, or message brokers.
+=== Rule: `domain_must_only_depend_on_domain_or_jdk_core`
+Domain model classes (identified by the `domainModel` package pattern) may only depend on other classes inside the `domainModel` packages themselves or on the configured `domainAllowedPackages` JDK allow-list (`java.lang..`, `java.time..`, `java.util..`, and `java.math..` by default).
+This is an allow-list, not a deny-list: it exhaustively keeps the domain free of adapters, domain services, ports, `commonPackages`, and any third-party or framework dependency (Jackson, JPA, Lombok, Spring, …).
+`domainAllowedPackages` is a plain, user-configurable list — a project may extend it with another JDK package, or shrink it (including removing `java.math..`, or every JDK-core entry) if it wants the domain model held to an even stricter standard.
 
-=== Rule: `domain_must_not_depend_on_application_services`
-Domain classes must not depend on application service classes (identified by the `applicationServices` package pattern).
-This preserves the domain's isolation from orchestration logic and keeps the domain layer focused solely on business rules.
+=== Rule: `domain_services_must_only_depend_on_domain_core_and_ports`
+Domain service classes (identified by the `domainServices` package pattern) may depend on the domain model, other domain services, inbound/outbound ports, or `domainAllowedPackages` — but never on adapters or any third-party/framework class.
+The `domainServices` package covers what the accompanying book calls both "application services" (which orchestrate the flow through the hexagon) and "domain services" (which enforce cross-aggregate business rules): in practice both live in the same package and are held to the same architectural constraints, since the distinction is one of intent/semantics rather than package location.
+
+=== Rule: `ports_must_only_depend_on_domain_or_jdk_core`
+Port-freedom: inbound and outbound port interfaces may only depend on the domain model, other ports, or `domainAllowedPackages`.
+A port contract must stay completely framework-free — its *implementation* is free to depend on whatever framework or library it needs, but the port interface itself, and any types it references in its signature, must not.
+
+=== Rule: `inbound_ports_must_be_interfaces` / `outbound_ports_must_be_interfaces`
+Classes in the `inPorts`/`outPorts` packages (excluding `portDataTypePackages`, such as command/result DTOs that legitimately live alongside ports) must be interfaces, not concrete classes.
 
 === Rule: `inbound_ports_reside_in_correct_package`
 Inbound port interfaces—identified by names ending with `UseCase` or `InputPort`—must reside in the configured `inPorts` package.
 This centralizes the definition of use cases and ensures the application's entry points are clearly located and discoverable.
+There is no equivalent built-in rule for outbound ports: real projects use inconsistent suffixes for outbound ports (`Repository`, `Gateway`, `Publisher`, `Generator`, and others all coexist legitimately depending on what the port abstracts), so no single suffix convention can be enforced without creating loopholes. Projects wanting to enforce their own outbound naming convention should add a custom `testArchitecture` test or their own rule pack.
 
-=== Rule: `outbound_ports_reside_in_correct_package`
-Outbound port interfaces—identified by names ending with `Repository` or `OutputPort`—must reside in the configured `outPorts` package.
-This centralizes the definition of outbound dependencies (e.g., persistence, external APIs) and makes them easily identifiable.
+=== Rule: `core_layer_must_not_depend_on_adapters`
+The domain model, domain services, and ports are outer-layer-unaware; none of them may depend on any class in the aggregate adapter package set (`adapters`, `inboundAdapters`, `outboundAdapters` combined).
 
-=== Rule: `inbound_adapters_must_not_depend_on_service_implementations_directly`
-Inbound adapters (identified by the `inboundAdapters` package patterns) must not depend directly on application or domain service implementation classes (identified by the `applicationServices` package patterns).
-This enforces the entry-path rule of Hexagonal Architecture: inbound adapters should invoke inbound port interfaces instead of binding directly to service implementations.
+=== Rule: `adapters_must_not_depend_on_domain_services_directly`
+Adapters must not depend directly on domain service implementation classes; they must go through a port instead.
+This enforces the entry-path rule of Hexagonal Architecture: adapters should invoke port interfaces instead of binding directly to service implementations.
 
-=== Rule: `application_services_must_not_depend_on_adapters`
-Application services must not depend on inbound or outbound adapter classes.
-This prevents leakage of infrastructure concerns into the application service layer and ensures that orchestration logic remains independent of specific technology choices.
+=== Rule: `only_configuration_may_depend_on_domain_service_implementations`
+Only classes in the `configurationPackages` package may depend directly on a concrete domain service implementation class; every other caller — including adapters — must go through a port.
+This is the counterpart to `adapters_must_not_depend_on_domain_services_directly`: it generalizes the same principle to any non-configuration, non-domain-service caller, not just adapters.
 
-All six rules are configured with `allowEmptyShould(true)`, meaning they will pass without failure if no classes match the rule criteria (e.g., if the domain layer is empty). When violations occur, the HTML report clearly identifies the offending classes and the rule that triggered the violation.
+=== Rule: `core_application_layer_must_have_no_denylisted_dependencies`
+The domain model, domain services, and ports must not depend on any package configured in `frameworkDenylistPackages` (empty by default). Set this property to enforce a project-specific framework-freedom policy in the core application layer, for example `['org.springframework..', 'jakarta.persistence..']`.
+
+=== Optional naming-convention rules (`namingConventionsEnabled = true`)
+When enabled, four additional rules enforce *strict, bidirectional* naming for inbound ports and domain services — a class with the conventional suffix must live in the matching package, and a class in that package must carry the conventional suffix, with no loopholes in either direction:
+
+* `inbound_ports_should_have_conventional_suffix` and `conventionally_named_inbound_ports_reside_in_inbound_port_package` (suffix `UseCase` or `InputPort`)
+* `domain_services_should_have_conventional_suffix` and `conventionally_named_domain_services_reside_in_domain_service_package` (suffix `Service` or `Policy`)
+
+All rules are configured with `allowEmptyShould(true)`, meaning they will pass without failure if no classes match the rule criteria (e.g., if the domain layer is empty). When violations occur, the HTML report clearly identifies the offending classes and the rule that triggered the violation.
+
+`domainModel`, `domainServices`, `inPorts`, `outPorts`, and `adapters` (together with `inboundAdapters`/`outboundAdapters`) are expected to be mutually exclusive package patterns.
+A pattern that nests one layer's packages inside another's (for example, a `domainServices` pattern that is itself a sub-package of `domainModel`) makes classes match both layers simultaneously and corrupts every rule that reads those two lists — keep the defaults, or any overrides, disjoint.
 
 == Templating Tutorial
 
@@ -153,9 +178,11 @@ Keep shared conventions in the root build and override patterns only in the modu
 == Canonical Acceptance Example
 
 The focused regression example lives at `examples/architecture-validator/hexagonal-violations`.
-It should fail with exactly four intended rule names:
+It should fail with exactly six intended rule names:
 
-- `domain_must_not_depend_on_adapters`
+- `domain_must_only_depend_on_domain_or_jdk_core`
+- `domain_services_must_only_depend_on_domain_core_and_ports`
 - `inbound_ports_reside_in_correct_package`
-- `inbound_adapters_must_not_depend_on_service_implementations_directly`
-- `application_services_must_not_depend_on_adapters`
+- `core_layer_must_not_depend_on_adapters`
+- `adapters_must_not_depend_on_domain_services_directly`
+- `only_configuration_may_depend_on_domain_service_implementations`

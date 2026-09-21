@@ -21,11 +21,11 @@ public class ArchitectureValidatorPlugin implements Plugin<Project> {
             task.getOutPorts().set(extension.getHexagonalArchitecture().getOutPorts());
             task.getDomainModel().set(extension.getHexagonalArchitecture().getDomainModel());
             task.getAdapters().set(extension.getHexagonalArchitecture().getAdapters());
-            task.getApplicationServices().set(extension.getHexagonalArchitecture().getApplicationServices());
+            task.getDomainServices().set(extension.getHexagonalArchitecture().getDomainServices());
             task.getCommonPackages().set(extension.getHexagonalArchitecture().getCommonPackages());
 
             task.getPresentation().set(extension.getLayeredArchitecture().getPresentation());
-            task.getLayeredApplication().set(extension.getLayeredArchitecture().getApplication());
+            task.getLayeredApplicationServices().set(extension.getLayeredArchitecture().getApplicationServices());
             task.getLayeredDomain().set(extension.getLayeredArchitecture().getDomain());
             task.getInfrastructure().set(extension.getLayeredArchitecture().getInfrastructure());
         });

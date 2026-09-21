@@ -35,7 +35,7 @@ public abstract class GenerateArchitectureTestsTask extends DefaultTask {
     public abstract ListProperty<String> getAdapters();
 
     @Input
-    public abstract ListProperty<String> getApplicationServices();
+    public abstract ListProperty<String> getDomainServices();
 
     @Input
     public abstract ListProperty<String> getCommonPackages();
@@ -44,7 +44,7 @@ public abstract class GenerateArchitectureTestsTask extends DefaultTask {
     public abstract ListProperty<String> getPresentation();
 
     @Input
-    public abstract ListProperty<String> getLayeredApplication();
+    public abstract ListProperty<String> getLayeredApplicationServices();
 
     @Input
     public abstract ListProperty<String> getLayeredDomain();
@@ -93,7 +93,7 @@ public abstract class GenerateArchitectureTestsTask extends DefaultTask {
                 "${outPorts}", javaArrayLiteral(getOutPorts().get()),
                 "${domainModel}", javaArrayLiteral(getDomainModel().get()),
                 "${adapters}", javaArrayLiteral(getAdapters().get()),
-                "${applicationServices}", javaArrayLiteral(getApplicationServices().get()),
+                "${domainServices}", javaArrayLiteral(getDomainServices().get()),
                 "${commonPackages}", javaArrayLiteral(getCommonPackages().get())
         );
     }
@@ -103,7 +103,7 @@ public abstract class GenerateArchitectureTestsTask extends DefaultTask {
                 "${generatedPackage}", GENERATED_PACKAGE,
                 "${basePackage}", escapeJava(getBasePackage().get()),
                 "${presentation}", javaArrayLiteral(getPresentation().get()),
-                "${application}", javaArrayLiteral(getLayeredApplication().get()),
+                "${applicationServices}", javaArrayLiteral(getLayeredApplicationServices().get()),
                 "${domain}", javaArrayLiteral(getLayeredDomain().get()),
                 "${infrastructure}", javaArrayLiteral(getInfrastructure().get())
         );

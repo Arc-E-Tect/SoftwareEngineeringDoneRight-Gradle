@@ -81,7 +81,12 @@ Why this comes first:
 - A stable extension property gives you one explicit switch instead of encoding selection logic inside file names or package patterns.
 
 If the layered template needs different package buckets than the hexagonal template, add those as new properties at the same time.
-For example, a layered model may want `presentation`, `application`, `domain`, and `infrastructure` package patterns instead of `inPorts` and `outPorts`.
+For example, a layered model may want `presentation`, `applicationServices`, `domain`, and `infrastructure` package patterns instead of `inPorts` and `outPorts`.
+
+This is also a good moment to notice what the layered template deliberately keeps *different* from the built-in hexagonal template.
+The built-in hexagonal template folds application-flow orchestration and cross-aggregate business rules into a single `domainServices` concept, because in practice the two turned out to be indistinguishable by package alone (see the "Domain Services" rule in the main `README.adoc`).
+A layered architecture does not have that constraint: it keeps Application Services as their own named layer, and that layer gets its own dependency rules (`applicationServicesShouldNotDependOnPresentation`, `applicationServicesShouldNotDependOnInfrastructureDirectly`) in `LayeredArchitectureTest.java.template`.
+This is intentional: it demonstrates that the plugin's built-in hexagonal opinion is not the only supported shape, and that a custom (or alternate built-in) template can reintroduce Application Services as a first-class, rule-governed layer when that fits the target architecture better.
 
 ## Step 2: Wire the new property into the task
 
@@ -102,7 +107,7 @@ This step matters because the task currently receives only the hexagonal inputs:
 - `outPorts`
 - `domainModel`
 - `adapters`
-- `applicationServices`
+- `domainServices`
 - `commonPackages`
 
 If the task never sees the layered inputs, the template cannot render them.
@@ -210,7 +215,7 @@ The current generator builds one replacement map with these placeholders:
 - `${outPorts}`
 - `${domainModel}`
 - `${adapters}`
-- `${applicationServices}`
+- `${domainServices}`
 - `${commonPackages}`
 
 For a layered template, add only the placeholders that the layered rules actually use.
@@ -222,7 +227,7 @@ Map<String, String> replacements = Map.of(
 		"${generatedPackage}", GENERATED_PACKAGE,
 		"${basePackage}", escapeJava(getBasePackage().getOrElse("")),
 		"${presentation}", javaArrayLiteral(getPresentation().get()),
-		"${application}", javaArrayLiteral(getApplication().get()),
+		"${applicationServices}", javaArrayLiteral(getApplicationServices().get()),
 		"${domain}", javaArrayLiteral(getDomain().get()),
 		"${infrastructure}", javaArrayLiteral(getInfrastructure().get())
 );
@@ -286,7 +291,7 @@ architectureValidator {
 	basePackage = 'com.example.layered'
 	layeredArchitecture {
 		presentation = ['..web..', '..api..']
-		application = ['..application..']
+		applicationServices = ['..application..']
 		domain = ['..domain..']
 		infrastructure = ['..persistence..', '..messaging..']
 	}

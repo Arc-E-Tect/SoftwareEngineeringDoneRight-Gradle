@@ -49,12 +49,16 @@ final class ArchitectureValidatorDslSchema {
     private static final String HEXAGONAL_ARCHITECTURE_STUB = String.join("\n",
             "inPorts = ['..application.port.inbound..']",
             "outPorts = ['..application.port.outbound..']",
-            "domainModel = ['..application.domain..']",
+            "domainModel = ['..application.domain.model..']",
+            "domainServices = ['..application.domain.service..']",
             "adapters = ['..adapter..', '..adapters..']",
             "inboundAdapters = ['..adapter.inbound..', '..adapters.inbound..']",
             "outboundAdapters = ['..adapter.outbound..', '..adapters.outbound..']",
-            "applicationServices = ['..application.domain.service..', '..application.service..']",
+            "configurationPackages = ['..configuration..']",
+            "portDataTypePackages = ['..command..', '..result..']",
             "commonPackages = ['..application.common..']",
+            "domainAllowedPackages = ['java.lang..', 'java.time..', 'java.util..', 'java.math..']",
+            "frameworkDenylistPackages = []",
             "namingConventionsEnabled = false");
 
     static final DslExtensionSchema SCHEMA = new DslExtensionSchema(ArchitectureValidatorExtension.NAME, List.of(
