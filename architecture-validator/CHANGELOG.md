@@ -1,3 +1,10 @@
+## [2.3.1](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/architecture-validator-v2.3.0...architecture-validator-v2.3.1) (2026-09-21)
+
+
+### 🐛 Bug Fixes
+
+* **architecture-validator:** tighten hexagonal ruleset and rename domainServices ([b86119d](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/b86119d12d9eecd6419ea16dbe37d3051564a0f4)), closes [Arc-E-Tect/SoftwareEngineeringDoneRight-Library#100](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Library/issues/100)
+
 # [2.3.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/architecture-validator-v2.2.1...architecture-validator-v2.3.0) (2026-09-11)
 
 
