@@ -1,3 +1,10 @@
+## [4.0.1](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/architecture-validator-v4.0.0...architecture-validator-v4.0.1) (2026-09-22)
+
+
+### 🐛 Bug Fixes
+
+* **architecture-validator:** allow query port DTOs ([8a4425b](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/8a4425b183188cae860adb3ee91ac4298177c379))
+
 ## [2.3.2](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/architecture-validator-v2.3.1...architecture-validator-v2.3.2) (2026-09-22)
 
 
