@@ -379,7 +379,7 @@ public abstract class GenerateArchitectureTestsTask extends DefaultTask {
         }
         if (packageMatchesAny(packageName, resolveAllPortPatterns())) {
             policies.add(new SourceDependencyPolicy(
-                    "ports_must_only_depend_on_domain_or_jdk_core",
+                    "ports_must_only_depend_on_domain_ports_or_jdk_core",
                     concat(getDomainModel().get(), getInPorts().get(), getOutPorts().get(), getDomainAllowedPackages().get()),
                     "domain model, ports, or the configured JDK allow-list"));
         }

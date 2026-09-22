@@ -98,7 +98,7 @@ class HexagonalArchitectureTest {
                             + "adapters or any third-party/framework class");
 
     @ArchTest
-    static final ArchRule ports_must_only_depend_on_domain_or_jdk_core =
+    static final ArchRule ports_must_only_depend_on_domain_ports_or_jdk_core =
             classes()
                     .that().resideInAnyPackage(
                             ${allPorts})
