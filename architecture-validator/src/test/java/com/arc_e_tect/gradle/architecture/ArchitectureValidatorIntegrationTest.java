@@ -122,6 +122,22 @@ class ArchitectureValidatorIntegrationTest {
         assertThat(result.getOutput()).contains("adapters_must_not_depend_on_domain_services_directly FAILED");
     }
 
+    @Test
+    @DisplayName("should fail when a domain model uses a source-retained annotation outside its allow-list")
+    void shouldFailWhenDomainModelUsesSourceRetainedAnnotationOutsideAllowList() throws IOException {
+        Path projectDir = createProjectWithSourceRetainedDomainAnnotation("source-retained-domain-annotation");
+
+        BuildResult result = createRunner(projectDir)
+                .withArguments("testArchitecture", "--stacktrace")
+                .buildAndFail();
+
+        assertThat(result.getOutput()).contains("source_annotation_dependencies_must_obey_core_allow_lists");
+        String mergedXml = readAllXml(projectDir.resolve("build/reports/architecture-validator/xml"));
+        assertThat(mergedXml)
+                .contains("domain_must_only_depend_on_domain_or_jdk_core")
+                .contains("lombok.Getter");
+    }
+
     private Path createProjectWithFailingArchitectureTest(String projectName, boolean ignoreFailures) throws IOException {
         Path projectDir = tempDir.resolve(projectName);
         Files.createDirectories(projectDir);
@@ -174,6 +190,65 @@ class ArchitectureValidatorIntegrationTest {
                     void shouldFlagArchitectureViolation() {
                         fail("Intentional architecture rule violation for smoke test");
                     }
+                }
+                """);
+
+        return projectDir;
+    }
+
+    private Path createProjectWithSourceRetainedDomainAnnotation(String projectName) throws IOException {
+        Path projectDir = tempDir.resolve(projectName);
+        Files.createDirectories(projectDir);
+
+        write(projectDir.resolve("settings.gradle"), """
+                pluginManagement {
+                    repositories {
+                        gradlePluginPortal()
+                    }
+                }
+
+                rootProject.name = '%s'
+                """.formatted(projectName));
+
+        write(projectDir.resolve("build.gradle"), """
+                plugins {
+                    id 'java'
+                    id 'com.arc-e-tect.architecture-validator'
+                }
+
+                group = 'com.example.archtest'
+                version = '0.0.1'
+
+                repositories {
+                    mavenCentral()
+                }
+
+                architectureValidator {
+                    basePackage = 'com.example.archtest'
+                }
+                """);
+
+        write(projectDir.resolve("src/main/java/lombok/Getter.java"), """
+                package lombok;
+
+                import java.lang.annotation.ElementType;
+                import java.lang.annotation.Retention;
+                import java.lang.annotation.RetentionPolicy;
+                import java.lang.annotation.Target;
+
+                @Retention(RetentionPolicy.SOURCE)
+                @Target(ElementType.TYPE)
+                public @interface Getter {
+                }
+                """);
+
+        write(projectDir.resolve("src/main/java/com/example/archtest/application/domain/model/Order.java"), """
+                package com.example.archtest.application.domain.model;
+
+                import lombok.Getter;
+
+                @Getter
+                public record Order(String id) {
                 }
                 """);
 

@@ -1,5 +1,11 @@
 package com.arc_e_tect.gradle.architecture;
 
+import com.sun.source.tree.AnnotationTree;
+import com.sun.source.tree.CompilationUnitTree;
+import com.sun.source.tree.ImportTree;
+import com.sun.source.util.JavacTask;
+import com.sun.source.util.TreePathScanner;
+import com.tngtech.archunit.core.domain.PackageMatcher;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.GradleException;
 import org.gradle.api.file.ConfigurableFileCollection;
@@ -35,6 +41,10 @@ import java.util.jar.JarFile;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import javax.tools.JavaCompiler;
+import javax.tools.JavaFileObject;
+import javax.tools.StandardJavaFileManager;
+import javax.tools.ToolProvider;
 
 /**
  * Generates the built-in hexagonal architecture test, and a bridge suite for any external rule
@@ -46,6 +56,7 @@ public abstract class GenerateArchitectureTestsTask extends DefaultTask {
     private static final String TEMPLATE_PATH = "templates/HexagonalArchitectureTest.java.template";
     private static final String GENERATED_PACKAGE = "com.arc_e_tect.gradle.architecture.generated";
     private static final String EXTERNAL_SUITE_CLASS_NAME = "ExternalRulePackSuite";
+    private static final String SOURCE_DEPENDENCY_TEST_CLASS_NAME = "SourceDependencyValidationTest";
     private static final Pattern PACKAGE_SEGMENT = Pattern.compile("[A-Za-z_$][A-Za-z0-9_$]*");
 
     /** Creates a new task instance. Instantiated by Gradle infrastructure. */
@@ -283,11 +294,212 @@ public abstract class GenerateArchitectureTestsTask extends DefaultTask {
                 Path target = outputRoot.resolve("com/arc_e_tect/gradle/architecture/generated/HexagonalArchitectureTest.java");
                 Files.createDirectories(target.getParent());
                 Files.writeString(target, rendered, StandardCharsets.UTF_8);
+                generateSourceDependencyValidationTest(outputRoot);
             }
             generateExternalRulePackSuite(outputRoot);
         } catch (IOException exception) {
             throw new GradleException("Failed to generate architecture tests", exception);
         }
+    }
+
+    private void generateSourceDependencyValidationTest(Path outputRoot) throws IOException {
+        List<SourceDependencyViolation> violations = findSourceAnnotationDependencyViolations();
+        Path target = outputRoot.resolve(
+                "com/arc_e_tect/gradle/architecture/generated/" + SOURCE_DEPENDENCY_TEST_CLASS_NAME + ".java");
+        Files.createDirectories(target.getParent());
+        Files.writeString(target, renderSourceDependencyValidationTest(violations), StandardCharsets.UTF_8);
+    }
+
+    private List<SourceDependencyViolation> findSourceAnnotationDependencyViolations() throws IOException {
+        if (!getMainSourceDirectory().isPresent()) {
+            return List.of();
+        }
+        Path sourceRoot = getMainSourceDirectory().get().getAsFile().toPath();
+        if (!Files.isDirectory(sourceRoot)) {
+            return List.of();
+        }
+
+        List<File> sourceFiles;
+        try (Stream<Path> paths = Files.walk(sourceRoot)) {
+            sourceFiles = paths
+                    .filter(path -> path.toString().endsWith(".java"))
+                    .map(Path::toFile)
+                    .toList();
+        }
+        if (sourceFiles.isEmpty()) {
+            return List.of();
+        }
+
+        JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
+        if (compiler == null) {
+            throw new GradleException("Architecture source dependency validation requires a JDK, not a JRE");
+        }
+
+        try (StandardJavaFileManager fileManager = compiler.getStandardFileManager(null, null, StandardCharsets.UTF_8)) {
+            Iterable<? extends JavaFileObject> units = fileManager.getJavaFileObjectsFromFiles(sourceFiles);
+            JavacTask task = (JavacTask) compiler.getTask(null, fileManager, null, List.of("-proc:none"), null, units);
+            List<SourceDependencyViolation> violations = new ArrayList<>();
+            for (CompilationUnitTree unit : task.parse()) {
+                String packageName = unit.getPackageName() == null ? "" : unit.getPackageName().toString();
+                List<SourceDependencyPolicy> policies = policiesFor(packageName);
+                if (policies.isEmpty()) {
+                    continue;
+                }
+
+                for (String annotationType : annotationTypes(unit, packageName)) {
+                    for (SourceDependencyPolicy policy : policies) {
+                        if (!residesInAnyPackage(annotationType, policy.allowedPackages())) {
+                            violations.add(new SourceDependencyViolation(
+                                    policy.ruleName(),
+                                    sourceRoot.relativize(Path.of(unit.getSourceFile().toUri())).toString(),
+                                    annotationType,
+                                    policy.description()));
+                        }
+                    }
+                }
+            }
+            return violations;
+        }
+    }
+
+    private List<SourceDependencyPolicy> policiesFor(String packageName) {
+        List<SourceDependencyPolicy> policies = new ArrayList<>();
+        if (packageMatchesAny(packageName, getDomainModel().get())) {
+            policies.add(new SourceDependencyPolicy(
+                    "domain_must_only_depend_on_domain_or_jdk_core",
+                    concat(getDomainModel().get(), getDomainAllowedPackages().get()),
+                    "domain model, or the configured JDK allow-list"));
+        }
+        if (packageMatchesAny(packageName, getDomainServices().get())) {
+            policies.add(new SourceDependencyPolicy(
+                    "domain_services_must_only_depend_on_domain_core_and_ports",
+                    concat(getDomainModel().get(), getDomainServices().get(), getInPorts().get(), getOutPorts().get(),
+                            getDomainAllowedPackages().get()),
+                    "domain model, domain services, ports, or the configured JDK allow-list"));
+        }
+        if (packageMatchesAny(packageName, resolveAllPortPatterns())) {
+            policies.add(new SourceDependencyPolicy(
+                    "ports_must_only_depend_on_domain_or_jdk_core",
+                    concat(getDomainModel().get(), getInPorts().get(), getOutPorts().get(), getDomainAllowedPackages().get()),
+                    "domain model, ports, or the configured JDK allow-list"));
+        }
+        return policies;
+    }
+
+    @SafeVarargs
+    private static List<String> concat(List<String>... packageLists) {
+        return Stream.of(packageLists)
+                .flatMap(Collection::stream)
+                .distinct()
+                .toList();
+    }
+
+    private static boolean residesInAnyPackage(String typeName, List<String> packagePatterns) {
+        return packageMatchesAny(packageName(typeName), packagePatterns);
+    }
+
+    private static boolean packageMatchesAny(String packageName, List<String> packagePatterns) {
+        return packagePatterns.stream().anyMatch(pattern -> PackageMatcher.of(pattern).matches(packageName));
+    }
+
+    private static String packageName(String typeName) {
+        int lastDot = typeName.lastIndexOf('.');
+        return lastDot < 0 ? "" : typeName.substring(0, lastDot);
+    }
+
+    private static List<String> annotationTypes(CompilationUnitTree unit, String packageName) {
+        Map<String, String> explicitImports = new LinkedHashMap<>();
+        List<String> wildcardImports = new ArrayList<>();
+        for (ImportTree importTree : unit.getImports()) {
+            if (importTree.isStatic()) {
+                continue;
+            }
+            String importedType = importTree.getQualifiedIdentifier().toString();
+            if (importedType.endsWith(".*")) {
+                wildcardImports.add(importedType.substring(0, importedType.length() - 2));
+            } else {
+                explicitImports.put(importedType.substring(importedType.lastIndexOf('.') + 1), importedType);
+            }
+        }
+
+        List<String> annotationTypes = new ArrayList<>();
+        new TreePathScanner<Void, Void>() {
+            @Override
+            public Void visitAnnotation(AnnotationTree annotationTree, Void ignored) {
+                String annotationType = resolveAnnotationType(
+                        annotationTree.getAnnotationType().toString(),
+                        explicitImports,
+                        wildcardImports);
+                if (annotationType != null) {
+                    annotationTypes.add(annotationType);
+                }
+                return super.visitAnnotation(annotationTree, ignored);
+            }
+        }.scan(unit, null);
+        return annotationTypes;
+    }
+
+    private static String resolveAnnotationType(
+            String annotationType,
+            Map<String, String> explicitImports,
+            List<String> wildcardImports
+    ) {
+        String explicitImport = explicitImports.get(annotationType);
+        if (explicitImport != null) {
+            return explicitImport;
+        }
+        if (annotationType.contains(".")) {
+            String rootType = annotationType.substring(0, annotationType.indexOf('.'));
+            String rootImport = explicitImports.get(rootType);
+            return rootImport == null ? annotationType : rootImport + annotationType.substring(rootType.length());
+        }
+        if (!wildcardImports.isEmpty()) {
+            return wildcardImports.getFirst() + "." + annotationType;
+        }
+        return null;
+    }
+
+    private static String renderSourceDependencyValidationTest(List<SourceDependencyViolation> violations) {
+        StringBuilder source = new StringBuilder("""
+                package com.arc_e_tect.gradle.architecture.generated;
+
+                import org.junit.jupiter.api.Test;
+
+                import static org.junit.jupiter.api.Assertions.fail;
+
+                class SourceDependencyValidationTest {
+
+                    @Test
+                    void source_annotation_dependencies_must_obey_core_allow_lists() {
+                """);
+        if (violations.isEmpty()) {
+            source.append("    }\n}\n");
+            return source.toString();
+        }
+
+        source.append("        fail(\"")
+                .append(escapeJava(renderViolations(violations)))
+                .append("\");\n    }\n}\n");
+        return source.toString();
+    }
+
+    private static String renderViolations(List<SourceDependencyViolation> violations) {
+        return violations.stream()
+                .map(violation -> violation.ruleName() + ": " + violation.sourceFile()
+                        + " uses source annotation " + violation.annotationType()
+                        + ", which is outside the allowed " + violation.allowedDescription())
+                .collect(Collectors.joining("\\n"));
+    }
+
+    private record SourceDependencyPolicy(String ruleName, List<String> allowedPackages, String description) {
+    }
+
+    private record SourceDependencyViolation(
+            String ruleName,
+            String sourceFile,
+            String annotationType,
+            String allowedDescription
+    ) {
     }
 
     private List<String> resolveCoreLayerPatterns() {
