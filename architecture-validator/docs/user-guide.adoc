@@ -43,6 +43,7 @@ architectureValidator {
         commonPackages = ['..application.common..']
         domainAllowedPackages = ['java.lang..', 'java.time..', 'java.util..', 'java.math..']
         frameworkDenylistPackages = []
+        inboundAdapterDenylistPackages = []
         namingConventionsEnabled = true
     }
 }
@@ -98,7 +99,7 @@ With this setting, the built-in validator is skipped while user tests from `src/
 
 == Built-In Hexagonal Architecture Rules
 
-The plugin provides ten built-in architecture rules that enforce key Hexagonal Architecture (also known as Ports & Adapters) principles, plus four optional bidirectional naming-convention rules.
+The plugin provides eleven built-in architecture rules that enforce key Hexagonal Architecture (also known as Ports & Adapters) principles, plus four optional bidirectional naming-convention rules.
 
 === Rule: `domain_must_only_depend_on_domain_or_jdk_core`
 Domain model classes (identified by the `domainModel` package pattern) may only depend on other classes inside the `domainModel` packages themselves or on the configured `domainAllowedPackages` JDK allow-list (`java.lang..`, `java.time..`, `java.util..`, and `java.math..` by default).
@@ -138,6 +139,17 @@ The domain model, domain services, and ports are outer-layer-unaware; none of th
 === Rule: `adapters_must_not_depend_on_domain_services_directly`
 Adapters must not depend directly on domain service implementation classes; they must go through a port instead.
 This enforces the entry-path rule of Hexagonal Architecture: adapters should invoke port interfaces instead of binding directly to service implementations.
+
+=== Rule: `inbound_adapters_must_access_application_through_inbound_ports`
+Inbound adapters (configured by `inboundAdapters`) must enter the application through inbound port contracts.
+They may freely use transport frameworks, third-party libraries, and adapter-local request/response types, but may not depend directly on the domain model, outbound ports, outbound adapters, or configuration classes.
+The existing `adapters_must_not_depend_on_domain_services_directly` rule separately rejects domain-service implementation dependencies for all adapters, avoiding duplicate reports for that violation.
+
+This deliberately prevents input adapters from exposing or manipulating domain objects directly.
+Instead, translate transport input into Command or Query objects defined with the inbound port and translate Result objects into transport responses.
+Keeping this boundary prevents the transport representation from coupling to aggregate structure and makes domain-model evolution independent of public API evolution.
+
+Set `inboundAdapterDenylistPackages` to add project-specific forbidden dependencies (for example, a legacy client library) without imposing a broad allow-list on adapters.
 
 === Rule: `only_configuration_may_depend_on_domain_service_implementations`
 Only classes in the `configurationPackages` package may depend directly on a concrete domain service implementation class; every other caller — including adapters — must go through a port.

@@ -73,6 +73,7 @@ public class ArchitectureValidatorPlugin implements Plugin<Project> {
                     task.getCommonPackages().set(extension.getHexagonalArchitecture().getCommonPackages());
                     task.getDomainAllowedPackages().set(extension.getHexagonalArchitecture().getDomainAllowedPackages());
                     task.getFrameworkDenylistPackages().set(extension.getHexagonalArchitecture().getFrameworkDenylistPackages());
+                    task.getInboundAdapterDenylistPackages().set(extension.getHexagonalArchitecture().getInboundAdapterDenylistPackages());
                     task.getNamingConventionsEnabled().set(extension.getHexagonalArchitecture().getNamingConventionsEnabled());
                     task.getFailOnDuplicateRules().set(extension.getFailOnDuplicateRules());
                     task.getUseBuiltInHexagonalRulePack().set(extension.getUseBuiltInHexagonalRulePack());
@@ -156,6 +157,7 @@ public class ArchitectureValidatorPlugin implements Plugin<Project> {
         testTask.systemProperty("architectureValidator.commonPackages", String.join(",", extension.getHexagonalArchitecture().getCommonPackages().get()));
         testTask.systemProperty("architectureValidator.domainAllowedPackages", String.join(",", extension.getHexagonalArchitecture().getDomainAllowedPackages().get()));
         testTask.systemProperty("architectureValidator.frameworkDenylistPackages", String.join(",", extension.getHexagonalArchitecture().getFrameworkDenylistPackages().get()));
+        testTask.systemProperty("architectureValidator.inboundAdapterDenylistPackages", String.join(",", extension.getHexagonalArchitecture().getInboundAdapterDenylistPackages().get()));
         testTask.systemProperty("architectureValidator.rules.disabled", String.join(",", extension.getRulesDisabled().get()));
         testTask.systemProperty("architectureValidator.namingConventions.enabled", String.valueOf(extension.getHexagonalArchitecture().getNamingConventionsEnabled().get()));
         testTask.getReports().getHtml().getOutputLocation().set(project.getLayout().getBuildDirectory().dir("reports/architecture-validator/html"));

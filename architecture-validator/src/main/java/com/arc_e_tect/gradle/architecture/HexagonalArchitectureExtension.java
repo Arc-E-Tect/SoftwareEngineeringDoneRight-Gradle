@@ -29,6 +29,7 @@ public class HexagonalArchitectureExtension {
     private final ListProperty<String> commonPackages;
     private final ListProperty<String> domainAllowedPackages;
     private final ListProperty<String> frameworkDenylistPackages;
+    private final ListProperty<String> inboundAdapterDenylistPackages;
     private final Property<Boolean> namingConventionsEnabled;
 
     /**
@@ -53,6 +54,7 @@ public class HexagonalArchitectureExtension {
         domainAllowedPackages = objects.listProperty(String.class)
                 .convention(List.of("java.lang..", "java.time..", "java.util..", "java.math.."));
         frameworkDenylistPackages = objects.listProperty(String.class).convention(List.of());
+        inboundAdapterDenylistPackages = objects.listProperty(String.class).convention(List.of());
         namingConventionsEnabled = objects.property(Boolean.class).convention(false);
     }
 
@@ -184,6 +186,18 @@ public class HexagonalArchitectureExtension {
      */
     public ListProperty<String> getFrameworkDenylistPackages() {
         return frameworkDenylistPackages;
+    }
+
+    /**
+     * Additional package patterns inbound adapters must never depend on. The built-in
+     * {@code inbound_adapters_must_access_application_through_inbound_ports} rule always blocks
+     * direct dependencies on the domain model, outbound ports, outbound adapters, and
+     * configuration; this list lets a project extend that deny-list for its own libraries.
+     *
+     * @return mutable list property of additional inbound-adapter denylisted package patterns
+     */
+    public ListProperty<String> getInboundAdapterDenylistPackages() {
+        return inboundAdapterDenylistPackages;
     }
 
     /**

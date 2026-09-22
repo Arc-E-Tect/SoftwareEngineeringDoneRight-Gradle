@@ -51,6 +51,8 @@ class ArchitectureValidatorDslSchemaTest {
                 .orElseThrow();
 
         assertThat(hexagonal.containerStub()).doesNotContain("//");
-        assertThat(hexagonal.containerStub()).contains("namingConventionsEnabled = false");
+        assertThat(hexagonal.containerStub())
+                .contains("inboundAdapterDenylistPackages = []")
+                .contains("namingConventionsEnabled = false");
     }
 }
