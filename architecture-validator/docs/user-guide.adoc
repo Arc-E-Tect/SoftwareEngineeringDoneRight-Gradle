@@ -111,8 +111,9 @@ Domain service classes (identified by the `domainServices` package pattern) may 
 Source annotations are evaluated against this same allow-list, including annotations with `SOURCE` retention that do not appear in compiled bytecode.
 The `domainServices` package covers what the accompanying book calls both "application services" (which orchestrate the flow through the hexagon) and "domain services" (which enforce cross-aggregate business rules): in practice both live in the same package and are held to the same architectural constraints, since the distinction is one of intent/semantics rather than package location.
 
-=== Rule: `ports_must_only_depend_on_domain_or_jdk_core`
+=== Rule: `ports_must_only_depend_on_domain_ports_or_jdk_core`
 Port-freedom: inbound and outbound port interfaces may only depend on the domain model, other ports, or `domainAllowedPackages`.
+A port contract may therefore reference concrete Command, Query, and Result DTOs in the configured port packages; these are port contract types, not domain-model types.
 A port contract must stay completely framework-free — its *implementation* is free to depend on whatever framework or library it needs, but the port interface itself, and any types it references in its signature, must not.
 The same restriction applies to source annotations on port declarations and their members.
 

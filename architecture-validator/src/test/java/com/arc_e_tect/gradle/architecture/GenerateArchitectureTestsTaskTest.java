@@ -480,7 +480,7 @@ class GenerateArchitectureTestsTaskTest {
                 assertThat(generatedTest)
                                 .contains("domain_must_only_depend_on_domain_or_jdk_core")
                                 .contains("domain_services_must_only_depend_on_domain_core_and_ports")
-                                .contains("ports_must_only_depend_on_domain_or_jdk_core")
+                                .contains("ports_must_only_depend_on_domain_ports_or_jdk_core")
                                 .contains("lombok.Getter");
         }
 
