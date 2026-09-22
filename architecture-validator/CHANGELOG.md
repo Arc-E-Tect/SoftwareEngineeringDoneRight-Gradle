@@ -1,3 +1,10 @@
+## [4.0.2](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/architecture-validator-v4.0.1...architecture-validator-v4.0.2) (2026-09-22)
+
+
+### 🐛 Bug Fixes
+
+* **architecture-validator:** clarify port dependency rule name ([#290](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/290)) ([26f93d0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/26f93d01df0a81ba307975fb7af6cb42c15a0a37)), closes [#290](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/290)
+
 ## [4.0.1](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/architecture-validator-v4.0.0...architecture-validator-v4.0.1) (2026-09-22)
 
 
