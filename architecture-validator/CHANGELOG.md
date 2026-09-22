@@ -1,3 +1,10 @@
+## [2.3.2](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/architecture-validator-v2.3.1...architecture-validator-v2.3.2) (2026-09-22)
+
+
+### 🔧 Misc
+
+* update dependency versions in libs.versions.toml ([#288](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/288)) ([45677b5](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/45677b5947b4e8d1c7ef6d9acbfeda19a3e0a923)), closes [#288](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/288)
+
 ## [2.3.1](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/architecture-validator-v2.3.0...architecture-validator-v2.3.1) (2026-09-21)
 
 
