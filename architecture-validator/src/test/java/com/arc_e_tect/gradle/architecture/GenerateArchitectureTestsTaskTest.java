@@ -439,12 +439,95 @@ class GenerateArchitectureTestsTaskTest {
                 }
         }
 
+        @Test
+        @DisplayName("generateShouldReportSourceRetainedAnnotationsOutsideCoreAllowLists")
+        void generateShouldReportSourceRetainedAnnotationsOutsideCoreAllowLists() throws Exception {
+                GenerateArchitectureTestsTask task = newTask("generateArchitectureTestsSourceAnnotations");
+                configureDefaults(task, tempDir.resolve("generated"));
+
+                writeJavaSource("application/domain/model/Order.java", """
+                                package com.example.architecture.application.domain.model;
+
+                                import lombok.Getter;
+
+                                @Getter
+                                class Order {
+                                }
+                                """);
+                writeJavaSource("application/domain/service/OrderService.java", """
+                                package com.example.architecture.application.domain.service;
+
+                                import lombok.Getter;
+
+                                @Getter
+                                class OrderService {
+                                }
+                                """);
+                writeJavaSource("application/port/inbound/CreateOrderUseCase.java", """
+                                package com.example.architecture.application.port.inbound;
+
+                                import lombok.Getter;
+
+                                @Getter
+                                interface CreateOrderUseCase {
+                                }
+                                """);
+
+                task.generate();
+
+                String generatedTest = Files.readString(tempDir.resolve(
+                                "generated/com/arc_e_tect/gradle/architecture/generated/SourceDependencyValidationTest.java"));
+                assertThat(generatedTest)
+                                .contains("domain_must_only_depend_on_domain_or_jdk_core")
+                                .contains("domain_services_must_only_depend_on_domain_core_and_ports")
+                                .contains("ports_must_only_depend_on_domain_or_jdk_core")
+                                .contains("lombok.Getter");
+        }
+
+        @Test
+        @DisplayName("generateShouldReportWildcardAndFullyQualifiedSourceAnnotationsOutsideCoreAllowLists")
+        void generateShouldReportWildcardAndFullyQualifiedSourceAnnotationsOutsideCoreAllowLists() throws Exception {
+                GenerateArchitectureTestsTask task = newTask("generateArchitectureTestsQualifiedSourceAnnotations");
+                configureDefaults(task, tempDir.resolve("generated"));
+
+                writeJavaSource("application/domain/model/Invoice.java", """
+                                package com.example.architecture.application.domain.model;
+
+                                import lombok.*;
+
+                                @Getter
+                                class Invoice {
+                                }
+                                """);
+                writeJavaSource("application/domain/model/Customer.java", """
+                                package com.example.architecture.application.domain.model;
+
+                                @lombok.Value
+                                class Customer {
+                                }
+                                """);
+
+                task.generate();
+
+                String generatedTest = Files.readString(tempDir.resolve(
+                                "generated/com/arc_e_tect/gradle/architecture/generated/SourceDependencyValidationTest.java"));
+                assertThat(generatedTest)
+                                .contains("lombok.Getter")
+                                .contains("lombok.Value");
+        }
+
         private GenerateArchitectureTestsTask newTask(String taskName) {
                 return ProjectBuilder.builder()
                                 .withProjectDir(tempDir.toFile())
                                 .build()
                                 .getTasks()
                                 .create(taskName, GenerateArchitectureTestsTask.class);
+        }
+
+        private void writeJavaSource(String relativePath, String source) throws Exception {
+                Path file = tempDir.resolve("src/main/java/com/example/architecture").resolve(relativePath);
+                Files.createDirectories(file.getParent());
+                Files.writeString(file, source);
         }
 
         private void configureDefaults(GenerateArchitectureTestsTask task, Path outputRoot) {

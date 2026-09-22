@@ -103,15 +103,25 @@ The plugin provides ten built-in architecture rules that enforce key Hexagonal A
 === Rule: `domain_must_only_depend_on_domain_or_jdk_core`
 Domain model classes (identified by the `domainModel` package pattern) may only depend on other classes inside the `domainModel` packages themselves or on the configured `domainAllowedPackages` JDK allow-list (`java.lang..`, `java.time..`, `java.util..`, and `java.math..` by default).
 This is an allow-list, not a deny-list: it exhaustively keeps the domain free of adapters, domain services, ports, `commonPackages`, and any third-party or framework dependency (Jackson, JPA, Lombok, Spring, …).
+The rule also inspects source annotations before compilation, so source-retained annotations such as Lombok's `@Getter` cannot bypass the allow-list.
 `domainAllowedPackages` is a plain, user-configurable list — a project may extend it with another JDK package, or shrink it (including removing `java.math..`, or every JDK-core entry) if it wants the domain model held to an even stricter standard.
 
 === Rule: `domain_services_must_only_depend_on_domain_core_and_ports`
 Domain service classes (identified by the `domainServices` package pattern) may depend on the domain model, other domain services, inbound/outbound ports, or `domainAllowedPackages` — but never on adapters or any third-party/framework class.
+Source annotations are evaluated against this same allow-list, including annotations with `SOURCE` retention that do not appear in compiled bytecode.
 The `domainServices` package covers what the accompanying book calls both "application services" (which orchestrate the flow through the hexagon) and "domain services" (which enforce cross-aggregate business rules): in practice both live in the same package and are held to the same architectural constraints, since the distinction is one of intent/semantics rather than package location.
 
 === Rule: `ports_must_only_depend_on_domain_or_jdk_core`
 Port-freedom: inbound and outbound port interfaces may only depend on the domain model, other ports, or `domainAllowedPackages`.
 A port contract must stay completely framework-free — its *implementation* is free to depend on whatever framework or library it needs, but the port interface itself, and any types it references in its signature, must not.
+The same restriction applies to source annotations on port declarations and their members.
+
+=== Source Annotation Findings and Duplicate Violations
+The built-in allow-list rules inspect both compiled dependencies through ArchUnit and annotation usages from the Java source. The source analysis exists because annotations with `SOURCE` retention, such as many Lombok annotations, are removed by compilation and cannot be seen by ArchUnit.
+
+An ordinary imported type is checked only by ArchUnit. A source-retained annotation is checked only by source analysis. An annotation with `CLASS` or `RUNTIME` retention may be visible to both mechanisms, depending on how ArchUnit models that annotation as a dependency. In that case, the report can show two violations for the same forbidden annotation: one from the relevant ArchUnit rule and one from `source_annotation_dependencies_must_obey_core_allow_lists`.
+
+This duplication is intentional. Both violations apply the same allow-list policy and identify separate evidence sources: the compiled class and the original Java source. The source finding should not be disabled merely to reduce report counts, because doing so would reopen the gap for source-retained annotations.
 
 === Rule: `inbound_ports_must_be_interfaces` / `outbound_ports_must_be_interfaces`
 Classes in the `inPorts`/`outPorts` packages (excluding `portDataTypePackages`, such as command/result DTOs that legitimately live alongside ports) must be interfaces, not concrete classes.
