@@ -1,3 +1,10 @@
+# [4.1.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/architecture-validator-v4.0.2...architecture-validator-v4.1.0) (2026-09-22)
+
+
+### ✨ New and updated features
+
+* **architecture-validator:** enforce inbound adapter boundaries ([ab60739](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/ab60739d3b051ac5c7bdfafe0f53682da2db5162))
+
 ## [4.0.2](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/architecture-validator-v4.0.1...architecture-validator-v4.0.2) (2026-09-22)
 
 
