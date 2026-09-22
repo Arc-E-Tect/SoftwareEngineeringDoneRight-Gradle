@@ -59,6 +59,7 @@ final class ArchitectureValidatorDslSchema {
             "commonPackages = ['..application.common..']",
             "domainAllowedPackages = ['java.lang..', 'java.time..', 'java.util..', 'java.math..']",
             "frameworkDenylistPackages = []",
+            "inboundAdapterDenylistPackages = []",
             "namingConventionsEnabled = false");
 
     static final DslExtensionSchema SCHEMA = new DslExtensionSchema(ArchitectureValidatorExtension.NAME, List.of(

@@ -136,6 +136,33 @@ class ArchitectureValidatorIntegrationTest {
     }
 
     @Test
+    @DisplayName("should fail when inbound adapters depend directly on domain model classes")
+    void shouldFailWhenInboundAdaptersDependOnDomainModelClasses() throws IOException {
+        Path projectDir = createProjectWithInboundAdapterDependingOnDomainModel("inbound-adapter-depends-on-domain");
+
+        BuildResult result = createRunner(projectDir)
+                .withArguments("testArchitecture", "--stacktrace")
+                .buildAndFail();
+
+        assertThat(result.getOutput())
+                .contains("inbound_adapters_must_access_application_through_inbound_ports FAILED");
+    }
+
+    @Test
+    @DisplayName("should fail when inbound adapters depend on configured denylisted packages")
+    void shouldFailWhenInboundAdaptersDependOnConfiguredDenylistedPackages() throws IOException {
+        Path projectDir = createProjectWithInboundAdapterDependingOnDenylistedPackage(
+                "inbound-adapter-depends-on-denylisted-package");
+
+        BuildResult result = createRunner(projectDir)
+                .withArguments("testArchitecture", "--stacktrace")
+                .buildAndFail();
+
+        assertThat(result.getOutput())
+                .contains("inbound_adapters_must_access_application_through_inbound_ports FAILED");
+    }
+
+    @Test
     @DisplayName("should fail when a domain model uses a source-retained annotation outside its allow-list")
     void shouldFailWhenDomainModelUsesSourceRetainedAnnotationOutsideAllowList() throws IOException {
         Path projectDir = createProjectWithSourceRetainedDomainAnnotation("source-retained-domain-annotation");
@@ -651,6 +678,123 @@ class ArchitectureValidatorIntegrationTest {
                     public String getOrder(String id) {
                         return orderDomainService.loadOrder(id);
                     }
+                }
+                """);
+
+        return projectDir;
+    }
+
+    private Path createProjectWithInboundAdapterDependingOnDomainModel(String projectName) throws IOException {
+        Path projectDir = tempDir.resolve(projectName);
+        Files.createDirectories(projectDir);
+
+        write(projectDir.resolve("settings.gradle"), """
+                pluginManagement {
+                    repositories {
+                        gradlePluginPortal()
+                    }
+                }
+
+                rootProject.name = '%s'
+                """.formatted(projectName));
+
+        write(projectDir.resolve("build.gradle"), """
+                plugins {
+                    id 'java'
+                    id 'com.arc-e-tect.architecture-validator'
+                }
+
+                group = 'com.example.archtest'
+                version = '0.0.1'
+
+                repositories {
+                    mavenCentral()
+                }
+
+                architectureValidator {
+                    basePackage = 'com.example.archtest'
+                    useBuiltInHexagonalRulePack = true
+                    ignoreFailures = false
+                    hexagonalArchitecture {
+                        inboundAdapters = ['..adapter.inbound..']
+                    }
+                }
+                """);
+
+        write(projectDir.resolve("src/main/java/com/example/archtest/application/domain/model/Order.java"), """
+                package com.example.archtest.application.domain.model;
+
+                public record Order(String id) {
+                }
+                """);
+
+        write(projectDir.resolve("src/main/java/com/example/archtest/adapter/inbound/web/OrderController.java"), """
+                package com.example.archtest.adapter.inbound.web;
+
+                import com.example.archtest.application.domain.model.Order;
+
+                public class OrderController {
+                    public Order getOrder(String id) {
+                        return new Order(id);
+                    }
+                }
+                """);
+
+        return projectDir;
+    }
+
+    private Path createProjectWithInboundAdapterDependingOnDenylistedPackage(String projectName) throws IOException {
+        Path projectDir = tempDir.resolve(projectName);
+        Files.createDirectories(projectDir);
+
+        write(projectDir.resolve("settings.gradle"), """
+                pluginManagement {
+                    repositories {
+                        gradlePluginPortal()
+                    }
+                }
+
+                rootProject.name = '%s'
+                """.formatted(projectName));
+
+        write(projectDir.resolve("build.gradle"), """
+                plugins {
+                    id 'java'
+                    id 'com.arc-e-tect.architecture-validator'
+                }
+
+                group = 'com.example.archtest'
+                version = '0.0.1'
+
+                repositories {
+                    mavenCentral()
+                }
+
+                architectureValidator {
+                    basePackage = 'com.example.archtest'
+                    useBuiltInHexagonalRulePack = true
+                    ignoreFailures = false
+                    hexagonalArchitecture {
+                        inboundAdapters = ['..adapter.inbound..']
+                        inboundAdapterDenylistPackages = ['..legacy..']
+                    }
+                }
+                """);
+
+        write(projectDir.resolve("src/main/java/com/example/archtest/legacy/LegacyClient.java"), """
+                package com.example.archtest.legacy;
+
+                public class LegacyClient {
+                }
+                """);
+
+        write(projectDir.resolve("src/main/java/com/example/archtest/adapter/inbound/web/OrderController.java"), """
+                package com.example.archtest.adapter.inbound.web;
+
+                import com.example.archtest.legacy.LegacyClient;
+
+                public class OrderController {
+                    private final LegacyClient legacyClient = new LegacyClient();
                 }
                 """);
 

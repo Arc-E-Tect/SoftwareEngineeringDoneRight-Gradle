@@ -53,6 +53,18 @@ class HexagonalArchitectureTest {
                         .or(JavaClass.Predicates.resideInAnyPackage(
                                         ${domainAllowedPackages}));
 
+        private static final DescribedPredicate<JavaClass> INBOUND_ADAPTER_FORBIDDEN_CLASSES =
+                        JavaClass.Predicates.resideInAnyPackage(
+                                        ${domainModel})
+                        .or(JavaClass.Predicates.resideInAnyPackage(
+                                        ${outPorts}))
+                        .or(JavaClass.Predicates.resideInAnyPackage(
+                                        ${outboundAdapters}))
+                        .or(JavaClass.Predicates.resideInAnyPackage(
+                                        ${configurationPackages}))
+                        .or(JavaClass.Predicates.resideInAnyPackage(
+                                        ${inboundAdapterDenylistPackages}));
+
         private static final ArchCondition<JavaClass> INBOUND_PORT_NAMING_CONVENTION =
                         new ArchCondition<>("have simple name ending with 'UseCase' or 'InputPort'") {
                                 @Override
@@ -159,6 +171,17 @@ class HexagonalArchitectureTest {
                     .allowEmptyShould(true)
                     .as("Adapters must communicate with the application core only through ports — never by "
                             + "depending directly on a domain service implementation");
+
+    @ArchTest
+    static final ArchRule inbound_adapters_must_access_application_through_inbound_ports =
+            noClasses()
+                    .that().resideInAnyPackage(
+                            ${inboundAdapters})
+                    .should().dependOnClassesThat(INBOUND_ADAPTER_FORBIDDEN_CLASSES)
+                    .allowEmptyShould(true)
+                    .as("Inbound adapters must access application behavior through inbound ports — they must not "
+                            + "depend directly on the domain model, outbound ports, outbound adapters, "
+                            + "configuration, or configured denylisted packages");
 
     @ArchTest
     static final ArchRule only_configuration_may_depend_on_domain_service_implementations =

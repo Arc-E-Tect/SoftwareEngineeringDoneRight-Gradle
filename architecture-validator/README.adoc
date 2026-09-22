@@ -98,6 +98,7 @@ architectureValidator {
         commonPackages = ['..application.common..']
         domainAllowedPackages = ['java.lang..', 'java.time..', 'java.util..', 'java.math..']
         frameworkDenylistPackages = []
+        inboundAdapterDenylistPackages = []
         namingConventionsEnabled = true
     }
 }
@@ -146,6 +147,7 @@ The `hexagonalArchitecture { }` block nested inside `architectureValidator` conf
 | `commonPackages` | `['..application.common..']` | Package pattern(s) for shared/common classes; not referenced by the built-in rule set directly, but exposed via the `architectureValidator.commonPackages` system property for external rule packs to use.
 | `domainAllowedPackages` | `['java.lang..', 'java.time..', 'java.util..', 'java.math..']` | JDK package pattern(s) the domain model, domain services, and ports may depend on in addition to their own layer. Fully user-configurable via the DSL — including dropping `java.math..`, or any other entry, entirely, since the property is a plain `ListProperty<String>` with no hard-coded fallback.
 | `frameworkDenylistPackages` | `[]` | Package pattern(s) that the domain model, domain services, and ports must never depend on, checked by `core_application_layer_must_have_no_denylisted_dependencies`. Empty by default; set it (for example, to `['org.springframework..', 'jakarta.persistence..']`) to enforce framework-freedom in the core application layer.
+| `inboundAdapterDenylistPackages` | `[]` | Additional package pattern(s) inbound adapters must never depend on. The `inbound_adapters_must_access_application_through_inbound_ports` rule already blocks direct dependencies on the domain model, outbound ports, outbound adapters, and configuration; this property extends that deny-list without broadly restricting framework or third-party dependencies.
 | `namingConventionsEnabled` | `false` | Generates additional, strictly bidirectional naming-convention `@ArchTest` rules for inbound ports (`UseCase`/`InputPort` suffix) and domain services (`Service`/`Policy` suffix) — a class with the conventional suffix must live in the expected package, *and* a class in the expected package must have the conventional suffix. Also exposes an `architectureValidator.namingConventions.enabled` system property so external rule packs, such as the Spring companion rule pack, can opt into their own naming checks.
 |===
 
@@ -170,6 +172,7 @@ It enforces ten `@ArchTest` rules, plus four optional bidirectional naming-conve
 | `inbound_ports_reside_in_correct_package` | Classes conventionally named as inbound ports (`UseCase`/`InputPort` suffix) reside in the inbound ports package.
 | `core_layer_must_not_depend_on_adapters` | The domain model, domain services, and ports are outer-layer-unaware; none of them may depend on adapter classes.
 | `adapters_must_not_depend_on_domain_services_directly` | Adapters reach the application core only through ports — never by depending directly on a domain service implementation.
+| `inbound_adapters_must_access_application_through_inbound_ports` | Inbound adapters must not depend directly on the domain model, outbound ports, outbound adapters, configuration, or `inboundAdapterDenylistPackages`. They enter the application through inbound ports and freely use adapter-local, framework, and third-party types.
 | `only_configuration_may_depend_on_domain_service_implementations` | Concrete domain service implementations are only referenced from the configuration layer wiring up their beans — every other caller must go through a port.
 | `core_application_layer_must_have_no_denylisted_dependencies` | The domain model, domain services, and ports are free of any package configured in `frameworkDenylistPackages` (empty by default).
 |===

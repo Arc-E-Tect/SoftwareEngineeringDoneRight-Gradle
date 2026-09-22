@@ -73,6 +73,7 @@ public abstract class GenerateArchitectureTestsTask extends DefaultTask {
         getPortDataTypePackages().convention(List.of("..command..", "..query..", "..result.."));
         getDomainAllowedPackages().convention(List.of("java.lang..", "java.time..", "java.util..", "java.math.."));
         getFrameworkDenylistPackages().convention(List.of());
+        getInboundAdapterDenylistPackages().convention(List.of());
         getNamingConventionsEnabled().convention(false);
     }
 
@@ -196,6 +197,14 @@ public abstract class GenerateArchitectureTestsTask extends DefaultTask {
     public abstract ListProperty<String> getFrameworkDenylistPackages();
 
     /**
+     * Additional package patterns inbound adapters must never depend on.
+     *
+     * @return mutable list property of inbound-adapter denylisted package patterns
+     */
+    @Input
+    public abstract ListProperty<String> getInboundAdapterDenylistPackages();
+
+    /**
      * Whether bidirectional naming-convention rules are generated in addition to the
      * layer-boundary rules.
      *
@@ -282,6 +291,7 @@ public abstract class GenerateArchitectureTestsTask extends DefaultTask {
                         Map.entry("${commonPackages}", javaArrayLiteral(getCommonPackages().get())),
                         Map.entry("${domainAllowedPackages}", javaArrayLiteral(getDomainAllowedPackages().get())),
                         Map.entry("${frameworkDenylistPackages}", javaArrayLiteral(getFrameworkDenylistPackages().get())),
+                        Map.entry("${inboundAdapterDenylistPackages}", javaArrayLiteral(getInboundAdapterDenylistPackages().get())),
                         Map.entry("${coreLayerPackages}", javaArrayLiteral(resolveCoreLayerPatterns())),
                         Map.entry("${namingConventionsSection}", renderNamingConventionsSection())
                 );

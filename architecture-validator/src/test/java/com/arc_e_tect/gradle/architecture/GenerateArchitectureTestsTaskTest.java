@@ -56,6 +56,7 @@ class GenerateArchitectureTestsTaskTest {
                 .contains("domain_must_only_depend_on_domain_or_jdk_core")
                 .contains("inbound_ports_reside_in_correct_package")
                 .contains("core_layer_must_not_depend_on_adapters")
+                .contains("inbound_adapters_must_access_application_through_inbound_ports")
                 .contains("@ArchTest");
     }
 
