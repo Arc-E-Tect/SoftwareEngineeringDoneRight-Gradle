@@ -92,6 +92,19 @@ class ArchitectureValidatorIntegrationTest {
     }
 
     @Test
+    @DisplayName("should allow inbound ports to use command and query data types")
+    void shouldAllowInboundPortsToUseCommandAndQueryDataTypes() throws IOException {
+        Path projectDir = createProjectWithInboundPortUsingCommandAndQuery("inbound-port-uses-command-and-query");
+
+        BuildResult result = createRunner(projectDir)
+                .withArguments("testArchitecture", "--stacktrace")
+                .build();
+
+        assertThat(result.task(":testArchitecture").getOutcome()).isEqualTo(TaskOutcome.SUCCESS);
+        assertThat(result.getOutput()).doesNotContain("inbound_ports_must_be_interfaces FAILED");
+    }
+
+    @Test
     @DisplayName("should forward generic and hexagonal rule pack properties to the architecture test JVM")
     void shouldForwardGenericAndHexagonalRulePackPropertiesToArchitectureTestJvm() throws IOException {
         Path projectDir = createProjectWithRulePackPropertyForwarding("rule-pack-property-forwarding");
@@ -299,6 +312,70 @@ class ArchitectureValidatorIntegrationTest {
         Files.createDirectories(projectDir.resolve("src/main/java/com/example/archtest/adapter/inbound"));
         Files.createDirectories(projectDir.resolve("src/main/java/com/example/archtest/adapter/outbound"));
         Files.createDirectories(projectDir.resolve("src/main/java/com/example/archtest/application/common"));
+
+        return projectDir;
+    }
+
+    private Path createProjectWithInboundPortUsingCommandAndQuery(String projectName) throws IOException {
+        Path projectDir = tempDir.resolve(projectName);
+        Files.createDirectories(projectDir);
+
+        write(projectDir.resolve("settings.gradle"), """
+                pluginManagement {
+                    repositories {
+                        gradlePluginPortal()
+                    }
+                }
+
+                rootProject.name = '%s'
+                """.formatted(projectName));
+
+        write(projectDir.resolve("build.gradle"), """
+                plugins {
+                    id 'java'
+                    id 'com.arc-e-tect.architecture-validator'
+                }
+
+                group = 'com.example.archtest'
+                version = '0.0.1'
+
+                repositories {
+                    mavenCentral()
+                }
+
+                architectureValidator {
+                    basePackage = 'com.example.archtest'
+                    hexagonalArchitecture {
+                        inPorts = ['..application.port.in..']
+                    }
+                }
+                """);
+
+        write(projectDir.resolve("src/main/java/com/example/archtest/application/port/in/command/CreateOrderCommand.java"), """
+                package com.example.archtest.application.port.in.command;
+
+                public record CreateOrderCommand(String customerId) {
+                }
+                """);
+
+        write(projectDir.resolve("src/main/java/com/example/archtest/application/port/in/query/FindOrderQuery.java"), """
+                package com.example.archtest.application.port.in.query;
+
+                public record FindOrderQuery(String orderId) {
+                }
+                """);
+
+        write(projectDir.resolve("src/main/java/com/example/archtest/application/port/in/OrderUseCase.java"), """
+                package com.example.archtest.application.port.in;
+
+                import com.example.archtest.application.port.in.command.CreateOrderCommand;
+                import com.example.archtest.application.port.in.query.FindOrderQuery;
+
+                public interface OrderUseCase {
+                    void create(CreateOrderCommand command);
+                    String find(FindOrderQuery query);
+                }
+                """);
 
         return projectDir;
     }

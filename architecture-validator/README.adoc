@@ -94,7 +94,7 @@ architectureValidator {
         outboundAdapters = ['..adapter.outbound..', '..adapters.outbound..']
         adapters = ['..adapter..', '..adapters..']
         configurationPackages = ['..configuration..']
-        portDataTypePackages = ['..command..', '..result..']
+        portDataTypePackages = ['..command..', '..query..', '..result..']
         commonPackages = ['..application.common..']
         domainAllowedPackages = ['java.lang..', 'java.time..', 'java.util..', 'java.math..']
         frameworkDenylistPackages = []
@@ -142,7 +142,7 @@ The `hexagonalArchitecture { }` block nested inside `architectureValidator` conf
 | `inboundAdapters` | `['..adapter.inbound..', '..adapters.inbound..']` | Package pattern(s) identifying inbound adapters, merged into the aggregate adapter pattern set used by `core_layer_must_not_depend_on_adapters` and `adapters_must_not_depend_on_domain_services_directly`.
 | `outboundAdapters` | `['..adapter.outbound..', '..adapters.outbound..']` | Package pattern(s) identifying outbound adapters, merged the same way as `inboundAdapters`. Outbound adapters are allowed to implement outbound ports using domain objects.
 | `configurationPackages` | `['..configuration..']` | Package pattern(s) identifying the wiring/configuration layer — the only layer allowed to depend on concrete domain-service implementation classes directly, checked by `only_configuration_may_depend_on_domain_service_implementations`.
-| `portDataTypePackages` | `['..command..', '..result..']` | Package pattern(s) for port-adjacent data-carrier types (commands, results, and similar DTOs) that live alongside ports but are excluded from the `inbound_ports_must_be_interfaces`/`outbound_ports_must_be_interfaces` interface checks, since they are legitimately concrete classes.
+| `portDataTypePackages` | `['..command..', '..query..', '..result..']` | Package pattern(s) for port-adjacent data-carrier types (commands, queries, results, and similar DTOs) that live alongside ports but are excluded from the `inbound_ports_must_be_interfaces`/`outbound_ports_must_be_interfaces` interface checks, since they are legitimately concrete classes.
 | `commonPackages` | `['..application.common..']` | Package pattern(s) for shared/common classes; not referenced by the built-in rule set directly, but exposed via the `architectureValidator.commonPackages` system property for external rule packs to use.
 | `domainAllowedPackages` | `['java.lang..', 'java.time..', 'java.util..', 'java.math..']` | JDK package pattern(s) the domain model, domain services, and ports may depend on in addition to their own layer. Fully user-configurable via the DSL — including dropping `java.math..`, or any other entry, entirely, since the property is a plain `ListProperty<String>` with no hard-coded fallback.
 | `frameworkDenylistPackages` | `[]` | Package pattern(s) that the domain model, domain services, and ports must never depend on, checked by `core_application_layer_must_have_no_denylisted_dependencies`. Empty by default; set it (for example, to `['org.springframework..', 'jakarta.persistence..']`) to enforce framework-freedom in the core application layer.
@@ -165,7 +165,7 @@ It enforces ten `@ArchTest` rules, plus four optional bidirectional naming-conve
 | `domain_must_only_depend_on_domain_or_jdk_core` | The domain model depends only on itself or the configured JDK allow-list — never ports, domain services, adapters, or any third-party/framework class.
 | `domain_services_must_only_depend_on_domain_core_and_ports` | Domain services depend only on the domain model, other domain services, inbound/outbound ports, or the JDK allow-list — never adapters or any third-party/framework class.
 | `ports_must_only_depend_on_domain_or_jdk_core` | Port-freedom: inbound and outbound port contracts depend only on the domain model, other ports, or the JDK allow-list — a port interface stays framework-free even though its implementation need not.
-| `inbound_ports_must_be_interfaces` | Inbound port contracts are interfaces, not concrete classes (port data-carrier types such as commands/results are excluded).
+| `inbound_ports_must_be_interfaces` | Inbound port contracts are interfaces, not concrete classes (port data-carrier types such as commands/queries/results are excluded).
 | `outbound_ports_must_be_interfaces` | Outbound port contracts are interfaces, not concrete classes (same data-carrier exclusion).
 | `inbound_ports_reside_in_correct_package` | Classes conventionally named as inbound ports (`UseCase`/`InputPort` suffix) reside in the inbound ports package.
 | `core_layer_must_not_depend_on_adapters` | The domain model, domain services, and ports are outer-layer-unaware; none of them may depend on adapter classes.

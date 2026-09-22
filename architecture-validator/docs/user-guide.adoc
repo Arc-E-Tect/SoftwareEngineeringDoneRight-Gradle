@@ -39,7 +39,7 @@ architectureValidator {
         outboundAdapters = ['..adapter.outbound..', '..adapters.outbound..']
         adapters = ['..adapter..', '..adapters..']
         configurationPackages = ['..configuration..']
-        portDataTypePackages = ['..command..', '..result..']
+        portDataTypePackages = ['..command..', '..query..', '..result..']
         commonPackages = ['..application.common..']
         domainAllowedPackages = ['java.lang..', 'java.time..', 'java.util..', 'java.math..']
         frameworkDenylistPackages = []
@@ -124,7 +124,7 @@ An ordinary imported type is checked only by ArchUnit. A source-retained annotat
 This duplication is intentional. Both violations apply the same allow-list policy and identify separate evidence sources: the compiled class and the original Java source. The source finding should not be disabled merely to reduce report counts, because doing so would reopen the gap for source-retained annotations.
 
 === Rule: `inbound_ports_must_be_interfaces` / `outbound_ports_must_be_interfaces`
-Classes in the `inPorts`/`outPorts` packages (excluding `portDataTypePackages`, such as command/result DTOs that legitimately live alongside ports) must be interfaces, not concrete classes.
+Classes in the `inPorts`/`outPorts` packages (excluding `portDataTypePackages`, such as command/query/result DTOs that legitimately live alongside ports) must be interfaces, not concrete classes.
 
 === Rule: `inbound_ports_reside_in_correct_package`
 Inbound port interfaces—identified by names ending with `UseCase` or `InputPort`—must reside in the configured `inPorts` package.

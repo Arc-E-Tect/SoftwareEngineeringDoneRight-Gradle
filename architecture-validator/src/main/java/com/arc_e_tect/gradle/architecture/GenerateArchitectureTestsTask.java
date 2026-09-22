@@ -70,7 +70,7 @@ public abstract class GenerateArchitectureTestsTask extends DefaultTask {
         getInboundAdapters().convention(List.of("..adapter.inbound..", "..adapters.inbound.."));
         getOutboundAdapters().convention(List.of("..adapter.outbound..", "..adapters.outbound.."));
         getConfigurationPackages().convention(List.of("..configuration.."));
-        getPortDataTypePackages().convention(List.of("..command..", "..result.."));
+        getPortDataTypePackages().convention(List.of("..command..", "..query..", "..result.."));
         getDomainAllowedPackages().convention(List.of("java.lang..", "java.time..", "java.util..", "java.math.."));
         getFrameworkDenylistPackages().convention(List.of());
         getNamingConventionsEnabled().convention(false);
