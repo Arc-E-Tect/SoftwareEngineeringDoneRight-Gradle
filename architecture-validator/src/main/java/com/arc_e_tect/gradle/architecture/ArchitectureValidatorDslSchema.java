@@ -55,7 +55,7 @@ final class ArchitectureValidatorDslSchema {
             "inboundAdapters = ['..adapter.inbound..', '..adapters.inbound..']",
             "outboundAdapters = ['..adapter.outbound..', '..adapters.outbound..']",
             "configurationPackages = ['..configuration..']",
-            "portDataTypePackages = ['..command..', '..result..']",
+            "portDataTypePackages = ['..command..', '..query..', '..result..']",
             "commonPackages = ['..application.common..']",
             "domainAllowedPackages = ['java.lang..', 'java.time..', 'java.util..', 'java.math..']",
             "frameworkDenylistPackages = []",

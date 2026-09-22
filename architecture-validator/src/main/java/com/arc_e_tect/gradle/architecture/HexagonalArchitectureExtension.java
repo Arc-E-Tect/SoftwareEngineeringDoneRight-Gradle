@@ -47,7 +47,8 @@ public class HexagonalArchitectureExtension {
         inboundAdapters = objects.listProperty(String.class).convention(List.of("..adapter.inbound..", "..adapters.inbound.."));
         outboundAdapters = objects.listProperty(String.class).convention(List.of("..adapter.outbound..", "..adapters.outbound.."));
         configurationPackages = objects.listProperty(String.class).convention(List.of("..configuration.."));
-        portDataTypePackages = objects.listProperty(String.class).convention(List.of("..command..", "..result.."));
+        portDataTypePackages = objects.listProperty(String.class)
+                .convention(List.of("..command..", "..query..", "..result.."));
         commonPackages = objects.listProperty(String.class).convention(List.of("..application.common.."));
         domainAllowedPackages = objects.listProperty(String.class)
                 .convention(List.of("java.lang..", "java.time..", "java.util..", "java.math.."));
