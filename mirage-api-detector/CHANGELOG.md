@@ -1,3 +1,10 @@
+## [4.8.2](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/mirage-api-detector-v4.8.1...mirage-api-detector-v4.8.2) (2026-09-28)
+
+
+### 🐛 Bug Fixes
+
+* **mirage-api-detector:** read urlPathTemplate stubs and match literal stub paths to declared templates ([#293](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/293)) ([4129124](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/4129124439a669d402d8319140840b37dc9856ee)), closes [#293](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/293) [#292](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/292)
+
 ## [4.8.1](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/mirage-api-detector-v4.8.0...mirage-api-detector-v4.8.1) (2026-09-17)
 
 
