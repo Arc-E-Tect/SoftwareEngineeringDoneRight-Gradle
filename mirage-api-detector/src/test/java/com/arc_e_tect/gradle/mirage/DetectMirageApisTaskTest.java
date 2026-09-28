@@ -366,10 +366,7 @@ class DetectMirageApisTaskTest {
     @DisplayName("persists only stubbedAt when scanMocks is true but no controller implements the endpoint")
     void persistsOnlyStubbedAtWhenNoControllerImplementsIt() throws Exception {
         // controllerDir (see setUp) implements listUsers only - listOrders has no controller
-        // match, so its history record must gain stubbedAt but never implementedAt. Both
-        // endpoints here are path-parameter-free deliberately: matching a stub's literal path
-        // (e.g. "/users/1") against a declared path-variable template (e.g. "/users/{id}") is a
-        // separate, unrelated limitation this test isn't meant to exercise.
+        // match, so its history record must gain stubbedAt but never implementedAt.
         File stubDir = new File(tempDir.toFile(), "src/test/resources/mappings");
         Files.createDirectories(stubDir.toPath());
         Files.writeString(stubDir.toPath().resolve("listOrders.json"), """
@@ -777,9 +774,6 @@ class DetectMirageApisTaskTest {
     @Test
     @DisplayName("an excluded mirage reports Stubbed: Yes when a matching WireMock stub exists")
     void excludedMirageReportsStubbedYesWhenStubMatches() throws Exception {
-        // Deliberately a parameter-free path: matching a stub's literal path against a declared
-        // path-variable template is a separate, unrelated limitation this test isn't meant to
-        // exercise - see the comment on persistsOnlyStubbedAtWhenNoControllerImplementsIt above.
         File rootDocument = actuatorHealthFixture();
         File stubDir = new File(tempDir.toFile(), "src/test/resources/mappings");
         Files.createDirectories(stubDir.toPath());
@@ -802,6 +796,37 @@ class DetectMirageApisTaskTest {
 
         String content = Files.readString(new File(reportDir, "mirage-apis.adoc").toPath());
         assertThat(content).contains("== Excluded Mirage APIs").contains("| Yes");
+    }
+
+    @Test
+    @DisplayName("records a stub's literal path as the declared template it is an instance of")
+    void recordsLiteralStubPathAsDeclaredTemplate() throws Exception {
+        File stubDir = new File(tempDir.toFile(), "src/test/resources/mappings");
+        Files.createDirectories(stubDir.toPath());
+        Files.writeString(stubDir.toPath().resolve("getUser.json"), """
+                { "request": { "method": "GET", "urlPath": "/v1/users/aaaa" }, "response": { "status": 200 } }
+                """);
+        File historyFile = new File(tempDir.toFile(), "contract-history.ndjson");
+
+        DetectMirageApisTask task = newTask();
+        task.getScanMocks().set(true);
+        task.getStubDirs().from(stubDir);
+        task.getControllerDirs().from(controllerDir);
+        task.getRootDocument().set(openApiFixture("username-endpoint.yaml"));
+        task.getReportDir().set(reportDir);
+        task.getReportFileName().set("mirage-apis.adoc");
+        task.getFailOnMirage().set(false);
+        task.getSystemUnderTestVersion().set("1.0.0");
+        task.getExcludePaths().set(List.of("/v1/users/{username}"));
+        task.getTrackContractHistory().set(true);
+        task.getContractHistoryFile().set(historyFile);
+        task.getUpdateContractHistory().set(true);
+
+        task.generate();
+
+        String content = Files.readString(new File(reportDir, "mirage-apis.adoc").toPath());
+        assertThat(content).contains("== Excluded Mirage APIs").contains("| Yes");
+        assertThat(Files.readString(historyFile.toPath())).doesNotContain("/v1/users/aaaa");
     }
 
     @Test
@@ -996,6 +1021,25 @@ class DetectMirageApisTaskTest {
                       /orders:
                         get:
                           operationId: listOrders
+                          responses:
+                            '200':
+                              description: OK
+                    """;
+            case "username-endpoint.yaml" -> """
+                    openapi: 3.0.3
+                    info:
+                      title: Test API
+                      version: "1.0"
+                    paths:
+                      /v1/users/{username}:
+                        get:
+                          operationId: getUser
+                          parameters:
+                            - name: username
+                              in: path
+                              required: true
+                              schema:
+                                type: string
                           responses:
                             '200':
                               description: OK
