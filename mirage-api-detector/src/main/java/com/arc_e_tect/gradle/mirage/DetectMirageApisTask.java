@@ -333,9 +333,6 @@ public abstract class DetectMirageApisTask extends DefaultTask {
         boolean openApiAvailable = isRootDocumentAvailable();
         File rootDocument = openApiAvailable ? getRootDocument().getAsFile().get() : null;
 
-        boolean scanMocks = getScanMocks().get();
-        List<Endpoint> stubEndpoints = scanMocks ? scanStubs(openApiCollector, rootDocument, warnings) : null;
-
         List<DescribedEndpoint> described;
         if (openApiAvailable) {
             ScanProgressReporter openApiProgress =
@@ -346,6 +343,10 @@ public abstract class DetectMirageApisTask extends DefaultTask {
             described = List.of();
             warnings.add(describeMissingRootDocument());
         }
+
+        boolean scanMocks = getScanMocks().get();
+        List<Endpoint> stubEndpoints =
+                scanMocks ? scanStubs(openApiCollector, rootDocument, described, warnings) : null;
 
         boolean inputComplete = openApiAvailable && !controllerSourceMissing;
         List<DescribedEndpoint> mirages = inputComplete
@@ -524,13 +525,20 @@ public abstract class DetectMirageApisTask extends DefaultTask {
         return updated;
     }
 
-    private List<Endpoint> scanStubs(OpenApiEndpointCollector openApiCollector, File rootDocument, List<String> warnings) {
+    /**
+     * Scans {@link #getStubDirs()} and {@link #getStubSourceDirs()} for stub evidence, with the base
+     * path stripped from every stubbed path. A stub mapping's literal path is matched against
+     * {@code described} first - see {@link WireMockStubScanner#WireMockStubScanner(List, String)}.
+     */
+    private List<Endpoint> scanStubs(OpenApiEndpointCollector openApiCollector, File rootDocument,
+            List<DescribedEndpoint> described, List<String> warnings) {
+        String basePath = resolveBasePath(openApiCollector, rootDocument);
         List<Endpoint> endpoints = new ArrayList<>();
-        endpoints.addAll(scanStubSource(getStubDirs(), "stubDirs", new WireMockStubScanner()::scan, warnings));
+        endpoints.addAll(scanStubSource(
+                getStubDirs(), "stubDirs", new WireMockStubScanner(described, basePath)::scan, warnings));
         endpoints.addAll(scanStubSource(
                 getStubSourceDirs(), "stubSourceDirs", new WireMockJavaDslScanner()::scan, warnings));
 
-        String basePath = resolveBasePath(openApiCollector, rootDocument);
         if (basePath == null) {
             return endpoints;
         }

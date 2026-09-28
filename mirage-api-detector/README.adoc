@@ -108,7 +108,7 @@ An OpenAPI operation is considered implemented - and so never reported as a mira
 Stub evidence never counts as implementation evidence. An endpoint stubbed by WireMock but implemented by no `@RestController` still reports as a mirage API - `scanMocks` only ever adds `stubbedAt` information, it never removes an endpoint from the Mirage APIs list.
 ====
 
-The plugin looks for `*.json` files, recursively, under `stubDirs` (default `src/test/resources/mappings`, WireMock's own conventional mapping directory). One file is expected to describe one stub - the common convention for files stored under a `mappings` directory. Each file is read structurally for its first `method` field and its first `url`, `urlPath`, `urlPattern`, or `urlPathPattern` field - deliberately without a JSON parser or the WireMock library itself on this plugin's classpath, the same "read the file as data, not code" approach the companion link:../doppelganger-api-detector/README.adoc[Doppelganger API Detector] plugin uses for Spring Cloud Contract files.
+The plugin looks for `*.json` files, recursively, under `stubDirs` (default `src/test/resources/mappings`, WireMock's own conventional mapping directory). One file is expected to describe one stub - the common convention for files stored under a `mappings` directory. Each file is read structurally for its first `method` field and its first `url`, `urlPath`, `urlPattern`, `urlPathPattern`, or `urlPathTemplate` field - deliberately without a JSON parser or the WireMock library itself on this plugin's classpath, the same "read the file as data, not code" approach the companion link:../doppelganger-api-detector/README.adoc[Doppelganger API Detector] plugin uses for Spring Cloud Contract files.
 
 .Example stub mapping file (`src/test/resources/mappings/getItem.json`)
 [source,json]
@@ -126,26 +126,32 @@ The plugin looks for `*.json` files, recursively, under `stubDirs` (default `src
 
 === Matching a stub's id segment to its declared/implemented endpoint's path variable
 
-A stub mapping file has no concept of a named path variable the way an OpenAPI document or a `@RequestMapping` does - it only ever records either a regular expression (`urlPattern`/`urlPathPattern`) or a literal example value (`url`/`urlPath`) for the request path it matches. Left as-is, neither would ever be recognised as evidence for the corresponding `{customerId}`-style declared/implemented endpoint - each would instead accumulate as its own, permanently unmatched, orphaned path, both in this run's `Stubbed: Yes`/`No` display and in `contractHistoryFile`. So every `"/"`-delimited path segment that *looks like* it stands in for a path variable is rewritten into a `{id}` placeholder before comparison - the same shape a declared/implemented endpoint's own path variable uses - by two separate heuristics, one per matcher kind:
+A stub mapping file has no concept of a named path variable the way an OpenAPI document or a `@RequestMapping` does, unless it uses WireMock's `urlPathTemplate` - otherwise it only ever records either a regular expression (`urlPattern`/`urlPathPattern`) or a literal example value (`url`/`urlPath`) for the request path it matches. Left as-is, neither would ever be recognised as evidence for the corresponding `{customerId}`-style declared/implemented endpoint - each would instead accumulate as its own, permanently unmatched, orphaned path, both in this run's `Stubbed: Yes`/`No` display and in `contractHistoryFile`. So each matcher kind is turned into a path template before comparison, in this order:
 
-[cols="1,2,2",options="header"]
+[cols="1,3,2",options="header"]
 |===
-| Field | Segment rewritten when... | Example
-| `urlPattern` / `urlPathPattern` | it contains a regular-expression metacharacter, *or* it's purely numeric even without one - a `urlPathPattern` value is free to be a plain literal instead of an actual regular expression, and gets the same numeric-id treatment `url`/`urlPath` does below | `"/customers/[0-9]+"` → `/customers/{id}` +
+| Field | Read as | Example
+| `urlPathTemplate` | the template it already is - it uses the same `{name}` placeholders an OpenAPI path does | `"/v1/users/{username}"` → `/v1/users/{username}`
+| `url` / `urlPath` | first, the declared template of the stub's own `method` it is an instance of, segment by segment, with a declared placeholder accepting any value. When it is an instance of several, the one routing would pick wins: at the first segment where two templates differ, a literal segment beats a placeholder. Where the stub's `metadata` names an `operation` - as the stubs the API-Only TranscriberJ's WireMock emitter generates do - the declared operation with that `operationId` is preferred. A `url`'s query string is ignored for this. +
+Only when no declared template matches is every segment that consists of digits only rewritten into a `{id}` placeholder | `"/v1/users/aaaa"` → `/v1/users/{username}` +
+`"/users/me"` → a declared `/users/me`, not `/users/{id}` +
+`"/customers/700336"`, declared nowhere → `/customers/{id}`
+| `urlPattern` / `urlPathPattern` | every segment that contains a regular-expression metacharacter, *or* is purely numeric even without one, is rewritten into a `{id}` placeholder - a `urlPathPattern` value is free to be a plain literal instead of an actual regular expression, and gets the same numeric-id treatment | `"/customers/[0-9]+"` → `/customers/{id}` +
 `"/customers/123"` → `/customers/{id}`
-| `url` / `urlPath` | it consists of digits only | `"/customers/700336"` → `/customers/{id}`
 |===
 
-A segment that doesn't match either shape - e.g. `orders`, `post`, or a mixed alphanumeric identifier like `ord-2026-001` - is left exactly as written.
+The declared templates are compared with the base path - see `basePath` - taken off the stub's path, so a stub that carries it still matches. A segment that neither a declared template nor either heuristic accounts for - e.g. `orders`, `post`, or a mixed alphanumeric identifier like `ord-2026-001` in a path that matches no declared template - is left exactly as written.
 
 [IMPORTANT]
 ====
-Both heuristics are deliberately imprecise, not a certainty, and this is a known, accepted trade-off rather than an oversight:
+The two heuristics are deliberately imprecise, not a certainty, and this is a known, accepted trade-off rather than an oversight:
 
 * A WireMock regular expression can express far more than "any numeric id here", and this scanner doesn't attempt to parse it as one - it only recognises the *shape* of a segment (does it contain a regex metacharacter at all), not what the expression actually matches.
-* A **literal, purely numeric path segment that genuinely is not a path variable** - e.g. a year in a URL such as `/reports/2026` - is indistinguishable, by shape alone, from an example id standing in for one, and is rewritten into `/reports/{id}` all the same. If that endpoint's real declared/implemented path is truly the literal `/reports/2026`, this stub's evidence will now fail to match *that* - the same "orphaned, unmatched path" failure mode this rewriting exists to fix, just triggered in the opposite direction.
+* A **literal, purely numeric path segment that genuinely is not a path variable** - e.g. a year in a URL such as `/reports/2026` - is indistinguishable, by shape alone, from an example id standing in for one. When `/reports/2026` is declared, a `url`/`urlPath` stub matches it before the heuristic applies. When it is only implemented, not declared, the stub's path is rewritten into `/reports/{id}` all the same, and fails to match the literal `/reports/2026` - the same "orphaned, unmatched path" failure mode this rewriting exists to fix, just triggered in the opposite direction. A `urlPattern`/`urlPathPattern` stub is always rewritten this way.
 
-There is currently no way to opt a specific stub file or segment out of either rewrite - a genuinely literal numeric path segment has no way to signal that it means exactly what it says. In practice, a stub matching a truly fixed, non-variable numeric path is rare enough - and the alternative of leaving every numeric-id stub permanently unmatched is common enough - that this plugin accepts the trade-off by default.
+Matching a literal path against the declared templates has one imprecision of its own: a literal value that happens to equal a declared literal segment - e.g. an example username `me` - is recorded as that declared path, as a real request with that path would be routed. A stub's `metadata.operation`, where present, settles it.
+
+There is currently no way to opt a specific stub file or segment out of the heuristics. In practice, a stub matching a truly fixed, non-variable numeric path that is not declared is rare enough - and the alternative of leaving every numeric-id stub permanently unmatched is common enough - that this plugin accepts the trade-off by default.
 ====
 
 [source,groovy]
@@ -165,7 +171,7 @@ A stub's evidence staying permanently unmerged is visible directly in `contractH
 | Cause | What it looks like
 
 | A regex/id-segment mismatch (see above)
-| The stub's path, after canonicalisation, still doesn't structurally match its endpoint's declared/implemented path - a different segment count, a different literal segment, or the false-positive/false-negative case the heuristics above knowingly accept.
+| The stub's path, after canonicalisation, still doesn't structurally match its endpoint's declared/implemented path - a different segment count, a different literal segment, a `method` other than the declared one, or the false-positive/false-negative case the heuristics above knowingly accept.
 
 | The endpoint is a genuine Shadow API
 | The `@RestController` method the stub is meant to exercise really exists, but was never added to the OpenAPI documentation. `scanMocks` only ever compares stub evidence against what *this* plugin (and any sibling detector sharing the same `contractHistoryFile`) has found declared or implemented - an undeclared endpoint has no `declaredAt` evidence to merge with, no matter how precisely the stub's path is written. Run the companion link:../shadow-api-detector/README.adoc[Shadow API Detector] against the same `controllerDirs` to check directly: if it reports the endpoint, the stub is correct and the gap is in your OpenAPI documentation, not your stub suite.

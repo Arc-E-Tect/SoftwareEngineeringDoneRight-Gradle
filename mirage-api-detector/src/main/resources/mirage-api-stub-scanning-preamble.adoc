@@ -9,23 +9,25 @@ correctly.
 === What Gets Scanned
 
 * Every `*.json` file under `stubDirs` is read structurally for its first `method` field and its first
-  `url`, `urlPath`, `urlPattern`, or `urlPathPattern` field - deliberately without a JSON parser or the
-  WireMock library itself on this plugin's classpath.
+  `url`, `urlPath`, `urlPattern`, `urlPathPattern`, or `urlPathTemplate` field - deliberately without a
+  JSON parser or the WireMock library itself on this plugin's classpath.
 * Every WireMock Java DSL `stubFor(...)` call found under `stubSourceDirs` is recognised the same way,
   by simple method-call shape rather than by executing - or even compiling - the code.
 
 === What It Can and Cannot Match
 
-A stub mapping has no concept of a named path variable the way an OpenAPI document or a
-`@RequestMapping` does - only a regular expression or a literal example value for the path it matches.
-To compare a stub against a declared/implemented endpoint's `{customerId}`-style path variable at all,
-every path segment that *looks like* it stands in for one - a regular-expression id class, or a purely
-numeric literal value - is rewritten into a generic `{id}` placeholder before comparison.
+A `urlPathTemplate` stub already names its path variables, the way an OpenAPI document does, and is
+read as it stands. A literal `url` or `urlPath` is recorded as the declared template of the same method
+it is an instance of - `/v1/users/aaaa` as a declared `/v1/users/{username}` - with a declared literal
+segment winning over a placeholder, as routing does, and the operation a stub's `metadata.operation`
+names preferred. Otherwise - a regular expression, or a literal path that matches no declared template -
+every path segment that *looks like* it stands in for a path variable - a regular-expression id class,
+or a purely numeric literal value - is rewritten into a generic `{id}` placeholder before comparison.
 
 This is a deliberately imprecise heuristic, not a certainty. A genuinely literal, non-variable numeric
-path segment - a year in a URL, for example - is indistinguishable from an example id by shape alone,
-and is rewritten the same way; the reverse is also true, since a WireMock regular expression can
-express far more than "any id here" and this scanner never attempts to parse one as such. A stub whose
+path segment - a year in a URL, for example - that is not declared is indistinguishable from an example
+id by shape alone, and is rewritten the same way; the reverse is also true, since a WireMock regular
+expression can express far more than "any id here" and this scanner never attempts to parse one as such. A stub whose
 evidence never appears to merge with its declared/implemented endpoint's record is not necessarily a
 scanner error - it may equally be a bug in the stub itself (a mistyped path, a doubled base path, a
 verb the endpoint doesn't actually accept), a stub written against an earlier shape of the API that has
