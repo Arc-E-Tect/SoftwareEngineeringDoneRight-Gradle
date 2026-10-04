@@ -6,7 +6,9 @@
 // since that's where semantic-release's `npm ci` runs. semantic-release itself is always invoked
 // with process.cwd() set to that module's directory, so resolving from there - rather than from
 // this file's location - is what actually finds it.
-const commitAnalyzer = require(require.resolve('@semantic-release/commit-analyzer', { paths: [process.cwd()] }));
+// The commit analyzer, and the rule that a breaking change before 1.0.0 releases a minor
+// version: see zero-major-analyzer.js.
+const { commitAnalyzer, releaseType } = require('./zero-major-analyzer');
 // Only the commits that change this module count for its version: see component-commits.js.
 const { forComponent } = require('./component-commits');
 
@@ -25,6 +27,6 @@ module.exports = {
     if (!context.lastRelease || !context.lastRelease.version || context.lastRelease.version === SEED_VERSION) {
       return 'patch';
     }
-    return commitAnalyzer.analyzeCommits(pluginConfig, forComponent(context));
+    return releaseType(await commitAnalyzer().analyzeCommits(pluginConfig, forComponent(context)), context.lastRelease.version);
   }
 };
