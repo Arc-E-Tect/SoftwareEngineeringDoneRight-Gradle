@@ -49,6 +49,8 @@ def commonConfig = { GenerateFeatureDocsTask task ->
     task.getForceRewrite().set(gherkinToAsciidoc.getForceRewrite())
     task.getTrackProgressHistory().set(gherkinToAsciidoc.getTrackProgressHistory())
     task.getUpdateProgressHistory().set(gherkinToAsciidoc.getUpdateProgressHistory())
+    task.getConsolidatedIndex().set(gherkinToAsciidoc.getConsolidatedIndex())
+    task.getFailOnDuplicateScenarios().set(gherkinToAsciidoc.getFailOnDuplicateScenarios())
 }
 
 tasks.register('generateGroupedNoTemplate', GenerateFeatureDocsTask) {
