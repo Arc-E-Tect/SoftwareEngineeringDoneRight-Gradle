@@ -7,8 +7,9 @@ jacoco-exclusion-report = { id = "com.arc-e-tect.jacoco-exclusion-report", versi
 [versions]
 
 jacoco-exclusion-report = "0.4.8"
-lombok = "1.18.46"
+lombok = "1.18.48"
 
 [libraries]
 
 lombok = { module = "org.projectlombok:lombok", version.ref = "lombok" }
+
