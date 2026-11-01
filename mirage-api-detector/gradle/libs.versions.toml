@@ -9,14 +9,14 @@ owasp-dependency-check      = { id = "org.owasp.dependencycheck",     version.re
 
 owasp-dependency-check = "13.0.0"
 
-api-detector-core = "1.8.0"
-dsl-updater-core = "1.0.0"
+api-detector-core = "1.8.1"
+dsl-updater-core = "1.0.2"
 javaparser      = "3.28.2"
 swagger-parser  = "2.1.46"
 junit-jupiter = "6.1.3"
 junit-platform = "6.1.3"
 assertj         = "3.27.7"
-plugin-publish  = "2.1.1"
+plugin-publish = "2.2.1"
 
 [libraries]
 
