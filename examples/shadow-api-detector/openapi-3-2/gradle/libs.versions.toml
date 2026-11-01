@@ -6,8 +6,8 @@ shadow-api-detector = { id = "com.arc-e-tect.shadow-api-detector", version.ref =
 
 [versions]
 
-shadow-api-detector = "3.2.0"
-spring-web = "7.0.9"
+shadow-api-detector = "3.7.1"
+spring-web = "7.0.10"
 
 [libraries]
 
