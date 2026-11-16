@@ -2,9 +2,9 @@
     "java.compile.nullAnalysis.mode": "automatic",
     "java.configuration.updateBuildConfiguration": "automatic",
     "java.import.exclusions": [
-        "**/worktrees/**",
         "**/.gradle/**",
-        "**/build/**"
+        "**/build/**",
+        "**/node_modules/**"
     ],
     "java.debug.settings.onBuildFailureProceed": true
 }

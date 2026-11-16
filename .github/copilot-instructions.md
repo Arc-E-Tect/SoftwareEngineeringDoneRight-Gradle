@@ -11,66 +11,55 @@ The project is hosted on GitHub and several workflows are defined in the .github
 
 ## Folder Structure
 
+## Security: zero credentials policy
 
-## Security - Zero Credentials Policy
-No passwords, secrets, or any other sensitive information is stored in the repository.
+No passwords, secrets, private keys, tokens, credentials, or sensitive production data may be committed to version control, including test credentials.
+`ZERO_CREDENTIALS_POLICY.md` is the policy, and `SECURITY.md` lists the controls that enforce it.
 
-**Zero-tolerance policy**: No credentials of any kind may be committed to version control, including test credentials.
+- Use environment variables or a deployment secret manager for all secrets.
+- Use placeholders such as `${API_TOKEN}` or `<API_TOKEN_DESCRIPTION>` in documentation and configuration templates.
+- Never assign secret-like configuration values literal defaults, including in tests.
+- Keep `.env` files local and ignored. Only sanitized `.env.example`, `.env.sample`, or `.env.template` files may be committed.
+- Never disclose a credential in source, documentation, logs, issues, pull requests, or generated artifacts.
+- Store CI/CD secrets in GitHub Actions secrets. The credentials for the Gradle Plugin Portal and Maven Central, and the signing keys, belong in the `release` environment.
 
-### Enforcement
-- Pre-commit hook in `.githooks/pre-commit` automatically blocks commits containing credentials
-- Hook scans for patterns: password, secret, api_key, token, private_key, etc.
-- No exceptions for test configuration files
-- See `ZERO_CREDENTIALS_POLICY.md` for complete policy details
+When a new secret is required:
 
-### Allowed Patterns (Documentation Only)
-- **Placeholders**: `password: <your-password>` or `password: <DESCRIPTION>`
-- **Environment variables**: `password: ${PASSWORD}`
-- **Comments**: `password: # Set via environment variable`
-- **Git hooks**: `.githooks/*` files (may contain pattern examples)
-- **Copilot instructions**: `*copilot-instructions.md` (this file)
-- **Security documentation**: Files matching `*SECURITY*.md`, `*POLICY*.md`, `*SECRET*.md`, `*.adoc`
-- **Template files**: `*.example`, `*.sample`, `*.template`
+1. Document its name and purpose in a sanitized example file.
+2. Read it through an environment variable or a secret-manager integration.
+3. Add the relevant local file pattern to `.gitignore`.
+4. Verify the staged-content checks in `.githooks/pre-commit` reject a hardcoded value.
+5. Update `SECURITY.md`, `ZERO_CREDENTIALS_POLICY.md` or other operational documentation when the handling policy changes.
 
-### Configuration Files
-All configuration files must use environment variable references.
+## Git hooks
 
-- Correct: use an environment variable placeholder such as `${POSTGRES_PASSWORD}`.
-- Wrong: hardcode a value such as `EXAMPLE_PASSWORD`.
+Install the repository hooks before contributing:
 
-### Test Credentials
-Test credentials are passed through from environment variables with **NO defaults**:
-```gradle
-tasks.withType(Test).configureEach {
-    // NO defaults - must be set via .env file or environment
-    environment 'POSTGRES_PASSWORD', System.getenv('POSTGRES_PASSWORD')
-}
+```bash
+./scripts/setup-hooks.sh
 ```
 
-This approach ensures:
-- Configuration files remain credential-free (no deployment risk)
-- Build scripts have NO credential defaults (enforces explicit management)
-- Local development uses `.env` file (in `.gitignore`, never committed)
-- CI/CD sets credentials via secure secrets management
-- No risk of weak test credentials leaking or being reused
+The hooks provide local defense in depth by rejecting keystores and likely hardcoded secrets, linting modified GitHub Actions workflows, rejecting npm manifests with a UTF-8 byte order mark, and preventing pushes to branches with closed or merged pull requests. They do not replace server-side controls and must not be bypassed except for a documented, reviewed reason. `.githooks/README.md` describes each check.
 
-### Production Secrets
-- Store in GitHub Secrets for CI/CD workflows
-- Use Azure Key Vault, AWS Secrets Manager, or similar for deployed applications
-- Inject via environment variables at runtime
-- Never commit `.env` files (already in `.gitignore`)
+## GitHub Actions
 
-### Required Actions When Adding Secrets
-1. Add placeholder to documentation: `SECRET_NAME: <description>` in `*.example` files
-2. Reference in configuration: `SECRET_NAME: ${SECRET_NAME}`
-3. For tests: Pass through from environment in `build.gradle` (NO defaults)
-4. Document in `.env.example` file with example values
-5. For production: Add to CI/CD secrets or secret management system
-6. Update `.gitignore` to exclude `.env` files if not already present
-7. Verify pre-commit hook detects hardcoded values before committing
+- Keep the default `GITHUB_TOKEN` read-only. Every workflow declares `permissions: contents: read` at the top, and a job raises only what its own use of `GITHUB_TOKEN` needs. A job that authenticates with a personal access token gets no write grant.
+- All external actions in `uses:` must be pinned to a full 40-character commit SHA, which the repository enforces. Include a version comment beside the SHA.
+- Use only GitHub-owned or verified-creator actions unless the repository's allowed-actions policy is deliberately extended and documented.
+- Every job that runs on a runner declares `timeout-minutes`. Every workflow that is not only reusable declares a `concurrency` group: builds cancel superseded runs, releases queue.
+- Every `actions/checkout` sets `persist-credentials: false`, unless a later step in the same job pushes with git; such a checkout carries a comment that says so.
+- A job that uses the Gradle Plugin Portal, Maven Central or signing secrets declares `environment: release`.
+- Run `actionlint` after changing a workflow, and fix all reported errors before committing.
+- Do not use `pull_request_target` with untrusted pull-request code. Do not expose secrets to pull-request workflows from forks.
+- Use immutable action, container, and dependency versions. Do not use mutable `latest` tags.
 
-These must be stored locally on the system generated as part of a GitHub workflow run, or in GitHub Secrets.
-All secrets must be used through variable names which can be mapped to environment variables.
+## Commits and pull requests
+
+- Commits follow Conventional Commits and are signed; `.github/git-commit-instructions.md` gives the types and scopes.
+- When a commit contains code that Claude changed, its message ends with the trailer `Co-authored-by: Claude <noreply@anthropic.com>`.
+- Work on a branch and merge to `main` through a pull request, which is squash-merged. Do not bypass the repository ruleset.
+- Create Git worktrees in `../worktrees-<repo name>/`, never inside the checkout.
+- Before pushing an existing branch, check that its pull request is still open. Do not push additional commits to a merged or closed pull-request branch.
 
 ## Environments
 
@@ -86,17 +75,6 @@ All secrets must be used through variable names which can be mapped to environme
 - Ensure Cucumber suites (for example, `testSystem`, `testE2E`, but there may be more) keep producing HTML + JSON outputs under `build/reports/cucumber/<suite>/` using the configured `cucumber.plugin` system property.
 - Honor the existing logging setup (FAILED/SKIPPED with full exceptions and standard streams shown).
 - Never disclose secrets, when a secret or password is required, assume it is defined as an environment variable.
-
-## GitHub Actions Workflows
-- After modifying any workflow file in `.github/workflows/`, always run `actionlint` to validate the workflow syntax and dependencies
-- All external GitHub Actions in workflow `uses:` entries must be pinned to a full commit SHA, not just a tag or major version, for supply-chain security. Keep the human-readable version comment beside the SHA when practical.
-- Install actionlint: `brew install actionlint` (macOS) or download from https://github.com/rhysd/actionlint
-- Run validation: `actionlint .github/workflows/*.yml`
-- Fix any errors reported by actionlint before committing
-- Common issues to check:
-  - Job dependencies (`needs:`) must reference actual job names
-  - Outputs must be accessible through the correct `needs.<job-name>.outputs.<output-name>` path
-  - Required secrets and inputs must be defined in reusable workflows
 
 ## Dependencies and versions
 - For every Gradle project in this repository, always use a Gradle Version Catalog (`gradle/libs.versions.toml`) together with the `de.fayard.refreshVersions` plugin for dependency and plugin version management, unless the user explicitly instructs otherwise.
@@ -121,7 +99,6 @@ All secrets must be used through variable names which can be mapped to environme
 - Examples and plugin code changes may never be in the same PR. Example projects that depend on newly released plugin versions must be kept in a follow-up PR after the plugin is published, so CI reflects the release state rather than unreleased code.
 - If any Detector plugin updates its dependency on `api-detector-core`, the other Detector plugins must be updated in the same change set as well; otherwise the API-Only-Suite plugin will fail to build because sibling plugins must agree on the shared core dependency version.
 - When a change is only a dependency or version bump, the commit type must always be `maintenance` instead of `chore`, and the PR title must also use `maintenance` rather than `chore`.
-- Commit messages and PR descriptions must omit generated `Co-authored-by:` trailer lines. Keep commits and PR text authored by the contributor without those automatic attribution lines.
 - Prefer good examples over prescriptive snippets: show what to avoid (e.g., inline coordinates, manual Test tasks) and what to adopt (catalog aliases, test suites DSL).
 - Treat the root `README.adoc` as the top-level documentation index.
 - The root `README.adoc` must include both plugin READMEs via `include::jacoco-exclusion-report/README.adoc[]` and `include::gherkin-to-asciidoc/README.adoc[]` so the repository docs stay centralized.
@@ -136,45 +113,6 @@ When pulling images from Docker Hub, always prefer the latest version available 
 
 For example:
 Prefer `wiremock/wiremock:3.13.2-2-alpine` over `wiremock/wiremock:3.13.2-2` and prefer `wiremock/wiremock:3.13.2-2` over `wiremock/wiremock:latest`.
-
-### Workflow Validation
-
-**CRITICAL: Always run actionlint after modifying GitHub workflow files.**
-
-When creating or modifying any workflow file in `.github/workflows/`:
-
-1. Make your changes to the workflow YAML file
-2. Run `actionlint <workflow-file>.yml` to validate syntax and catch errors
-3. Fix any errors reported by actionlint before committing
-4. Only commit and push once actionlint passes successfully
-
-This prevents broken workflows from being pushed to GitHub and causing CI/CD failures.
-
-Example:
-```bash
-# After editing a workflow
-actionlint .github/workflows/release_book.yml
-
-# If no errors, proceed with commit
-git add .github/workflows/release_book.yml
-git commit -m "feat: update workflow"
-```
-
-ActionLint installation:
-- macOS: `brew install actionlint`
-- Linux: Download from https://github.com/rhysd/actionlint/releases
-- Validates YAML syntax, GitHub Actions syntax, and runs shellcheck on embedded scripts
-
-### Git Hooks
-
-The project includes pre-commit hooks that validate workflow files before committing.
-
-**Setup:**
-```bash
-./scripts/setup-hooks.sh
-```
-
-See [.githooks/README.md](/.githooks/README.md) for details.
 
 ## Branch Push Policy
 
