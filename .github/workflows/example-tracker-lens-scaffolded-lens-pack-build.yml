@@ -12,10 +12,18 @@ on:
 # bootstrapTrackerLensProject fresh, against the real published plugin, and asserts the *shape* of
 # what came out - both trackers registered, the dashboard renders, the scaffolded lens appears in
 # the switcher - rather than diffing against a golden file.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
 jobs:
   Build-Example:
     name: Build Example
     runs-on: ubuntu-latest
+    timeout-minutes: 60
 
     steps:
       - name: Checkout

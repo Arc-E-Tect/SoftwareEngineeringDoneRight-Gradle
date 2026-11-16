@@ -9,10 +9,18 @@ on:
       - 'examples/tracker-lens/dashboard-extra-charts/**/libs.versions.toml'
       - '.github/workflows/example-tracker-lens-dashboard-extra-charts-build.yml'
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
 jobs:
   Build-Example:
     name: Build Example
     runs-on: ubuntu-latest
+    timeout-minutes: 60
 
     steps:
       - name: Checkout

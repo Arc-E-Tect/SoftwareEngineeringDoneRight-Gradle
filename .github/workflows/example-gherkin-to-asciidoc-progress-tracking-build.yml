@@ -9,10 +9,18 @@ on:
       - 'examples/gherkin-to-asciidoc/progress-tracking/**/libs.versions.toml'
       - '.github/workflows/example-gherkin-to-asciidoc-progress-tracking-build.yml'
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
 jobs:
   Build-Example:
     name: Build Example
     runs-on: ubuntu-latest
+    timeout-minutes: 60
 
     steps:
       - name: Checkout

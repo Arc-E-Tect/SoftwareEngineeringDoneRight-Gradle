@@ -23,6 +23,13 @@ on:
     branches:
       - main
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
 jobs:
   Calculate-Version:
     # Skip entirely when the triggering sibling release workflow itself failed or was skipped -
@@ -57,11 +64,10 @@ jobs:
     name: Build API-Only Suite Plugin
     needs: Calculate-Version
     permissions:
-      contents: write
-      issues: write
-      pull-requests: write
+      contents: read
 
     runs-on: ubuntu-latest
+    timeout-minutes: 60
 
     env:
       GRADLE_PROPERTIES_FILE: ./api-only-suite/gradle.properties
@@ -138,6 +144,7 @@ jobs:
     # "there is nothing new to release", not a string-emptiness check on next_version.
     if: ${{ needs.Calculate-Version.outputs.next_version_empty == 'false' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 60
 
     steps:
       - name: Wait for any sibling detector plugin release still in flight
@@ -213,7 +220,9 @@ jobs:
     # caller always has something to compile with - so next_version_empty is what actually signals
     # "there is nothing new to release", not a string-emptiness check on next_version.
     if: ${{ needs.Calculate-Version.outputs.next_version_empty == 'false' }}
+    environment: release
     runs-on: ubuntu-latest
+    timeout-minutes: 60
 
     env:
       GRADLE_PROPERTIES_FILE: ./api-only-suite/gradle.properties
@@ -224,6 +233,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
+          persist-credentials: false
           fetch-depth: 0
           ref: ${{ github.ref_name }}
 
@@ -301,6 +311,7 @@ jobs:
     needs: [Build, Publish, Release-Plugin, Wait-For-Sibling-Releases, Determine-Release-Type]
     if: always()
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     steps:
       - name: Output release completion
         run: |

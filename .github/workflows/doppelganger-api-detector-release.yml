@@ -10,6 +10,13 @@ on:
       - 'doppelganger-api-detector/docs/**'
   workflow_dispatch: {}
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
 jobs:
   Calculate-Version:
     uses: ./.github/workflows/semantic-version-calculate.yml
@@ -31,11 +38,10 @@ jobs:
     name: Build Doppelganger API Detector Plugin
     needs: Calculate-Version
     permissions:
-      contents: write
-      issues: write
-      pull-requests: write
+      contents: read
 
     runs-on: ubuntu-latest
+    timeout-minutes: 60
 
     env:
       GRADLE_PROPERTIES_FILE: ./doppelganger-api-detector/gradle.properties
@@ -103,7 +109,9 @@ jobs:
     # caller always has something to compile with - so next_version_empty is what actually signals
     # "there is nothing new to release", not a string-emptiness check on next_version.
     if: ${{ needs.Calculate-Version.outputs.next_version_empty == 'false' }}
+    environment: release
     runs-on: ubuntu-latest
+    timeout-minutes: 60
 
     env:
       GRADLE_PROPERTIES_FILE: ./doppelganger-api-detector/gradle.properties
@@ -114,6 +122,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
+          persist-credentials: false
           fetch-depth: 0
           ref: ${{ github.ref_name }}
 
@@ -154,6 +163,7 @@ jobs:
     needs: [Build, Publish, Release-Plugin, Determine-Release-Type]
     if: always()
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     steps:
       - name: Output release completion
         run: |
