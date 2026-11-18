@@ -7,7 +7,7 @@ jacoco-exclusion-report = { id = "com.arc-e-tect.jacoco-exclusion-report", versi
 [versions]
 
 jacoco-exclusion-report = "5.4.0"
-sedr-library = "1.0.1"
+sedr-library = "1.0.2"
 
 [libraries]
 
