@@ -7,7 +7,7 @@ tracker-lens = { id = "com.arc-e-tect.tracker-lens", version.ref = "tracker-lens
 [versions]
 
 tracker-lens = "2.6.0"
-geo-tracker-lens-pack = "1.0.2"
+geo-tracker-lens-pack = "1.0.3"
 
 [libraries]
 
