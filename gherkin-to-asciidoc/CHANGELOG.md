@@ -1,3 +1,11 @@
+## [6.8.2](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/gherkin-to-asciidoc-v6.8.1...gherkin-to-asciidoc-v6.8.2) (2026-11-19)
+
+
+### 🔧 Misc
+
+* dependency updates for Gradle plugin repository ([#295](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/295)) ([a0d591b](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/a0d591bf2135d4efe384df75330e4fa1fb17289b)), closes [#295](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/295)
+* dependency updates for Gradle plugin repository ([#297](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/297)) ([0365a70](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/0365a70cef3cb68633d14d326e2071aae849d204)), closes [#297](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/297)
+
 ## [6.8.1](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/gherkin-to-asciidoc-v6.8.0...gherkin-to-asciidoc-v6.8.1) (2026-09-11)
 
 
