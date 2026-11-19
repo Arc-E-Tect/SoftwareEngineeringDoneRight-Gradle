@@ -18,8 +18,8 @@ junit-jupiter-iff = "6.1.3"
 junit-platform-iff = "6.1.3"
 assertj-core-iff = "3.27.7"
 spring-context-iff = "6.2.8"
-sedr-library-iff = "1.0.1"
-dsl-updater-core-iff = "1.0.2"
+sedr-library-iff = "1.0.2"
+dsl-updater-core-iff = "2.0.0"
 
 [libraries]
 
