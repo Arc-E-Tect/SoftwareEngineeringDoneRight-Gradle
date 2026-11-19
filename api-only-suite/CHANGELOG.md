@@ -1,3 +1,10 @@
+## [3.11.3](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/api-only-suite-v3.11.2...api-only-suite-v3.11.3) (2026-11-19)
+
+
+### 🔧 Misc
+
+* dependency updates for Gradle plugin repository ([#297](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/297)) ([0365a70](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/0365a70cef3cb68633d14d326e2071aae849d204)), closes [#297](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/297)
+
 ## [3.11.2](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/api-only-suite-v3.11.1...api-only-suite-v3.11.2) (2026-11-01)
 
 
