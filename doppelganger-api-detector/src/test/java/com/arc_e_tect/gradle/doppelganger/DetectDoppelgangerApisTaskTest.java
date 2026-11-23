@@ -384,6 +384,58 @@ class DetectDoppelgangerApisTaskTest {
     }
 
     @Test
+    @DisplayName("finds the endpoints a controller inherits from an interface declared in another file, as a generated API interface is")
+    void findsEndpointsInheritedFromAnInterfaceInAnotherFile() throws Exception {
+        File api = new File(controllerDir, "api");
+        Files.createDirectories(api.toPath());
+        Files.writeString(api.toPath().resolve("OrdersApi.java"), """
+                package com.example.api;
+
+                import org.springframework.web.bind.annotation.RequestMapping;
+                import org.springframework.web.bind.annotation.RequestMethod;
+
+                @RequestMapping("${openapi.orders.base-path:}")
+                public interface OrdersApi {
+
+                    String PATH_LIST_ORDERS = "/orders";
+                    String PATH_GET_ORDER = "/orders/{id}";
+
+                    @RequestMapping(method = RequestMethod.GET, value = OrdersApi.PATH_LIST_ORDERS)
+                    String listOrders();
+
+                    @RequestMapping(method = RequestMethod.GET, value = OrdersApi.PATH_GET_ORDER)
+                    String getOrder();
+                }
+                """);
+        Files.writeString(controllerDir.toPath().resolve("OrderController.java"), """
+                package com.example;
+
+                import com.example.api.OrdersApi;
+                import org.springframework.web.bind.annotation.RestController;
+
+                @RestController
+                public class OrderController implements OrdersApi {
+
+                    @Override
+                    public String listOrders() { return "[]"; }
+
+                    @Override
+                    public String getOrder() { return "{}"; }
+                }
+                """);
+        DetectDoppelgangerApisTask task = configuredTask(openApiFixture("both-endpoints.yaml"), false);
+
+        task.generate();
+
+        String content = Files.readString(new File(reportDir, "doppelganger-apis.adoc").toPath());
+        assertThat(content)
+                .contains("Scanned 2 endpoint(s)")
+                .contains("1 of them is not verified")
+                .contains("listOrders()")
+                .doesNotContain("getOrder()");
+    }
+
+    @Test
     @DisplayName("writes the configured system under test version into the report")
     void writesSystemUnderTestVersionIntoReport() throws Exception {
         DetectDoppelgangerApisTask task = configuredTask(openApiFixture("both-endpoints.yaml"), false);
