@@ -1,3 +1,15 @@
+# [3.8.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/shadow-api-detector-v3.7.2...shadow-api-detector-v3.8.0) (2026-11-23)
+
+
+### ✨ New and updated features
+
+* **api-detectors:** find endpoints controllers inherit from generated interfaces ([#301](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/301)) ([984c4f1](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/984c4f117152796391e46d9c35288db5e42441d9)), closes [#301](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/301)
+
+
+### 🔧 Misc
+
+* dependency updates for Gradle plugin repository ([#297](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/297)) ([0365a70](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/0365a70cef3cb68633d14d326e2071aae849d204)), closes [#297](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/297)
+
 ## [3.7.2](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/shadow-api-detector-v3.7.1...shadow-api-detector-v3.7.2) (2026-11-01)
 
 
