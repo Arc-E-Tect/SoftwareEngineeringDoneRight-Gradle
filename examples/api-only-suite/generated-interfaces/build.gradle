@@ -1,0 +1,82 @@
+plugins {
+    id 'java'
+    alias(libs.plugins.spring.boot)
+    alias(libs.plugins.spring.dependency.management)
+    alias(libs.plugins.openapi.generator)
+    alias(libs.plugins.api.only.suite)
+}
+
+group = 'com.arc-e-tect.example'
+version = '0.0.1'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation libs.spring.boot.starter.web
+    implementation libs.spring.boot.starter.validation
+
+    testImplementation libs.spring.boot.starter.test
+    testImplementation libs.rest.assured
+    testImplementation libs.swagger.request.validator.restassured
+}
+
+test {
+    useJUnitPlatform()
+}
+
+def contract = layout.projectDirectory.file('src/main/resources/openapi/openapi.yaml')
+
+// The controller interface and its response object, generated from the contract on every build.
+// The interface carries every mapping annotation, so OrderController - which implements it -
+// carries none of its own.
+def generateOrdersApi = tasks.register('generateOrdersApi', org.openapitools.generator.gradle.plugin.tasks.GenerateTask) {
+    group = 'openapi tools'
+    description = 'Generates the controller interface and its response object from the contract.'
+    generatorName = 'spring'
+    inputSpec = contract.asFile.absolutePath
+    outputDir = layout.buildDirectory.dir('generated/openapi')
+    apiPackage = 'com.arc_e_tect.example.generatedinterfaces.api'
+    modelPackage = 'com.arc_e_tect.example.generatedinterfaces.api'
+    globalProperties = [apis: '', models: '']
+    configOptions = [
+            interfaceOnly           : 'true',
+            useTags                 : 'true',
+            skipDefaultInterface    : 'true',
+            useBeanValidation       : 'true',
+            openApiNullable         : 'false',
+            documentationProvider   : 'none',
+            annotationLibrary       : 'none',
+            useSpringBoot4          : 'true',
+            useJackson3             : 'true',
+            hideGenerationTimestamp : 'true',
+    ]
+}
+
+// Added to the main source set, so it is compiled - and, since none of the detectors is given
+// controllerDirs, scanned by all three, which run after generateOrdersApi because of it.
+sourceSets.main.java.srcDir(generateOrdersApi.flatMap { it.outputDir.dir('src/main/java') })
+
+apiOnlySuite {
+    rootDocument = contract.asFile
+    // Any gap fails its detector's task: this example has none, and proves it on every build.
+    failOnDetection = true
+}
+
+doppelgangerApiDetector {
+    testDirs.from('src/test/java')
+    useOpenApiRequestValidator = true
+}
+
+// The three detectors' own tasks, rather than detectAllApiGaps, which reports every gap but never
+// fails the build: with failOnDetection, a gap fails check.
+tasks.named('check') {
+    dependsOn 'detectShadowApis', 'detectMirageApis', 'detectDoppelgangerApis'
+}

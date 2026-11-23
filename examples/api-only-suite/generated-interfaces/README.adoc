@@ -1,0 +1,64 @@
+= API-Only Suite — Generated Interfaces Example
+:toc: left
+
+[NOTE]
+.About this documentation
+====
+This documentation was partially authored by Claude, an AI assistant.
+Documentation is part of the product, and is held to the same standard as the code it describes.
+If something here seems wrong, please file a bug report: link:https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/new[open an issue in this repository ↗].
+====
+
+== Description
+
+This example applies the Arc-E-Tect API-Only Suite plugin to a Spring Boot service whose controller implements an interface generated from its OpenAPI contract.
+OpenAPI Generator's Spring generator, with `interfaceOnly`, writes `OrdersApi` and `OrderV1` from `src/main/resources/openapi/openapi.yaml` into `build/generated/openapi` on every build, and adds them to the main source set:
+
+[source,java]
+----
+// Generated, under build/generated/openapi/...
+public interface OrdersApi {
+
+    String PATH_GET_ORDER = "/v1/orders/{id}";
+
+    @RequestMapping(method = RequestMethod.GET, value = OrdersApi.PATH_GET_ORDER, produces = { "application/json" })
+    ResponseEntity<OrderV1> getOrder(@PathVariable("id") Long id);
+    // ... and listOrders
+}
+
+// Written by hand, under src/main/java/...
+@RestController
+public class OrderController implements OrdersApi {
+
+    @Override
+    public ResponseEntity<OrderV1> getOrder(Long id) { ... }
+}
+----
+
+`OrderController` carries no mapping annotation of its own: every path, verb and parameter is inherited from `OrdersApi`, declared in another file.
+Both operations are verified by `OrderControllerValidatorTest`, a REST Assured test with the Atlassian OpenAPI request validator, so the service has no gap at all.
+
+== Intent
+
+This example shows:
+
+* That all three detectors find the endpoints a controller inherits from an interface in another file, as Spring MVC serves them.
+* That with no `controllerDirs` configured, the detectors scan every Java directory of the main source set, the generated one included, and run after `generateOrdersApi` because the source set says so.
+* How to make a gap fail `check`: `failOnDetection = true`, with `check` depending on `detectShadowApis`, `detectMirageApis` and `detectDoppelgangerApis` (`detectAllApiGaps` reports every gap but never fails the build).
+
+== Running
+
+[source,console]
+----
+./gradlew check
+----
+
+== Expected behaviour
+
+`check` passes, and the three reports under `build/reports/` say:
+
+* Shadow API Detector: 2 endpoints scanned, none undescribed;
+* Mirage API Detector: 2 endpoints described, none unimplemented;
+* Doppelganger API Detector: 2 endpoints declared and implemented, none unverified.
+
+With detectors older than this support, the same build fails: Mirage reports both operations as not implemented, and Shadow and Doppelganger find no endpoint at all.

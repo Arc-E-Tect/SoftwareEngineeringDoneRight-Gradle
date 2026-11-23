@@ -82,6 +82,14 @@ include::doppelganger-api-detector/property-helper-method/README.adoc[leveloffse
 
 include::doppelganger-api-detector/value-annotation/README.adoc[leveloffset=+2]
 
+== API-Only Suite Examples
+
+include::api-only-suite/with-all-three-gaps/README.adoc[leveloffset=+2]
+
+include::api-only-suite/microservices/README.adoc[leveloffset=+2]
+
+include::api-only-suite/generated-interfaces/README.adoc[leveloffset=+2]
+
 == Tracker Lens Examples
 
 include::tracker-lens/plain/README.adoc[leveloffset=+2]
