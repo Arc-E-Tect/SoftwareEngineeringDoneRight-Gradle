@@ -1,3 +1,10 @@
+# [3.12.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/api-only-suite-v3.11.3...api-only-suite-v3.12.0) (2026-11-23)
+
+
+### ✨ New and updated features
+
+* **api-detectors:** find endpoints controllers inherit from generated interfaces ([#301](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/301)) ([984c4f1](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/984c4f117152796391e46d9c35288db5e42441d9)), closes [#301](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/301)
+
 ## [3.11.3](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/api-only-suite-v3.11.2...api-only-suite-v3.11.3) (2026-11-19)
 
 
