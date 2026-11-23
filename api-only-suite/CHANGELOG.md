@@ -1,3 +1,10 @@
+## [3.12.1](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/api-only-suite-v3.12.0...api-only-suite-v3.12.1) (2026-11-23)
+
+
+### 🐛 Bug Fixes
+
+* **api-only-suite:** wait for the sibling releases of the same commit ([#303](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/303)) ([5a2969b](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/5a2969b69b086907f37bb9f37c4738b1e729d5af)), closes [#303](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/303) [#302](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/302)
+
 # [3.12.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/api-only-suite-v3.11.3...api-only-suite-v3.12.0) (2026-11-23)
 
 
