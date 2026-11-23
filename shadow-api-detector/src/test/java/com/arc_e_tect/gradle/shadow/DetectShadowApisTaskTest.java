@@ -233,6 +233,45 @@ class DetectShadowApisTaskTest {
     }
 
     @Test
+    @DisplayName("finds the endpoints a controller inherits from an interface declared in another file, as a generated API interface is")
+    void findsEndpointsInheritedFromAnInterfaceInAnotherFile() throws Exception {
+        writeControllerImplementingAGeneratedInterface();
+        DetectShadowApisTask task = configuredTask(openApiFixture("single-endpoint.yaml"), false);
+
+        task.generate();
+
+        String content = Files.readString(new File(reportDir, "shadow-apis.adoc").toPath());
+        assertThat(content)
+                .contains("Scanned 3 endpoint(s)")
+                .contains("/orders/{id}")
+                .contains("com.example.OrderController");
+    }
+
+    @Test
+    @DisplayName("scanForShadows finds the endpoints the target controller inherits from an interface in another file, and only the target's")
+    void scanForShadowsFindsEndpointsTheTargetInherits() throws Exception {
+        writeControllerImplementingAGeneratedInterface();
+        RecordingLogger recordingLogger = new RecordingLogger();
+        LoggerCapturingDetectShadowApisTask task = project.getTasks()
+                .create("scanForShadowsInherited", LoggerCapturingDetectShadowApisTask.class);
+        task.recordingLogger = recordingLogger;
+        task.getControllerDirs().from(controllerDir);
+        task.getRootDocument().set(openApiFixture("single-endpoint.yaml"));
+        task.getReportDir().set(reportDir);
+        task.getReportFileName().set("shadow-apis.adoc");
+        task.getFailOnShadow().set(false);
+        task.getSystemUnderTestVersion().set("1.0.0");
+        task.getScanForShadows().set("OrderController");
+
+        task.generate();
+
+        assertThat(recordingLogger.lifecycleMessages())
+                .anyMatch(message -> message.contains("/orders/{id}") && message.contains("com.example.OrderController"))
+                .anyMatch(message -> message.contains("scanned 1 controller(s), found 1 endpoint(s), 1 of them shadow API(s)"))
+                .noneMatch(message -> message.contains("com.example.UserController"));
+    }
+
+    @Test
     @DisplayName("writes the configured system under test version into the report")
     void writesSystemUnderTestVersionIntoReport() throws Exception {
         DetectShadowApisTask task = configuredTask(openApiFixture("single-endpoint.yaml"), false);
@@ -697,6 +736,44 @@ class DetectShadowApisTaskTest {
 
         String historyContent = Files.readString(historyFile.toPath());
         assertThat(historyContent).doesNotContain("\"path\":\"/users/{id}\"");
+    }
+
+    /**
+     * A controller whose only mapping is inherited from an interface in another file, shaped the
+     * way OpenAPI Generator's Spring interfaceOnly output is: a base-path placeholder with an empty
+     * default, and the path as a constant referenced through the interface's own name.
+     */
+    private void writeControllerImplementingAGeneratedInterface() throws Exception {
+        File api = new File(controllerDir, "api");
+        Files.createDirectories(api.toPath());
+        Files.writeString(api.toPath().resolve("OrdersApi.java"), """
+                package com.example.api;
+
+                import org.springframework.web.bind.annotation.RequestMapping;
+                import org.springframework.web.bind.annotation.RequestMethod;
+
+                @RequestMapping("${openapi.orders.base-path:}")
+                public interface OrdersApi {
+
+                    String PATH_GET_ORDER = "/orders/{id}";
+
+                    @RequestMapping(method = RequestMethod.GET, value = OrdersApi.PATH_GET_ORDER)
+                    String getOrder(String id);
+                }
+                """);
+        Files.writeString(controllerDir.toPath().resolve("OrderController.java"), """
+                package com.example;
+
+                import com.example.api.OrdersApi;
+                import org.springframework.web.bind.annotation.RestController;
+
+                @RestController
+                public class OrderController implements OrdersApi {
+
+                    @Override
+                    public String getOrder(String id) { return id; }
+                }
+                """);
     }
 
     private DetectShadowApisTask configuredTask(File rootDocument, boolean failOnShadow) {

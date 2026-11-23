@@ -5,6 +5,14 @@
 :icons: font
 :source-highlighter: rouge
 
+[NOTE]
+.About this documentation
+====
+This documentation was partially authored by Claude, an AI assistant.
+Documentation is part of the product, and is held to the same standard as the code it describes.
+If something here seems wrong, please file a bug report: link:https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/new[open an issue in this repository ↗].
+====
+
 image:https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/actions/workflows/nvd-cache-refresh.yml/badge.svg[Vulnerability Scan,link=https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/actions/workflows/nvd-cache-refresh.yml]
 image:https://img.shields.io/gradle-plugin-portal/v/com.arc-e-tect.shadow-api-detector[Gradle Plugin Portal,link=https://plugins.gradle.org/plugin/com.arc-e-tect.shadow-api-detector]
 image:https://img.shields.io/github/v/release/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle?filter=shadow-api-detector-v*[GitHub release,link=https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/releases?q=shadow-api-detector]
@@ -99,6 +107,51 @@ plugins {
 This is a scope restriction of the current MVP, not a design limit: only `@RestController`-based endpoints are scanned, and only "exposed but undocumented" is reported (the reverse case - documented but unimplemented - is out of scope). Both may be lifted in a future release.
 ====
 
+[#generated-interfaces]
+=== Controllers that implement a generated interface
+
+A controller's endpoints include the mappings it inherits from the interfaces it implements and the classes it extends, as Spring MVC serves them.
+That is how a controller is written against an interface generated from the OpenAPI contract, for example by OpenAPI Generator's Spring generator with `interfaceOnly`:
+
+[source,yaml]
+----
+paths:
+  /v1/orders/{id}:
+    get:
+      operationId: getOrder
+      parameters:
+        - {name: id, in: path, required: true, schema: {type: string}}
+      responses:
+        "200": {description: The order.}
+----
+
+[source,java]
+----
+// Generated from the contract, under build/generated/...
+@RequestMapping("${openapi.orders.base-path:}")
+public interface OrdersApi {
+
+    String PATH_GET_ORDER = "/v1/orders/{id}";
+
+    @RequestMapping(method = RequestMethod.GET, value = OrdersApi.PATH_GET_ORDER)
+    ResponseEntity<OrderV1> getOrder(@PathVariable("id") String id);
+}
+
+// Written by hand, under src/main/java/...
+@RestController
+public class OrderController implements OrdersApi {
+
+    @Override
+    public ResponseEntity<OrderV1> getOrder(String id) { ... }
+}
+----
+
+`GET /v1/orders/{id}` is found on `OrderController`.
+The files are scanned together, so the interface may be declared in any of them; its path constant resolves, and a `${key:default}` placeholder resolves to its default.
+`--scanForShadows` still parses every file under `controllerDirs`, so the target controller's supertypes are found, and reports only the target's endpoints.
+With the `java` plugin applied and no `controllerDirs` configured, every Java directory of the main source set is scanned, so a generator that adds its output to `sourceSets.main.java` has its interfaces found, and the scan runs after it.
+When `controllerDirs` is configured, it must name the generated directory too.
+
 == Excluding known-good implementations
 
 Some paths are meant to be off-limits to hand-written controllers - Spring Boot Actuator's
@@ -175,7 +228,8 @@ The plugin registers a `shadowApiDetector` extension.
 ----
 shadowApiDetector {
     // One or more directories to search recursively for @RestController classes.
-    // Default: src/main/java
+    // Default: every Java directory of the main source set, generated ones included;
+    // src/main/java without the java plugin.
     controllerDirs.from('src/main/java')
 
     // The root OpenAPI document. Required - every other document is expected to be
