@@ -1,3 +1,10 @@
+# [2.11.0](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/doppelganger-api-detector-v2.10.2...doppelganger-api-detector-v2.11.0) (2026-11-23)
+
+
+### ✨ New and updated features
+
+* **api-detectors:** find endpoints controllers inherit from generated interfaces ([#301](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/301)) ([984c4f1](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/commit/984c4f117152796391e46d9c35288db5e42441d9)), closes [#301](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/301)
+
 ## [2.10.2](https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/compare/doppelganger-api-detector-v2.10.1...doppelganger-api-detector-v2.10.2) (2026-11-19)
 
 
