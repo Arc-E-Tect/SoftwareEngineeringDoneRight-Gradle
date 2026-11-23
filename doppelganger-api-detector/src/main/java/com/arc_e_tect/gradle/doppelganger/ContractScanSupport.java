@@ -100,8 +100,10 @@ final class ContractScanSupport {
     }
 
     /**
-     * Scans every file in {@code controllerFiles} for {@code @RestController} endpoints, reporting
-     * determinate progress to {@code logger} as it goes.
+     * Scans every file in {@code controllerFiles} for {@code @RestController} endpoints, together,
+     * so a controller's endpoints include the mappings it inherits from supertypes declared in any
+     * of them, such as an interface generated from the contract; reports determinate progress to
+     * {@code logger} as each file is parsed.
      *
      * @param controllerFiles the {@code .java} files to scan
      * @param logger          the task's logger, used for the progress banner
@@ -109,17 +111,13 @@ final class ContractScanSupport {
      * @throws GradleException if a file cannot be scanned
      */
     static List<Endpoint> scanControllerFiles(List<File> controllerFiles, Logger logger) {
-        ControllerScanner controllerScanner = new ControllerScanner();
-        List<Endpoint> implemented = new ArrayList<>();
         ScanProgressReporter progress =
                 ScanProgressReporter.determinate(logger, "Scanning @RestController classes", controllerFiles.size());
-        for (File javaFile : controllerFiles) {
-            try {
-                implemented.addAll(controllerScanner.scan(javaFile));
-            } catch (IOException e) {
-                throw new GradleException("doppelgangerApiDetector: failed to scan " + javaFile, e);
-            }
-            progress.step();
+        List<Endpoint> implemented;
+        try {
+            implemented = new ControllerScanner().scan(controllerFiles, file -> progress.step());
+        } catch (IOException e) {
+            throw new GradleException("doppelgangerApiDetector: failed to scan the controller sources", e);
         }
         progress.complete();
         return implemented;

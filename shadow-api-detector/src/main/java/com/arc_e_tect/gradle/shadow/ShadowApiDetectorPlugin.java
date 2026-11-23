@@ -2,6 +2,8 @@ package com.arc_e_tect.gradle.shadow;
 
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
+import org.gradle.api.plugins.JavaPluginExtension;
+import org.gradle.api.tasks.SourceSet;
 import org.gradle.api.tasks.TaskProvider;
 
 import java.util.List;
@@ -96,17 +98,31 @@ public class ShadowApiDetectorPlugin implements Plugin<Project> {
                     task.getExcludeWellKnown().set(ext.getExcludeWellKnown());
                 });
 
-        // Default to src/main/java only when the user has not configured any controller
-        // directories themselves; deferred to afterEvaluate so the check happens once the build
-        // script has had a chance to configure the extension.
+        // Default only when the user has not configured any controller directories themselves;
+        // deferred to afterEvaluate so the check happens once the build script has had a chance to
+        // configure the extension. With the java plugin, the default is every Java directory of the
+        // main source set - generated ones included, such as the interfaces an OpenAPI generator
+        // writes for the controllers to implement - and, since getSourceDirectories() carries the
+        // tasks that generate them, the scan runs after those tasks. Without it, src/main/java.
         project.afterEvaluate(p -> {
             if (ext.getControllerDirs().isEmpty()) {
-                taskProvider.configure(task ->
-                        task.getControllerDirs().from(p.file(ShadowApiDetectorExtension.DEFAULT_CONTROLLER_DIR)));
+                taskProvider.configure(task -> task.getControllerDirs().from(defaultControllerDirs(p)));
             }
         });
 
         project.getTasks().register(UPDATE_DSL_TASK_NAME, UpdateShadowApiDetectorDslTask.class, task ->
                 task.getBuildFile().set(project.getLayout().file(project.provider(project::getBuildFile))));
+    }
+
+    /**
+     * The controller directories a project gets when it configures none: every Java directory of
+     * the main source set when the java plugin is applied, else {@code src/main/java}.
+     */
+    static Object defaultControllerDirs(Project project) {
+        JavaPluginExtension java = project.getExtensions().findByType(JavaPluginExtension.class);
+        if (java == null) {
+            return project.file(ShadowApiDetectorExtension.DEFAULT_CONTROLLER_DIR);
+        }
+        return java.getSourceSets().getByName(SourceSet.MAIN_SOURCE_SET_NAME).getJava().getSourceDirectories();
     }
 }

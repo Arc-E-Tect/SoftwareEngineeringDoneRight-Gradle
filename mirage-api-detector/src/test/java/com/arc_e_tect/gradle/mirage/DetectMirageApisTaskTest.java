@@ -157,6 +157,49 @@ class DetectMirageApisTaskTest {
     }
 
     @Test
+    @DisplayName("counts an operation implemented through an interface declared in another file, as a generated API interface is, as implemented")
+    void countsAnOperationImplementedThroughAnInterfaceInAnotherFile() throws Exception {
+        File api = new File(controllerDir, "api");
+        Files.createDirectories(api.toPath());
+        Files.writeString(api.toPath().resolve("OrdersApi.java"), """
+                package com.example.api;
+
+                import org.springframework.web.bind.annotation.RequestMapping;
+                import org.springframework.web.bind.annotation.RequestMethod;
+
+                @RequestMapping("${openapi.orders.base-path:}")
+                public interface OrdersApi {
+
+                    String PATH_LIST_ORDERS = "/orders";
+
+                    @RequestMapping(method = RequestMethod.GET, value = OrdersApi.PATH_LIST_ORDERS)
+                    String listOrders();
+                }
+                """);
+        Files.writeString(controllerDir.toPath().resolve("OrderController.java"), """
+                package com.example;
+
+                import com.example.api.OrdersApi;
+                import org.springframework.web.bind.annotation.RestController;
+
+                @RestController
+                public class OrderController implements OrdersApi {
+
+                    @Override
+                    public String listOrders() { return ""; }
+                }
+                """);
+        DetectMirageApisTask task = configuredTask(openApiFixture("users-and-orders.yaml"), false);
+
+        task.generate();
+
+        String content = Files.readString(new File(reportDir, "mirage-apis.adoc").toPath());
+        assertThat(content)
+                .contains("Scanned 2 endpoint(s)")
+                .doesNotContain("listOrders");
+    }
+
+    @Test
     @DisplayName("writes the configured system under test version into the report")
     void writesSystemUnderTestVersionIntoReport() throws Exception {
         DetectMirageApisTask task = configuredTask(openApiFixture("both-endpoints.yaml"), false);

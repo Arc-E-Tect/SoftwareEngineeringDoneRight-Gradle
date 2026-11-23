@@ -1,6 +1,10 @@
 package com.arc_e_tect.gradle.shadow;
 
 import org.gradle.api.Project;
+import org.gradle.api.Task;
+import org.gradle.api.plugins.JavaPluginExtension;
+import org.gradle.api.tasks.SourceSet;
+import org.gradle.api.tasks.TaskProvider;
 import org.gradle.api.internal.project.ProjectInternal;
 import org.gradle.testfixtures.ProjectBuilder;
 import org.junit.jupiter.api.DisplayName;
@@ -96,6 +100,40 @@ class ShadowApiDetectorPluginTest {
     @DisplayName("task defaults controllerDirs to src/main/java after evaluation when unset")
     void taskDefaultsControllerDirsAfterEvaluation() {
         Project project = projectWithPlugin();
+
+        ((ProjectInternal) project).evaluate();
+
+        DetectShadowApisTask task = (DetectShadowApisTask)
+                project.getTasks().getByName(ShadowApiDetectorPlugin.TASK_NAME);
+        assertThat(task.getControllerDirs().getFiles())
+                .containsExactly(new File(project.getProjectDir(), "src/main/java"));
+    }
+
+    @Test
+    @DisplayName("task defaults controllerDirs to every Java directory of the main source set, a generated one included, and runs after what generates it")
+    void taskDefaultsControllerDirsToTheMainSourceSetsJavaDirectories() {
+        Project project = projectWithPlugin();
+        TaskProvider<Task> generate = project.getTasks().register("generateApi", task ->
+                task.getOutputs().dir(project.getLayout().getBuildDirectory().dir("generated/api")));
+        project.getExtensions().getByType(JavaPluginExtension.class).getSourceSets()
+                .getByName(SourceSet.MAIN_SOURCE_SET_NAME).getJava()
+                .srcDir(generate.map(task -> task.getOutputs().getFiles().getSingleFile()));
+
+        ((ProjectInternal) project).evaluate();
+
+        DetectShadowApisTask task = (DetectShadowApisTask)
+                project.getTasks().getByName(ShadowApiDetectorPlugin.TASK_NAME);
+        assertThat(task.getControllerDirs().getFiles()).containsExactlyInAnyOrder(
+                new File(project.getProjectDir(), "src/main/java"),
+                new File(project.getProjectDir(), "build/generated/api"));
+        assertThat(task.getTaskDependencies().getDependencies(task)).extracting(Task::getName).contains("generateApi");
+    }
+
+    @Test
+    @DisplayName("task defaults controllerDirs to src/main/java when the java plugin is not applied")
+    void taskDefaultsControllerDirsWithoutTheJavaPlugin() {
+        Project project = ProjectBuilder.builder().withProjectDir(tempDir.toFile()).build();
+        project.getPluginManager().apply(ShadowApiDetectorPlugin.class);
 
         ((ProjectInternal) project).evaluate();
 

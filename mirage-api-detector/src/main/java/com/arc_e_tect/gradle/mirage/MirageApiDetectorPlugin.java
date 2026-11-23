@@ -130,7 +130,7 @@ public class MirageApiDetectorPlugin implements Plugin<Project> {
         project.afterEvaluate(p -> {
             if (ext.getControllerDirs().isEmpty()) {
                 taskProvider.configure(task ->
-                        task.getControllerDirs().from(p.file(MirageApiDetectorExtension.DEFAULT_CONTROLLER_DIR)));
+                        task.getControllerDirs().from(defaultControllerDirs(p)));
             }
             if (ext.getScanMocks().get() && ext.getStubDirs().isEmpty()) {
                 taskProvider.configure(task ->
@@ -179,7 +179,7 @@ public class MirageApiDetectorPlugin implements Plugin<Project> {
         project.afterEvaluate(p -> {
             if (ext.getControllerDirs().isEmpty()) {
                 migrateTaskProvider.configure(task ->
-                        task.getControllerDirs().from(p.file(MirageApiDetectorExtension.DEFAULT_CONTROLLER_DIR)));
+                        task.getControllerDirs().from(defaultControllerDirs(p)));
             }
             if (ext.getStubDirs().isEmpty()) {
                 migrateTaskProvider.configure(task ->
@@ -207,5 +207,19 @@ public class MirageApiDetectorPlugin implements Plugin<Project> {
                 "mirageApiDetector: invalid value '" + value + "' for -P"
                 + MirageApiDetectorExtension.UPDATE_CONTRACT_HISTORY_OVERRIDE_PROPERTY
                 + "; expected 'true' or 'false'");
+    }
+
+    /**
+     * The controller directories a project gets when it configures none: every Java directory of
+     * the main source set when the java plugin is applied - generated ones included, such as the
+     * interfaces an OpenAPI generator writes for the controllers to implement, with the tasks that
+     * generate them, so a scan runs after them - else {@code src/main/java}.
+     */
+    static Object defaultControllerDirs(Project project) {
+        JavaPluginExtension java = project.getExtensions().findByType(JavaPluginExtension.class);
+        if (java == null) {
+            return project.file(MirageApiDetectorExtension.DEFAULT_CONTROLLER_DIR);
+        }
+        return java.getSourceSets().getByName(SourceSet.MAIN_SOURCE_SET_NAME).getJava().getSourceDirectories();
     }
 }

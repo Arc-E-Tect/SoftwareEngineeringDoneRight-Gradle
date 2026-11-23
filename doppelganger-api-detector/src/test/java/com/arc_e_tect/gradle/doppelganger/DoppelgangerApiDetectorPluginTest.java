@@ -1,6 +1,10 @@
 package com.arc_e_tect.gradle.doppelganger;
 
 import org.gradle.api.Project;
+import org.gradle.api.Task;
+import org.gradle.api.plugins.JavaPluginExtension;
+import org.gradle.api.tasks.SourceSet;
+import org.gradle.api.tasks.TaskProvider;
 import org.gradle.api.internal.project.ProjectInternal;
 import org.gradle.testfixtures.ProjectBuilder;
 import org.junit.jupiter.api.DisplayName;
@@ -123,6 +127,46 @@ class DoppelgangerApiDetectorPluginTest {
         Project project = projectWithPlugin();
 
         assertThat(extension(project).getTestDirs().isEmpty()).isTrue();
+    }
+
+    @Test
+    @DisplayName("tasks default controllerDirs to every Java directory of the main source set, a generated one included, and run after what generates it")
+    void tasksDefaultControllerDirsToTheMainSourceSetsJavaDirectories() {
+        Project project = projectWithPlugin();
+        TaskProvider<Task> generate = project.getTasks().register("generateApi", task ->
+                task.getOutputs().dir(project.getLayout().getBuildDirectory().dir("generated/api")));
+        project.getExtensions().getByType(JavaPluginExtension.class).getSourceSets()
+                .getByName(SourceSet.MAIN_SOURCE_SET_NAME).getJava()
+                .srcDir(generate.map(task -> task.getOutputs().getFiles().getSingleFile()));
+
+        ((ProjectInternal) project).evaluate();
+
+        DetectDoppelgangerApisTask detectDoppelgangerApisTask = (DetectDoppelgangerApisTask) project.getTasks().getByName(DoppelgangerApiDetectorPlugin.TASK_NAME);
+        assertThat(detectDoppelgangerApisTask.getControllerDirs().getFiles()).containsExactlyInAnyOrder(
+                new File(project.getProjectDir(), "src/main/java"),
+                new File(project.getProjectDir(), "build/generated/api"));
+        assertThat(detectDoppelgangerApisTask.getTaskDependencies().getDependencies(detectDoppelgangerApisTask))
+                .extracting(Task::getName).contains("generateApi");
+        ScanContractsTask scanContractsTask = (ScanContractsTask) project.getTasks().getByName(DoppelgangerApiDetectorPlugin.SCAN_CONTRACTS_TASK_NAME);
+        assertThat(scanContractsTask.getControllerDirs().getFiles()).containsExactlyInAnyOrder(
+                new File(project.getProjectDir(), "src/main/java"),
+                new File(project.getProjectDir(), "build/generated/api"));
+        assertThat(scanContractsTask.getTaskDependencies().getDependencies(scanContractsTask))
+                .extracting(Task::getName).contains("generateApi");
+    }
+
+    @Test
+    @DisplayName("tasks default controllerDirs to src/main/java when the java plugin is not applied")
+    void tasksDefaultControllerDirsWithoutTheJavaPlugin() {
+        Project project = ProjectBuilder.builder().withProjectDir(tempDir.toFile()).build();
+        project.getPluginManager().apply(DoppelgangerApiDetectorPlugin.class);
+
+        ((ProjectInternal) project).evaluate();
+
+        assertThat(((DetectDoppelgangerApisTask) project.getTasks().getByName(DoppelgangerApiDetectorPlugin.TASK_NAME)).getControllerDirs().getFiles())
+                .containsExactly(new File(project.getProjectDir(), "src/main/java"));
+        assertThat(((ScanContractsTask) project.getTasks().getByName(DoppelgangerApiDetectorPlugin.SCAN_CONTRACTS_TASK_NAME)).getControllerDirs().getFiles())
+                .containsExactly(new File(project.getProjectDir(), "src/main/java"));
     }
 
     @Test

@@ -223,16 +223,13 @@ public abstract class MigrateContractHistoryTask extends DefaultTask {
             collectJavaFiles(dir, controllerFiles);
         }
 
-        ControllerScanner scanner = new ControllerScanner();
-        List<Endpoint> endpoints = new ArrayList<>();
-        for (File javaFile : controllerFiles) {
-            try {
-                endpoints.addAll(scanner.scan(javaFile));
-            } catch (IOException e) {
-                throw new GradleException("mirageApiDetector: failed to scan " + javaFile, e);
-            }
+        // Together, so a controller's endpoints include the mappings it inherits from supertypes
+        // declared in any of the files.
+        try {
+            return new ControllerScanner().scan(controllerFiles);
+        } catch (IOException e) {
+            throw new GradleException("mirageApiDetector: failed to scan the controller sources", e);
         }
-        return endpoints;
     }
 
     private List<Endpoint> scanStubs() {

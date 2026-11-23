@@ -1,6 +1,10 @@
 package com.arc_e_tect.gradle.mirage;
 
 import org.gradle.api.Project;
+import org.gradle.api.Task;
+import org.gradle.api.plugins.JavaPluginExtension;
+import org.gradle.api.tasks.SourceSet;
+import org.gradle.api.tasks.TaskProvider;
 import org.gradle.api.internal.project.ProjectInternal;
 import org.gradle.testfixtures.ProjectBuilder;
 import org.junit.jupiter.api.DisplayName;
@@ -92,6 +96,46 @@ class MirageApiDetectorPluginTest {
         Project project = projectWithPlugin();
 
         assertThat(extension(project).getControllerDirs().isEmpty()).isTrue();
+    }
+
+    @Test
+    @DisplayName("tasks default controllerDirs to every Java directory of the main source set, a generated one included, and run after what generates it")
+    void tasksDefaultControllerDirsToTheMainSourceSetsJavaDirectories() {
+        Project project = projectWithPlugin();
+        TaskProvider<Task> generate = project.getTasks().register("generateApi", task ->
+                task.getOutputs().dir(project.getLayout().getBuildDirectory().dir("generated/api")));
+        project.getExtensions().getByType(JavaPluginExtension.class).getSourceSets()
+                .getByName(SourceSet.MAIN_SOURCE_SET_NAME).getJava()
+                .srcDir(generate.map(task -> task.getOutputs().getFiles().getSingleFile()));
+
+        ((ProjectInternal) project).evaluate();
+
+        DetectMirageApisTask detectMirageApisTask = (DetectMirageApisTask) project.getTasks().getByName(MirageApiDetectorPlugin.TASK_NAME);
+        assertThat(detectMirageApisTask.getControllerDirs().getFiles()).containsExactlyInAnyOrder(
+                new File(project.getProjectDir(), "src/main/java"),
+                new File(project.getProjectDir(), "build/generated/api"));
+        assertThat(detectMirageApisTask.getTaskDependencies().getDependencies(detectMirageApisTask))
+                .extracting(Task::getName).contains("generateApi");
+        MigrateContractHistoryTask migrateContractHistoryTask = (MigrateContractHistoryTask) project.getTasks().getByName(MirageApiDetectorPlugin.MIGRATE_CONTRACT_HISTORY_TASK_NAME);
+        assertThat(migrateContractHistoryTask.getControllerDirs().getFiles()).containsExactlyInAnyOrder(
+                new File(project.getProjectDir(), "src/main/java"),
+                new File(project.getProjectDir(), "build/generated/api"));
+        assertThat(migrateContractHistoryTask.getTaskDependencies().getDependencies(migrateContractHistoryTask))
+                .extracting(Task::getName).contains("generateApi");
+    }
+
+    @Test
+    @DisplayName("tasks default controllerDirs to src/main/java when the java plugin is not applied")
+    void tasksDefaultControllerDirsWithoutTheJavaPlugin() {
+        Project project = ProjectBuilder.builder().withProjectDir(tempDir.toFile()).build();
+        project.getPluginManager().apply(MirageApiDetectorPlugin.class);
+
+        ((ProjectInternal) project).evaluate();
+
+        assertThat(((DetectMirageApisTask) project.getTasks().getByName(MirageApiDetectorPlugin.TASK_NAME)).getControllerDirs().getFiles())
+                .containsExactly(new File(project.getProjectDir(), "src/main/java"));
+        assertThat(((MigrateContractHistoryTask) project.getTasks().getByName(MirageApiDetectorPlugin.MIGRATE_CONTRACT_HISTORY_TASK_NAME)).getControllerDirs().getFiles())
+                .containsExactly(new File(project.getProjectDir(), "src/main/java"));
     }
 
     @Test

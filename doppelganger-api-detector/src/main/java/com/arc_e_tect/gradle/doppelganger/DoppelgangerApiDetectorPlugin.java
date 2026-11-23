@@ -3,7 +3,9 @@ package com.arc_e_tect.gradle.doppelganger;
 import org.gradle.api.GradleException;
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
+import org.gradle.api.plugins.JavaPluginExtension;
 import org.gradle.api.provider.Provider;
+import org.gradle.api.tasks.SourceSet;
 import org.gradle.api.tasks.TaskProvider;
 
 import java.util.List;
@@ -183,9 +185,9 @@ public class DoppelgangerApiDetectorPlugin implements Plugin<Project> {
             boolean testDirsUserConfigured = !ext.getTestDirs().isEmpty();
             if (!controllerDirsUserConfigured) {
                 taskProvider.configure(task -> task.getControllerDirs()
-                        .from(p.file(DoppelgangerApiDetectorExtension.DEFAULT_CONTROLLER_DIR)));
+                        .from(defaultControllerDirs(p)));
                 scanContractsTaskProvider.configure(task -> task.getControllerDirs()
-                        .from(p.file(DoppelgangerApiDetectorExtension.DEFAULT_CONTROLLER_DIR)));
+                        .from(defaultControllerDirs(p)));
             }
             if (!testDirsUserConfigured) {
                 taskProvider.configure(task -> task.getTestDirs()
@@ -220,5 +222,19 @@ public class DoppelgangerApiDetectorPlugin implements Plugin<Project> {
         throw new GradleException(
                 "doppelgangerApiDetector: invalid value '" + value + "' for -P" + propertyName
                 + "; expected 'true' or 'false'");
+    }
+
+    /**
+     * The controller directories a project gets when it configures none: every Java directory of
+     * the main source set when the java plugin is applied - generated ones included, such as the
+     * interfaces an OpenAPI generator writes for the controllers to implement, with the tasks that
+     * generate them, so a scan runs after them - else {@code src/main/java}.
+     */
+    static Object defaultControllerDirs(Project project) {
+        JavaPluginExtension java = project.getExtensions().findByType(JavaPluginExtension.class);
+        if (java == null) {
+            return project.file(DoppelgangerApiDetectorExtension.DEFAULT_CONTROLLER_DIR);
+        }
+        return java.getSourceSets().getByName(SourceSet.MAIN_SOURCE_SET_NAME).getJava().getSourceDirectories();
     }
 }

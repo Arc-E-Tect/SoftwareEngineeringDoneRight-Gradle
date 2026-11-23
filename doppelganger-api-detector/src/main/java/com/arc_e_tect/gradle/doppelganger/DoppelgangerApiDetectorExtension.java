@@ -11,7 +11,7 @@ import org.gradle.api.provider.Property;
  *
  * <pre>
  * doppelgangerApiDetector {
- *     controllerDirs.from('src/main/java')                                    // default
+ *     controllerDirs.from('src/main/java')                                    // default with no java plugin; with it, the main source set's Java dirs
  *     testDirs.from('src/testContract/java')                                  // default
  *     rootDocument   = file('src/main/resources/openapi/openapi.yaml')       // required
  *     // openApiDir  = rootDocument.get().asFile.parentFile                  // default

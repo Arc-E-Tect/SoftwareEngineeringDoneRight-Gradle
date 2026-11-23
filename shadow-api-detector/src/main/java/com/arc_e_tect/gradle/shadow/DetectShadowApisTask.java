@@ -40,6 +40,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 /**
  * Gradle task that scans {@code @RestController} classes, compares the endpoints they expose
@@ -397,14 +398,9 @@ public abstract class DetectShadowApisTask extends DefaultTask {
             }
         }
 
-        ControllerScanner scanner = new ControllerScanner();
-        List<Endpoint> endpoints = new ArrayList<>();
         ScanProgressReporter controllerScanProgress = ScanProgressReporter.determinate(
                 getLogger(), "Scanning @RestController classes", controllerFiles.size());
-        for (File javaFile : controllerFiles) {
-            scanFile(scanner, javaFile, endpoints);
-            controllerScanProgress.step();
-        }
+        List<Endpoint> endpoints = scanFiles(controllerFiles, controllerFiles, file -> controllerScanProgress.step());
         controllerScanProgress.complete();
 
         boolean openApiAvailable = isRootDocumentAvailable();
@@ -553,11 +549,16 @@ public abstract class DetectShadowApisTask extends DefaultTask {
     private void scanSingleController(String target) {
         List<File> controllerFiles = resolveScanForShadowsTargets(target);
 
-        ControllerScanner scanner = new ControllerScanner();
-        List<Endpoint> endpoints = new ArrayList<>();
-        for (File controllerFile : controllerFiles) {
-            scanFile(scanner, controllerFile, endpoints);
+        // Every file under controllerDirs is parsed, so the supertypes the targets inherit their
+        // mappings from are found wherever they are declared; only the targets' controllers are
+        // reported.
+        List<File> sourceFiles = new ArrayList<>();
+        for (File dir : getControllerDirs()) {
+            if (dir.isDirectory()) {
+                sourceFiles.addAll(collectJavaFiles(dir));
+            }
         }
+        List<Endpoint> endpoints = scanFiles(sourceFiles, controllerFiles, file -> { });
 
         File rootDocument = getRootDocument().getAsFile().get();
         List<DescribedEndpoint> described = new OpenApiEndpointCollector().collect(rootDocument, file -> {});
@@ -699,11 +700,17 @@ public abstract class DetectShadowApisTask extends DefaultTask {
         }
     }
 
-    private void scanFile(ControllerScanner scanner, File file, List<Endpoint> endpoints) {
+    /**
+     * Scans {@code sourceFiles} together, so a controller's endpoints include the mappings it
+     * inherits from supertypes declared in any of them, and returns the endpoints of the
+     * controllers declared in {@code controllerFiles}.
+     */
+    private static List<Endpoint> scanFiles(List<File> sourceFiles, List<File> controllerFiles,
+                                            Consumer<File> onFileParsed) {
         try {
-            endpoints.addAll(scanner.scan(file));
+            return new ControllerScanner().scan(sourceFiles, controllerFiles, onFileParsed);
         } catch (IOException e) {
-            throw new GradleException("shadowApiDetector: failed to scan " + file, e);
+            throw new GradleException("shadowApiDetector: failed to scan the controller sources", e);
         }
     }
 }
