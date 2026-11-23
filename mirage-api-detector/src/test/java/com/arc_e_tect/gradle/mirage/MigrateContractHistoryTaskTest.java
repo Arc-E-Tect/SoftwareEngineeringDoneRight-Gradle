@@ -95,6 +95,49 @@ class MigrateContractHistoryTaskTest {
     }
 
     @Test
+    @DisplayName("a record matching a controller only through an interface declared in another file keeps implementedAt")
+    void matchThroughAnInterfaceInAnotherFileKeepsImplementedAt() throws Exception {
+        File api = new File(controllerDir, "api");
+        Files.createDirectories(api.toPath());
+        Files.writeString(api.toPath().resolve("InheritedApi.java"), """
+                package com.example.api;
+
+                import org.springframework.web.bind.annotation.GetMapping;
+
+                public interface InheritedApi {
+
+                    String PATH = "/inherited";
+
+                    @GetMapping(InheritedApi.PATH)
+                    String inherited();
+                }
+                """);
+        Files.writeString(controllerDir.toPath().resolve("InheritingController.java"), """
+                package com.example;
+
+                import com.example.api.InheritedApi;
+                import org.springframework.web.bind.annotation.RestController;
+
+                @RestController
+                public class InheritingController implements InheritedApi {
+
+                    @Override
+                    public String inherited() { return ""; }
+                }
+                """);
+        Instant oldImplementedAt = Instant.parse("2026-01-10T00:00:00Z");
+        File historyFile = writeLegacyHistory(legacyLine("/inherited", oldImplementedAt, null));
+
+        MigrateContractHistoryTask task = newTask(historyFile);
+        task.migrate();
+
+        ContractProgressRecord migrated = loadMigrated(historyFile).get(fingerprint("/inherited"));
+        assertThat(migrated.implementedAt()).isEqualTo(oldImplementedAt);
+        assertThat(migrated.declaringClass()).isEqualTo("com.example.InheritingController");
+        assertThat(migrated.removedAt()).isNull();
+    }
+
+    @Test
     @DisplayName("a record matching only a stub gets stubbedAt and loses implementedAt")
     void stubOnlyMatchGetsStubbedAtLosesImplementedAt() throws Exception {
         Instant oldImplementedAt = Instant.parse("2026-01-10T00:00:00Z");

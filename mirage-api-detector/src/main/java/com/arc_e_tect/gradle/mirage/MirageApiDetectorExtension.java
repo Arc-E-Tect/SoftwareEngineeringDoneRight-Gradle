@@ -11,7 +11,7 @@ import org.gradle.api.provider.Property;
  *
  * <pre>
  * mirageApiDetector {
- *     controllerDirs.from('src/main/java')                                    // default
+ *     controllerDirs.from('src/main/java')                                    // default with no java plugin; with it, the main source set's Java dirs
  *     rootDocument   = file('src/main/resources/openapi/openapi.yaml')       // required
  *     // openApiDir  = rootDocument.get().asFile.parentFile                  // default
  *     scanMocks      = false                                                  // default

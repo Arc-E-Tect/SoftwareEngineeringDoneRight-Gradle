@@ -45,6 +45,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 /**
  * Gradle task that parses the configured OpenAPI documentation, compares the operations it
@@ -319,14 +320,9 @@ public abstract class DetectMirageApisTask extends DefaultTask {
             }
         }
 
-        ControllerScanner controllerScanner = new ControllerScanner();
-        List<Endpoint> controllerEndpoints = new ArrayList<>();
         ScanProgressReporter controllerScanProgress = ScanProgressReporter.determinate(
                 getLogger(), "Scanning @RestController classes", controllerFiles.size());
-        for (File javaFile : controllerFiles) {
-            scanFile(controllerScanner, javaFile, controllerEndpoints);
-            controllerScanProgress.step();
-        }
+        List<Endpoint> controllerEndpoints = scanFiles(controllerFiles, file -> controllerScanProgress.step());
         controllerScanProgress.complete();
 
         OpenApiEndpointCollector openApiCollector = new OpenApiEndpointCollector();
@@ -641,11 +637,15 @@ public abstract class DetectMirageApisTask extends DefaultTask {
         }
     }
 
-    private void scanFile(ControllerScanner scanner, File file, List<Endpoint> endpoints) {
+    /**
+     * Scans {@code files} together, so a controller's endpoints include the mappings it inherits
+     * from supertypes declared in any of them, such as an interface generated from the contract.
+     */
+    private static List<Endpoint> scanFiles(List<File> files, Consumer<File> onFileParsed) {
         try {
-            endpoints.addAll(scanner.scan(file));
+            return new ControllerScanner().scan(files, onFileParsed);
         } catch (IOException e) {
-            throw new GradleException("mirageApiDetector: failed to scan " + file, e);
+            throw new GradleException("mirageApiDetector: failed to scan the controller sources", e);
         }
     }
 }
