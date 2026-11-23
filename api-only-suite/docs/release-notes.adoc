@@ -1,0 +1,22 @@
+= API-Only Suite: Release Notes
+:toc: left
+
+[NOTE]
+.About this documentation
+====
+This documentation was partially authored by Claude, an AI assistant.
+Documentation is part of the product, and is held to the same standard as the code it describes.
+If something here seems wrong, please file a bug report: link:https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/new[open an issue in this repository ↗].
+====
+
+Notes on releases whose contents are not what their version suggests.
+Every release's changes are listed on its link:https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/releases?q=api-only-suite[GitHub release ↗].
+
+== 3.12.1 replaces 3.12.0
+
+3.12.0 was meant to carry the three detectors released with it: shadow-api-detector 3.8.0, mirage-api-detector 4.9.0 and doppelganger-api-detector 2.11.0.
+It carries shadow-api-detector 3.7.2 instead, because its release did not wait for Shadow's release run of the same commit (link:https://github.com/Arc-E-Tect/SoftwareEngineeringDoneRight-Gradle/issues/302[issue #302 ↗]).
+With 3.12.0, a controller that implements an interface generated from the OpenAPI contract has its endpoints found by Mirage and Doppelganger, but not by Shadow.
+
+3.12.1 carries all three, shadow-api-detector 3.8.0 included.
+Use 3.12.1 rather than 3.12.0.

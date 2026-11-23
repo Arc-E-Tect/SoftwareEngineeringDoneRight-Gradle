@@ -147,71 +147,44 @@ jobs:
     timeout-minutes: 60
 
     steps:
-      - name: Wait for any sibling detector plugin release still in flight
+      # Only release/ is needed: the wait is release/wait-for-sibling-releases.js, tested with the
+      # other release scripts in every Calculate-Version run.
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+          sparse-checkout: release
+
+      - name: Wait for the sibling detector plugin releases of this commit
         # api-only-suite pulls shadow/mirage/doppelganger-api-detector in as subprojects and the
         # Publish job below resolves their real released version from git tags. This workflow fires
         # both when api-only-suite's own files change (push) and whenever any sibling's own release
-        # workflow completes (workflow_run, added so a sibling-only change still reaches a new
-        # api-only-suite release). Either way, a *different* sibling's release triggered by the same
-        # underlying push can still be in flight when we reach this point, which would silently pin
-        # api-only-suite to that sibling's stale previous version.
+        # workflow completes (workflow_run). Either way, a sibling's release triggered by the same
+        # commit can still be in flight here, which would silently pin api-only-suite to that
+        # sibling's previous version.
         #
-        # Rather than diffing the triggering push - workflow_run events don't carry a comparable
-        # before/after pair - check each sibling's own release workflow's most recent run on main
-        # directly and wait for it if still in progress. This is correct for both trigger types and
-        # for any number of siblings releasing concurrently, at the cost of not knowing in advance
-        # which siblings are actually relevant to this run (so it checks all three, unconditionally),
-        # and of no longer aborting outright when a sibling's most recent run failed: unlike the
-        # old push-diff version, this can't tell "a sibling relevant to this exact push failed" from
-        # "some unrelated earlier run of that sibling failed", so it simply waits for in-progress
-        # runs and otherwise proceeds - the Resolve sibling plugin versions step below then reads
-        # each sibling's last successfully tagged version regardless, never a broken one.
+        # So each sibling's release runs *of this commit* are waited for - the commit the push
+        # carries, or the one the triggering sibling run released. A run is in flight in any status
+        # but `completed` (one waiting on a concurrency group is `pending` or `waiting`), a sibling
+        # with no run for the commit is taken as not triggered by it only after a grace period, and
+        # a failure to list the runs fails this job rather than letting Publish go ahead.
         #
-        # This traces back to a real incident: api-only-suite 0.2.0 was published referencing
+        # This traces back to two real incidents: api-only-suite 0.2.0 was published referencing
         # shadow-api-detector 1.2.0 and mirage-api-detector 0.2.0 instead of the 1.3.0/0.3.0 that
-        # same push actually released, because this job didn't exist yet.
-        #
-        # This job has no checkout step - it never touches git, only the GitHub API via `gh` - so
-        # every `gh run list` call below passes --repo explicitly rather than relying on `gh`
-        # auto-detecting the repository from a local .git directory that doesn't exist here.
-        # Omitting --repo broke this job's very first real run: "failed to determine base repo:
-        # fatal: not a git repository", which silently skipped Publish and left a real release
-        # (api-only-suite 0.4.2) tagged but never uploaded to the Gradle Plugin Portal.
+        # same push released, because no wait existed yet; and api-only-suite 3.12.0 was published
+        # referencing shadow-api-detector 3.7.2 instead of 3.8.0, because the wait read each
+        # sibling's most recent run on main and took an empty answer, while Shadow's run waited on
+        # a concurrency group, for "no run in progress" (#302).
         env:
           GH_TOKEN: ${{ secrets.SEDR_AUTOMATION_TOKEN }}
+          REPOSITORY: ${{ github.repository }}
+          COMMIT_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
         run: |
-          set -euo pipefail
-
-          SIBLING_WORKFLOWS=(
-            "Shadow API Detector Plugin - Release"
-            "Mirage API Detector Plugin - Release"
+          node release/wait-for-sibling-releases.js \
+            "Shadow API Detector Plugin - Release" \
+            "Mirage API Detector Plugin - Release" \
             "Doppelganger API Detector Plugin - Release"
-          )
-
-          TIMEOUT_SECONDS=1200
-          INTERVAL_SECONDS=20
-
-          for WF in "${SIBLING_WORKFLOWS[@]}"; do
-            echo "Checking '$WF' for an in-progress run on main..."
-            ELAPSED=0
-            while :; do
-              STATUS=$(gh run list --repo "${{ github.repository }}" --workflow "$WF" --branch main --limit 1 --json status -q '.[0].status // empty')
-
-              if [[ -z "$STATUS" || "$STATUS" == "completed" ]]; then
-                echo "'$WF' has no run in progress."
-                break
-              fi
-
-              if (( ELAPSED >= TIMEOUT_SECONDS )); then
-                echo "::error::Timed out after ${TIMEOUT_SECONDS}s waiting for '$WF' to finish (last status: '$STATUS'). Re-run this workflow once it has completed."
-                exit 1
-              fi
-
-              echo "'$WF' status: '$STATUS' - waiting ${INTERVAL_SECONDS}s..."
-              sleep "$INTERVAL_SECONDS"
-              ELAPSED=$((ELAPSED + INTERVAL_SECONDS))
-            done
-          done
 
   Publish:
     name: Publish API-Only Suite Plugin to Gradle Portal
